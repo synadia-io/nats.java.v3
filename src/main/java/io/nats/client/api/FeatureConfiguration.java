@@ -16,6 +16,8 @@ package io.nats.client.api;
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.JsonValueUtils;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.Map;
@@ -23,6 +25,9 @@ import java.util.Map;
 import static io.nats.client.support.Validator.validateBucketName;
 import static io.nats.client.support.Validator.validateMaxBucketBytes;
 
+/**
+ * base class for feature configurations
+ */
 public abstract class FeatureConfiguration implements JsonSerializable {
     protected static final CompressionOption JS_COMPRESSION_YES = CompressionOption.S2;
     protected static final CompressionOption JS_COMPRESSION_NO = CompressionOption.None;
@@ -31,11 +36,13 @@ public abstract class FeatureConfiguration implements JsonSerializable {
     protected final String bucketName;
 
     @Override
+    @NonNull
     public String toJson() {
         return toJsonValue().toString();
     }
 
     @Override
+    @NonNull
     public JsonValue toJsonValue() {
         JsonValueUtils.MapBuilder mb = new JsonValueUtils.MapBuilder();
         mb.put("name", bucketName);
@@ -50,6 +57,11 @@ public abstract class FeatureConfiguration implements JsonSerializable {
         return mb.toJsonValue();
     }
 
+    /**
+     * Construct a FeatureConfiguration from a StreamConfiguration and a bucket name
+     * @param sc the StreamConfiguration
+     * @param bucketName the bucket name
+     */
     public FeatureConfiguration(StreamConfiguration sc, String bucketName) {
         this.sc = sc;
         this.bucketName = bucketName;
@@ -59,6 +71,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
      * Gets the stream configuration for the stream which backs the bucket
      * @return the stream configuration
      */
+    @NonNull
     public StreamConfiguration getBackingConfig() {
         return sc;
     }
@@ -67,6 +80,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
      * Gets the name of this bucket.
      * @return the name of the bucket.
      */
+    @NonNull
     public String getBucketName() {
         return bucketName;
     }
@@ -75,6 +89,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
      * Gets the description of this bucket.
      * @return the description of the bucket.
      */
+    @Nullable
     public String getDescription() {
         return sc.getDescription();
     }
@@ -91,6 +106,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
      * Gets the maximum age for a value in this bucket.
      * @return the maximum age.
      */
+    @Nullable
     public Duration getTtl() {
         return sc.getMaxAge();
     }
@@ -99,6 +115,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
      * Gets the storage type for this bucket.
      * @return the storage type for this stream.
      */
+    @Nullable
     public StorageType getStorageType() {
         return sc.getStorageType();
     }
@@ -116,6 +133,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
      * random placement when unset
      * @return the placement [directive object]
      */
+    @Nullable
     public Placement getPlacement() {
         return sc.getPlacement();
     }
@@ -132,6 +150,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
      * Get the metadata for the feature
      * @return the metadata map. Might be null.
      */
+    @Nullable
     public Map<String, String> getMetadata() {
         return sc.getMetadata();
     }

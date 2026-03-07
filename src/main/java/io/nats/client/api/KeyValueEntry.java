@@ -15,12 +15,15 @@ package io.nats.client.api;
 import io.nats.client.Message;
 import io.nats.client.impl.Headers;
 import io.nats.client.support.NatsKeyValueUtil;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 
 import static io.nats.client.support.NatsJetStreamConstants.MSG_SIZE_HDR;
 import static io.nats.client.support.NatsKeyValueUtil.BucketAndKey;
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * The KeyValueEntry represents a record in the Key Value history
@@ -35,8 +38,15 @@ public class KeyValueEntry {
     private final long delta;
     private final KeyValueOperation op;
 
+    /**
+     * Construct KeyValueEntry from message info
+     * @param mi the message info
+     */
     public KeyValueEntry(MessageInfo mi) {
         Headers h = mi.getHeaders();
+        if (mi.getSubject() == null) {
+            throw new IllegalStateException("Invalid Message Info");
+        }
         bucketAndKey = new BucketAndKey(mi.getSubject());
         value = extractValue(mi.getData());
         dataLen = calculateLength(value, h);
@@ -46,6 +56,10 @@ public class KeyValueEntry {
         op = NatsKeyValueUtil.getOperation(h);
     }
 
+    /**
+     * Construct KeyValueEntry from a message
+     * @param m the message
+     */
     public KeyValueEntry(Message m) {
         Headers h = m.getHeaders();
         bucketAndKey = new BucketAndKey(m.getSubject());
@@ -57,42 +71,89 @@ public class KeyValueEntry {
         op = NatsKeyValueUtil.getOperation(h);
     }
 
+    /**
+     * Get the key value bucket this key in.
+     * @return the bucket
+     */
+    @NonNull
     public String getBucket() {
         return bucketAndKey.bucket;
     }
 
+    /**
+     * Get the key
+     * @return the key
+     */
+    @NonNull
     public String getKey() {
         return bucketAndKey.key;
     }
 
-    public byte[] getValue() {
+    /**
+     * Get the value. May be null
+     * @return the value
+     */
+    public byte @Nullable [] getValue() {
         return value;
     }
 
+    /**
+     * Get the value as a string using UTF-8 encoding
+     * @return the value as a string or null if there is no value
+     */
+    @Nullable
     public String getValueAsString() {
-        return value == null ? null : new String(value, StandardCharsets.UTF_8);
+        return value == null ? null : new String(value, UTF_8);
     }
 
+    /**
+     * Get the value as a long
+     * @return the value or null if there is no value
+     * @throws NumberFormatException  if the string does not contain a parsable {@code long}.
+     */
+    @Nullable
     public Long getValueAsLong() {
-        return value == null ? null : Long.parseLong(new String(value, StandardCharsets.US_ASCII));
+        return value == null ? null : Long.parseLong(new String(value, ISO_8859_1));
     }
 
+    /**
+     * Get the number of bytes in the data. May be zero
+     * @return the number of bytes
+     */
     public long getDataLen() {
         return dataLen;
     }
 
+    /**
+     * Get the creation time of the current version of the key
+     * @return the creation time
+     */
+    @NonNull
     public ZonedDateTime getCreated() {
         return created;
     }
 
+    /**
+     * Get the revision number of the string. Not a version, but an internally strictly monotonical value
+     * @return the revision
+     */
     public long getRevision() {
         return revision;
     }
 
+    /**
+     * Internal reference to pending message from the entry request
+     * @return the delta
+     */
     public long getDelta() {
         return delta;
     }
 
+    /**
+     * The KeyValueOperation of this entry
+     * @return the operation
+     */
+    @NonNull
     public KeyValueOperation getOperation() {
         return op;
     }

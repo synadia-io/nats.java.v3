@@ -15,6 +15,8 @@ package io.nats.client.api;
 
 import io.nats.client.Message;
 import io.nats.client.support.JsonValue;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,14 +28,17 @@ import static io.nats.client.support.JsonValueUtils.readString;
 /**
  * The JetStream Account Statistics
  */
-public class AccountStatistics
-        extends ApiResponse<AccountStatistics> {
+public class AccountStatistics extends ApiResponse<AccountStatistics> {
 
     private final AccountTier rollupTier;
     private final String domain;
     private final ApiStats api;
     private final Map<String, AccountTier> tiers;
 
+    /**
+     * Construct an AccountStatistics
+     * @param msg the api response message
+     */
     public AccountStatistics(Message msg) {
         super(msg);
         rollupTier = new AccountTier(jv);
@@ -111,9 +116,10 @@ public class AccountStatistics
     }
 
     /**
-     * Gets the account domain
+     * Gets the account domain. May be null
      * @return the domain
      */
+    @Nullable
     public String getDomain() {
         return domain;
     }
@@ -122,14 +128,16 @@ public class AccountStatistics
      * Gets the account api stats
      * @return the ApiStats object
      */
+    @NonNull
     public ApiStats getApi() {
         return api;
     }
 
     /**
-     * Gets the map of the Account Tiers by tier name
+     * Gets the map of the Account Tiers by tier name. May be empty, but never null.
      * @return the map
      */
+    @NonNull
     public Map<String, AccountTier> getTiers() {
         return tiers;
     }

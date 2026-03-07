@@ -14,9 +14,13 @@
 package io.nats.client.impl;
 
 import io.nats.client.Options;
+import io.nats.client.Options.HostnameResolveMode;
+import io.nats.client.support.HappyEyeballsConnector;
 import io.nats.client.support.NatsUri;
 import io.nats.client.support.WebSocket;
+import org.jspecify.annotations.NonNull;
 
+import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -36,25 +40,22 @@ import static io.nats.client.support.NatsConstants.SECURE_WEBSOCKET_PROTOCOL;
 /**
  * This class is not thread-safe.  Caller must ensure thread safety.
  */
+@SuppressWarnings("ClassEscapesDefinedScope") // NatsConnection
 public class SocketDataPort implements DataPort {
 
     protected NatsConnection connection;
+
     protected String host;
     protected int port;
     protected Socket socket;
     protected boolean isSecure = false;
-    protected int soLinger;
 
     protected InputStream in;
     protected OutputStream out;
 
+    @Deprecated
     @Override
-    public void afterConstruct(Options options) {
-        soLinger = options.getSocketSoLinger();
-    }
-
-    @Override
-    public void connect(String serverURI, NatsConnection conn, long timeoutNanos) throws IOException {
+    public void connect(@NonNull String serverURI, @NonNull NatsConnection conn, long timeoutNanos) throws IOException {
         try {
             connect(conn, new NatsUri(serverURI), timeoutNanos);
         }
@@ -64,7 +65,7 @@ public class SocketDataPort implements DataPort {
     }
 
     @Override
-    public void connect(NatsConnection conn, NatsUri nuri, long timeoutNanos) throws IOException {
+    public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {
         connection = conn;
         Options options = connection.getOptions();
         long timeout = timeoutNanos / 1_000_000; // convert to millis
@@ -72,29 +73,48 @@ public class SocketDataPort implements DataPort {
         port = nuri.getPort();
 
         try {
-            if (options.getProxy() != null) {
-                socket = new Socket(options.getProxy());
+            HostnameResolveMode mode = options.hostnameResolveMode();
+            if (mode == HostnameResolveMode.HappyEyeballs) {
+                socket = HappyEyeballsConnector.connect(
+                    options.getExecutor(),
+                    () -> createSocket(options),
+                    host, port, (int) timeout
+                );
             }
             else {
-                socket = new Socket();
+                socket = createSocket(options);
+                InetSocketAddress inetSocketAddress;
+                if (mode == HostnameResolveMode.Unresolved && !nuri.hostIsIpAddress()) {
+                    inetSocketAddress = InetSocketAddress.createUnresolved(host, port);
+                }
+                else {
+                    inetSocketAddress = new InetSocketAddress(host, port);
+                }
+                socket.connect(inetSocketAddress, (int) timeout);
             }
-            socket.setTcpNoDelay(true);
-            socket.setReceiveBufferSize(2 * 1024 * 1024);
-            socket.setSendBufferSize(2 * 1024 * 1024);
-            socket.connect(new InetSocketAddress(host, port), (int) timeout);
-            if (soLinger > -1) {
-                socket.setSoLinger(true, soLinger);
-            }
+
             if (options.getSocketReadTimeoutMillis() > 0) {
                 socket.setSoTimeout(options.getSocketReadTimeoutMillis());
             }
 
-            if (isWebsocketScheme(nuri.getScheme())) {
+            if (options.getSocketSoLinger() > 0) {
+                socket.setSoLinger(true, options.getSocketSoLinger());
+            }
+
+            if (options.getReceiveBufferSize() > 0) {
+                socket.setReceiveBufferSize(options.getReceiveBufferSize());
+            }
+
+            if (options.getSendBufferSize() > 0) {
+                socket.setSendBufferSize(options.getSendBufferSize());
+            }
+
+            if (nuri.isWebsocket()) {
                 if (SECURE_WEBSOCKET_PROTOCOL.equalsIgnoreCase(nuri.getScheme())) {
                     upgradeToSecure();
                 }
                 try {
-                    socket = new WebSocket(socket, host, options.getHttpRequestInterceptors());
+                    socket = new WebSocket(socket, host, options.getHttpRequestInterceptors(), nuri.getUri().getPath());
                 } catch (Exception ex) {
                     socket.close();
                     throw ex;
@@ -104,7 +124,9 @@ public class SocketDataPort implements DataPort {
             out = socket.getOutputStream();
         }
         catch (Exception e) {
-            try { socket.close(); } catch (Exception ignore) {}
+            if (socket != null) {
+                try { socket.close(); } catch (Exception ignore) {}
+            }
             socket = null;
             if (e instanceof IOException) {
                 throw e;
@@ -120,7 +142,7 @@ public class SocketDataPort implements DataPort {
     public void upgradeToSecure() throws IOException {
         Options options = connection.getOptions();
         SSLContext context = options.getSslContext();
-        
+
         SSLSocketFactory factory = context.getSocketFactory();
         Duration timeout = options.getConnectionTimeout();
 
@@ -128,11 +150,9 @@ public class SocketDataPort implements DataPort {
         sslSocket.setUseClientMode(true);
 
         final CompletableFuture<Void> waitForHandshake = new CompletableFuture<>();
-        
-        sslSocket.addHandshakeCompletedListener((evt) -> {
-            waitForHandshake.complete(null);
-        });
+        final HandshakeCompletedListener hcl = (evt) -> waitForHandshake.complete(null);
 
+        sslSocket.addHandshakeCompletedListener(hcl);
         sslSocket.startHandshake();
 
         try {
@@ -140,6 +160,9 @@ public class SocketDataPort implements DataPort {
         } catch (Exception ex) {
             connection.handleCommunicationIssue(ex);
             return;
+        }
+        finally {
+            sslSocket.removeHandshakeCompletedListener(hcl);
         }
 
         socket = sslSocket;
@@ -158,33 +181,47 @@ public class SocketDataPort implements DataPort {
 
     public void shutdownInput() throws IOException {
         // cannot call shutdownInput on sslSocket
-        if (!isSecure) {
+        if (!isSecure && socket != null) {
             socket.shutdownInput();
         }
     }
 
     public void close() throws IOException {
-        socket.close();
+        if (socket != null) {
+            socket.close();
+        }
     }
 
     @Override
     public void forceClose() throws IOException {
-        try {
-            // If we are being asked to force close, there is no need to linger.
-            socket.setSoLinger(true, 0);
+        // socket can technically be null, like between states
+        // practically it never will be, but guard it anyway
+        if (socket != null) {
+            try {
+                // If we are being asked to force close, there is no need to linger.
+                socket.setSoLinger(true, 0);
+            }
+            catch (SocketException e) {
+                // don't want to fail if I couldn't set linger
+            }
+            close();
         }
-        catch (SocketException e) {
-            // don't want to fail if I couldn't set linger
-        }
-        close();
     }
 
     public void flush() throws IOException {
         out.flush();
     }
 
-    protected static boolean isWebsocketScheme(String scheme) {
-        return "ws".equalsIgnoreCase(scheme) ||
-            "wss".equalsIgnoreCase(scheme);
+    private Socket createSocket(Options options) throws SocketException {
+        Socket socket;
+        if (options.getProxy() != null) {
+            socket = new Socket(options.getProxy());
+        } else {
+            socket = new Socket();
+        }
+        socket.setTcpNoDelay(true);
+        socket.setReceiveBufferSize(2 * 1024 * 1024);
+        socket.setSendBufferSize(2 * 1024 * 1024);
+        return socket;
     }
 }

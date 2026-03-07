@@ -13,8 +13,8 @@
 
 package io.nats.client.support;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
-import nl.jqno.equalsverifier.Warning;
+import io.nats.client.utils.TestBase;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -42,44 +42,53 @@ public final class JsonParsingTests {
         List<JsonValue> list = new ArrayList<>();
 
         int x = 0;
-        addField(key(x++), "b4\\after", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4/after", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4\"after", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4\tafter", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4\\bafter", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4\\fafter", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4\\nafter", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4\\rafter", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4\\tafter", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4" + (char) 0 + "after", oMap, list, encodeds, decodeds);
-        addField(key(x++), "b4" + (char) 1 + "after", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\\after", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4/after", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\"after", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\tafter", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\\bafter", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\\fafter", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\\nafter", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\\rafter", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4\\tafter", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4" + (char) 0 + "after", oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), "b4" + (char) 1 + "after", oMap, list, encodeds, decodeds);
 
         List<String> utfs = dataAsLines("utf8-only-no-ws-test-strings.txt");
         for (String u : utfs) {
             String uu = "b4\b\f\n\r\t" + u + "after";
-            addField(key(x++), uu, oMap, list, encodeds, decodeds);
+            addField(TestBase.data(x++), uu, oMap, list, encodeds, decodeds);
         }
 
-        addField(key(x++), PLAIN, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_SPACE, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_PRINTABLE, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_DOT, oMap, list, encodeds, decodeds);
-        addField(key(x++), STAR_NOT_SEGMENT, oMap, list, encodeds, decodeds);
-        addField(key(x++), GT_NOT_SEGMENT, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_DASH, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_UNDER, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_DOLLAR, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_LOW, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_127, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_FWD_SLASH, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_BACK_SLASH, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_EQUALS, oMap, list, encodeds, decodeds);
-        addField(key(x++), HAS_TIC, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), PLAIN, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_SPACE, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_PRINTABLE, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_DOT, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), STAR_NOT_SEGMENT, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), GT_NOT_SEGMENT, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_DASH, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_UNDER, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_DOLLAR, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_LOW, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_127, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_FWD_SLASH, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_BACK_SLASH, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x++), HAS_EQUALS, oMap, list, encodeds, decodeds);
+        addField(TestBase.data(x),   HAS_TIC, oMap, list, encodeds, decodeds);
 
         for (int i = 0; i < list.size(); i++) {
-            JsonValue v = list.get(i);
-            assertEquals(decodeds.get(i), v.string);
-            assertEquals(v.toJson(), "\"" + encodeds.get(i) + "\"");
+            JsonValue vi = list.get(i);
+            assertEquals(decodeds.get(i), vi.string);
+            assertEquals(vi.toJson(), "\"" + encodeds.get(i) + "\"");
+            for (int j = 0; j < list.size(); j++) {
+                JsonValue vj = list.get(j);
+                if (i == j) {
+                    assertEquals(vi, vj);
+                }
+                else {
+                    assertNotEquals(vi, vj);
+                }
+            }
         }
     }
 
@@ -120,7 +129,9 @@ public final class JsonParsingTests {
 
         // some coverage here
         JsonValue vMap = new JsonValue(oMap);
+        JsonValue vMap2 = new JsonValue(oMap);
         assertEquals(vMap.toJson(), vMap.toString());
+        assertEquals(vMap, vMap2);
 
         validateMapTypes(oMap, oMap, true);
 
@@ -219,12 +230,20 @@ public final class JsonParsingTests {
         assertEquals(list.size(), root.array.size());
         List<JsonValue> array = root.array;
         for (int i = 0; i < array.size(); i++) {
-            JsonValue v = array.get(i);
+            JsonValue vi = array.get(i);
             JsonValue p = root.array.get(i);
-            assertEquals(v.object, p.object);
-            assertTrue(list.contains(v));
+            assertEquals(vi.object, p.object);
+            assertTrue(list.contains(vi));
+            for (int j = 0; j < array.size(); j++) {
+                JsonValue vj = array.get(j);
+                if (i == j) {
+                    assertEquals(vi, vj);
+                }
+                else {
+                    assertNotEquals(vi, vj);
+                }
+            }
         }
-
 
         list.clear();
         list.add(new JsonValue(1));
@@ -504,24 +523,6 @@ public final class JsonParsingTests {
         }
     }
 
-    @Test
-    public void equalsContract() {
-        Map<String, JsonValue> map1 = new HashMap<>();
-        map1.put("1", new JsonValue(1));
-        Map<String, JsonValue> map2 = new HashMap<>();
-        map1.put("2", new JsonValue(2));
-        List<JsonValue> list3 = new ArrayList<>();
-        list3.add(new JsonValue(3));
-        List<JsonValue> list4 = new ArrayList<>();
-        list4.add(new JsonValue(4));
-        EqualsVerifier.simple().forClass(JsonValue.class)
-            .withPrefabValues(Map.class, map1, map2)
-            .withPrefabValues(List.class, list3, list4)
-            .withIgnoredFields("object", "number", "mapOrder")
-            .suppress(Warning.BIGDECIMAL_EQUALITY)
-            .verify();
-    }
-
     private void validateParse(JsonValue expected, String json) throws JsonParseException {
         char[] ca = json.toCharArray();
         byte[] ba = json.getBytes();
@@ -705,6 +706,7 @@ public final class JsonParsingTests {
 
     static class TestSerializableMap implements JsonSerializable {
         @Override
+        @NonNull
         public String toJson() {
             JsonValue v = new JsonValue(new HashMap<>());
             v.map.put("a", new JsonValue("A"));
@@ -716,6 +718,7 @@ public final class JsonParsingTests {
 
     static class TestSerializableList implements JsonSerializable {
         @Override
+        @NonNull
         public String toJson() {
             JsonValue v = new JsonValue(new ArrayList<>());
             v.array.add(new JsonValue("X"));
@@ -946,5 +949,23 @@ public final class JsonParsingTests {
         assertEquals(2, stringString.size());
         assertEquals("A", stringString.get("a"));
         assertEquals("B", stringString.get("b"));
+    }
+
+    @Test
+    public void testJsonParseExceptionCoverage() {
+        JsonParseException m = new JsonParseException("message constructor");
+        assertTrue(m.getMessage().contains("message constructor"));
+
+        Exception e = new Exception("foo");
+        JsonParseException mt = new JsonParseException("message throwable constructor", e);
+        assertNotNull(mt.getCause());
+        assertTrue(mt.getCause().getMessage().contains("foo"));
+        assertTrue(mt.getMessage().contains("message throwable constructor"));
+
+        JsonParseException t = new JsonParseException(e);
+        assertNotNull(t.getCause());
+        assertTrue(t.getCause().getMessage().contains("foo"));
+        assertTrue(t.getMessage().contains("java.lang.Exception"));
+        assertTrue(t.getMessage().contains("foo"));
     }
 }

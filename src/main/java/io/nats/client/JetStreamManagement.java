@@ -180,7 +180,9 @@ public interface JetStreamManagement {
     boolean resumeConsumer(String streamName, String consumerName) throws IOException, JetStreamApiException;
 
     /**
-     * Gets the info for an existing consumer.
+     * Gets the info for an existing consumer. When possible, use metadata
+     * from the message since it often already contains the needed information
+     * and does not require a server call.
      * @param streamName name of the stream
      * @param consumerName the name of the consumer.
      * @return consumer information
@@ -296,7 +298,7 @@ public interface JetStreamManagement {
     /**
      * Get MessageInfo for the first message created at or after the start time.
      * <p>
-     * This API 1) is currently EXPERIMENTAL and is subject to change. 2) Works on Server 2.11 or later
+     * This API works on Server 2.11 or later
      * @param streamName the name of the stream.
      * @param startTime the start time to get the first message for.
      * @return The MessageInfo
@@ -309,7 +311,7 @@ public interface JetStreamManagement {
     /**
      * Get MessageInfo for the first message created at or after the start time matching the subject.
      * <p>
-     * This API 1) is currently EXPERIMENTAL and is subject to change. 2) Works on Server 2.11 or later
+     * This API works on Server 2.11 or later
      * @param streamName the name of the stream.
      * @param startTime the start time to get the first message for.
      * @param subject the subject to get the first message for.
@@ -358,9 +360,50 @@ public interface JetStreamManagement {
     boolean deleteMessage(String streamName, long seq, boolean erase) throws IOException, JetStreamApiException;
 
     /**
+     * Unpins a consumer
+     * @param streamName name of the stream
+     * @param consumerName name of consumer
+     * @param consumerGroup name of the consumer's group
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @return true if the delete succeeded
+     */
+    boolean unpinConsumer(String streamName, String consumerName, String consumerGroup) throws IOException, JetStreamApiException;
+
+    /**
      * Gets a context for publishing and subscribing to subjects backed by Jetstream streams
      * and consumers, using the same connection and JetStreamOptions as the management.
      * @return a JetStream instance.
      */
     JetStream jetStream();
-}
+
+    /**
+     * Gets a context for working with a Key Value bucket
+     * @param bucketName the bucket name
+     * @return a KeyValue instance.
+     * @throws IOException various IO exception such as timeout or interruption
+     */
+    KeyValue keyValue(String bucketName) throws IOException;
+
+    /**
+     * Gets a context for managing Key Value buckets
+     * @return a KeyValueManagement instance.
+     * @throws IOException various IO exception such as timeout or interruption
+     */
+    KeyValueManagement keyValueManagement() throws IOException;
+
+    /**
+     * Gets a context for working with an Object Store.
+     * @param bucketName the bucket name
+     * @return an ObjectStore instance.
+     * @throws IOException various IO exception such as timeout or interruption
+     */
+    ObjectStore objectStore(String bucketName) throws IOException;
+
+    /**
+     * Gets a context for managing Object Stores
+     * @return an ObjectStoreManagement instance.
+     * @throws IOException various IO exception such as timeout or interruption
+     */
+    ObjectStoreManagement objectStoreManagement() throws IOException;}

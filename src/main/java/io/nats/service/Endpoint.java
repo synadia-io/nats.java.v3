@@ -17,6 +17,7 @@ import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonUtils;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.Validator;
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +38,9 @@ import static io.nats.client.support.Validator.validateIsRestrictedTerm;
  * </p>
  */
 public class Endpoint implements JsonSerializable {
+    /**
+     * The name of the default queue group
+     */
     public static final String DEFAULT_QGROUP = "q";
 
     private final String name;
@@ -99,9 +103,9 @@ public class Endpoint implements JsonSerializable {
                 this.subject = this.name;
             }
             else {
-                this.subject = Validator.validateSubjectTerm(subject, "Endpoint Subject", false);
+                this.subject = Validator.validateSubjectTermStrict(subject, "Endpoint Subject", false);
             }
-            this.queueGroup = queueGroup == null ? null : Validator.validateSubjectTerm(queueGroup, "Endpoint Queue Group", true);
+            this.queueGroup = queueGroup == null ? null : Validator.validateSubjectTermStrict(queueGroup, "Endpoint Queue Group", true);
         }
         else {
             this.name = name;
@@ -123,6 +127,7 @@ public class Endpoint implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = JsonUtils.beginJson();
         JsonUtils.addField(sb, NAME, name);

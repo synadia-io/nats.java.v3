@@ -16,22 +16,28 @@ package io.nats.client.impl;
 import io.nats.client.*;
 import io.nats.client.NatsServerProtocolMock.ExitAt;
 import io.nats.client.support.IncomingHeadersProcessor;
+import io.nats.client.utils.ConnectionUtils;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
+import static io.nats.client.support.NatsConstants.OP_PING;
+import static io.nats.client.support.NatsConstants.OP_PING_BYTES;
+import static io.nats.client.utils.OptionsUtils.options;
+import static io.nats.client.utils.OptionsUtils.optionsBuilder;
 import static io.nats.client.utils.ResourceUtils.dataAsLines;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class NatsMessageTests extends JetStreamTestBase {
     @Test
-    public void testSizeOnProtocolMessage() {
-        NatsMessage msg = new ProtocolMessage("PING".getBytes());
+    public void testProtocolMessage() {
+        NatsMessage msg = new ProtocolMessage(OP_PING_BYTES, true);
         assertEquals(msg.getProtocolBytes().length + 2, msg.getSizeInBytes(), "Size is set, with CRLF");
-        assertEquals("PING".getBytes(StandardCharsets.UTF_8).length + 2, msg.getSizeInBytes(), "Size is correct");
-        assertTrue(msg.toString().endsWith("PING")); // toString COVERAGE
+        assertEquals(OP_PING_BYTES.length + 2, msg.getSizeInBytes(), "Size is correct");
+        assertTrue(msg.toString().endsWith(OP_PING)); // toString COVERAGE
+        assertEquals(0, msg.copyNotEmptyHeaders(0, new byte[0])); // coverage for copyNotEmptyHeaders which is a no-op
     }
 
     @Test
@@ -107,65 +113,37 @@ public class NatsMessageTests extends JetStreamTestBase {
     }
 
     @Test
-    public void testCustomMaxControlLine() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            byte[] body = new byte[10];
-            String subject = "subject";
-            int maxControlLine = 1024;
+    public void testCustomMaxControlLine() throws Exception {
+        byte[] body = new byte[10];
+        int maxControlLine = 1024;
 
-            while (subject.length() <= maxControlLine) {
-                subject += subject;
-            }
+        StringBuilder subject = new StringBuilder(random());
+        while (subject.length() <= maxControlLine) {
+            subject.append(subject);
+        }
 
-            try (NatsTestServer ts = new NatsTestServer()) {
-                Options options = new Options.Builder().
-                        server(ts.getURI()).
-                        maxReconnects(0).
-                        maxControlLine(maxControlLine).
-                        build();
-                Connection nc = Nats.connect(options);
-                standardConnectionWait(nc);
-                nc.request(subject, body);
-            }
-        });
+        runInSharedOwnNc(optionsBuilder().maxReconnects(0).maxControlLine(maxControlLine),
+            nc -> assertThrows(IllegalArgumentException.class, () -> nc.request(subject.toString(), body)));
     }
 
     @Test
-    public void testBigProtocolLineWithoutBody() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            String subject = "subject";
+    public void testBigProtocolLine() throws Exception {
+        StringBuilder subject = new StringBuilder(random());
+        while (subject.length() <= Options.DEFAULT_MAX_CONTROL_LINE) {
+            subject.append(subject);
+        }
+        try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.NO_EXIT)) {
+            try (Connection nc = ConnectionUtils.standardConnect(options(mockTs))) {
+                // Without Body
+                assertThrows(IllegalArgumentException.class, () -> nc.subscribe(subject.toString()));
 
-            while (subject.length() <= Options.DEFAULT_MAX_CONTROL_LINE) {
-                subject += subject;
+                // With Body
+                byte[] body = new byte[10];
+                String replyTo = "reply";
+                assertThrows(IllegalArgumentException.class, () -> nc.publish(subject.toString(), replyTo, body));
             }
-
-            try (NatsServerProtocolMock ts = new NatsServerProtocolMock(ExitAt.NO_EXIT);
-                 NatsConnection nc = (NatsConnection) Nats.connect(ts.getURI())) {
-                standardConnectionWait(nc);
-                nc.subscribe(subject);
-            }
-        });
+        }
     }
-
-    @Test
-    public void testBigProtocolLineWithBody() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            byte[] body = new byte[10];
-            String subject = "subject";
-            String replyTo = "reply";
-
-            while (subject.length() <= Options.DEFAULT_MAX_CONTROL_LINE) {
-                subject += subject;
-            }
-
-            try (NatsServerProtocolMock ts = new NatsServerProtocolMock(ExitAt.NO_EXIT);
-                 NatsConnection nc = (NatsConnection) Nats.connect(ts.getURI())) {
-                standardConnectionWait(nc);
-                nc.publish(subject, replyTo, body);
-            }
-        });
-    }
-
 
     @Test
     public void notJetStream() throws Exception {
@@ -192,6 +170,8 @@ public class NatsMessageTests extends JetStreamTestBase {
         assertFalse(m.isStatusMessage());
         assertNotNull(m.toString());
         assertNotNull(m.toDetailString());
+        assertFalse(m.isProtocol());
+        assertFalse(m.isFilterOnStop());
 
         m = NatsMessage.builder()
             .subject("test").replyTo("reply")
@@ -230,8 +210,7 @@ public class NatsMessageTests extends JetStreamTestBase {
         m = testMessage();
         assertTrue(m.hasHeaders());
         assertNotNull(m.getHeaders());
-        //noinspection deprecation
-        assertFalse(m.isUtf8mode()); // coverage, ALWAYS FALSE SINCE DEPRECATED
+        assertFalse(m.isUtf8mode()); // coverage, ALWAYS FALSE SINCE DISUSED
         assertFalse(m.getHeaders().isEmpty());
         assertNull(m.getSubscription());
         assertNull(m.getNatsSubscription());
@@ -244,17 +223,29 @@ public class NatsMessageTests extends JetStreamTestBase {
         assertNull(m.getHeaders());
         assertNotNull(m.toString()); // COVERAGE
 
-        ProtocolMessage pm = new ProtocolMessage(new byte[0]);
-        assertNotNull(pm.getProtocolBab());
-        assertEquals(0, pm.getProtocolBab().length());
-        assertEquals(2, pm.getSizeInBytes());
-        assertEquals(2, pm.getControlLineLength());
+        ProtocolMessage pmFilterOnStop = new ProtocolMessage(new byte[0], true);
+        ProtocolMessage pmNotFilterOnStop = new ProtocolMessage(pmFilterOnStop.getProtocolBab(), false);
+
+        validateProto(pmFilterOnStop, true);
+        validateProto(pmNotFilterOnStop, false);
+
+        // retains filter on stop
+        validateProto(new ProtocolMessage(pmFilterOnStop), true);
+        validateProto(new ProtocolMessage(pmNotFilterOnStop), false);
+
+        // sets filter on stop
+        validateProto(new ProtocolMessage(pmFilterOnStop.getProtocolBab(), true), true);
+        validateProto(new ProtocolMessage(pmFilterOnStop.getProtocolBab(), false), false);
+        validateProto(new ProtocolMessage(pmNotFilterOnStop.getProtocolBab(), true), true);
+        validateProto(new ProtocolMessage(pmNotFilterOnStop.getProtocolBab(), false), false);
 
         IncomingMessage scm = new IncomingMessage() {};
         assertEquals(0, scm.getSizeInBytes());
         assertThrows(IllegalStateException.class, scm::getProtocolBab);
         assertThrows(IllegalStateException.class, scm::getProtocolBytes);
         assertThrows(IllegalStateException.class, scm::getControlLineLength);
+        assertFalse(scm.isProtocol());
+        assertFalse(scm.isFilterOnStop());
 
         // coverage coverage coverage
         //noinspection deprecation
@@ -262,6 +253,15 @@ public class NatsMessageTests extends JetStreamTestBase {
         nmCov.calculate();
 
         assertTrue(nmCov.toDetailString().contains("PUB sub reply 0"));
+    }
+
+    private static void validateProto(ProtocolMessage pm, boolean isProtocolFilterOnStop) {
+        assertNotNull(pm.getProtocolBab());
+        assertEquals(0, pm.getProtocolBab().length());
+        assertEquals(2, pm.getSizeInBytes());
+        assertEquals(2, pm.getControlLineLength());
+        assertTrue(pm.isProtocol());
+        assertEquals(isProtocolFilterOnStop, pm.isFilterOnStop());
     }
 
     @Test
@@ -306,14 +306,14 @@ public class NatsMessageTests extends JetStreamTestBase {
 
     @Test
     public void testHeadersMutableBeforePublish() throws Exception {
-        jsServer.run(connection -> {
-            String subject = subject();
-            Subscription sub = connection.subscribe(subject);
+        runInShared(nc -> {
+            String subject = random();
+            Subscription sub = nc.subscribe(subject);
 
             Headers h = new Headers();
             h.put("one", "A");
             Message m = new NatsMessage(subject, null, h, null);
-            connection.publish(m);
+            nc.publish(m);
             Message incoming = sub.nextMessage(1000);
             assertEquals(1, incoming.getHeaders().size());
 
@@ -321,13 +321,13 @@ public class NatsMessageTests extends JetStreamTestBase {
             // so this will affect the message which is the same
             // as the local copy
             h.put("two", "B");
-            connection.publish(m);
+            nc.publish(m);
             incoming = sub.nextMessage(1000);
             assertEquals(2, incoming.getHeaders().size());
 
             // also if you get the headers from the message
             m.getHeaders().put("three", "C");
-            connection.publish(m);
+            nc.publish(m);
             incoming = sub.nextMessage(1000);
             assertEquals(3, incoming.getHeaders().size());
         });

@@ -14,6 +14,8 @@
 package io.nats.client.support;
 
 import io.nats.client.NKey;
+import io.nats.client.NatsSystemClock;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -68,7 +70,7 @@ public abstract class JwtUtils {
      * @return the time
      */
     public static long currentTimeSeconds() {
-        return System.currentTimeMillis() / 1000;
+        return NatsSystemClock.currentTimeMillis() / 1000;
     }
 
     /**
@@ -139,6 +141,20 @@ public abstract class JwtUtils {
         return issueUserJWT(signingKey, publicUserKey, name, expiration, issuedAt, null, new UserClaim(accountId).tags(tags));
     }
 
+    /**
+     * Issue a user JWT from a scoped signing key. See <a href="https://docs.nats.io/nats-tools/nsc/signing_keys">Signing Keys</a>
+     * @param signingKey a mandatory account nkey pair to sign the generated jwt.
+     * @param accountId a mandatory public account nkey. Will throw error when not set or not account nkey.
+     * @param publicUserKey a mandatory public user nkey. Will throw error when not set or not user nkey.
+     * @param name optional human-readable name. When absent, default to publicUserKey.
+     * @param expiration optional but recommended duration, when the generated jwt needs to expire. If not set, JWT will not expire.
+     * @param tags optional list of tags to be included in the JWT.
+     * @param issuedAt the current epoch seconds.
+     * @param audience the audience value
+     * @return a JWT
+     * @throws GeneralSecurityException if SHA-256 MessageDigest is missing, or if the signingKey can not be used for signing.
+     * @throws IOException if signingKey sign method throws this exception.
+     */
     public static String issueUserJWT(NKey signingKey, String accountId, String publicUserKey, String name, Duration expiration, String[] tags, long issuedAt, String audience) throws GeneralSecurityException, IOException {
         return issueUserJWT(signingKey, publicUserKey, name, expiration, issuedAt, audience, new UserClaim(accountId).tags(tags));
     }
@@ -245,7 +261,7 @@ public abstract class JwtUtils {
 
         // Compute jti, a base32 encoded sha256 hash
         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        byte[] encoded = sha256.digest(claimJson.getBytes(StandardCharsets.US_ASCII));
+        byte[] encoded = sha256.digest(claimJson.getBytes(StandardCharsets.ISO_8859_1));
 
         claim.jti = new String(base32Encode(encoded));
         claimJson = claim.toJson();
@@ -292,6 +308,7 @@ public abstract class JwtUtils {
         }
 
         @Override
+        @NonNull
         public String toJson() {
             StringBuilder sb = beginJson();
             JsonUtils.addField(sb, "issuer_account", issuerAccount);
@@ -383,6 +400,7 @@ public abstract class JwtUtils {
         }
 
         @Override
+        @NonNull
         public String toJson() {
             StringBuilder sb = beginJson();
             JsonUtils.addField(sb, "start", start);
@@ -411,6 +429,7 @@ public abstract class JwtUtils {
         }
 
         @Override
+        @NonNull
         public String toJson() {
             StringBuilder sb = beginJson();
             JsonUtils.addField(sb, "max", maxMsgs);
@@ -434,6 +453,7 @@ public abstract class JwtUtils {
         }
 
         @Override
+        @NonNull
         public String toJson() {
             StringBuilder sb = beginJson();
             JsonUtils.addStrings(sb, "allow", allow);
@@ -453,6 +473,7 @@ public abstract class JwtUtils {
         JsonSerializable nats;
 
         @Override
+        @NonNull
         public String toJson() {
             StringBuilder sb = beginJson();
             JsonUtils.addField(sb, "aud", aud);

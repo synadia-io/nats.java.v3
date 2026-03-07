@@ -32,6 +32,7 @@ import static io.nats.client.support.ApiConstants.FILTER_SUBJECT;
 import static io.nats.client.support.ApiConstants.FILTER_SUBJECTS;
 import static io.nats.client.support.NatsJetStreamClientError.JsConsumerNameDurableMismatch;
 import static io.nats.client.utils.ResourceUtils.dataAsString;
+import static io.nats.client.utils.ResourceUtils.deleteFileOrFolder;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ConsumerConfigurationTests extends TestBase {
@@ -47,8 +48,8 @@ public class ConsumerConfigurationTests extends TestBase {
             .ackWait(Duration.ofSeconds(99)) // duration
             .deliverPolicy(DeliverPolicy.ByStartSequence)
             .description("blah")
-            .name(NAME)
-            .durable(NAME)
+            .name("name")
+            .durable("name")
             .filterSubject("fs")
             .maxDeliver(5555)
             .maxAckPending(6666)
@@ -57,7 +58,7 @@ public class ConsumerConfigurationTests extends TestBase {
             .sampleFrequency("10s")
             .startSequence(2001)
             .startTime(zdt)
-            .deliverSubject(DELIVER)
+            .deliverSubject("deliver")
             .flowControl(66000) // duration
             .maxPullWaiting(73)
             .maxBatch(55)
@@ -81,10 +82,13 @@ public class ConsumerConfigurationTests extends TestBase {
         assertNotNull(c.toString()); // COVERAGE
         assertAsBuilt(c, zdt);
 
-        ConsumerCreateRequest ccr = new ConsumerCreateRequest(STREAM, c);
+        String stream = random();
+        ConsumerCreateRequest ccr = new ConsumerCreateRequest(stream, c);
         assertNotNull(ccr.toString()); // COVERAGE
-        assertEquals(STREAM, ccr.getStreamName());
+        assertEquals(stream, ccr.getStreamName());
         assertNotNull(ccr.getConfig());
+        assertNotNull(ccr.getAction());
+        assertSame(ConsumerCreateRequest.Action.CreateOrUpdate, ccr.getAction());
 
         assertAsBuilt(ConsumerConfiguration.builder().json(ccr.getConfig().toJson()).build(), zdt);
         assertAsBuilt(ConsumerConfiguration.builder().jsonValue(ccr.getConfig().toJsonValue()).build(), zdt);
@@ -97,11 +101,13 @@ public class ConsumerConfigurationTests extends TestBase {
         c = ConsumerConfiguration.builder()
             .flowControl(Duration.ofMillis(501)).build();
         assertTrue(c.isFlowControl());
+        assertNotNull(c.getIdleHeartbeat());
         assertEquals(501, c.getIdleHeartbeat().toMillis());
 
         c = ConsumerConfiguration.builder()
             .flowControl(502).build();
         assertTrue(c.isFlowControl());
+        assertNotNull(c.getIdleHeartbeat());
         assertEquals(502, c.getIdleHeartbeat().toMillis());
 
         // millis instead of duration coverage
@@ -202,7 +208,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertThrows(IllegalArgumentException.class,
             () -> ConsumerConfiguration.builder().backoff(DURATION_MIN_LONG - 1).build());
 
-        assertClientError(JsConsumerNameDurableMismatch, () -> ConsumerConfiguration.builder().name(NAME).durable(DURABLE).build());
+        assertClientError(JsConsumerNameDurableMismatch, () -> ConsumerConfiguration.builder().name(random()).durable(random()).build());
 
         // filter subjects vs filter subject
         builder.filterSubjects("subject-0", "subject-1");
@@ -212,14 +218,20 @@ public class ConsumerConfigurationTests extends TestBase {
     }
 
     private void _testSerializing(SerializableConsumerConfiguration scc, ZonedDateTime zdt) throws IOException, ClassNotFoundException {
-        File f = File.createTempFile("scc", null);
-        ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(f.toPath()));
-        oos.writeObject(scc);
-        oos.flush();
-        oos.close();
-        ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(f.toPath()));
-        scc = (SerializableConsumerConfiguration) ois.readObject();
-        assertAsBuilt(scc.getConsumerConfiguration(), zdt);
+        File f = null;
+        try {
+            f = File.createTempFile("scc", null);
+            ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(f.toPath()));
+            oos.writeObject(scc);
+            oos.flush();
+            oos.close();
+            ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(f.toPath()));
+            scc = (SerializableConsumerConfiguration) ois.readObject();
+            assertAsBuilt(scc.getConsumerConfiguration(), zdt);
+        }
+        finally {
+            deleteFileOrFolder(f);
+        }
     }
 
     private void validateDefault(ConsumerConfiguration cc) {
@@ -248,8 +260,8 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals(Duration.ofSeconds(99), c.getAckWait());
         assertEquals(DeliverPolicy.ByStartSequence, c.getDeliverPolicy());
         assertEquals("blah", c.getDescription());
-        assertEquals(NAME, c.getDurable());
-        assertEquals(NAME, c.getName());
+        assertEquals("name", c.getDurable());
+        assertEquals("name", c.getName());
         assertEquals("fs", c.getFilterSubject());
         assertEquals(5555, c.getMaxDeliver());
         assertEquals(6666, c.getMaxAckPending());
@@ -258,7 +270,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals("10s", c.getSampleFrequency());
         assertEquals(2001, c.getStartSequence());
         assertEquals(zdt, c.getStartTime());
-        assertEquals(DELIVER, c.getDeliverSubject());
+        assertEquals("deliver", c.getDeliverSubject());
         assertTrue(c.isFlowControl());
         assertEquals(Duration.ofSeconds(66), c.getIdleHeartbeat());
         assertEquals(73, c.getMaxPullWaiting());
@@ -298,7 +310,7 @@ public class ConsumerConfigurationTests extends TestBase {
     }
 
     @Test
-    public void testParsingAndSetters() throws JsonParseException {
+    public void testParsingAndSetters() {
         String json = dataAsString("ConsumerConfiguration.json");
         ConsumerConfiguration c = ConsumerConfiguration.builder().jsonValue(JsonParser.parseUnchecked(json)).build();
 
@@ -320,6 +332,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals(10, c.getMaxDeliver());
         assertEquals(73, c.getRateLimit());
         assertEquals(ReplayPolicy.Original, c.getReplayPolicy());
+        assertNotNull(c.getStartTime());
         assertEquals(2020, c.getStartTime().getYear(), 2020);
         assertEquals(21, c.getStartTime().getSecond(), 21);
         assertEquals("foo-name", c.getName());
@@ -349,15 +362,18 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals(2, c.getPriorityGroups().size());
         assertTrue(c.getPriorityGroups().contains("pgroup1"));
         assertTrue(c.getPriorityGroups().contains("pgroup2"));
+        assertEquals(Duration.ofSeconds(60), c.getPriorityTimeout());
 
         if (multiFilters) {
             assertNull(c.getFilterSubject());
+            assertNotNull(c.getFilterSubjects());
             assertEquals(2, c.getFilterSubjects().size());
             assertTrue(c.getFilterSubjects().contains("foo-filter-0"));
             assertTrue(c.getFilterSubjects().contains("foo-filter-1"));
         }
         else {
             assertEquals("foo-filter", c.getFilterSubject());
+            assertNotNull(c.getFilterSubjects());
             assertEquals(1, c.getFilterSubjects().size());
             assertTrue(c.getFilterSubjects().contains("foo-filter"));
         }
@@ -426,7 +442,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals(ULONG_UNSET, ConsumerConfiguration.normalizeUlong(-1L));
 
         //noinspection ConstantConditions
-        assertNull(ConsumerConfiguration.normalize((Duration) null));
+        assertNull(ConsumerConfiguration.normalize(null));
         assertEquals(Duration.ofNanos(1), ConsumerConfiguration.normalize(Duration.ofNanos(1)));
         assertEquals(DURATION_UNSET, ConsumerConfiguration.normalize(DURATION_UNSET));
         assertEquals(DURATION_UNSET, ConsumerConfiguration.normalize(Duration.ZERO));

@@ -15,8 +15,11 @@ package io.nats.client.api;
 import io.nats.client.Message;
 import io.nats.client.impl.Headers;
 import io.nats.client.support.*;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
+import java.util.Map;
 
 import static io.nats.client.support.ApiConstants.*;
 import static io.nats.client.support.JsonUtils.beginJson;
@@ -33,8 +36,7 @@ public class ObjectInfo implements JsonSerializable {
     private final String digest;
     private final boolean deleted;
     private final ObjectMeta objectMeta;
-
-    private ZonedDateTime modified;
+    private final ZonedDateTime modified;
 
     private ObjectInfo(Builder b) {
         bucket = b.bucket;
@@ -47,10 +49,18 @@ public class ObjectInfo implements JsonSerializable {
         objectMeta = b.metaBuilder.build();
     }
 
+    /**
+     * Construct ObjectInfo from message info
+     * @param mi the message info
+     */
     public ObjectInfo(MessageInfo mi) {
         this(mi.getData(), mi.getTime());
     }
 
+    /**
+     * Construct ObjectInfo from a message
+     * @param m the message
+     */
     public ObjectInfo(Message m) {
         this(m.getData(), m.metaData().timestamp());
     }
@@ -68,6 +78,7 @@ public class ObjectInfo implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         // never write MTIME (modified)
         StringBuilder sb = beginJson();
@@ -81,70 +92,160 @@ public class ObjectInfo implements JsonSerializable {
         return endJson(sb).toString();
     }
 
+    /**
+     * the bucket name
+     * @return the name
+     */
+    @NonNull
     public String getBucket() {
         return bucket;
     }
 
+    /**
+     * the bucket nuid
+     * @return the nuid
+     */
+    @Nullable
     public String getNuid() {
         return nuid;
     }
 
+    /**
+     * The size of the object
+     * @return the size in bytes
+     */
     public long getSize() {
         return size;
     }
 
+    /**
+     * When the object was last modified
+     * @return the last modified date
+     */
+    @Nullable
     public ZonedDateTime getModified() {
         return modified;
     }
 
+    /**
+     * The total number of chunks in the object
+     * @return the number of chunks
+     */
     public long getChunks() {
         return chunks;
     }
 
+    /**
+     * The digest string for the object
+     * @return the digest
+     */
+    @Nullable
     public String getDigest() {
         return digest;
     }
 
+    /**
+     * Whether the object is deleted
+     * @return the deleted state
+     */
     public boolean isDeleted() {
         return deleted;
     }
 
+    /**
+     * The full object meta object
+     * @return the ObjectMeta
+     */
+    @NonNull
     public ObjectMeta getObjectMeta() {
         return objectMeta;
     }
 
+    /**
+     * The object name
+     * @return the object name
+     */
+    @Nullable
     public String getObjectName() {
         return objectMeta.getObjectName();
     }
 
+    /**
+     * The object meta description
+     * @return the description text or null
+     */
+    @Nullable
     public String getDescription() {
         return objectMeta.getDescription();
     }
 
+    /**
+     * The object meta Headers. May be empty but will not be null. In all cases it will be unmodifiable
+     * @return the headers object
+     */
+    @NonNull
     public Headers getHeaders() {
         return objectMeta.getHeaders();
     }
 
+    /**
+     * The object meta metadata. May be empty but will not be null. In all cases it will be unmodifiable
+     * @return the map
+     */
+    @NonNull
+    public Map<String, String> getMetaData() {
+        return objectMeta.getMetadata();
+    }
+
+    /**
+     * Whether the object is actually a link
+     * @return true if the object is a link instead of a direct object
+     */
     public boolean isLink() {
-        return objectMeta.getObjectMetaOptions().getLink() != null;
+        return objectMeta.getObjectMetaOptions() != null && objectMeta.getObjectMetaOptions().getLink() != null;
     }
 
+    /**
+     * If this is a link to an object, get the ObjectLink instance, otherwise this will be null
+     * @return the ObjectLink or null
+     */
+    @Nullable
     public ObjectLink getLink() {
-        return objectMeta.getObjectMetaOptions().getLink();
+        return objectMeta.getObjectMetaOptions() == null ? null : objectMeta.getObjectMetaOptions().getLink();
     }
 
+    /**
+     * Get an instance of the builder initialized with a bucket and object meta
+     * @param bucket the bucket name
+     * @param objectName the object name
+     * @return the builder
+     */
     public static Builder builder(String bucket, String objectName) {
         return new Builder(bucket, objectName);
     }
 
+    /**
+     * Get an instance of the builder initialized with a bucket and object meta
+     * @param bucket the bucket
+     * @param meta the object meta
+     * @return the builder
+     */
     public static Builder builder(String bucket, ObjectMeta meta) {
         return new Builder(bucket, meta);
     }
 
+    /**
+     * Get an instance of the builder initialized from existing ObjectInfo
+     * @param info the info
+     * @return the builder
+     */
     public static Builder builder(ObjectInfo info) {
         return new Builder(info);
     }
 
+    /**
+     * A builder for ObjectInfo
+     */
     public static class Builder {
         String bucket;
         String nuid;
@@ -155,16 +256,30 @@ public class ObjectInfo implements JsonSerializable {
         boolean deleted;
         ObjectMeta.Builder metaBuilder;
 
+        /**
+         * Construct the builder initialized with a bucket and object name
+         * @param bucket the bucket name
+         * @param objectName the object name
+         */
         public Builder(String bucket, String objectName) {
             metaBuilder = ObjectMeta.builder(objectName);
             bucket(bucket);
         }
 
+        /**
+         * Construct the builder initialized with a bucket and object meta
+         * @param bucket the bucket name
+         * @param meta the object meta
+         */
         public Builder(String bucket, ObjectMeta meta) {
             metaBuilder = ObjectMeta.builder(meta);
             bucket(bucket);
         }
 
+        /**
+         * Construct the builder initialized from existing ObjectInfo
+         * @param info the info
+         */
         public Builder(ObjectInfo info) {
             bucket = info.bucket;
             nuid = info.nuid;
@@ -176,81 +291,171 @@ public class ObjectInfo implements JsonSerializable {
             metaBuilder = ObjectMeta.builder(info.objectMeta);
         }
 
+        /**
+         * set the object name
+         * @param name the name
+         * @return the builder
+         */
         public Builder objectName(String name) {
             metaBuilder.objectName(name);
             return this;
         }
 
+        /**
+         * set the object's bucket name
+         * @param bucket the bucket name
+         * @return the builder
+         */
         public Builder bucket(String bucket) {
             this.bucket = Validator.validateBucketName(bucket, true);
             return this;
         }
 
+        /**
+         * set the object's nuid
+         * @param nuid the nuid
+         * @return the builder
+         */
         public Builder nuid(String nuid) {
             this.nuid = nuid;
             return this;
         }
 
+        /**
+         * set the object's size
+         * @param size the size
+         * @return the builder
+         */
         public Builder size(long size) {
             this.size = size;
             return this;
         }
 
+        /**
+         * set the object's modified time
+         * @param modified the time
+         * @return the builder
+         */
         public Builder modified(ZonedDateTime modified) {
             this.modified = modified;
             return this;
         }
 
+        /**
+         * set the object's number of chunks
+         * @param chunks the number of chunks
+         * @return the builder
+         */
         public Builder chunks(long chunks) {
             this.chunks = chunks;
             return this;
         }
 
+        /**
+         * set the object's digest 
+         * @param digest the digest
+         * @return the builder
+         */
         public Builder digest(String digest) {
             this.digest = digest;
             return this;
         }
 
+        /**
+         * set the object's deleted state 
+         * @param deleted the state
+         * @return the builder
+         */
         public Builder deleted(boolean deleted) {
             this.deleted = deleted;
             return this;
         }
 
+        /**
+         * convenience method to set the object's ObjectMeta description
+         * @param description the description text
+         * @return the builder
+         */
         public Builder description(String description) {
             metaBuilder.description(description);
             return this;
         }
 
+        /**
+         * convenience method to set the object's ObjectMeta headers 
+         * @param headers the headers
+         * @return the builder
+         */
         public Builder headers(Headers headers) {
             metaBuilder.headers(headers);
             return this;
         }
 
+        /**
+         * convenience method to set the object's ObjectMeta meta data 
+         * @param metadata the meta data
+         * @return the builder
+         */
+        public Builder metadata(Map<String, String> metadata) {
+            metaBuilder.metadata(metadata);
+            return this;
+        }
+
+        /**
+         * convenience method to set the object's ObjectMeta meta options
+         * @param objectMetaOptions the options
+         * @return the builder
+         */
         public Builder options(ObjectMetaOptions objectMetaOptions) {
             metaBuilder.options(objectMetaOptions);
             return this;
         }
 
+        /**
+         * convenience method to set the object's ObjectMeta chunk size 
+         * @param chunkSize the size of the chunks
+         * @return the builder
+         */
         public Builder chunkSize(int chunkSize) {
             metaBuilder.chunkSize(chunkSize);
             return this;
         }
 
+        /**
+         * convenience method to set the object's ObjectMeta link
+         * @param link the link
+         * @return the builder
+         */
         public Builder link(ObjectLink link) {
             metaBuilder.link(link);
             return this;
         }
 
+        /**
+         * convenience method to set the object's ObjectMeta link bucket name
+         * @param bucket the link bucket name
+         * @return the builder
+         */
         public Builder bucketLink(String bucket) {
             metaBuilder.link(ObjectLink.bucket(bucket));
             return this;
         }
 
+        /**
+         * convenience method to set the object's ObjectMeta link
+         * @param bucket the link's bucket name
+         * @param objectName the link's object name
+         * @return the builder
+         */
         public Builder objectLink(String bucket, String objectName) {
             metaBuilder.link(ObjectLink.object(bucket, objectName));
             return this;
         }
 
+        /**
+         * Build an ObjectInfo
+         * @return the ObjectInfo instance
+         */
         public ObjectInfo build() {
             return new ObjectInfo(this);
         }
@@ -277,9 +482,9 @@ public class ObjectInfo implements JsonSerializable {
     public int hashCode() {
         int result = bucket.hashCode(); // bucket never null
         result = 31 * result + (nuid != null ? nuid.hashCode() : 0);
-        result = 31 * result + (int) (size ^ (size >>> 32));
+        result = 31 * result + Long.hashCode(size);
         result = 31 * result + (modified != null ? modified.hashCode() : 0);
-        result = 31 * result + (int) (chunks ^ (chunks >>> 32));
+        result = 31 * result + Long.hashCode(chunks);
         result = 31 * result + (digest != null ? digest.hashCode() : 0);
         result = 31 * result + (deleted ? 1 : 0);
         result = 31 * result + objectMeta.hashCode();

@@ -22,11 +22,15 @@ import java.io.IOException;
 import static io.nats.client.BaseConsumeOptions.MIN_EXPIRES_MILLS;
 import static io.nats.client.support.NatsConstants.NANOS_PER_MILLI;
 
-class NatsFetchConsumer extends NatsMessageConsumerBase implements FetchConsumer, PullManagerObserver {
+class NatsFetchConsumer extends NatsMessageConsumerBase implements FetchConsumer {
     private final boolean isNoWaitNoExpires;
     private final long maxWaitNanos;
     private final String pullSubject;
     private long startNanos;
+    private final boolean isTrackingBytes;
+    private int pendingReceivedMessages;
+    private long pendingReceivedBytes;
+    private boolean noReceivedArePending;
 
     NatsFetchConsumer(SimplifiedSubscriptionMaker subscriptionMaker,
                       ConsumerInfo cachedConsumerInfo,
@@ -48,27 +52,49 @@ class NatsFetchConsumer extends NatsMessageConsumerBase implements FetchConsumer
             inactiveThreshold = expiresInMillis * 110 / 100; // 10% longer than the wait
         }
 
-        PullRequestOptions pro = PullRequestOptions.builder(fetchConsumeOptions.getMaxMessages())
-            .maxBytes(fetchConsumeOptions.getMaxBytes())
-            .expiresIn(expiresInMillis)
-            .idleHeartbeat(fetchConsumeOptions.getIdleHeartbeat())
-            .noWait(isNoWait)
-            .group(fetchConsumeOptions.getGroup())
-            .minPending(fetchConsumeOptions.getMinPending())
-            .minAckPending(fetchConsumeOptions.getMinAckPending())
-            .build();
-        initSub(subscriptionMaker.subscribe(null, null, null, inactiveThreshold));
+        pendingReceivedMessages = fetchConsumeOptions.getMaxMessages();
+        pendingReceivedBytes = fetchConsumeOptions.getMaxBytes();
+        noReceivedArePending = false;
+
+        isTrackingBytes = pendingReceivedBytes > 0;
+
+        PinnablePullRequestOptions pro = new PinnablePullRequestOptions(pmm == null ? null : pmm.currentPinId,
+            PullRequestOptions.builder(pendingReceivedMessages)
+                .maxBytes(pendingReceivedBytes)
+                .expiresIn(expiresInMillis)
+                .idleHeartbeat(fetchConsumeOptions.getIdleHeartbeat())
+                .noWait(isNoWait)
+                .group(fetchConsumeOptions.getGroup())
+                .priority(fetchConsumeOptions.getPriority())
+                .minPending(fetchConsumeOptions.getMinPending())
+                .minAckPending(fetchConsumeOptions.getMinAckPending()));
+        initSub(subscriptionMaker.subscribe(null, null, null, inactiveThreshold), false);
         pullSubject = sub._pull(pro, fetchConsumeOptions.raiseStatusWarnings(), this);
         startNanos = -1;
     }
 
     @Override
-    public void pendingUpdated() {}
+    public void messageReceived(Message msg) {
+        pendingReceivedMessages = Math.max(0, pendingReceivedMessages - 1);
+        if (pendingReceivedMessages == 0) {
+            noReceivedArePending = true;
+        }
+        else if (isTrackingBytes) {
+            pendingReceivedBytes = Math.max(0, pendingReceivedBytes - msg.consumeByteCount());
+            noReceivedArePending |= pendingReceivedBytes == 0;
+        }
+    }
 
     @Override
-    public void heartbeatError() {
+    public void pullCompletedWithStatus(int messages, long bytes) {
+        noReceivedArePending = true;
         stopped.set(true);
-        finished.set(true);
+    }
+
+    @Override
+    public void pullTerminatedByError() {
+        noReceivedArePending = true;
+        fullClose();
     }
 
     @Override
@@ -81,43 +107,43 @@ class NatsFetchConsumer extends NatsMessageConsumerBase implements FetchConsumer
             // if the manager thinks it has received everything in the pull, it means
             // that all the messages are already in the internal queue and there is
             // no waiting necessary
-            if (pmm.noMorePending()) {
-                Message m = sub._nextUnmanagedNoWait(pullSubject);
-                if (m == null) {
+            if (noReceivedArePending) {
+                Message msg = sub._nextUnmanagedNoWait(pullSubject);
+                if (msg == null) {
                     // if there are no messages in the internal cache AND there are no more pending,
                     // they all have been read and we can go ahead and finish
-                    finished.set(true);
-                    lenientClose();
+                    fullClose();
+                    return null;
                 }
-                return m;
+                return msg;
             }
 
             // by not starting the timer until the first call, it gives a little buffer around
             // the next message to account for latency of incoming messages
             if (startNanos == -1) {
-                startNanos = System.nanoTime();
+                startNanos = NatsSystemClock.nanoTime();
             }
-            long timeLeftMillis = (maxWaitNanos - (System.nanoTime() - startNanos)) / 1_000_000;
+            long timeLeftNanos = maxWaitNanos - (NatsSystemClock.nanoTime() - startNanos);
 
             // if the timer has run out, don't allow waiting
             // this might happen once, but it should already be noMorePending
-            if (timeLeftMillis < 1) {
-                Message m = sub._nextUnmanagedNoWait(pullSubject); // null means don't wait
-                if (m == null) {
+            if (timeLeftNanos < NANOS_PER_MILLI) {
+                Message msg = sub._nextUnmanagedNoWait(pullSubject);
+                if (msg == null) {
                     // no message and no time left, go ahead and finish
-                    finished.set(true);
-                    lenientClose();
+                    fullClose();
                 }
-                return m;
+                return msg;
             }
 
-            Message m = sub._nextUnmanaged(timeLeftMillis, pullSubject);
-            if (m == null && isNoWaitNoExpires) {
-                // no message and no wait, go ahead and finish
-                finished.set(true);
-                lenientClose();
+            Message msg = sub._nextUnmanaged(timeLeftNanos, pullSubject);
+            if (msg == null) {
+                if (isNoWaitNoExpires) {
+                    // no message and no wait, go ahead and finish
+                    fullClose();
+                }
             }
-            return m;
+            return msg;
         }
         catch (JetStreamStatusException e) {
             throw new JetStreamStatusCheckedException(e);

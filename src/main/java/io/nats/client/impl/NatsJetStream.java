@@ -14,11 +14,15 @@
 package io.nats.client.impl;
 
 import io.nats.client.*;
-import io.nats.client.api.*;
+import io.nats.client.api.AckPolicy;
+import io.nats.client.api.ConsumerConfiguration;
+import io.nats.client.api.ConsumerInfo;
+import io.nats.client.api.PublishAck;
 import io.nats.client.support.Validator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -47,7 +51,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public PublishAck publish(String subject, byte[] body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, body, null, true);
+        return publishSyncInternal(subject, null, body, null);
     }
 
     /**
@@ -55,7 +59,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public PublishAck publish(String subject, Headers headers, byte[] body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, body, null, true);
+        return publishSyncInternal(subject, headers, body, null);
     }
 
     /**
@@ -63,7 +67,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public PublishAck publish(String subject, byte[] body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, body, options, true);
+        return publishSyncInternal(subject, null, body, options);
     }
 
     /**
@@ -71,7 +75,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public PublishAck publish(String subject, Headers headers, byte[] body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, body, options, true);
+        return publishSyncInternal(subject, headers, body, options);
     }
 
     /**
@@ -80,7 +84,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
     @Override
     public PublishAck publish(Message message) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
-        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, false);
+        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null);
     }
 
     /**
@@ -89,7 +93,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
     @Override
     public PublishAck publish(Message message, PublishOptions options) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
-        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), options, false);
+        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), options);
     }
 
     /**
@@ -142,15 +146,15 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
         return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), options, false);
     }
 
-    private PublishAck publishSyncInternal(String subject, Headers headers, byte[] data, PublishOptions options, boolean validateSubjectAndReplyTo) throws IOException, JetStreamApiException {
+    private PublishAck publishSyncInternal(String subject, Headers headers, byte[] data, PublishOptions options) throws IOException, JetStreamApiException {
         Headers merged = mergePublishOptions(headers, options);
 
         if (jso.isPublishNoAck()) {
-            conn.publishInternal(subject, null, merged, data, validateSubjectAndReplyTo, false);
+            conn.publishInternal(subject, null, merged, data, false);
             return null;
         }
 
-        Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout(), CancelAction.COMPLETE, validateSubjectAndReplyTo, conn.forceFlushOnRequest);
+        Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout(), CancelAction.COMPLETE, conn.forceFlushOnRequest);
         return processPublishResponse(resp, options);
     }
 
@@ -158,11 +162,11 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
         Headers merged = mergePublishOptions(headers, options);
 
         if (jso.isPublishNoAck()) {
-            conn.publishInternal(subject, null, merged, data, validateSubjectAndReplyTo, false);
+            conn.publishInternal(subject, null, merged, data, false);
             return null;
         }
 
-        CompletableFuture<Message> future = conn.requestFutureInternal(subject, merged, data, null, CancelAction.COMPLETE, validateSubjectAndReplyTo, conn.forceFlushOnRequest);
+        CompletableFuture<Message> future = conn.requestFutureInternal(subject, merged, data, null, CancelAction.COMPLETE, conn.forceFlushOnRequest);
 
         return future.thenCompose(resp -> {
             try {
@@ -181,43 +185,46 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
 
         PublishAck ack = new PublishAck(resp);
         String ackStream = ack.getStream();
-        String pubStream = options == null ? null : options.getStream();
+        //noinspection deprecation options.getStream() is deprecated since checking after the publish is not useful, but the functionality can't be removed
+        String optAckStream = options == null ? null : options.getStream();
         // stream specified in options but different from ack should not happen but...
-        if (pubStream != null && !pubStream.equals(ackStream)) {
-            throw new IOException("Expected ack from stream " + pubStream + ", received from: " + ackStream);
+        if (optAckStream != null && !optAckStream.equals(ackStream)) {
+            throw new IOException("Expected ack from stream " + optAckStream + ", received from: " + ackStream);
         }
         return ack;
     }
 
     private Headers mergePublishOptions(Headers headers, PublishOptions opts) {
+        if (opts == null) {
+            return headers;
+        }
+
         // never touch the user's original headers
         Headers merged = headers == null ? null : new Headers(headers);
 
-        if (opts != null) {
-            merged = mergeNum(merged, EXPECTED_LAST_SEQ_HDR, opts.getExpectedLastSequence());
-            merged = mergeNum(merged, EXPECTED_LAST_SUB_SEQ_HDR, opts.getExpectedLastSubjectSequence());
-            merged = mergeString(merged, EXPECTED_LAST_MSG_ID_HDR, opts.getExpectedLastMsgId());
-            merged = mergeString(merged, EXPECTED_STREAM_HDR, opts.getExpectedStream());
-            merged = mergeString(merged, MSG_ID_HDR, opts.getMessageId());
-            merged = mergeString(merged, MSG_TTL_HDR, opts.getMessageTtl());
-        }
-
-        return merged;
+        merged = mergeNum(merged, EXPECTED_LAST_SEQ_HDR, opts.getExpectedLastSequence());
+        merged = mergeNum(merged, EXPECTED_LAST_SUB_SEQ_HDR, opts.getExpectedLastSubjectSequence());
+        merged = mergeString(merged, EXPECTED_LAST_SUB_SEQ_SUB_HDR, opts.getExpectedLastSubjectSequenceSubject());
+        merged = mergeString(merged, EXPECTED_LAST_MSG_ID_HDR, opts.getExpectedLastMsgId());
+        merged = mergeString(merged, EXPECTED_STREAM_HDR, opts.getExpectedStream());
+        merged = mergeString(merged, MSG_ID_HDR, opts.getMessageId());
+        return mergeString(merged, MSG_TTL_HDR, opts.getMessageTtl());
     }
 
     private Headers mergeNum(Headers h, String key, long value) {
-        return value > -1 ? _mergeNum(h, key, Long.toString(value)): h;
+        return value > -1 ? _merge(h, key, Long.toString(value)): h;
     }
 
     private Headers mergeString(Headers h, String key, String value) {
-        return Validator.nullOrEmpty(value) ? h : _mergeNum(h, key, value);
+        return Validator.nullOrEmpty(value) ? h : _merge(h, key, value);
     }
 
-    private Headers _mergeNum(Headers h, String key, String value) {
+    private Headers _merge(Headers h, String key, String value) {
         if (h == null) {
             h = new Headers();
         }
-        return h.add(key, value);
+        // this is always an internal header with one value per key
+        return h.put(key, Collections.singletonList(value));
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -256,7 +263,6 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
         SubscribeOptions so;
         String stream;
         ConsumerConfiguration userCC;
-        boolean ordered;
         String settledDeliverGroup = null; // push might set this
 
         if (isPullMode) {
@@ -457,7 +463,6 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
             else {
                 settledConsumerName = null; // the server will give us a name if the user's was null
             }
-
             settledCC = ccBuilder.build();
         }
 
@@ -540,6 +545,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
             if (idleHeartbeat != null && !idleHeartbeat.equals(getOrUnset(serverCcc.idleHeartbeat))) { changes.add("idleHeartbeat"); }
             if (maxExpires != null && !maxExpires.equals(getOrUnset(serverCcc.maxExpires))) { changes.add("maxExpires"); }
             if (inactiveThreshold != null && !inactiveThreshold.equals(getOrUnset(serverCcc.inactiveThreshold))) { changes.add("inactiveThreshold"); }
+            if (priorityTimeout != null && !priorityTimeout.equals(getOrUnset(serverCcc.priorityTimeout))) { changes.add("priorityTimeout"); }
 
             if (startTime != null && !startTime.equals(serverCcc.startTime)) { changes.add("startTime"); }
 
@@ -549,11 +555,12 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
             if (deliverGroup != null && !deliverGroup.equals(serverCcc.deliverGroup)) { changes.add("deliverGroup"); }
 
             if (backoff != null && !listsAreEquivalent(backoff, serverCcc.backoff)) { changes.add("backoff"); }
-            if (metadata != null && !mapsAreEquivalent(metadata, serverCcc.metadata)) { changes.add("metadata"); }
             if (filterSubjects != null && !listsAreEquivalent(filterSubjects, serverCcc.filterSubjects)) { changes.add("filterSubjects"); }
 
             if (priorityGroups != null && !listsAreEquivalent(priorityGroups, serverCcc.priorityGroups)) { changes.add("priorityGroups"); }
             if (priorityPolicy != null && priorityPolicy != serverCcc.getPriorityPolicy()) { changes.add("priorityPolicy"); }
+
+            if (metadata != null && !metaIsEquivalent(metadata, serverCcc.metadata)) { changes.add("metadata"); }
 
             // do not need to check Durable because the original is retrieved by the durable name
 
@@ -583,18 +590,12 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
         }
     }
 
-    private String lookupStreamSubject(String stream) throws IOException, JetStreamApiException {
-        StreamInfo si = _getStreamInfo(stream, null);
-        List<String> streamSubjects = si.getConfiguration().getSubjects();
-        return streamSubjects.size() == 1 ? streamSubjects.get(0) : null;
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, true);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, true);
         return createSubscription(subscribeSubject, null, null, null, null, null, false, null);
     }
 
@@ -603,7 +604,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject, PushSubscribeOptions options) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, false);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, false);
         return createSubscription(subscribeSubject, options, null, null, null, null, false, null);
     }
 
@@ -612,7 +613,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject, String queue, PushSubscribeOptions options) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, false);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, false);
         validateQueueName(queue, false);
         return createSubscription(subscribeSubject, options, null, queue, null, null, false, null);
     }
@@ -622,7 +623,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject, Dispatcher dispatcher, MessageHandler handler, boolean autoAck) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, false);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, false);
         validateNotNull(dispatcher, "Dispatcher");
         validateNotNull(handler, "Handler");
         return createSubscription(subscribeSubject, null, null, null, (NatsDispatcher) dispatcher, handler, autoAck, null);
@@ -633,7 +634,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject, Dispatcher dispatcher, MessageHandler handler, boolean autoAck, PushSubscribeOptions options) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, false);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, false);
         validateNotNull(dispatcher, "Dispatcher");
         validateNotNull(handler, "Handler");
         return createSubscription(subscribeSubject, options, null, null, (NatsDispatcher) dispatcher, handler, autoAck, null);
@@ -644,7 +645,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject, String queue, Dispatcher dispatcher, MessageHandler handler, boolean autoAck, PushSubscribeOptions options) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, false);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, false);
         validateQueueName(queue, false);
         validateNotNull(dispatcher, "Dispatcher");
         validateNotNull(handler, "Handler");
@@ -656,7 +657,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject, PullSubscribeOptions options) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, false);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, false);
         validateNotNull(options, "Pull Subscribe Options");
         return createSubscription(subscribeSubject, null, options, null, null, null, false, null);
     }
@@ -666,7 +667,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
      */
     @Override
     public JetStreamSubscription subscribe(String subscribeSubject, Dispatcher dispatcher, MessageHandler handler, PullSubscribeOptions options) throws IOException, JetStreamApiException {
-        subscribeSubject = validateSubject(subscribeSubject, false);
+        subscribeSubject = conn.subjectValidate(subscribeSubject, false);
         validateNotNull(dispatcher, "Dispatcher");
         validateNotNull(handler, "Handler");
         validateNotNull(options, "Pull Subscribe Options");

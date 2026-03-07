@@ -22,7 +22,9 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.nats.client.support.NatsConstants.EMPTY;
 import static io.nats.client.utils.ResourceUtils.dataAsString;
@@ -35,7 +37,7 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
         Placement p = Placement.builder().cluster("cluster").tags("a", "b").build();
 
         // builder
-        ObjectStoreConfiguration bc = ObjectStoreConfiguration.builder("bucketName")
+        ObjectStoreConfiguration osc = ObjectStoreConfiguration.builder("bucketName")
             .description("bucketDesc")
             .maxBucketSize(555)
             .ttl(Duration.ofMillis(777))
@@ -44,11 +46,23 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
             .placement(p)
             .compression(true)
             .build();
-        validate(bc);
+        validate(osc);
 
-        validate(ObjectStoreConfiguration.builder(bc).build());
+        osc = new ObjectStoreConfiguration.Builder()
+            .name("bucketName")
+            .description("bucketDesc")
+            .maxBucketSize(555)
+            .ttl(Duration.ofMillis(777))
+            .storageType(StorageType.Memory)
+            .replicas(2)
+            .placement(p)
+            .compression(true)
+            .build();
+        validate(osc);
 
-        JsonValue jvSc = JsonParser.parseUnchecked(bc.getBackingConfig().toJson());
+        validate(ObjectStoreConfiguration.builder(osc).build());
+
+        JsonValue jvSc = JsonParser.parseUnchecked(osc.getBackingConfig().toJson());
         validate(new ObjectStoreConfiguration(StreamConfiguration.instance(jvSc)));
     }
 
@@ -61,6 +75,7 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
         assertEquals(2, osc.getReplicas());
         assertNotNull(osc.getPlacement());
         assertEquals("cluster", osc.getPlacement().getCluster());
+        assertNotNull(osc.getPlacement().getTags());
         assertEquals(2, osc.getPlacement().getTags().size());
         assertTrue(osc.isCompressed());
 
@@ -68,7 +83,7 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
     }
 
     @Test
-    public void testObjectInfoConstruction() throws Exception {
+    public void testObjectInfoConstruction() {
         String json = dataAsString("ObjectInfo.json");
         ZonedDateTime now = ZonedDateTime.now();
         ObjectInfo oi = new ObjectInfo(json.getBytes(), now);
@@ -79,7 +94,7 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
     }
 
     private void validateObjectInfo(ObjectInfo oi, ZonedDateTime modified) {
-        assertEquals(BUCKET, oi.getBucket());
+        assertEquals("bucket", oi.getBucket());
         assertEquals("object-name", oi.getObjectName());
         assertEquals("object-desc", oi.getDescription());
         assertEquals(344000, oi.getSize());
@@ -88,25 +103,35 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
         assertEquals("SHA-256=abcdefghijklmnopqrstuvwxyz=", oi.getDigest());
         assertTrue(oi.isDeleted());
         assertEquals(modified, oi.getModified());
+        assertNotNull(oi.getObjectMeta().getObjectMetaOptions());
         assertEquals(8196, oi.getObjectMeta().getObjectMetaOptions().getChunkSize());
         assertNotNull(oi.getHeaders());
         assertEquals(2, oi.getHeaders().size());
-        List<String> list = oi.getHeaders().get(key(1));
+        List<String> list = oi.getHeaders().get("key-1");
+        assertNotNull(list);
         assertEquals(1, list.size());
-        assertEquals(data(1), oi.getHeaders().getFirst(key(1)));
-        list = oi.getHeaders().get(key(2));
+        assertEquals(data(1), oi.getHeaders().getFirst("key-1"));
+        list = oi.getHeaders().get("key-2");
+        assertNotNull(list);
         assertEquals(2, list.size());
         assertTrue(list.contains(data(21)));
         assertTrue(list.contains(data(22)));
+
+        Map<String, String> map = oi.getMetaData();
+        assertNotNull(map);
+        assertEquals(2, map.size());
+        assertEquals("meta-data-1", map.get("meta-key-1"));
+        assertEquals("meta-data-2", map.get("meta-key-2"));
     }
 
     @Test
-    public void testObjectInfoCoverage() throws Exception {
-        ObjectLink link1a = ObjectLink.object(BUCKET, "name");
-        ObjectLink link1b = ObjectLink.object(BUCKET, "name");
-        ObjectLink link2 = ObjectLink.object(BUCKET, "name2");
-        ObjectLink blink1a = ObjectLink.bucket(BUCKET);
-        ObjectLink blink1b = ObjectLink.bucket(BUCKET);
+    public void testObjectInfoCoverage() {
+        String bucket = random();
+        ObjectLink link1a = ObjectLink.object(bucket, "name");
+        ObjectLink link1b = ObjectLink.object(bucket, "name");
+        ObjectLink link2 = ObjectLink.object(bucket, "name2");
+        ObjectLink blink1a = ObjectLink.bucket(bucket);
+        ObjectLink blink1b = ObjectLink.bucket(bucket);
         ObjectLink blink2 = ObjectLink.bucket("bucket2");
 
         ObjectMetaOptions metaOptions = ObjectMetaOptions.builder().link(link1a).chunkSize(1024).build();
@@ -119,6 +144,13 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
         metaOptionsCoverage(metaOptions, metaOptions2, metaOptionsL, metaOptionsL2, metaOptionsC);
         metaCoverage(link1a, link2);
         infoCoverage(link1a, link2);
+
+        Map<String, String> meta = new HashMap<>();
+        meta.put("foo", "bar");
+        ObjectInfo infoX = ObjectInfo.builder("buck", "name").metadata(meta).build();
+        assertNotNull(infoX.getMetaData());
+        assertEquals(1, infoX.getMetaData().size());
+        assertEquals("bar", infoX.getMetaData().get("foo"));
     }
 
     @SuppressWarnings({"SimplifiableAssertion", "ConstantConditions"})
@@ -180,18 +212,30 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
     @SuppressWarnings({"SimplifiableAssertion", "ConstantConditions"})
     private void metaCoverage(ObjectLink link, ObjectLink link2) {
         List<ObjectMeta> list = new ArrayList<>();
-        ObjectMeta meta1a = ObjectMeta.objectName("meta"); list.add(meta1a);
-        ObjectMeta meta1b = ObjectMeta.objectName("meta"); list.add(meta1b);
-        ObjectMeta meta1c = ObjectMeta.objectName("diff"); list.add(meta1c);
-        ObjectMeta meta2a = ObjectMeta.builder("meta").description("desc").build(); list.add(meta2a);
-        ObjectMeta meta2b = ObjectMeta.builder("meta").description("desc").build(); list.add(meta2b);
-        ObjectMeta meta2c = ObjectMeta.builder("meta").description("diff").build(); list.add(meta2c);
-        ObjectMeta meta3a = ObjectMeta.builder("meta").headers(new Headers().put("key", "data")).build(); list.add(meta3a);
-        ObjectMeta meta3b = ObjectMeta.builder("meta").headers(new Headers().put("key", "data")).build(); list.add(meta3b);
-        ObjectMeta meta3c = ObjectMeta.builder("meta").headers(new Headers().put("key", "diff")).build(); list.add(meta3c);
-        ObjectMeta meta4a = ObjectMeta.builder("meta").link(link).build(); list.add(meta4a);
-        ObjectMeta meta4b = ObjectMeta.builder("meta").link(link).build(); list.add(meta4b);
-        ObjectMeta meta4c = ObjectMeta.builder("meta").link(link2).build(); list.add(meta4c);
+        ObjectMeta meta1a = ObjectMeta.objectName("meta");
+        list.add(meta1a);
+        ObjectMeta meta1b = ObjectMeta.objectName("meta");
+        list.add(meta1b);
+        ObjectMeta meta1c = ObjectMeta.objectName("diff");
+        list.add(meta1c);
+        ObjectMeta meta2a = ObjectMeta.builder("meta").description("desc").build();
+        list.add(meta2a);
+        ObjectMeta meta2b = ObjectMeta.builder("meta").description("desc").build();
+        list.add(meta2b);
+        ObjectMeta meta2c = ObjectMeta.builder("meta").description("diff").build();
+        list.add(meta2c);
+        ObjectMeta meta3a = ObjectMeta.builder("meta").headers(new Headers().put("key", "data")).build();
+        list.add(meta3a);
+        ObjectMeta meta3b = ObjectMeta.builder("meta").headers(new Headers().put("key", "data")).build();
+        list.add(meta3b);
+        ObjectMeta meta3c = ObjectMeta.builder("meta").headers(new Headers().put("key", "diff")).build();
+        list.add(meta3c);
+        ObjectMeta meta4a = ObjectMeta.builder("meta").link(link).build();
+        list.add(meta4a);
+        ObjectMeta meta4b = ObjectMeta.builder("meta").link(link).build();
+        list.add(meta4b);
+        ObjectMeta meta4c = ObjectMeta.builder("meta").link(link2).build();
+        list.add(meta4c);
 
         ObjectMeta metaH = ObjectMeta.builder("meta").headers(new Headers().put("key", "data")).headers(null).build();
         assertEquals(0, metaH.getHeaders().size());
@@ -225,6 +269,31 @@ public class ObjectStoreApiTests extends JetStreamTestBase {
             assertNotNull(meta.toString()); // coverage
             assertTrue(meta.hashCode() != 0); // coverage
         }
+    }
+
+    @Test
+    public void testObjectMetaMetaCoverage() {
+        ObjectMeta metaMeta1 = ObjectMeta.builder("metaMeta")
+            .metadata(null)
+            .build();
+        assertNotNull(metaMeta1.getMetadata());
+        assertEquals(0, metaMeta1.getMetadata().size());
+
+        Map<String, String> metadata = new HashMap<>();
+        ObjectMeta metaMeta2 = ObjectMeta.builder("metaMeta")
+            .metadata(metadata)
+            .build();
+        assertNotNull(metaMeta2.getMetadata());
+        assertEquals(0, metaMeta2.getMetadata().size());
+        assertEquals(metaMeta1, metaMeta2);
+
+        metadata.put("key", "value");
+        ObjectMeta metaMeta3 = ObjectMeta.builder("metaMeta")
+            .metadata(metadata)
+            .build();
+        assertNotNull(metaMeta3.getMetadata());
+        assertEquals(1, metaMeta3.getMetadata().size());
+        assertNotEquals(metaMeta1, metaMeta3);
     }
 
     @SuppressWarnings({"SimplifiableAssertion", "ConstantConditions"})

@@ -28,6 +28,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static io.nats.client.support.NatsConstants.DOT;
 import static io.nats.client.support.NatsConstants.GREATER_THAN;
+import static io.nats.client.support.NatsJetStreamConstants.JS_SEQUENCE_TEMPORARILY_UNKNOWN;
 import static io.nats.client.support.NatsJetStreamConstants.JS_WRONG_LAST_SEQUENCE;
 import static io.nats.client.support.NatsKeyValueUtil.*;
 import static io.nats.client.support.Validator.*;
@@ -39,13 +40,13 @@ public class NatsKeyValue extends NatsFeatureBase implements KeyValue {
     private final String readPrefix;
     private final String writePrefix;
 
-    NatsKeyValue(NatsConnection connection, String bucketName, KeyValueOptions kvo) throws IOException {
-        super(connection, kvo);
+    NatsKeyValue(String bucketName, NatsConnection connection, KeyValueOptions kvo, NatsJetStreamManagement jsm) throws IOException {
+        super(connection, kvo, jsm);
         this.bucketName = Validator.validateBucketName(bucketName, true);
         streamName = toStreamName(bucketName);
         StreamInfo si;
         try {
-             si = jsm.getStreamInfo(streamName);
+             si = this.jsm.getStreamInfo(streamName);
         } catch (JetStreamApiException e) {
             // can't throw directly, that would be a breaking change
             throw new IOException(e);
@@ -151,7 +152,7 @@ public class NatsKeyValue extends NatsFeatureBase implements KeyValue {
      */
     @Override
     public long put(String key, Number value) throws IOException, JetStreamApiException {
-        return _write(key, value.toString().getBytes(StandardCharsets.US_ASCII), null, null).getSeqno();
+        return _write(key, value.toString().getBytes(StandardCharsets.ISO_8859_1), null, null).getSeqno();
     }
 
     /**
@@ -169,11 +170,17 @@ public class NatsKeyValue extends NatsFeatureBase implements KeyValue {
             return _update(key, value, 0, messageTtl);
         }
         catch (JetStreamApiException e) {
-            if (e.getApiErrorCode() == JS_WRONG_LAST_SEQUENCE) {
+            int code = e.getApiErrorCode();
+            if (code == JS_WRONG_LAST_SEQUENCE || code == JS_SEQUENCE_TEMPORARILY_UNKNOWN) {
                 // must check if the last message for this subject is a delete or purge
+                // if it was, it's okay to "create" it, as long as someone doesn't create in the meantime
+                // which is why I use the revision, which must be greater than zero b/c I just tried zero
                 KeyValueEntry kve = _get(key);
                 if (kve != null && kve.getOperation() != KeyValueOperation.PUT) {
-                    return _update(key, value, kve.getRevision(), messageTtl);
+                    long revision = kve.getRevision();
+                    if (revision > 0) {
+                        return _update(key, value, revision, messageTtl);
+                    }
                 }
             }
             throw e;
@@ -231,6 +238,22 @@ public class NatsKeyValue extends NatsFeatureBase implements KeyValue {
     @Override
     public void purge(String key, long expectedRevision) throws IOException, JetStreamApiException {
         _write(key, null, getPurgeHeaders(), getPublishOptions(expectedRevision, null));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void purge(String key, MessageTtl messageTtl) throws IOException, JetStreamApiException {
+        _write(key, null, getPurgeHeaders(), getPublishOptions(-1, messageTtl));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void purge(String key, long expectedRevision, MessageTtl messageTtl) throws IOException, JetStreamApiException {
+        _write(key, null, getPurgeHeaders(), getPublishOptions(expectedRevision, messageTtl));
     }
 
     private PublishAck _write(String key, byte[] data, Headers h, PublishOptions popts) throws IOException, JetStreamApiException {

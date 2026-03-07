@@ -15,6 +15,8 @@ package io.nats.client.api;
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonUtils;
 import io.nats.client.support.JsonValue;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import static io.nats.client.support.ApiConstants.LINK;
 import static io.nats.client.support.ApiConstants.MAX_CHUNK_SIZE;
@@ -24,7 +26,7 @@ import static io.nats.client.support.JsonValueUtils.readInteger;
 import static io.nats.client.support.JsonValueUtils.readValue;
 
 /**
- * The ObjectMeta is Object Meta is high level information about an object.
+ * The ObjectMetaOptions are additional options describing the object
  */
 public class ObjectMetaOptions implements JsonSerializable {
 
@@ -42,6 +44,7 @@ public class ObjectMetaOptions implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         JsonUtils.addField(sb, LINK, link);
@@ -49,14 +52,27 @@ public class ObjectMetaOptions implements JsonSerializable {
         return endJson(sb).toString();
     }
 
+    /**
+     * Whether the object is a link or has its own data
+     * @return true if it has data
+     */
     boolean hasData() {
         return link != null || chunkSize > 0;
     }
 
+    /**
+     * Get the link this object refers to
+     * @return the link or null if this is not a link object
+     */
+    @Nullable
     public ObjectLink getLink() {
         return link;
     }
 
+    /**
+     * Get the chunk size
+     * @return the chunk size in bytes
+     */
     public int getChunkSize() {
         return chunkSize;
     }
@@ -69,27 +85,51 @@ public class ObjectMetaOptions implements JsonSerializable {
         return new Builder(om);
     }
 
+    /**
+     * The builder for ObjectMetaOptions
+     */
     public static class Builder {
         ObjectLink link;
         int chunkSize;
 
+        /**
+         * Construct an ObjectMetaOptions.Builder
+         */
         public Builder() {}
 
+        /**
+         * Construct an ObjectMetaOptions.Builder as a copy of existing options
+         * @param om the existing options
+         */
         public Builder(ObjectMetaOptions om) {
             link = om.link;
             chunkSize = om.chunkSize;
         }
 
+        /**
+         * Set the link
+         * @param link the link
+         * @return the builder
+         */
         public Builder link(ObjectLink link) {
             this.link = link;
             return this;
         }
 
+        /**
+         * Set the chunk size
+         * @param chunkSize the size in bytes
+         * @return the builder
+         */
         public Builder chunkSize(int chunkSize) {
             this.chunkSize = chunkSize;
             return this;
         }
 
+        /**
+         * Build the ObjectMetaOptions
+         * @return the ObjectMetaOptions instance
+         */
         public ObjectMetaOptions build() {
             return new ObjectMetaOptions(this);
         }

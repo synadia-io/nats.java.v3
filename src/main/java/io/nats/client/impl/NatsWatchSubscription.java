@@ -92,8 +92,7 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
     public void unsubscribe() {
         if (dispatcher != null) {
             dispatcher.unsubscribe(sub);
-            //noinspection SizeReplaceableByIsEmpty
-            if (dispatcher.getSubscriptionHandlers().size() == 0) {
+            if (dispatcher.hasNoSubs()) {
                 dispatcher.connection.closeDispatcher(dispatcher);
                 dispatcher = null;
             }

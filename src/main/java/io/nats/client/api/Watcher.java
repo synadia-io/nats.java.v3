@@ -13,8 +13,11 @@
 
 package io.nats.client.api;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Use the Watcher interface to watch for updates
+ * @param <T> the type being watched
  */
 public interface Watcher<T> {
 
@@ -36,6 +39,7 @@ public interface Watcher<T> {
      * This can be useful for monitoring the consumer.
      * @return the name, or null if not needed, which is the default interface implementation.
      */
+    @Nullable
     default String getConsumerNamePrefix() {
         return null;
     }

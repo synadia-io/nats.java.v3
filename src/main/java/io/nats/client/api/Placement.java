@@ -15,7 +15,10 @@ package io.nats.client.api;
 
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonValue;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,6 +27,7 @@ import static io.nats.client.support.ApiConstants.TAGS;
 import static io.nats.client.support.JsonUtils.*;
 import static io.nats.client.support.JsonValueUtils.readOptionalStringList;
 import static io.nats.client.support.JsonValueUtils.readStringEmptyAsNull;
+import static io.nats.client.support.Validator.nullOrEmpty;
 
 /**
  * Placement directives to consider when placing replicas of a stream
@@ -51,6 +55,10 @@ public class Placement implements JsonSerializable {
         this.tags = tags == null || tags.isEmpty() ? null : tags;
     }
 
+    /**
+     * Whether the Placement has either a cluster or tags
+     * @return true if the Placement has data
+     */
     public boolean hasData() {
         return cluster != null || tags != null;
     }
@@ -59,6 +67,7 @@ public class Placement implements JsonSerializable {
      * The desired cluster name to place the stream.
      * @return The cluster name
      */
+    @Nullable
     public String getCluster() {
         return cluster;
     }
@@ -67,6 +76,7 @@ public class Placement implements JsonSerializable {
      * Tags required on servers hosting this stream
      * @return the list of tags
      */
+    @Nullable
     public List<String> getTags() {
         return tags;
     }
@@ -79,6 +89,8 @@ public class Placement implements JsonSerializable {
                 '}';
     }
 
+    @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, CLUSTER, cluster);
@@ -102,6 +114,11 @@ public class Placement implements JsonSerializable {
         private List<String> tags;
 
         /**
+         * Construct a builder for Placement
+         */
+        public Builder() {}
+
+        /**
          * Set the cluster string.
          * @param cluster the cluster
          * @return the builder
@@ -117,8 +134,11 @@ public class Placement implements JsonSerializable {
          * @return the builder
          */
         public Builder tags(String... tags) {
-            this.tags = Arrays.asList(tags);
-            return this;
+            if (nullOrEmpty(tags)) {
+                this.tags = null;
+                return this;
+            }
+            return _tags(Arrays.asList(tags));
         }
 
         /**
@@ -127,7 +147,23 @@ public class Placement implements JsonSerializable {
          * @return the builder
          */
         public Builder tags(List<String> tags) {
-            this.tags = tags;
+            if (nullOrEmpty(tags)) {
+                this.tags = null;
+                return this;
+            }
+            return _tags(tags);
+        }
+
+        private Builder _tags(@NonNull List<String> tags) {
+            this.tags = new ArrayList<>();
+            for (String tag : tags) {
+                if (!nullOrEmpty(tag)) {
+                    this.tags.add(tag);
+                }
+            }
+            if (this.tags.size() == 0) {
+                this.tags = null;
+            }
             return this;
         }
 

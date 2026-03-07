@@ -32,6 +32,12 @@ public interface JetStreamSubscription extends Subscription {
     String getConsumerName();
 
     /**
+     * Gets the stream name associated with the subscription.
+     * @return the stream name
+     */
+    default String getStreamName() { return null; }
+
+    /**
      * Initiate pull with the specified batch size.
      * ! Pull subscriptions only. Push subscription will throw IllegalStateException
      * ! Primitive API for ADVANCED use only, officially not supported. Prefer fetch, iterate or reader.
@@ -133,7 +139,7 @@ public interface JetStreamSubscription extends Subscription {
      * ! Pull subscriptions only. Push subscription will throw IllegalStateException
      *
      * @param batchSize the size of the batch
-     * @param maxWait the maximum time to wait for the first message.
+     * @param maxWait the maximum time to wait to collect messages for the batch.
      *
      * @return the list of messages
      * @throws IllegalStateException if not a pull subscription.
@@ -148,7 +154,7 @@ public interface JetStreamSubscription extends Subscription {
      * ! Pull subscriptions only. Push subscription will throw IllegalStateException
      *
      * @param batchSize the size of the batch
-     * @param maxWaitMillis the maximum time to wait for the first message, in milliseconds.
+     * @param maxWaitMillis the maximum time to wait to collect messages for the batch, in milliseconds.
      *
      * @return the list of messages
      * @throws IllegalStateException if not a pull subscription.

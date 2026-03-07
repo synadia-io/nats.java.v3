@@ -17,6 +17,7 @@ import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonUtils;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.JsonValueUtils;
+import org.jspecify.annotations.NonNull;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -112,6 +113,7 @@ public class EndpointStats implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         JsonUtils.addField(sb, NAME, name);
@@ -245,10 +247,10 @@ public class EndpointStats implements JsonSerializable {
         int result = name != null ? name.hashCode() : 0;
         result = 31 * result + (subject != null ? subject.hashCode() : 0);
         result = 31 * result + (queueGroup != null ? queueGroup.hashCode() : 0);
-        result = 31 * result + (int) (numRequests ^ (numRequests >>> 32));
-        result = 31 * result + (int) (numErrors ^ (numErrors >>> 32));
-        result = 31 * result + (int) (processingTime ^ (processingTime >>> 32));
-        result = 31 * result + (int) (averageProcessingTime ^ (averageProcessingTime >>> 32));
+        result = 31 * result + Long.hashCode(numRequests);
+        result = 31 * result + Long.hashCode(numErrors);
+        result = 31 * result + Long.hashCode(processingTime);
+        result = 31 * result + Long.hashCode(averageProcessingTime);
         result = 31 * result + (lastError != null ? lastError.hashCode() : 0);
         result = 31 * result + (data != null ? data.hashCode() : 0);
         result = 31 * result + (started != null ? started.hashCode() : 0);

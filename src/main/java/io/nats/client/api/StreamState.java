@@ -14,6 +14,8 @@
 package io.nats.client.api;
 
 import io.nats.client.support.JsonValue;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -24,6 +26,9 @@ import java.util.Map;
 import static io.nats.client.support.ApiConstants.*;
 import static io.nats.client.support.JsonValueUtils.*;
 
+/**
+ * Object representing the state of a stream
+ */
 public class StreamState {
     private final long msgs;
     private final long bytes;
@@ -97,6 +102,7 @@ public class StreamState {
      *
      * @return the first time
      */
+    @Nullable
     public ZonedDateTime getFirstTime() {
         return firstTime;
     }
@@ -115,6 +121,7 @@ public class StreamState {
      *
      * @return the first time
      */
+    @Nullable
     public ZonedDateTime getLastTime() {
         return lastTime;
     }
@@ -142,14 +149,16 @@ public class StreamState {
      * if the Stream Info request did not ask for subjects or if there are no subjects.
      * @return the list of subjects
      */
+    @NonNull
     public List<Subject> getSubjects() {
         return subjects;
     }
 
     /**
-     * Get a map of subjects instead of a list of Subject objects.
+     * Get a map of subjects instead of a list of Subject objects. May be empty.
      * @return the map
      */
+    @NonNull
     public Map<String, Long> getSubjectMap() {
         return subjectMap;
     }
@@ -164,10 +173,11 @@ public class StreamState {
     }
 
     /**
-     * Get a list of the Deleted objects. May be null if the Stream Info request did not ask for subjects
+     * Get a list of the Deleted objects. May be empty if the Stream Info request did not ask for subjects
      * or if there are no subjects.
      * @return the list of subjects
      */
+    @NonNull
     public List<Long> getDeleted() {
         return deletedStreamSequences;
     }
@@ -176,6 +186,7 @@ public class StreamState {
      * Get the lost stream data information if available.
      * @return the LostStreamData
      */
+    @Nullable
     public LostStreamData getLostStreamData() {
         return lostStreamData;
     }

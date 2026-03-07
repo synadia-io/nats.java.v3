@@ -17,6 +17,7 @@ import io.nats.client.support.JsonParseException;
 import io.nats.client.support.JsonParser;
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonValue;
+import org.jspecify.annotations.NonNull;
 
 import static io.nats.client.support.ApiConstants.*;
 import static io.nats.client.support.JsonUtils.*;
@@ -30,12 +31,19 @@ import static io.nats.client.support.JsonValueUtils.readLong;
  * fetch operate. It is the base class for ConsumeOptions and FetchConsumeOptions.
  */
 public class BaseConsumeOptions implements JsonSerializable {
+    /** constant for default message count */
     public static final int DEFAULT_MESSAGE_COUNT = 500;
+    /** constant for default message count when bytes */
     public static final int DEFAULT_MESSAGE_COUNT_WHEN_BYTES = 1_000_000;
+    /** constant for default threshold percent */
     public static final int DEFAULT_THRESHOLD_PERCENT = 25;
+    /** constant for default expires in millis */
     public static final long DEFAULT_EXPIRES_IN_MILLIS = 30000;
+    /** constant for min expires mills */
     public static final long MIN_EXPIRES_MILLS = 1000;
+    /** constant for max heartbeat millis */
     public static final long MAX_HEARTBEAT_MILLIS = 30000;
+    /** constant for max idle heartbeat percent */
     public static final int MAX_IDLE_HEARTBEAT_PERCENT = 50;
 
     protected final int messages;
@@ -44,6 +52,7 @@ public class BaseConsumeOptions implements JsonSerializable {
     protected final int thresholdPercent;
     protected final long idleHeartbeat;
     protected final String group;
+    protected final int priority;
     protected final long minPending;
     protected final long minAckPending;
     protected final boolean raiseStatusWarnings;
@@ -66,12 +75,14 @@ public class BaseConsumeOptions implements JsonSerializable {
         idleHeartbeat = Math.min(MAX_HEARTBEAT_MILLIS, expiresIn * MAX_IDLE_HEARTBEAT_PERCENT / 100);
 
         this.group = b.group;
+        this.priority = b.priority;
         this.minPending = b.minPending;
         this.minAckPending = b.minAckPending;
         raiseStatusWarnings = b.raiseStatusWarnings;
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, MESSAGES, messages);
@@ -80,6 +91,7 @@ public class BaseConsumeOptions implements JsonSerializable {
         addField(sb, IDLE_HEARTBEAT, idleHeartbeat);
         addField(sb, THRESHOLD_PERCENT, thresholdPercent);
         addField(sb, GROUP, group);
+        addField(sb, PRIORITY, priority);
         addField(sb, MIN_PENDING, minPending);
         addField(sb, MIN_ACK_PENDING, minAckPending);
         addFldWhenTrue(sb, RAISE_STATUS_WARNINGS, raiseStatusWarnings);
@@ -89,30 +101,69 @@ public class BaseConsumeOptions implements JsonSerializable {
 
     protected void subclassSpecificToJson(StringBuilder sb) {}
 
+    /**
+     * Get the expires setting
+     * @return the expires, in milliseconds
+     */
     public long getExpiresInMillis() {
         return expiresIn;
     }
 
+    /**
+     * Get the idle heartbeat value
+     * @return the idle heartbeat in milliseconds
+     */
     public long getIdleHeartbeat() {
         return idleHeartbeat;
     }
 
+    /**
+     * Get the threshold percent setting
+     * @return the threshold percent
+     */
     public int getThresholdPercent() {
         return thresholdPercent;
     }
 
+    /**
+     * Whether to raise status warnings to the error listener
+     * @return true if should raise status warnings
+     */
     public boolean raiseStatusWarnings() {
         return raiseStatusWarnings;
     }
 
+    /**
+     * Get the priority group setting
+     * A group must be set if a  {@link io.nats.client.api.PriorityPolicy} has been specified.
+     * The group must be consistent with the groups specified in the ConsumerConfiguration.
+     * @return the priority group
+     */
     public String getGroup() {
         return group;
     }
 
+    /**
+     * Get the priority setting
+     * @return the priority
+     */
+    public int getPriority() {
+        return priority;
+    }
+
+    /**
+     * Get the min pending setting as per the overflow priority group. See {@link io.nats.client.api.PriorityPolicy}.
+     *
+     * @return the min pending
+     */
     public long getMinPending() {
         return minPending;
     }
 
+    /**
+     * Get the min ack pending setting as per the overflow priority group. See {@link io.nats.client.api.PriorityPolicy}.
+     * @return the min ack pending
+     */
     public long getMinAckPending() {
         return minAckPending;
     }
@@ -124,6 +175,7 @@ public class BaseConsumeOptions implements JsonSerializable {
         protected long expiresIn = DEFAULT_EXPIRES_IN_MILLIS;
         protected boolean raiseStatusWarnings = false;
         protected String group;
+        protected int priority;
         protected long minPending = -1;
         protected long minAckPending = -1;
 
@@ -133,7 +185,7 @@ public class BaseConsumeOptions implements JsonSerializable {
          * Initialize values from the json string.
          * @param json the json string to parse
          * @return the builder
-         * @throws JsonParseException if the json is invalid
+         * @throws JsonParseException if there is a problem parsing the json
          */
         public B json(String json) throws JsonParseException {
             return jsonValue(JsonParser.parse(json));
@@ -151,6 +203,7 @@ public class BaseConsumeOptions implements JsonSerializable {
             thresholdPercent(readInteger(jsonValue, THRESHOLD_PERCENT, -1));
             raiseStatusWarnings(readBoolean(jsonValue, RAISE_STATUS_WARNINGS, false));
             group(readStringEmptyAsNull(jsonValue, GROUP));
+            priority(readInteger(jsonValue, PRIORITY, 0));
             minPending(readLong(jsonValue, MIN_PENDING, -1));
             minAckPending(readLong(jsonValue, MIN_ACK_PENDING, -1));
             return getThis();
@@ -234,6 +287,16 @@ public class BaseConsumeOptions implements JsonSerializable {
          */
         public B group(String group) {
             this.group = group;
+            return getThis();
+        }
+
+        /**
+         * Sets the priority for the group
+         * @param priority the priority
+         * @return Builder
+         */
+        public B priority(int priority) {
+            this.priority = priority;
             return getThis();
         }
 

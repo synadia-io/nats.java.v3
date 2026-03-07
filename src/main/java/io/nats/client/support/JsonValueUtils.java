@@ -13,6 +13,8 @@
 
 package io.nats.client.support;
 
+import org.jspecify.annotations.NonNull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -330,11 +332,13 @@ public abstract class JsonValueUtils {
         }
 
         @Override
+        @NonNull
         public String toJson() {
             return jv.toJson();
         }
 
         @Override
+        @NonNull
         public JsonValue toJsonValue() {
             return jv;
         }
@@ -362,11 +366,13 @@ public abstract class JsonValueUtils {
         }
 
         @Override
+        @NonNull
         public String toJson() {
             return jv.toJson();
         }
 
         @Override
+        @NonNull
         public JsonValue toJsonValue() {
             return jv;
         }

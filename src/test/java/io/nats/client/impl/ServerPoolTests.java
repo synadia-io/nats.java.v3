@@ -21,16 +21,20 @@ import org.junit.jupiter.api.Test;
 import java.net.URISyntaxException;
 import java.util.*;
 
+import static io.nats.client.utils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ServerPoolTests extends TestBase {
 
     public static final String BOOT_ONE = "nats://b1";
     public static final String BOOT_TWO = "nats://b2";
+    public static final String BOOT_ONE_SECURE = "tls://b1";
     public static final String DISC_ONE = "nats://d1";
     public static final String DISC_TWO = "nats://d2";
     public static final String DISC_THREE = "nats://d3";
-    public static final String HOST_THAT_CAN_BE_RESOLVED = "connect.ngs.global";
+    public static final String HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS = "connect.ngs.global";
+    public static final String HOST_THAT_CAN_BE_RESOLVED_TO_ONE_IP = "demo.nats.io";
+    public static final String HOST_THAT_CANT_BE_RESOLVED = "not.real.host";
     public static final String[] bootstrap = new String[]{BOOT_ONE, BOOT_TWO};
     public static final String[] combined = new String[]{BOOT_ONE, BOOT_TWO, DISC_ONE, DISC_TWO, DISC_THREE};
     public static final List<String> discoveredServers = Arrays.asList(BOOT_TWO, DISC_ONE, DISC_TWO, DISC_THREE);
@@ -40,7 +44,7 @@ public class ServerPoolTests extends TestBase {
         NatsUri lastConnectedServer = new NatsUri(BOOT_ONE);
 
         // testing that the expected show up in the pool
-        Options o = new Options.Builder().servers(bootstrap).build();
+        Options o = optionsBuilder(bootstrap).build();
         NatsServerPool nsp = newNatsServerPool(o, null, discoveredServers);
         validateNslp(nsp, null, false, combined);
 
@@ -49,7 +53,7 @@ public class ServerPoolTests extends TestBase {
         validateNslp(nsp, lastConnectedServer, false, combined);
 
         // testing that noRandomize maintains order
-        o = new Options.Builder().noRandomize().servers(bootstrap).build();
+        o = optionsBuilder(bootstrap).noRandomize().build();
         nsp = newNatsServerPool(o, null, discoveredServers);
         validateNslp(nsp, null, true, combined);
 
@@ -58,9 +62,21 @@ public class ServerPoolTests extends TestBase {
         validateNslp(nsp, lastConnectedServer, true, combined);
 
         // testing that ignoreDiscoveredServers ignores discovered servers
-        o = new Options.Builder().ignoreDiscoveredServers().servers(bootstrap).build();
+        o = optionsBuilder(bootstrap).ignoreDiscoveredServers().build();
         nsp = newNatsServerPool(o, null, discoveredServers);
         validateNslp(nsp, null, false, BOOT_ONE, BOOT_TWO);
+
+        // testing that duplicates don't get added
+        String[] secureAndNotSecure = new String[]{BOOT_ONE, BOOT_ONE_SECURE};
+        String[] secureBootstrap = new String[]{BOOT_ONE_SECURE};
+        o = optionsBuilder(secureAndNotSecure).build();
+        nsp = newNatsServerPool(o, null, null);
+        validateNslp(nsp, null, false, secureBootstrap);
+
+        secureAndNotSecure = new String[]{BOOT_ONE_SECURE, BOOT_ONE};
+        o = optionsBuilder(secureAndNotSecure).build();
+        nsp = newNatsServerPool(o, null, null);
+        validateNslp(nsp, null, false, secureBootstrap);
     }
 
     @Test
@@ -68,7 +84,7 @@ public class ServerPoolTests extends TestBase {
         NatsUri failed = new NatsUri(BOOT_ONE);
 
         // testing that servers that fail max times and is removed
-        Options o = new Options.Builder().server(BOOT_ONE).maxReconnects(3).build();
+        Options o = optionsBuilder(BOOT_ONE).maxReconnects(3).build();
         NatsServerPool nsp = newNatsServerPool(o, null, null);
         for (int x = 0; x < 4; x++) {
             nsp.nextServer();
@@ -82,7 +98,7 @@ public class ServerPoolTests extends TestBase {
         validateNslp(nsp, null, false, BOOT_ONE);
 
         // testing that servers that fail max times and is removed
-        o = new Options.Builder().server(BOOT_ONE).maxReconnects(0).build();
+        o = optionsBuilder(BOOT_ONE).maxReconnects(0).build();
         nsp = newNatsServerPool(o, null, null);
         nsp.nextServer();
         validateNslp(nsp, null, false, BOOT_ONE);
@@ -97,7 +113,7 @@ public class ServerPoolTests extends TestBase {
     @Test
     public void testPruning() throws URISyntaxException {
         // making sure that pruning happens. get baseline
-        Options o = new Options.Builder().servers(bootstrap).maxReconnects(0).build();
+        Options o = optionsBuilder(bootstrap).maxReconnects(0).build();
         NatsServerPool nsp = newNatsServerPool(o, null, discoveredServers);
         validateNslp(nsp, null, false, combined);
 
@@ -111,33 +127,12 @@ public class ServerPoolTests extends TestBase {
         validateNslp(nsp, null, false, BOOT_ONE, BOOT_TWO, DISC_ONE, DISC_TWO);
     }
 
-    @Test
-    public void testResolvingHostname() throws URISyntaxException {
-        // resolving host name is false
-        NatsUri ngs = new NatsUri(HOST_THAT_CAN_BE_RESOLVED);
-        Options o = new Options.Builder().noResolveHostnames().build();
-        NatsServerPool nsp = newNatsServerPool(o, null, null);
-        List<String> resolved = nsp.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED);
-        assertNull(resolved);
-
-        // resolving host name is true
-        o = new Options.Builder().build();
-        nsp = newNatsServerPool(o, null, null);
-        resolved = nsp.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED);
-        assertNotNull(resolved);
-        assertTrue(resolved.size() > 1);
-        for (String ip : resolved) {
-            NatsUri nuri = ngs.reHost(ip);
-            assertTrue(nuri.hostIsIpAddress());
-        }
-    }
-
     private static NatsServerPool newNatsServerPool(Options o, NatsUri last, List<String> discoveredServers) {
         NatsServerPool nsp = new NatsServerPool();
         nsp.initialize(o);
         if (last != null) {
             NatsUri next = nsp.nextServer();
-            while (!next.equals(last)) {
+            while (next != null && !next.equals(last)) {
                 next = nsp.nextServer();
             }
             assertEquals(last, next);
@@ -174,5 +169,60 @@ public class ServerPoolTests extends TestBase {
         if (last != null) {
             assertEquals(last, supplied.get(supplied.size() - 1));
         }
+    }
+
+    @Test
+    public void testServerPoolEntry() throws URISyntaxException {
+        NatsUri nuri = new NatsUri(BOOT_ONE);
+        ServerPoolEntry entry = new ServerPoolEntry(nuri, true);
+        assertEquals(nuri, entry.nuri);
+        assertTrue(entry.isGossiped);
+        assertTrue(entry.toString().contains(nuri.toString()));
+        assertTrue(entry.toString().contains("true/0"));
+
+        entry = new ServerPoolEntry(nuri, false);
+        entry.failedAttempts = 1;
+        assertEquals(nuri, entry.nuri);
+        assertFalse(entry.isGossiped);
+        assertTrue(entry.toString().contains(nuri.toString()));
+        assertTrue(entry.toString().contains("false/1"));
+    }
+
+    @Test
+    public void testNatsHostResolver() throws URISyntaxException {
+        List<String> resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS, true, false);
+        assertNotNull(resolved);
+        assertEquals(1, resolved.size());
+
+        // this is coverage since I can't guarantee that any the host will be resolved to an IPV6
+        resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS, true, true);
+        assertNotNull(resolved);
+        assertEquals(1, resolved.size());
+
+        resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS, false, false);
+        assertNotNull(resolved);
+        assertTrue(resolved.size() > 1);
+
+        // this is coverage since I can't guarantee that any the host will be resolved to an IPV6
+        resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS, false, true);
+        assertNotNull(resolved);
+        assertTrue(resolved.size() > 1);
+
+        NatsUri ngs = new NatsUri(HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS);
+        for (String ip : resolved) {
+            NatsUri nuri = ngs.reHost(ip);
+            assertTrue(nuri.hostIsIpAddress());
+        }
+
+        resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED_TO_ONE_IP, true, false);
+        assertNotNull(resolved);
+        assertEquals(1, resolved.size());
+
+        resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED_TO_ONE_IP, false, false);
+        assertNotNull(resolved);
+        assertEquals(1, resolved.size());
+
+        resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CANT_BE_RESOLVED, false, false);
+        assertNull(resolved);
     }
 }

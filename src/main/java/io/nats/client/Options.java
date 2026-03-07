@@ -15,6 +15,7 @@ package io.nats.client;
 
 import io.nats.client.impl.*;
 import io.nats.client.support.*;
+import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -35,6 +36,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 import static io.nats.client.support.Encoding.*;
@@ -119,13 +121,20 @@ public class Options {
     public static final Duration DEFAULT_SOCKET_WRITE_TIMEOUT = Duration.ofMinutes(1);
 
     /**
-     * Constant used for calculating if a socket write timeout is large enough.
+     * @deprecated No longer enforcing a minimum compared to the connection timeout
      */
+    @Deprecated
     public static final long MINIMUM_SOCKET_WRITE_TIMEOUT_GT_CONNECTION_TIMEOUT = 100;
 
     /**
-     * Constant used for calculating if a socket read timeout is large enough.
+     * This is set to 100 nanos to ensure that the scheduled task can execute
      */
+    public static final long MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS = 100;
+
+    /**
+     * @deprecated No longer enforcing a minimum
+     */
+    @Deprecated
     public static final long MINIMUM_SOCKET_READ_TIMEOUT_GT_CONNECTION_TIMEOUT = 100;
 
     /**
@@ -144,6 +153,23 @@ public class Options {
      * <p>This property is defined as 5 seconds.</p>
      */
     public static final Duration DEFAULT_REQUEST_CLEANUP_INTERVAL = Duration.ofSeconds(5);
+
+    /**
+     * Default amount of time to try to add something to the outgoing queue.
+     * This covers the entire time it takes to obtain the lock and
+     * the time allowed to offer the message to the queue before it's determined
+     * that the queue is busy (lock not obtained) or full (offer failed)
+     * For slow publishers, this is plenty of time. For fast publishers,
+     * you may want a larger value and a larger than default maximum queue size
+     * <p>This property is defined as 5 seconds.</p>
+     */
+    public static final Duration DEFAULT_WRITE_QUEUE_PUSH_TIMEOUT = Duration.ofSeconds(2);
+
+    /**
+     * The minimum amount of time to try to add something to the outgoing queue.
+     * <p>This property is defined as 50 milliseconds.</p>
+     */
+    public static final Duration MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT = Duration.ofMillis(50);
 
     /**
      * Default maximum number of pings have not received a response allowed by the
@@ -229,6 +255,83 @@ public class Options {
      */
     public static final Supplier<ExecutorService> DEFAULT_SINGLE_THREAD_EXECUTOR = Executors::newSingleThreadExecutor;
 
+    /**
+     * Whether subject strings should be validated against naming rules,
+     * and the level of subject validation.
+     */
+    public enum SubjectValidationType {
+        /**
+         * No Subject Validation
+         */
+        None,
+        /**
+         * Lenient Subject Validation
+         */
+        Lenient,
+        /**
+         * Strict Subject Validation
+         */
+        Strict;
+    }
+
+    /**
+     * The mode of hostname resolving
+     */
+    public enum HostnameResolveMode {
+        /**
+         * Resolve host to all ip addresses allowing for connection attempts to try all ip addresses for a given hostname.
+         * Default mode. Does not include IPV6 addresses.
+         */
+        ResolveToAll(true, false, false),
+
+        /**
+         * Resolve host to the first ip addresses allowing for connection attempts to try just that first ip addresses for a given hostname.
+         * Does not include IPV6 addresses.
+         */
+        ResolveToFirst(true, true, false),
+
+        /**
+         * Resolve host to all ip addresses allowing for connection attempts to try all ip addresses for a given hostname.
+         * Includes IPV6 addresses.
+         */
+        ResolveToAllIncludeIPV6(true, false, true),
+
+        /**
+         * Resolve host to the first ip addresses allowing for connection attempts to try just that first ip addresses for a given hostname.
+         * Includes IPV6 addresses.
+         */
+        ResolveToFirstIncludeIPV6(true, true, true),
+
+        /**
+         * Do not resolve, instead use InetSocketAddress.createUnresolved while creating the socket.
+         */
+        Unresolved(false, false, false),
+
+        /**
+         * Attempt to connect to the fastest ip for a host via the Happy Eyeballs algorithm as described in RFC 6555/8305
+         */
+        HappyEyeballs(false, false, false);
+
+        public final boolean resolve;
+        public final boolean maxOneResult;
+        public final boolean includeIPV6;
+
+        HostnameResolveMode(boolean resolve, boolean maxOneResult, boolean includeIPV6) {
+            this.resolve = resolve;
+            this.maxOneResult = maxOneResult;
+            this.includeIPV6 = includeIPV6;
+        }
+
+        public static HostnameResolveMode get(String value) {
+            for (HostnameResolveMode mode : HostnameResolveMode.values()) {
+                if (mode.name().equalsIgnoreCase(value)) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // ENVIRONMENT PROPERTIES
     // ----------------------------------------------------------------------------------------------------
@@ -275,6 +378,11 @@ public class Options {
      */
     public static final String PROP_CLEANUP_INTERVAL = PFX + "cleanupinterval";
     /**
+     * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#writeQueuePushTimeout(Duration)
+     * writeQueuePushTimeout}.
+     */
+    public static final String PROP_WRITE_QUEUE_PUSH_TIMEOUT = PFX + "writeQueuePushTimeout";
+    /**
      * Property used to configure a builder from a Properties object. {@value}, see
      * {@link Builder#connectionTimeout(Duration) connectionTimeout}.
      */
@@ -294,6 +402,18 @@ public class Options {
      * {@link Builder#socketSoLinger(int) socketSoLinger}.
      */
     public static final String PROP_SOCKET_SO_LINGER = PFX + "socket.so.linger";
+    /**
+     * Property used to configure a builder from a Properties object. {@value}, see
+     * {@link Builder#receiveBufferSize(int) receiveBufferSize}.
+     * OVERRIDES THE UNDERLYING JAVA SOCKET IMPLEMENTATION - USE AT YOUR OWN RISK
+     */
+    public static final String PROP_SOCKET_RECEIVE_BUFFER_SIZE = PFX + "socket.receive.buffer.size";
+    /**
+     * Property used to configure a builder from a Properties object. {@value}, see
+     * {@link Builder#sendBufferSize(int) sendBufferSize}.
+     * OVERRIDES THE UNDERLYING JAVA SOCKET IMPLEMENTATION - USE AT YOUR OWN RISK
+     */
+    public static final String PROP_SOCKET_SEND_BUFFER_SIZE = PFX + "socket.send.buffer.size";
     /**
      * Property used to configure a builder from a Properties object. {@value}, see
      * {@link Builder#reconnectBufferSize(long) reconnectBufferSize}.
@@ -349,9 +469,31 @@ public class Options {
      */
     public static final String PROP_NORANDOMIZE = PFX + "norandomize";
     /**
+     * @deprecated Prefer to use hostname resolve mode
      * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#noResolveHostnames() noResolveHostnames}.
      */
+    @Deprecated
     public static final String PROP_NO_RESOLVE_HOSTNAMES = PFX + "noResolveHostnames";
+    /**
+     * @deprecated Prefer to use hostname resolve mode
+     * Property used to enable fast fallback algorithm for socket connection.
+     * {@link Builder#enableFastFallback() enableFastFallback}.
+     */
+    @Deprecated
+    public static final String PROP_FAST_FALLBACK = PFX + "fast.fallback";
+    /**
+     * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#hostnameResolveMode(HostnameResolveMode) hostnameResolveMode}.
+     * Takes precedence over PROP_NO_RESOLVE_HOSTNAMES and PROP_FAST_FALLBACK
+     */
+    public static final String PROP_HOSTNAME_RESOLVE_MODE = PFX + "hostnameResolveMode";
+    /**
+     * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#noSubjectValidation() noSubjectValidation}.
+     */
+    public static final String PROP_NO_SUBJECT_VALIDATION = PFX + "noSubjectValidation";
+    /**
+     * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#noSubjectValidation() noSubjectValidation}.
+     */
+    public static final String PROP_STRICT_SUBJECT_VALIDATION = PFX + "strictSubjectValidation";
     /**
      * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#reportNoResponders() reportNoResponders}.
      */
@@ -379,6 +521,10 @@ public class Options {
      * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#token(String) token}.
      */
     public static final String PROP_TOKEN = PFX + "token";
+    /**
+     * Property used to configure the token supplier from a Properties object. {@value}, see {@link Builder#tokenSupplier(Supplier) tokenSupplier}.
+     */
+    public static final String PROP_TOKEN_SUPPLIER = PFX + "token.supplier";
     /**
      * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#server(String) server}.
      */
@@ -505,6 +651,21 @@ public class Options {
      */
     public static final String PROP_EXECUTOR_SERVICE_CLASS = "executor.service.class";
     /**
+     * Property used to set class name for the Executor Service (executor) class
+     * {@link Builder#executor(ExecutorService) executor}.
+     */
+    public static final String PROP_SCHEDULED_EXECUTOR_SERVICE_CLASS = "scheduled.executor.service.class";
+    /**
+     * Property used to set class name for the Connect Executor Service (executor) class
+     * {@link Builder#connectExecutor(ExecutorService) connectExecutor}.
+     */
+    public static final String PROP_CONNECT_EXECUTOR_SERVICE_CLASS = "connect.executor.service.class";
+    /**
+     * Property used to set class name for the Callback Executor Service (executor) class
+     * {@link Builder#callbackExecutor(ExecutorService) callbackExecutor}.
+     */
+    public static final String PROP_CALLBACK_EXECUTOR_SERVICE_CLASS = "callback.executor.service.class";
+    /**
      * Property used to set class name for the Connect Thread Factory
      * {@link Builder#connectThreadFactory(ThreadFactory) connectThreadFactory}.
      */
@@ -616,7 +777,8 @@ public class Options {
     private final List<NatsUri> natsServerUris;
     private final List<String> unprocessedServers;
     private final boolean noRandomize;
-    private final boolean noResolveHostnames;
+    private final HostnameResolveMode hostnameResolveMode;
+    private final SubjectValidationType subjectValidationType;
     private final boolean reportNoResponders;
     private final String connectionName;
     private final boolean verbose;
@@ -631,8 +793,11 @@ public class Options {
     private final int socketReadTimeoutMillis;
     private final Duration socketWriteTimeout;
     private final int socketSoLinger;
+    private final int receiveBufferSize;
+    private final int sendBufferSize;
     private final Duration pingInterval;
     private final Duration requestCleanupInterval;
+    private final Duration writeQueuePushTimeout;
     private final int maxPingsOut;
     private final long reconnectBufferSize;
     private final char[] username;
@@ -660,33 +825,51 @@ public class Options {
     private final ErrorListener errorListener;
     private final TimeTraceLogger timeTraceLogger;
     private final ConnectionListener connectionListener;
-    private ReadListener readListener;
+    private final ReadListener readListener;
     private final StatisticsCollector statisticsCollector;
     private final String dataPortType;
 
     private final boolean trackAdvancedStats;
     private final boolean traceConnection;
 
-    private final ExecutorService executor;
-    private final ThreadFactory connectThreadFactory;
-    private final ThreadFactory callbackThreadFactory;
+    private final ReentrantLock executorsLock;
+
+    private final ExecutorService userExecutor;
+    private final ScheduledExecutorService userScheduledExecutor;
+    private final ThreadFactory userConnectThreadFactory;
+    private final ThreadFactory userCallbackThreadFactory;
+    private final ExecutorService userConnectExecutor;
+    private final ExecutorService userCallbackExecutor;
+
+    // these are not final b/c they are lazy initialized
+    // and nulled during shutdownInternalExecutors
+    private ExecutorService resolvedExecutor;
+    private ScheduledExecutorService resolvedScheduledExecutor;
+    private ExecutorService resolvedConnectExecutor;
+    private ExecutorService resolvedCallbackExecutor;
+
     private final ServerPool serverPool;
     private final DispatcherFactory dispatcherFactory;
 
     private final List<java.util.function.Consumer<HttpRequest>> httpRequestInterceptors;
     private final Proxy proxy;
 
+    // STATE VARIABLES
+    private int executorUseCount = 0;
+
     static class DefaultThreadFactory implements ThreadFactory {
-        String name;
-        AtomicInteger threadNo = new AtomicInteger(0);
+        final String name;
+        final AtomicInteger threadNumber;
 
         public DefaultThreadFactory (String name){
             this.name = name;
+            threadNumber = new AtomicInteger(0);
         }
 
-        public Thread newThread(Runnable r) {
-            String threadName = name+":"+threadNo.incrementAndGet();
-            Thread t = new Thread(r,threadName);
+        @Override
+		public Thread newThread(@NonNull Runnable r) {
+            String threadName = name + ":" + threadNumber.incrementAndGet();
+            Thread t = new Thread(r, threadName);
             if (t.isDaemon()) {
                 t.setDaemon(false);
             }
@@ -755,7 +938,8 @@ public class Options {
         private final List<NatsUri> natsServerUris = new ArrayList<>();
         private final List<String> unprocessedServers = new ArrayList<>();
         private boolean noRandomize = false;
-        private boolean noResolveHostnames = false;
+        private HostnameResolveMode hostnameResolveMode = HostnameResolveMode.ResolveToAll;
+        private SubjectValidationType subjectValidationType = SubjectValidationType.Lenient;
         private boolean reportNoResponders = false;
         private String connectionName = null; // Useful for debugging -> "test: " + NatsTestServer.currentPort();
         private boolean verbose = false;
@@ -771,8 +955,11 @@ public class Options {
         private int socketReadTimeoutMillis = 0;
         private Duration socketWriteTimeout = DEFAULT_SOCKET_WRITE_TIMEOUT;
         private int socketSoLinger = -1;
+        private int receiveBufferSize = -1;
+        private int sendBufferSize = -1;
         private Duration pingInterval = DEFAULT_PING_INTERVAL;
         private Duration requestCleanupInterval = DEFAULT_REQUEST_CLEANUP_INTERVAL;
+        private Duration writeQueuePushTimeout = DEFAULT_WRITE_QUEUE_PUSH_TIMEOUT;
         private int maxPingsOut = DEFAULT_MAX_PINGS_OUT;
         private long reconnectBufferSize = DEFAULT_RECONNECT_BUF_SIZE;
         private char[] username = null;
@@ -807,9 +994,12 @@ public class Options {
         private ReadListener readListener = null;
         private StatisticsCollector statisticsCollector = null;
         private String dataPortType = DEFAULT_DATA_PORT_TYPE;
-        private ExecutorService executor;
-        private ThreadFactory connectThreadFactory;
-        private ThreadFactory callbackThreadFactory;
+        private ExecutorService userExecutor;
+        private ScheduledExecutorService userScheduledExecutor;
+        private ExecutorService userConnectExecutor;
+        private ExecutorService userCallbackExecutor;
+        private ThreadFactory userConnectThreadFactory;
+        private ThreadFactory userCallbackThreadFactory;
         private List<java.util.function.Consumer<HttpRequest>> httpRequestInterceptors;
         private Proxy proxy;
 
@@ -875,6 +1065,8 @@ public class Options {
             charArrayProperty(props, PROP_USERNAME, ca -> this.username = ca);
             charArrayProperty(props, PROP_PASSWORD, ca -> this.password = ca);
             charArrayProperty(props, PROP_TOKEN, ca -> this.tokenSupplier = new DefaultTokenSupplier(ca));
+            //noinspection unchecked
+            classnameProperty(props, PROP_TOKEN_SUPPLIER, o -> this.tokenSupplier = (Supplier<char[]>) o);
 
             booleanProperty(props, PROP_SECURE, b -> this.useDefaultTls = b);
             booleanProperty(props, PROP_OPENTLS, b -> this.useTrustAllTls = b);
@@ -891,7 +1083,8 @@ public class Options {
             stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
 
             booleanProperty(props, PROP_NORANDOMIZE, b -> this.noRandomize = b);
-            booleanProperty(props, PROP_NO_RESOLVE_HOSTNAMES, b -> this.noResolveHostnames = b);
+            booleanPropertyIfTrue(props, PROP_NO_SUBJECT_VALIDATION, b -> subjectValidationType = SubjectValidationType.None);
+            booleanPropertyIfTrue(props, PROP_STRICT_SUBJECT_VALIDATION, b -> subjectValidationType = SubjectValidationType.Strict);
             booleanProperty(props, PROP_REPORT_NO_RESPONDERS, b -> this.reportNoResponders = b);
 
             stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
@@ -903,20 +1096,23 @@ public class Options {
             booleanProperty(props, PROP_UTF8_SUBJECTS, b -> this.supportUTF8Subjects = b);
             booleanProperty(props, PROP_PEDANTIC, b -> this.pedantic = b);
 
-            intProperty(props, PROP_MAX_RECONNECT, DEFAULT_MAX_RECONNECT, i -> this.maxReconnect = i);
-            durationProperty(props, PROP_RECONNECT_WAIT, DEFAULT_RECONNECT_WAIT, d -> this.reconnectWait = d);
-            durationProperty(props, PROP_RECONNECT_JITTER, DEFAULT_RECONNECT_JITTER, d -> this.reconnectJitter = d);
-            durationProperty(props, PROP_RECONNECT_JITTER_TLS, DEFAULT_RECONNECT_JITTER_TLS, d -> this.reconnectJitterTls = d);
-            longProperty(props, PROP_RECONNECT_BUF_SIZE, DEFAULT_RECONNECT_BUF_SIZE, l -> this.reconnectBufferSize = l);
-            durationProperty(props, PROP_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT, d -> this.connectionTimeout = d);
-            intProperty(props, PROP_SOCKET_READ_TIMEOUT_MS, -1, i -> this.socketReadTimeoutMillis = i);
-            durationProperty(props, PROP_SOCKET_WRITE_TIMEOUT, DEFAULT_SOCKET_WRITE_TIMEOUT, d -> this.socketWriteTimeout = d);
-            intProperty(props, PROP_SOCKET_SO_LINGER, -1, i -> socketSoLinger = i);
+            intProperty(props, PROP_MAX_RECONNECT, i -> this.maxReconnect = i);
+            durationProperty(props, PROP_RECONNECT_WAIT, d -> this.reconnectWait = d);
+            durationProperty(props, PROP_RECONNECT_JITTER, d -> this.reconnectJitter = d);
+            durationProperty(props, PROP_RECONNECT_JITTER_TLS, d -> this.reconnectJitterTls = d);
+            longProperty(props, PROP_RECONNECT_BUF_SIZE, l -> this.reconnectBufferSize = l);
+            durationProperty(props, PROP_CONNECTION_TIMEOUT, d -> this.connectionTimeout = d);
+            intProperty(props, PROP_SOCKET_READ_TIMEOUT_MS, i -> this.socketReadTimeoutMillis = i);
+            durationProperty(props, PROP_SOCKET_WRITE_TIMEOUT, d -> this.socketWriteTimeout = d);
+            intProperty(props, PROP_SOCKET_SO_LINGER, i -> socketSoLinger = i);
+            intProperty(props, PROP_SOCKET_RECEIVE_BUFFER_SIZE, i -> this.receiveBufferSize = i);
+            intProperty(props, PROP_SOCKET_SEND_BUFFER_SIZE, i -> this.sendBufferSize = i);
 
-            intGtEqZeroProperty(props, PROP_MAX_CONTROL_LINE, DEFAULT_MAX_CONTROL_LINE, i -> this.maxControlLine = i);
-            durationProperty(props, PROP_PING_INTERVAL, DEFAULT_PING_INTERVAL, d -> this.pingInterval = d);
-            durationProperty(props, PROP_CLEANUP_INTERVAL, DEFAULT_REQUEST_CLEANUP_INTERVAL, d -> this.requestCleanupInterval = d);
-            intProperty(props, PROP_MAX_PINGS, DEFAULT_MAX_PINGS_OUT, i -> this.maxPingsOut = i);
+            intGtEqZeroProperty(props, PROP_MAX_CONTROL_LINE, i -> this.maxControlLine = i);
+            durationProperty(props, PROP_PING_INTERVAL, d -> this.pingInterval = d);
+            durationProperty(props, PROP_CLEANUP_INTERVAL, d -> this.requestCleanupInterval = d);
+            durationProperty(props, PROP_WRITE_QUEUE_PUSH_TIMEOUT, d -> this.writeQueuePushTimeout = d);
+            intProperty(props, PROP_MAX_PINGS, i -> this.maxPingsOut = i);
             booleanProperty(props, PROP_USE_OLD_REQUEST_STYLE, b -> this.useOldRequestStyle = b);
 
             classnameProperty(props, PROP_ERROR_LISTENER, o -> this.errorListener = (ErrorListener) o);
@@ -927,7 +1123,7 @@ public class Options {
 
             stringProperty(props, PROP_DATA_PORT_TYPE, s -> this.dataPortType = s);
             stringProperty(props, PROP_INBOX_PREFIX, this::inboxPrefix);
-            intGtEqZeroProperty(props, PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE, i -> this.maxMessagesInOutgoingQueue = i);
+            intGtEqZeroProperty(props, PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, i -> this.maxMessagesInOutgoingQueue = i);
             booleanProperty(props, PROP_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL, b -> this.discardMessagesWhenOutgoingQueueFull = b);
 
             booleanProperty(props, PROP_IGNORE_DISCOVERED_SERVERS, b -> this.ignoreDiscoveredServers = b);
@@ -936,11 +1132,31 @@ public class Options {
             booleanProperty(props, PROP_USE_DISPATCHER_WITH_EXECUTOR, b -> this.useDispatcherWithExecutor = b);
             booleanProperty(props, PROP_FORCE_FLUSH_ON_REQUEST, b -> this.forceFlushOnRequest = b);
 
+            booleanProperty(props, PROP_NO_RESOLVE_HOSTNAMES, b -> {
+                if (b) {
+                    hostnameResolveMode = HostnameResolveMode.ResolveToFirst;
+                }
+            });
+            booleanProperty(props, PROP_FAST_FALLBACK, b -> {
+                if (b) {
+                    hostnameResolveMode = HostnameResolveMode.HappyEyeballs;
+                }
+            });
+            stringProperty(props, PROP_HOSTNAME_RESOLVE_MODE, s -> {
+                HostnameResolveMode mode = HostnameResolveMode.get(s);
+                if (mode != null) {
+                    hostnameResolveMode = mode;
+                }
+            });
+
             classnameProperty(props, PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, o -> this.serverPool = (ServerPool) o);
             classnameProperty(props, PROP_DISPATCHER_FACTORY_CLASS, o -> this.dispatcherFactory = (DispatcherFactory) o);
-            classnameProperty(props, PROP_EXECUTOR_SERVICE_CLASS, o -> this.executor = (ExecutorService) o);
-            classnameProperty(props, PROP_CONNECT_THREAD_FACTORY_CLASS, o -> this.connectThreadFactory = (ThreadFactory) o);
-            classnameProperty(props, PROP_CALLBACK_THREAD_FACTORY_CLASS, o -> this.callbackThreadFactory = (ThreadFactory) o);
+            classnameProperty(props, PROP_EXECUTOR_SERVICE_CLASS, o -> this.userExecutor = (ExecutorService) o);
+            classnameProperty(props, PROP_CONNECT_EXECUTOR_SERVICE_CLASS, o -> this.userConnectExecutor = (ExecutorService) o);
+            classnameProperty(props, PROP_CALLBACK_EXECUTOR_SERVICE_CLASS, o -> this.userCallbackExecutor = (ExecutorService) o);
+            classnameProperty(props, PROP_SCHEDULED_EXECUTOR_SERVICE_CLASS, o -> this.userScheduledExecutor = (ScheduledExecutorService) o);
+            classnameProperty(props, PROP_CONNECT_THREAD_FACTORY_CLASS, o -> this.userConnectThreadFactory = (ThreadFactory) o);
+            classnameProperty(props, PROP_CALLBACK_THREAD_FACTORY_CLASS, o -> this.userCallbackThreadFactory = (ThreadFactory) o);
             return this;
         }
 
@@ -1005,14 +1221,76 @@ public class Options {
         }
 
         /**
-         * For the default server list provider, whether to resolve hostnames when building server list.
+         * @deprecated use hostnameResolveMode()
+         * If the connection should not resolve hostnames to ip addresses.
          * @return the Builder for chaining
          */
+        @Deprecated
         public Builder noResolveHostnames() {
-            this.noResolveHostnames = true;
+            this.hostnameResolveMode = HostnameResolveMode.ResolveToFirst;
             return this;
         }
 
+        /**
+         * @deprecated use hostnameResolveMode()
+         * Whether to enable Fast fallback algorithm for socket connect
+         * @return the Builder for chaining
+         */
+        @Deprecated
+        public Builder enableFastFallback() {
+            this.hostnameResolveMode = HostnameResolveMode.HappyEyeballs;
+            return this;
+        }
+
+        /**
+         * Set the hostname resolve mode
+         * @param hostnameResolveMode the enum value
+         * @return the Builder for chaining
+         */
+        public Builder hostnameResolveMode(HostnameResolveMode hostnameResolveMode) {
+            this.hostnameResolveMode = hostnameResolveMode == null ? HostnameResolveMode.ResolveToAll : hostnameResolveMode;
+            return this;
+        }
+
+        /**
+         * Whether to skip the call to validate when a subject is presented
+         * for instance in subscribe or publish. Will only validate that a
+         * subject is not null and is not and empty string
+         * Fastest validation, but use with caution
+         * If you know your subjects are always valid.
+         * @return the Builder for chaining
+         */
+        public Builder noSubjectValidation() {
+            this.subjectValidationType = SubjectValidationType.None;
+            return this;
+        }
+
+        /**
+         * Use strict validation to validate when a subject is presented
+         * for instance in subscribe or publish.
+         * Slower validation, but may be useful when exposing the ability
+         * of an application user to set a subject.
+         * @return the Builder for chaining
+         */
+        public Builder strictSubjectValidation() {
+            this.subjectValidationType = SubjectValidationType.Strict;
+            return this;
+        }
+
+        /**
+         * Directly set the subjectValidationType. Null sets to the default, Lenient.
+         * @param subjectValidationType an enum for SubjectValidationType indicating the type of validation, or null for default
+         * @return the Builder for chaining
+         */
+        public Builder subjectValidationType(SubjectValidationType subjectValidationType) {
+            this.subjectValidationType = subjectValidationType == null ? SubjectValidationType.Lenient : subjectValidationType;
+            return this;
+        }
+
+        /**
+         * set to report no responders
+         * @return the Builder for chaining
+         */
         public Builder reportNoResponders() {
             this.reportNoResponders = true;
             return this;
@@ -1179,7 +1457,7 @@ public class Options {
         }
 
         /**
-         *
+         * the path to the keystore file
          * @param keystore the path to the keystore file
          * @return the Builder for chaining
          */
@@ -1189,7 +1467,7 @@ public class Options {
         }
 
         /**
-         *
+         * the password for the keystore
          * @param keystorePassword the password for the keystore
          * @return the Builder for chaining
          */
@@ -1199,7 +1477,7 @@ public class Options {
         }
 
         /**
-         *
+         * the path to the trust store file
          * @param truststore the path to the trust store file
          * @return the Builder for chaining
          */
@@ -1209,7 +1487,7 @@ public class Options {
         }
 
         /**
-         *
+         * The password for the trust store
          * @param truststorePassword the password for the trust store
          * @return the Builder for chaining
          */
@@ -1219,8 +1497,8 @@ public class Options {
         }
 
         /**
-         *
-         * @param tlsAlgorithm the tls algorithm. Default is {@value SSLUtils#DEFAULT_TLS_ALGORITHM}
+         * The tls algorithm to use Default is {@value SSLUtils#DEFAULT_TLS_ALGORITHM}
+         * @param tlsAlgorithm the tls algorithm.
          * @return the Builder for chaining
          */
         public Builder tlsAlgorithm(String tlsAlgorithm) {
@@ -1229,8 +1507,8 @@ public class Options {
         }
 
         /**
-         *
-         * @param credentialPath the path to the credentials file for creating an {@link AuthHandler AuthHandler}
+         * the path to the credentials file for creating an {@link AuthHandler AuthHandler}
+         * @param credentialPath the path to the credentials file
          * @return the Builder for chaining
          */
         public Builder credentialPath(String credentialPath) {
@@ -1393,6 +1671,30 @@ public class Options {
         }
 
         /**
+         * Set the value of the socket SO_RCVBUF property in bytes
+         * The SO_RCVBUF option is used by the platform's networking code as a hint for the size to set the underlying network I/O buffers.
+         * OVERRIDES THE UNDERLYING JAVA SOCKET IMPLEMENTATION - USE AT YOUR OWN RISK
+         * @param receiveBufferSize the size in bytes
+         * @return the Builder for chaining
+         */
+        public Builder receiveBufferSize(int receiveBufferSize) {
+            this.receiveBufferSize = receiveBufferSize;
+            return this;
+        }
+
+        /**
+         * Set the value of the socket SO_SNDBUF property in bytes
+         * The SO_SNDBUF option is used by the platform's networking code as a hint for the size to set the underlying network I/O buffers.
+         * OVERRIDES THE UNDERLYING JAVA SOCKET IMPLEMENTATION - USE AT YOUR OWN RISK
+         * @param sendBufferSize the size in bytes
+         * @return the Builder for chaining
+         */
+        public Builder sendBufferSize(int sendBufferSize) {
+            this.sendBufferSize = sendBufferSize;
+            return this;
+        }
+
+        /**
          * Set the interval between attempts to pings the server. These pings are automated,
          * and capped by {@link #maxPingsOut(int) maxPingsOut()}. As of 2.4.4 the library
          * may wait up to 2 * time to send a ping. Incoming traffic from the server can postpone
@@ -1423,6 +1725,16 @@ public class Options {
          */
         public Builder requestCleanupInterval(Duration time) {
             this.requestCleanupInterval = time;
+            return this;
+        }
+
+        /**
+         * Set the amount of time to wait to acquire the lock and to offer a message to the outgoing message queue
+         * @param time the wait time
+         * @return the Builder for chaining
+         */
+        public Builder writeQueuePushTimeout(Duration time) {
+            this.writeQueuePushTimeout = time;
             return this;
         }
 
@@ -1614,7 +1926,7 @@ public class Options {
         }
 
         /**
-         * Set the {@link ExecutorService ExecutorService} used to run threaded tasks. The default is a
+         * Set the {@link ExecutorService} used to run threaded tasks. The default is a
          * cached thread pool that names threads after the connection name (or a default). This executor
          * is used for reading and writing the underlying sockets as well as for each Dispatcher.
          * The default executor uses a short keepalive time, 500ms, to insure quick shutdowns. This is reasonable
@@ -1626,29 +1938,64 @@ public class Options {
          * @return the Builder for chaining
          */
         public Builder executor(ExecutorService executor) {
-            this.executor = executor;
+            this.userExecutor = executor;
             return this;
         }
 
         /**
-         * Sets custom thread factory for the executor service
-         *
+         * Set the {@link ScheduledExecutorService} used to run scheduled task like
+         * heartbeat timers
+         * The default is a ScheduledThreadPoolExecutor that does not
+         *  execute delayed tasks after shutdown and removes tasks on cancel;
+         * @param scheduledExecutor The ScheduledExecutorService to use for timer tasks
+         * @return the Builder for chaining
+         */
+        public Builder scheduledExecutor(ScheduledExecutorService scheduledExecutor) {
+            this.userScheduledExecutor = scheduledExecutor;
+            return this;
+        }
+
+        /**
+         * Set the {@link ExecutorService} used to make connections.
+         * The default is a Single Thread Executor
+         * @param connectExecutor The ExecutorService to make connections with.
+         * @return the Builder for chaining
+         */
+        public Builder connectExecutor(ExecutorService connectExecutor) {
+            this.userConnectExecutor = connectExecutor;
+            return this;
+        }
+
+        /**
+         * Set the {@link ExecutorService} used to make event callbacks with.
+         * The default is a Single Thread Executor
+         * @param callbackExecutor The ExecutorService to make event callbacks with.
+         * @return the Builder for chaining
+         */
+        public Builder callbackExecutor(ExecutorService callbackExecutor) {
+            this.userCallbackExecutor = callbackExecutor;
+            return this;
+        }
+
+        /**
+         * Sets custom thread factory for the connect executor service to use when making threads
+         * If both connectThreadFactory and callbackExecutor are set, only callbackExecutor is used.
          * @param threadFactory the thread factory to use for the executor service
          * @return the Builder for chaining
          */
         public Builder connectThreadFactory(ThreadFactory threadFactory) {
-            this.connectThreadFactory = threadFactory;
+            this.userConnectThreadFactory = threadFactory;
             return this;
         }
 
         /**
-         * Sets custom thread factory for the executor service
-         *
+         * Sets custom thread factory for the callback executor service to use when making threads
+         * If both callbackThreadFactory and callbackExecutor are set, only callbackExecutor is used.
          * @param threadFactory the thread factory to use for the executor service
          * @return the Builder for chaining
          */
         public Builder callbackThreadFactory(ThreadFactory threadFactory) {
-            this.callbackThreadFactory = threadFactory;
+            this.userCallbackThreadFactory = threadFactory;
             return this;
         }
 
@@ -1902,37 +2249,24 @@ public class Options {
                 authHandler = Nats.credentials(file.toString());
             }
 
-            if (this.executor == null) {
-                String threadPrefix = nullOrEmpty(this.connectionName) ? DEFAULT_THREAD_NAME_PREFIX : this.connectionName;
-                this.executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
-                    500L, TimeUnit.MILLISECONDS,
-                    new SynchronousQueue<>(),
-                    new DefaultThreadFactory(threadPrefix));
+            if (socketReadTimeoutMillis < 1) {
+                socketReadTimeoutMillis = 0; // just for consistency. The connection compares to gt 0
             }
 
-            if (socketReadTimeoutMillis > 0) {
-                long srtMin = pingInterval.toMillis() + MINIMUM_SOCKET_WRITE_TIMEOUT_GT_CONNECTION_TIMEOUT;
-                if (socketReadTimeoutMillis < srtMin) {
-                    throw new IllegalStateException("Socket Read Timeout must be at least "
-                        + MINIMUM_SOCKET_READ_TIMEOUT_GT_CONNECTION_TIMEOUT
-                        + " milliseconds greater than the Ping Interval");
-                }
+            if (socketWriteTimeout != null && socketWriteTimeout.toNanos() < MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS) {
+                throw new IllegalArgumentException("Socket Write Timeout cannot be less than " + MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS + " nanoseconds.");
             }
 
-            if (socketWriteTimeout == null || socketWriteTimeout.toMillis() < 1) {
-                socketWriteTimeout = null;
-            }
-            else {
-                long swtMin = connectionTimeout.toMillis() + MINIMUM_SOCKET_WRITE_TIMEOUT_GT_CONNECTION_TIMEOUT;
-                if (socketWriteTimeout.toMillis() < swtMin) {
-                    throw new IllegalStateException("Socket Write Timeout must be at least "
-                        + MINIMUM_SOCKET_WRITE_TIMEOUT_GT_CONNECTION_TIMEOUT
-                        + " milliseconds greater than the Connection Timeout");
-                }
-            }
-
-            if (socketSoLinger < 0) {
+            if (socketSoLinger < 1) {
                 socketSoLinger = -1;
+            }
+
+            if (receiveBufferSize < 1) {
+                receiveBufferSize = -1;
+            }
+
+            if (sendBufferSize < 1) {
+                sendBufferSize = -1;
             }
 
             if (errorListener == null) {
@@ -1961,6 +2295,10 @@ public class Options {
         // ----------------------------------------------------------------------------------------------------
         // BUILDER COPY CONSTRUCTOR
         // ----------------------------------------------------------------------------------------------------
+        /**
+         * Construction an Options.Builder copying an existing Options
+         * @param o the options
+         */
         public Builder(Options o) {
             if (o == null) {
                 throw new IllegalArgumentException("Options cannot be null");
@@ -1969,7 +2307,8 @@ public class Options {
             this.natsServerUris.addAll(o.natsServerUris);
             this.unprocessedServers.addAll(o.unprocessedServers);
             this.noRandomize = o.noRandomize;
-            this.noResolveHostnames = o.noResolveHostnames;
+            this.hostnameResolveMode = o.hostnameResolveMode;
+            this.subjectValidationType = o.subjectValidationType;
             this.reportNoResponders = o.reportNoResponders;
             this.connectionName = o.connectionName;
             this.verbose = o.verbose;
@@ -1983,8 +2322,11 @@ public class Options {
             this.socketReadTimeoutMillis = o.socketReadTimeoutMillis;
             this.socketWriteTimeout = o.socketWriteTimeout;
             this.socketSoLinger = o.socketSoLinger;
+            this.receiveBufferSize = o.receiveBufferSize;
+            this.sendBufferSize = o.sendBufferSize;
             this.pingInterval = o.pingInterval;
             this.requestCleanupInterval = o.requestCleanupInterval;
+            this.writeQueuePushTimeout = o.writeQueuePushTimeout;
             this.maxPingsOut = o.maxPingsOut;
             this.reconnectBufferSize = o.reconnectBufferSize;
             this.username = o.username;
@@ -2013,9 +2355,14 @@ public class Options {
             this.statisticsCollector = o.statisticsCollector;
             this.dataPortType = o.dataPortType;
             this.trackAdvancedStats = o.trackAdvancedStats;
-            this.executor = o.executor;
-            this.callbackThreadFactory = o.callbackThreadFactory;
-            this.connectThreadFactory = o.connectThreadFactory;
+
+            this.userExecutor = o.userExecutor;
+            this.userScheduledExecutor = o.userScheduledExecutor;
+            this.userConnectExecutor = o.userConnectExecutor;
+            this.userCallbackExecutor = o.userCallbackExecutor;
+            this.userCallbackThreadFactory = o.userCallbackThreadFactory;
+            this.userConnectThreadFactory = o.userConnectThreadFactory;
+
             this.httpRequestInterceptors = o.httpRequestInterceptors;
             this.proxy = o.proxy;
 
@@ -2037,7 +2384,8 @@ public class Options {
         this.natsServerUris = Collections.unmodifiableList(b.natsServerUris);
         this.unprocessedServers = Collections.unmodifiableList(b.unprocessedServers);  // exactly how the user gave them
         this.noRandomize = b.noRandomize;
-        this.noResolveHostnames = b.noResolveHostnames;
+        this.hostnameResolveMode = b.hostnameResolveMode;
+        this.subjectValidationType = b.subjectValidationType;
         this.reportNoResponders = b.reportNoResponders;
         this.connectionName = b.connectionName;
         this.verbose = b.verbose;
@@ -2051,8 +2399,11 @@ public class Options {
         this.socketReadTimeoutMillis = b.socketReadTimeoutMillis;
         this.socketWriteTimeout = b.socketWriteTimeout;
         this.socketSoLinger = b.socketSoLinger;
+        this.receiveBufferSize = b.receiveBufferSize;
+        this.sendBufferSize = b.sendBufferSize;
         this.pingInterval = b.pingInterval;
         this.requestCleanupInterval = b.requestCleanupInterval;
+        this.writeQueuePushTimeout = b.writeQueuePushTimeout;
         this.maxPingsOut = b.maxPingsOut;
         this.reconnectBufferSize = b.reconnectBufferSize;
         this.username = b.username;
@@ -2081,9 +2432,15 @@ public class Options {
         this.statisticsCollector = b.statisticsCollector;
         this.dataPortType = b.dataPortType;
         this.trackAdvancedStats = b.trackAdvancedStats;
-        this.executor = b.executor;
-        this.callbackThreadFactory = b.callbackThreadFactory;
-        this.connectThreadFactory = b.connectThreadFactory;
+
+        executorsLock = new ReentrantLock();
+        this.userExecutor = b.userExecutor;
+        this.userScheduledExecutor = b.userScheduledExecutor;
+        this.userConnectExecutor = b.userConnectExecutor;
+        this.userCallbackExecutor = b.userCallbackExecutor;
+        this.userCallbackThreadFactory = b.userCallbackThreadFactory;
+        this.userConnectThreadFactory = b.userConnectThreadFactory;
+
         this.httpRequestInterceptors = b.httpRequestInterceptors;
         this.proxy = b.proxy;
 
@@ -2101,30 +2458,209 @@ public class Options {
     // GETTERS
     // ----------------------------------------------------------------------------------------------------
     /**
+     * Get the general executor
      * @return the executor, see {@link Builder#executor(ExecutorService) executor()} in the builder doc
      */
     public ExecutorService getExecutor() {
-        return this.executor;
+        executorsLock.lock();
+        try {
+            if (resolvedExecutor == null || resolvedExecutor.isShutdown()) {
+                resolvedExecutor = userExecutor == null ? _getInternalExecutor() : userExecutor;
+            }
+            return resolvedExecutor;
+        }
+        finally {
+            executorsLock.unlock();
+        }
+    }
+
+    private ExecutorService _getInternalExecutor() {
+        String threadPrefix = nullOrEmpty(this.connectionName) ? DEFAULT_THREAD_NAME_PREFIX : this.connectionName;
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+            500L, TimeUnit.MILLISECONDS,
+            new SynchronousQueue<>(),
+            new DefaultThreadFactory(threadPrefix));
     }
 
     /**
-     * @return the callback executor, see {@link Builder#callbackThreadFactory(ThreadFactory) callbackThreadFactory()} in the builder doc
+     * Get the ScheduledExecutorService instance
+     * @return the ScheduledExecutorService, see {@link Builder#scheduledExecutor(ScheduledExecutorService) scheduledExecutor()} in the builder doc
+     */
+    public ScheduledExecutorService getScheduledExecutor() {
+        executorsLock.lock();
+        try {
+            if (resolvedScheduledExecutor == null || resolvedScheduledExecutor.isShutdown()) {
+                resolvedScheduledExecutor = userScheduledExecutor == null ? _getInternalScheduledExecutor() : userScheduledExecutor;
+            }
+            return resolvedScheduledExecutor;
+        }
+        finally {
+            executorsLock.unlock();
+        }
+    }
+
+    private ScheduledExecutorService _getInternalScheduledExecutor() {
+        String threadPrefix = nullOrEmpty(this.connectionName) ? DEFAULT_THREAD_NAME_PREFIX : this.connectionName;
+        // the core pool size of 3 is chosen considering where we know the scheduler is used.
+        // 1. Ping timer, 2. cleanup timer, 3. SocketDataPortWithWriteTimeout
+        // Pull message managers also use a scheduler, but we don't even know if this will be consuming
+        ScheduledThreadPoolExecutor stpe = new ScheduledThreadPoolExecutor(3, new DefaultThreadFactory(threadPrefix));
+        stpe.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+        stpe.setRemoveOnCancelPolicy(true);
+        return stpe;
+    }
+
+    /**
+     * the callback executor, see {@link Builder#callbackExecutor(ExecutorService) callbackExecutor()}
+     * and {@link Builder#callbackThreadFactory(ThreadFactory) callbackThreadFactory()} in the builder doc
+     * @return the executor
      */
     public ExecutorService getCallbackExecutor() {
-        return this.callbackThreadFactory == null ?
-                DEFAULT_SINGLE_THREAD_EXECUTOR.get() : Executors.newSingleThreadExecutor(this.callbackThreadFactory);
+        executorsLock.lock();
+        try {
+            if (resolvedCallbackExecutor == null || resolvedCallbackExecutor.isShutdown()) {
+                if (userCallbackExecutor != null) {
+                    resolvedCallbackExecutor = userCallbackExecutor;
+                }
+                else if (userCallbackThreadFactory != null) {
+                    resolvedCallbackExecutor = Executors.newSingleThreadExecutor(userCallbackThreadFactory);
+                }
+                else {
+                    resolvedCallbackExecutor = DEFAULT_SINGLE_THREAD_EXECUTOR.get();
+                }
+            }
+            return resolvedCallbackExecutor;
+        }
+        finally {
+            executorsLock.unlock();
+        }
     }
 
     /**
-     * @return the connect executor, see {@link Builder#connectThreadFactory(ThreadFactory) connectThreadFactory()} in the builder doc
+     * the connect executor, see {@link Builder#connectExecutor(ExecutorService) connectExecutor()}
+     * and {@link Builder#connectThreadFactory(ThreadFactory) connectThreadFactory()} in the builder doc
+     * @return the executor
      */
     public ExecutorService getConnectExecutor() {
-        return this.connectThreadFactory == null ?
-                DEFAULT_SINGLE_THREAD_EXECUTOR.get() : Executors.newSingleThreadExecutor(this.connectThreadFactory);
+        executorsLock.lock();
+        try {
+            if (resolvedConnectExecutor == null || resolvedConnectExecutor.isShutdown()) {
+                if (userConnectExecutor != null) {
+                    resolvedConnectExecutor = userConnectExecutor;
+                }
+                else if (userConnectThreadFactory != null) {
+                    resolvedConnectExecutor = Executors.newSingleThreadExecutor(userConnectThreadFactory);
+                }
+                else {
+                    resolvedConnectExecutor = DEFAULT_SINGLE_THREAD_EXECUTOR.get();
+                }
+            }
+            return resolvedConnectExecutor;
+        }
+        finally {
+            executorsLock.unlock();
+        }
     }
 
     /**
-     * @return the list of HttpRequest interceptors.
+     * whether the general executor is the internal one versus a user supplied one
+     * @return true if the executor is internal
+     */
+    public boolean executorIsInternal() {
+        return this.userExecutor == null;
+    }
+
+    /**
+     * whether the scheduled executor is the internal one versus a user supplied one
+     * @return true if the executor is internal
+     */
+    public boolean scheduledExecutorIsInternal() {
+        return this.userScheduledExecutor == null;
+    }
+
+    /**
+     * whether the callback executor is the internal one versus a user supplied one
+     * @return true if the executor is internal
+     */
+    public boolean callbackExecutorIsInternal() {
+        return userCallbackExecutor == null && userCallbackThreadFactory == null;
+    }
+
+    /**
+     * whether the connect executor is the internal one versus a user supplied one
+     * @return true if the executor is internal
+     */
+    public boolean connectExecutorIsInternal() {
+        return userConnectExecutor == null && userConnectThreadFactory == null;
+    }
+
+    /**
+     * Called by NatsConnection to let the options know the executors are being used
+     * Fixes the problem of executors being closed if the actual instance of Options
+     * is shared among multiple connections.
+     */
+    public void incrementExecutorUse() {
+        // Lock intentionally used of Atomic to synchronize fully with shutdownExecutors
+        executorsLock.lock();
+        try {
+            executorUseCount++;
+        }
+        finally {
+            executorsLock.unlock();
+        }
+    }
+
+    /**
+     * Shutdown the executors.
+     * Will only shut down internal executors, not user executors.
+     * Uses the executorUseCount to ensure shared Options doesn't prematurely shut down internal executors
+     * @throws InterruptedException if any shutdown was interrupted
+     */
+    public void shutdownExecutors() throws InterruptedException {
+        executorsLock.lock();
+        try {
+            if (--executorUseCount == 0) {
+                if (resolvedCallbackExecutor != null && callbackExecutorIsInternal()) {
+                    // we don't just shutdownNow to give any callbacks a chance to finish
+                    ExecutorService es = resolvedCallbackExecutor;
+                    resolvedCallbackExecutor = null;
+                    es.shutdown();
+                    try {
+                        //noinspection ResultOfMethodCallIgnored
+                        es.awaitTermination(getConnectionTimeout().toNanos(), TimeUnit.NANOSECONDS);
+                    }
+                    finally {
+                        es.shutdownNow();
+                    }
+                }
+
+                if (resolvedConnectExecutor != null && connectExecutorIsInternal()) {
+                    ExecutorService es = resolvedConnectExecutor;
+                    resolvedConnectExecutor = null;
+                    es.shutdownNow(); // There's no need to wait...
+                }
+
+                if (resolvedExecutor != null && executorIsInternal()) {
+                    ExecutorService es = resolvedExecutor;
+                    resolvedExecutor = null;
+                    es.shutdownNow(); // There's no need to wait...
+                }
+
+                if (resolvedScheduledExecutor != null && scheduledExecutorIsInternal()) {
+                    ScheduledExecutorService ses = resolvedScheduledExecutor;
+                    resolvedScheduledExecutor = null;
+                    ses.shutdownNow(); // There's no need to wait...
+                }
+            }
+        }
+        finally {
+            executorsLock.unlock();
+        }
+    }
+
+    /**
+     * the list of HttpRequest interceptors.
+     * @return the list
      */
     public List<java.util.function.Consumer<HttpRequest>> getHttpRequestInterceptors() {
         return null == this.httpRequestInterceptors
@@ -2133,14 +2669,16 @@ public class Options {
     }
 
     /**
-     * @return the proxy to used for all sockets.
+     * the proxy to used for all sockets.
+     * @return the proxy
      */
     public Proxy getProxy() {
         return this.proxy;
     }
 
     /**
-     * @return the error listener. Will be an instance of ErrorListenerLoggerImpl if not user supplied. See {@link Builder#errorListener(ErrorListener) errorListener()} in the builder doc
+     * the error listener. Will be an instance of ErrorListenerLoggerImpl if not user supplied. See {@link Builder#errorListener(ErrorListener) errorListener()} in the builder doc
+     * @return the listener
      */
     public ErrorListener getErrorListener() {
         return this.errorListener;
@@ -2157,49 +2695,56 @@ public class Options {
     }
 
     /**
-     * @return the connection listener, or null, see {@link Builder#connectionListener(ConnectionListener) connectionListener()} in the builder doc
+     * the connection listener, or null, see {@link Builder#connectionListener(ConnectionListener) connectionListener()} in the builder doc
+     * @return the listener
      */
     public ConnectionListener getConnectionListener() {
         return this.connectionListener;
     }
 
     /**
-     * @return the read listener, or null, see {@link Builder#readListener(ReadListener) readListener()} in the builder doc
+     * the read listener, or null, see {@link Builder#readListener(ReadListener) readListener()} in the builder doc
+     * @return the listener
      */
     public ReadListener getReadListener() {
         return this.readListener;
     }
 
     /**
-     * @return the statistics collector, or null, see {@link Builder#statisticsCollector(StatisticsCollector) statisticsCollector()} in the builder doc
+     * the statistics collector, or null, see {@link Builder#statisticsCollector(StatisticsCollector) statisticsCollector()} in the builder doc
+     * @return the collector
      */
     public StatisticsCollector getStatisticsCollector() {
         return this.statisticsCollector;
     }
 
     /**
-     * @return the auth handler, or null, see {@link Builder#authHandler(AuthHandler) authHandler()} in the builder doc
+     * the auth handler, or null, see {@link Builder#authHandler(AuthHandler) authHandler()} in the builder doc
+     * @return the handler
      */
     public AuthHandler getAuthHandler() {
         return this.authHandler;
     }
 
     /**
-     * @return the reconnection delay handler, or null, see {@link Builder#reconnectDelayHandler(ReconnectDelayHandler) reconnectDelayHandler()} in the builder doc
+     * the reconnection delay handler, or null, see {@link Builder#reconnectDelayHandler(ReconnectDelayHandler) reconnectDelayHandler()} in the builder doc
+     * @return the handler
      */
     public ReconnectDelayHandler getReconnectDelayHandler() {
         return this.reconnectDelayHandler;
     }
 
     /**
-     * @return the dataport type for connections created by this options object, see {@link Builder#dataPortType(String) dataPortType()} in the builder doc
+     * the DataPort class type for connections created by this options object, see {@link Builder#dataPortType(String) dataPortType()} in the builder doc
+     * @return the DataPort class type
      */
     public String getDataPortType() {
         return this.dataPortType;
     }
 
     /**
-     * @return the data port described by these options
+     * the data port described by these options
+     * @return the data port
      */
     public DataPort buildDataPort() {
         DataPort dp;
@@ -2219,7 +2764,8 @@ public class Options {
     }
 
     /**
-     * @return the servers configured in options, see {@link Builder#servers(String[]) servers()} in the builder doc
+     * the servers as configured in options as URI's, see {@link Builder#servers(String[]) servers()} in the builder doc
+     * @return the processed servers
      */
     public List<URI> getServers() {
         List<URI> list = new ArrayList<>();
@@ -2230,98 +2776,139 @@ public class Options {
     }
 
     /**
-     * @return the servers configured in options, see {@link Builder#servers(String[]) servers()} in the builder doc
+     * the servers as configured in options as NatsUri's, see {@link Builder#servers(String[]) servers()} in the builder doc
+     * @return the processed servers
      */
     public List<NatsUri> getNatsServerUris() {
         return natsServerUris;
     }
 
     /**
-     * @return the servers as given to the options, since the servers are normalized
+     * the servers as given to the options, since the servers are normalized
+     * @return the raw servers
      */
     public List<String> getUnprocessedServers() {
         return unprocessedServers;
     }
 
     /**
-     * @return should we turn off randomization for server connection attempts, see {@link Builder#noRandomize() noRandomize()} in the builder doc
+     * should we turn off randomization for server connection attempts, see {@link Builder#noRandomize() noRandomize()} in the builder doc
+     * @return true if we should turn off randomization
      */
     public boolean isNoRandomize() {
         return noRandomize;
     }
 
     /**
-     * @return should we resolve hostnames for server connection attempts, see {@link Builder#noResolveHostnames() noResolveHostnames()} in the builder doc
+     * @deprecated use hostnameResolveMode instead
+     * @return true if HostnameResolveMode is HostnameResolveMode.ResolveToFirst since that mode replaces isNoResolveHostnames
      */
+    @Deprecated
     public boolean isNoResolveHostnames() {
-        return noResolveHostnames;
+        return hostnameResolveMode == HostnameResolveMode.ResolveToFirst;
     }
 
     /**
-     * @return should complete with exception futures for requests that get no responders instead of cancelling the future, see {@link Builder#reportNoResponders() reportNoResponders()} in the builder doc
+     * @deprecated use hostnameResolveMode instead
+     * Whether Fast fallback algorithm is enabled for socket connect
+     * @return true if HostnameResolveMode is HostnameResolveMode.HappyEyeballs since that mode replaces isEnableFastFallback
+     */
+    @Deprecated
+    public boolean isEnableFastFallback() {
+        return hostnameResolveMode == HostnameResolveMode.HappyEyeballs;
+    }
+
+    /**
+     * Get the Hostname Resolve Mode
+     * @return the mode
+     */
+    public HostnameResolveMode hostnameResolveMode() {
+        return hostnameResolveMode;
+    }
+
+    /**
+     * what type of subject validation should be done
+     * @return the configured SubjectValidationType
+     */
+    public SubjectValidationType subjectValidationType() {
+        return subjectValidationType;
+    }
+
+    /**
+     * should complete with exception futures for requests that get no responders instead of cancelling the future, see {@link Builder#reportNoResponders() reportNoResponders()} in the builder doc
+     * @return true if we should report no responders instead of cancelling them
      */
     public boolean isReportNoResponders() {
         return reportNoResponders;
     }
 
     /**
-     * @return the connectionName, see {@link Builder#connectionName(String) connectionName()} in the builder doc
+     * the connectionName, see {@link Builder#connectionName(String) connectionName()} in the builder doc
+     * @return the connectionName
      */
     public String getConnectionName() {
         return connectionName;
     }
 
     /**
-     * @return are we in verbose mode, see {@link Builder#verbose() verbose()} in the builder doc
+     * are we in verbose mode, see {@link Builder#verbose() verbose()} in the builder doc
+     * @return true if we are in verbose mode
      */
     public boolean isVerbose() {
         return verbose;
     }
 
     /**
-     * @return is echo-ing disabled, see {@link Builder#noEcho() noEcho()} in the builder doc
+     * is echo-ing disabled, see {@link Builder#noEcho() noEcho()} in the builder doc
+     * @return true if echo-ing is disabled
      */
     public boolean isNoEcho() {
         return noEcho;
     }
 
     /**
-     * @return are headers disabled, see {@link Builder#noHeaders() noHeaders()} in the builder doc
+     * are headers disabled, see {@link Builder#noHeaders() noHeaders()} in the builder doc
+     * @return true if headers are disabled
      */
     public boolean isNoHeaders() {
         return noHeaders;
     }
 
     /**
-     * @return is NoResponders ignored disabled, see {@link Builder#noNoResponders() noNoResponders()} in the builder doc
+     * is NoResponders ignored disabled, see {@link Builder#noNoResponders() noNoResponders()} in the builder doc
+     * @return true if no no-responders
      */
     public boolean isNoNoResponders() {
         return noNoResponders;
     }
 
     /**
-     * @return clientSideLimitChecks flag
+     * clientSideLimitChecks
+     * @return true if the client will perform limit checks
      */
     public boolean clientSideLimitChecks() {
         return clientSideLimitChecks;
     }
 
     /**
-     * @return whether utf8 subjects are supported, see {@link Builder#supportUTF8Subjects() supportUTF8Subjects()} in the builder doc.
+     * whether utf8 subjects are supported, see {@link Builder#supportUTF8Subjects() supportUTF8Subjects()} in the builder doc.
+     * @return true if utf8 subjects are supported
      */
     public boolean supportUTF8Subjects() {
         return supportUTF8Subjects;
     }
 
     /**
-     * @return are we using pedantic protocol, see {@link Builder#pedantic() pedantic()} in the builder doc
+     * are we using pedantic protocol, see {@link Builder#pedantic() pedantic()} in the builder doc
+     * @return true if using pedantic protocol
      */
     public boolean isPedantic() {
         return pedantic;
     }
 
     /**
-     * @return should we track advanced stats, see {@link Builder#turnOnAdvancedStats() turnOnAdvancedStats()} in the builder doc
+     * should we track advanced stats, see {@link Builder#turnOnAdvancedStats() turnOnAdvancedStats()} in the builder doc
+     * @return true is advance stat tracking is on
      */
     public boolean isTrackAdvancedStats() {
         return trackAdvancedStats;
@@ -2336,7 +2923,8 @@ public class Options {
     }
 
     /**
-     * @return the maximum length of a control line, see {@link Builder#maxControlLine(int) maxControlLine()} in the builder doc
+     * the maximum length of a control line, see {@link Builder#maxControlLine(int) maxControlLine()} in the builder doc
+     * @return the maximum length
      */
     public int getMaxControlLine() {
         return maxControlLine;
@@ -2344,106 +2932,145 @@ public class Options {
 
     /**
      *
-     * @return true if there is an sslContext for these Options, otherwise false, see {@link Builder#secure() secure()} in the builder doc
+     * is there an sslContext for these Options, otherwise false, see {@link Builder#secure() secure()} in the builder doc
+     * @return true if there is an sslContext
      */
     public boolean isTLSRequired() {
         return sslContext != null;
     }
 
     /**
-     * @return the sslContext, see {@link Builder#secure() secure()} in the builder doc
+     * the sslContext, see {@link Builder#secure() secure()} in the builder doc
+     * @return the sslContext
      */
     public SSLContext getSslContext() {
         return sslContext;
     }
 
     /**
-     * @return the maxReconnect attempts to make before failing, see {@link Builder#maxReconnects(int) maxReconnects()} in the builder doc
+     * the maxReconnect attempts to make before failing, see {@link Builder#maxReconnects(int) maxReconnects()} in the builder doc
+     * @return the maxReconnect attempts
      */
     public int getMaxReconnect() {
         return maxReconnect;
     }
 
     /**
-     * @return the reconnectWait, used between reconnect attempts, see {@link Builder#reconnectWait(Duration) reconnectWait()} in the builder doc
+     * the reconnectWait, used between reconnect attempts, see {@link Builder#reconnectWait(Duration) reconnectWait()} in the builder doc
+     * @return the reconnectWait
      */
     public Duration getReconnectWait() {
         return reconnectWait;
     }
 
     /**
-     * @return the reconnectJitter, used between reconnect attempts to vary the reconnect wait, see {@link Builder#reconnectJitter(Duration) reconnectJitter()} in the builder doc
+     * the reconnectJitter, used between reconnect attempts to vary the reconnect wait, see {@link Builder#reconnectJitter(Duration) reconnectJitter()} in the builder doc
+     * @return the reconnectJitter
      */
     public Duration getReconnectJitter() {
         return reconnectJitter;
     }
 
     /**
-     * @return the reconnectJitterTls, used between reconnect attempts to vary the reconnect wait whe using tls/secure, see {@link Builder#reconnectJitterTls(Duration) reconnectJitterTls()} in the builder doc
+     * the reconnectJitterTls, used between reconnect attempts to vary the reconnect wait whe using tls/secure, see {@link Builder#reconnectJitterTls(Duration) reconnectJitterTls()} in the builder doc
+     * @return the reconnectJitterTls
      */
     public Duration getReconnectJitterTls() {
         return reconnectJitterTls;
     }
 
     /**
-     * @return the connectionTimeout, see {@link Builder#connectionTimeout(Duration) connectionTimeout()} in the builder doc
+     * the connectionTimeout, see {@link Builder#connectionTimeout(Duration) connectionTimeout()} in the builder doc
+     * @return the connectionTimeout
      */
     public Duration getConnectionTimeout() {
         return connectionTimeout;
     }
 
     /**
-     * @return the socketReadTimeoutMillis, see {@link Builder#socketReadTimeoutMillis(int) socketReadTimeoutMillis} in the builder doc
+     * the socketReadTimeoutMillis, see {@link Builder#socketReadTimeoutMillis(int) socketReadTimeoutMillis} in the builder doc
+     * @return the socketReadTimeoutMillis
      */
     public int getSocketReadTimeoutMillis() {
         return socketReadTimeoutMillis;
     }
 
     /**
-     * @return the socketWriteTimeout, see {@link Builder#socketWriteTimeout(long) socketWriteTimeout} in the builder doc
+     * the socketWriteTimeout, see {@link Builder#socketWriteTimeout(long) socketWriteTimeout} in the builder doc
+     * @return the socketWriteTimeout
      */
     public Duration getSocketWriteTimeout() {
         return socketWriteTimeout;
     }
 
     /**
-     * @return the socket so linger number of seconds, see {@link Builder#socketSoLinger(int) socketSoLinger()} in the builder doc
+     * the socket so linger number of seconds, see {@link Builder#socketSoLinger(int) socketSoLinger()} in the builder doc
+     * @return the socket so linger number of seconds
      */
     public int getSocketSoLinger() {
         return socketSoLinger;
     }
 
     /**
-     * @return the pingInterval, see {@link Builder#pingInterval(Duration) pingInterval()} in the builder doc
+     * the number of bytes to set the for the SO_RCVBUF property on the socket
+     * @return the number of bytes
+     */
+    public int getReceiveBufferSize() {
+        return receiveBufferSize;
+    }
+
+    /**
+     * the number of bytes to set the for the SO_SNDBUF property on the socket
+     * @return the number of bytes
+     */
+    public int getSendBufferSize() {
+        return sendBufferSize;
+    }
+
+    /**
+     * the pingInterval, see {@link Builder#pingInterval(Duration) pingInterval()} in the builder doc
+     * @return interval
      */
     public Duration getPingInterval() {
         return pingInterval;
     }
 
     /**
-     * @return the request cleanup interval, see {@link Builder#requestCleanupInterval(Duration) requestCleanupInterval()} in the builder doc
+     * the request cleanup interval, see {@link Builder#requestCleanupInterval(Duration) requestCleanupInterval()} in the builder doc
+     * @return the interval
      */
     public Duration getRequestCleanupInterval() {
         return requestCleanupInterval;
     }
 
     /**
-     * @return the maxPingsOut to limit the number of pings on the wire, see {@link Builder#maxPingsOut(int) maxPingsOut()} in the builder doc
+     * the write queue push timeout, see {@link Builder#writeQueuePushTimeout(Duration) writeQueuePushTimeout()} in the builder doc
+     * @return the time given to lock and offer a message to the outgoing queue
+     */
+    public Duration getWriteQueuePushTimeout() {
+        return writeQueuePushTimeout;
+    }
+
+    /**
+     * the maxPingsOut to limit the number of pings on the wire, see {@link Builder#maxPingsOut(int) maxPingsOut()} in the builder doc
+     * @return the max pings out
      */
     public int getMaxPingsOut() {
         return maxPingsOut;
     }
 
     /**
-     * @return the reconnectBufferSize, to limit the amount of data held during
-     *         reconnection attempts, see {@link Builder#reconnectBufferSize(long) reconnectBufferSize()} in the builder doc
+     * the reconnectBufferSize, to limit the amount of data held during
+     * reconnection attempts, see {@link Builder#reconnectBufferSize(long) reconnectBufferSize()} in the builder doc
+     * @return the reconnectBufferSize
      */
     public long getReconnectBufferSize() {
         return reconnectBufferSize;
     }
 
     /**
-     * @return the default size for buffers in the connection code, see {@link Builder#bufferSize(int) bufferSize()} in the builder doc
+     * the default size for buffers in the connection code, see {@link Builder#bufferSize(int) bufferSize()} in the builder doc
+     * @return the default size in bytes
      */
     public int getBufferSize() {
         return bufferSize;
@@ -2459,7 +3086,8 @@ public class Options {
     }
 
     /**
-     * @return the username to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
+     * the username to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
+     * @return the username
      */
     public char[] getUsernameChars() {
         return username;
@@ -2475,7 +3103,8 @@ public class Options {
     }
 
     /**
-     * @return the password to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
+     * the password to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
+     * @return the password
      */
     public char[] getPasswordChars() {
         return password;
@@ -2492,37 +3121,43 @@ public class Options {
     }
 
     /**
-     * @return the token to be used for token-based authentication, see {@link Builder#token(String) token()} in the builder doc
+     * the token to be used for token-based authentication, see {@link Builder#token(String) token()} in the builder doc
+     * generated from the token supplier if the user supplied one.
+     * @return the token
      */
     public char[] getTokenChars() {
         return tokenSupplier.get();
     }
 
     /**
-     * @return the flag to turn on old style requests, see {@link Builder#oldRequestStyle() oldStyleRequest()} in the builder doc
+     * the flag to turn on old style requests, see {@link Builder#oldRequestStyle() oldStyleRequest()} in the builder doc
+     * @return the flag
      */
     public boolean isOldRequestStyle() {
         return useOldRequestStyle;
     }
 
     /**
-     * @return the inbox prefix to use for requests, see {@link Builder#inboxPrefix(String) inboxPrefix()} in the builder doc
+     * the inbox prefix to use for requests, see {@link Builder#inboxPrefix(String) inboxPrefix()} in the builder doc
+     * @return the inbox prefix
      */
     public String getInboxPrefix() {
         return inboxPrefix;
     }
 
     /**
-     * @return the maximum number of messages in the outgoing queue, see {@link Builder#maxMessagesInOutgoingQueue(int)
+     * the maximum number of messages in the outgoing queue, see {@link Builder#maxMessagesInOutgoingQueue(int)
      * maxMessagesInOutgoingQueue(int)} in the builder doc
+     * @return the maximum number of messages
      */
     public int getMaxMessagesInOutgoingQueue() {
         return maxMessagesInOutgoingQueue;
     }
 
     /**
-     * @return should we discard messages when the outgoing queue is full, see {@link Builder#discardMessagesWhenOutgoingQueueFull()
+     * should we discard messages when the outgoing queue is full, see {@link Builder#discardMessagesWhenOutgoingQueueFull()
      * discardMessagesWhenOutgoingQueueFull()} in the builder doc
+     * @return true if we should discard messages when the outgoing queue is full
      */
     public boolean isDiscardMessagesWhenOutgoingQueueFull() {
         return discardMessagesWhenOutgoingQueueFull;
@@ -2582,6 +3217,12 @@ public class Options {
         return dispatcherFactory;
     }
 
+    /**
+     * create a URI from a server uri.
+     * @param serverURI the text uri
+     * @return the URI object
+     * @throws URISyntaxException if the text version is malformed or illegal
+     */
     public URI createURIForServer(String serverURI) throws URISyntaxException {
         return new NatsUri(serverURI).getUri();
     }
@@ -2765,63 +3406,48 @@ public class Options {
         }
     }
 
-    private static void intProperty(Properties props, String key, int defaultValue, java.util.function.Consumer<Integer> consumer) {
-        String value = getPropertyValue(props, key);
-        if (value == null) {
-            consumer.accept(defaultValue);
+    private static void booleanPropertyIfTrue(Properties props, String key, java.util.function.Consumer<Boolean> consumer) {
+        if (Boolean.parseBoolean(getPropertyValue(props, key))) { // parseBoolean treats null as false
+            consumer.accept(true);
         }
-        else {
+    }
+
+    private static void intProperty(Properties props, String key, java.util.function.Consumer<Integer> consumer) {
+        String value = getPropertyValue(props, key);
+        if (value != null) {
             consumer.accept(Integer.parseInt(value));
         }
     }
 
-    private static void intGtEqZeroProperty(Properties props, String key, int defaultValue, java.util.function.Consumer<Integer> consumer) {
+    private static void intGtEqZeroProperty(Properties props, String key, java.util.function.Consumer<Integer> consumer) {
         String value = getPropertyValue(props, key);
-        if (value == null) {
-            consumer.accept(defaultValue);
-        }
-        else {
+        if (value != null) {
             int i = Integer.parseInt(value);
-            if (i < 0) {
-                consumer.accept(defaultValue);
-            }
-            else {
+            if (i >= 0) {
                 consumer.accept(i);
             }
         }
     }
 
-    private static void longProperty(Properties props, String key, long defaultValue, java.util.function.Consumer<Long> consumer) {
+    private static void longProperty(Properties props, String key, java.util.function.Consumer<Long> consumer) {
         String value = getPropertyValue(props, key);
-        if (value == null) {
-            consumer.accept(defaultValue);
-        }
-        else {
+        if (value != null) {
             consumer.accept(Long.parseLong(value));
         }
     }
 
-    private static void durationProperty(Properties props, String key, Duration defaultValue, java.util.function.Consumer<Duration> consumer) {
+    private static void durationProperty(Properties props, String key, java.util.function.Consumer<Duration> consumer) {
         String value = getPropertyValue(props, key);
-        if (value == null) {
-            consumer.accept(defaultValue);
-        }
-        else {
+        if (value != null) {
             try {
                 Duration d = Duration.parse(value);
-                if (d.toNanos() < 0) {
-                    consumer.accept(defaultValue);
-                }
-                else {
+                if (d.toNanos() >= 0) {
                     consumer.accept(d);
                 }
             }
             catch (DateTimeParseException pe) {
                 int ms = Integer.parseInt(value);
-                if (ms < 0) {
-                    consumer.accept(defaultValue);
-                }
-                else {
+                if (ms >= 0) {
                     consumer.accept(Duration.ofMillis(ms));
                 }
             }

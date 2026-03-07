@@ -15,6 +15,7 @@ package io.nats.client;
 
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonUtils;
+import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
 
@@ -32,9 +33,14 @@ public class PullRequestOptions implements JsonSerializable {
     private final Duration expiresIn;
     private final Duration idleHeartbeat;
     private final String group;
+    private final int priority;
     private final long minPending;
     private final long minAckPending;
 
+    /**
+     * Construct PullRequestOptions from the builder
+     * @param b the builder
+     */
     public PullRequestOptions(Builder b) {
         this.batchSize = b.batchSize;
         this.maxBytes = b.maxBytes;
@@ -42,11 +48,13 @@ public class PullRequestOptions implements JsonSerializable {
         this.expiresIn = b.expiresIn;
         this.idleHeartbeat = b.idleHeartbeat;
         this.group = b.group;
+        this.priority = b.priority;
         this.minPending = b.minPending < 0 ? -1 : b.minPending;
         this.minAckPending = b.minAckPending < 0 ? -1 : b.minAckPending;
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = JsonUtils.beginJson();
         JsonUtils.addField(sb, BATCH, batchSize);
@@ -54,11 +62,16 @@ public class PullRequestOptions implements JsonSerializable {
         JsonUtils.addFldWhenTrue(sb, NO_WAIT, noWait);
         JsonUtils.addFieldAsNanos(sb, EXPIRES, expiresIn);
         JsonUtils.addFieldAsNanos(sb, IDLE_HEARTBEAT, idleHeartbeat);
-
         JsonUtils.addField(sb, GROUP, group);
+        JsonUtils.addFieldWhenGtZero(sb, PRIORITY, priority);
+        JsonUtils.addField(sb, ID, getPinId());
         JsonUtils.addField(sb, MIN_PENDING, minPending);
         JsonUtils.addField(sb, MIN_ACK_PENDING, minAckPending);
         return JsonUtils.endJson(sb).toString();
+    }
+
+    protected String getPinId() {
+        return null;
     }
 
     /**
@@ -101,14 +114,32 @@ public class PullRequestOptions implements JsonSerializable {
         return idleHeartbeat;
     }
 
+    /**
+     * Get the group option
+     * @return the group
+     */
     public String getGroup() {
         return group;
     }
 
+    /**
+     * Get the priority
+     * @return the priority
+     */
+    public int getPriority() { return priority; }
+
+    /**
+     * Get the min pending setting
+     * @return the min pending
+     */
     public long getMinPending() {
         return minPending;
     }
 
+    /**
+     * Get the min ack pending setting
+     * @return the min ack setting
+     */
     public long getMinAckPending() {
         return minAckPending;
     }
@@ -131,6 +162,9 @@ public class PullRequestOptions implements JsonSerializable {
         return new Builder().batchSize(batchSize).noWait();
     }
 
+    /**
+     * The builder for PullRequestOptions
+     */
     public static class Builder {
         private int batchSize;
         private long maxBytes;
@@ -138,8 +172,14 @@ public class PullRequestOptions implements JsonSerializable {
         private Duration expiresIn;
         private Duration idleHeartbeat;
         private String group;
+        private int priority;
         private long minPending = -1;
         private long minAckPending = -1;
+
+        /**
+         * Construct an instance of the builder
+         */
+        public Builder() {}
 
         /**
          * Set the batch size for the pull
@@ -232,6 +272,16 @@ public class PullRequestOptions implements JsonSerializable {
         }
 
         /**
+         * Sets the priority within the group. Priority must be between 0 and 9 inclusive.
+         * @param priority the priority
+         * @return Builder
+         */
+        public Builder priority(int priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        /**
          * When specified, the pull request will only receive messages when the consumer has at least this many pending messages.
          * @param minPending the min pending
          * @return the builder
@@ -259,6 +309,9 @@ public class PullRequestOptions implements JsonSerializable {
          */
         public PullRequestOptions build() {
             validateGtZero(batchSize, "Pull batch size");
+            if (priority < 0 || priority > 9) {
+                throw new IllegalArgumentException("Priority must be between 0 and 9 inclusive.");
+            }
             if (idleHeartbeat != null) {
                 long idleNanosTemp = idleHeartbeat.toNanos() * 2;
                 if (idleNanosTemp > 0) {

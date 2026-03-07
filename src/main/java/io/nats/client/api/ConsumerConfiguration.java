@@ -16,6 +16,8 @@ package io.nats.client.api;
 import io.nats.client.PullSubscribeOptions;
 import io.nats.client.PushSubscribeOptions;
 import io.nats.client.support.*;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -36,26 +38,79 @@ import static io.nats.client.support.Validator.*;
  * <P> By default this will create a <b>pull consumer</b> unless {@link ConsumerConfiguration.Builder#deliverSubject(String) ConsumerConfiguration.Builder.deliverSubject(String) } is set.
  */
 public class ConsumerConfiguration implements JsonSerializable {
-    @Deprecated
-    public static final Duration DURATION_MIN = Duration.ofNanos(1);
-
+    /**
+     * The default deliver policy for consumers
+     */
     public static final DeliverPolicy DEFAULT_DELIVER_POLICY = DeliverPolicy.All;
+
+    /**
+     * The default ack policy for consumers
+     */
     public static final AckPolicy DEFAULT_ACK_POLICY = AckPolicy.Explicit;
+
+    /**
+     * The default replay policy for consumers
+     */
     public static final ReplayPolicy DEFAULT_REPLAY_POLICY = ReplayPolicy.Instant;
+
+    /**
+     * The default priority policy for consumers
+     */
     public static final PriorityPolicy DEFAULT_PRIORITY_POLICY = PriorityPolicy.None;
 
-    public static final Duration DURATION_UNSET = Duration.ZERO;
+    /**
+     * The minimum allowed idle heartbeat setting
+     */
     public static final Duration MIN_IDLE_HEARTBEAT = Duration.ofMillis(100);
 
+    /**
+     * Constant used to unset a Duration setting in the builder
+     */
+    public static final Duration DURATION_UNSET = Duration.ZERO;
+
+    /**
+     * Constant used to unset a Duration setting in the builder
+     */
     public static final int INTEGER_UNSET = -1;
+
+    /**
+     * Constant used to unset a long setting in the builder
+     */
     public static final long LONG_UNSET = -1;
+
+    /**
+     * Constant used to unset a long that represents an unsigned long setting in the builder
+     */
     public static final long ULONG_UNSET = 0;
+
+    /**
+     * Constant used to unset a long setting in the builder
+     */
     public static final long DURATION_UNSET_LONG = 0;
+
+    /**
+     * Constant used to unset a Duration setting in the builder
+     */
     public static final long DURATION_MIN_LONG = 1;
+
+    /**
+     * Constant used to as a standard minimum value
+     */
     public static final int STANDARD_MIN = 0;
+
+    /**
+     * Constant representing the minimum max deliver
+     */
     public static final int MAX_DELIVER_MIN = 1;
 
+    /**
+     * Constant representing the minimum idle heartbeat in nanos
+     */
     public static final long MIN_IDLE_HEARTBEAT_NANOS = MIN_IDLE_HEARTBEAT.toNanos();
+
+    /**
+     * Constant representing the minimum idle heartbeat in milliseconds
+     */
     public static final long MIN_IDLE_HEARTBEAT_MILLIS = MIN_IDLE_HEARTBEAT.toMillis();
 
     protected final DeliverPolicy deliverPolicy;
@@ -89,6 +144,7 @@ public class ConsumerConfiguration implements JsonSerializable {
     protected final List<String> filterSubjects;
     protected final List<String> priorityGroups;
     protected final PriorityPolicy priorityPolicy;
+    protected final Duration priorityTimeout;
 
     protected ConsumerConfiguration(ConsumerConfiguration cc) {
         this.deliverPolicy = cc.deliverPolicy;
@@ -122,6 +178,7 @@ public class ConsumerConfiguration implements JsonSerializable {
         this.filterSubjects = cc.filterSubjects == null ? null : new ArrayList<>(cc.filterSubjects);
         this.priorityGroups = cc.priorityGroups == null ? null : new ArrayList<>(cc.priorityGroups);
         this.priorityPolicy = cc.priorityPolicy;
+        this.priorityTimeout = cc.priorityTimeout;
     }
 
     // For the builder
@@ -163,6 +220,7 @@ public class ConsumerConfiguration implements JsonSerializable {
 
         this.priorityGroups = b.priorityGroups;
         this.priorityPolicy = b.priorityPolicy;
+        this.priorityTimeout = b.priorityTimeout;
     }
 
     /**
@@ -170,6 +228,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * @return json consumer configuration json string
      */
     @Override
+    @NonNull
 	public String toJson() {
         StringBuilder sb = beginJson();
         JsonUtils.addField(sb, DESCRIPTION, description);
@@ -212,6 +271,8 @@ public class ConsumerConfiguration implements JsonSerializable {
         if (priorityPolicy != null && priorityPolicy != DEFAULT_PRIORITY_POLICY) {
             JsonUtils.addField(sb, PRIORITY_POLICY, priorityPolicy.toString());
         }
+        JsonUtils.addFieldAsNanos(sb, PRIORITY_TIMEOUT, priorityTimeout);
+
         return endJson(sb).toString();
     }
 
@@ -219,6 +280,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the name of the description of this consumer configuration.
      * @return name of the description.
      */
+    @Nullable
     public String getDescription() {
         return description;
     }
@@ -227,6 +289,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the name of the durable name for this consumer configuration.
      * @return name of the durable.
      */
+    @Nullable
     public String getDurable() {
         return durable;
     }
@@ -235,6 +298,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the name of the consumer name for this consumer configuration.
      * @return name of the consumer.
      */
+    @Nullable
     public String getName() {
         return name;
     }
@@ -243,6 +307,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the deliver subject of this consumer configuration.
      * @return the deliver subject.
      */
+    @Nullable
     public String getDeliverSubject() {
         return deliverSubject;
     }
@@ -251,6 +316,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the deliver group of this consumer configuration.
      * @return the deliver group.
      */
+    @Nullable
     public String getDeliverGroup() {
         return deliverGroup;
     }
@@ -259,6 +325,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the deliver policy of this consumer configuration.
      * @return the deliver policy.
      */
+    @NonNull
     public DeliverPolicy getDeliverPolicy() {
         return GetOrDefault(deliverPolicy);
     }
@@ -275,6 +342,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the start time of this consumer configuration.
      * @return the start time.
      */
+    @Nullable
     public ZonedDateTime getStartTime() {
         return startTime;
     }
@@ -283,6 +351,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the acknowledgment policy of this consumer configuration.
      * @return the acknowledgment policy.
      */
+    @NonNull
     public AckPolicy getAckPolicy() {
         return GetOrDefault(ackPolicy);
     }
@@ -291,6 +360,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the acknowledgment wait of this consumer configuration.
      * @return the acknowledgment wait duration.
      */
+    @Nullable
     public Duration getAckWait() {
         return ackWait;
     }
@@ -309,6 +379,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * return null if there are not exactly one filter subjects
      * @return the first filter subject.
      */
+    @Nullable
     public String getFilterSubject() {
         return filterSubjects == null || filterSubjects.size() != 1 ? null : filterSubjects.get(0);
     }
@@ -317,14 +388,19 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the filter subjects as a list. May be null, otherwise won't be empty
      * @return the list
      */
+    @Nullable
     public List<String> getFilterSubjects() {
         return filterSubjects;
     }
 
     /**
      * Gets the priority groups as a list. May be null, otherwise won't be empty
+     * Needs to be set when PriorityPolicy is specified.
+     * For Overflow, Pinned and Prioritized Policies only a single group can be specified.
+     * See {@link io.nats.client.api.PriorityPolicy}
      * @return the list
      */
+    @Nullable
     public List<String> getPriorityGroups() {
         return priorityGroups;
     }
@@ -341,6 +417,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the replay policy of this consumer configuration.
      * @return the replay policy.
      */
+    @NonNull
     public ReplayPolicy getReplayPolicy() {
         return GetOrDefault(replayPolicy);
     }
@@ -365,15 +442,16 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Gets the sample frequency.
      * @return sampleFrequency.
      */
+    @Nullable
     public String getSampleFrequency() {
         return sampleFrequency;
     }
-
 
     /**
      * Gets the idle heart beat wait time
      * @return the idle heart beat wait duration.
      */
+    @Nullable
     public Duration getIdleHeartbeat() {
         return idleHeartbeat;
     }
@@ -432,6 +510,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Get the max amount of expire time for the server to allow on pull requests.
      * @return the max expire
      */
+    @Nullable
     public Duration getMaxExpires() {
         return maxExpires;
     }
@@ -440,6 +519,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Get the amount of time before the consumer is deemed inactive.
      * @return the inactive threshold
      */
+    @Nullable
     public Duration getInactiveThreshold() {
         return inactiveThreshold;
     }
@@ -448,6 +528,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Get the backoff list; may be empty, will never be null.
      * @return the list
      */
+    @NonNull
     public List<Duration> getBackoff() {
         return backoff == null ? Collections.emptyList() : backoff;
     }
@@ -456,6 +537,7 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Metadata for the consumer; may be empty, will never be null.
      * @return the metadata map
      */
+    @NonNull
     public Map<String, String> getMetadata() {
         return metadata == null ? Collections.emptyMap() : metadata;
     }
@@ -470,16 +552,30 @@ public class ConsumerConfiguration implements JsonSerializable {
      * Get the time until the consumer is paused.
      * @return paused until time
      */
+    @Nullable
     public ZonedDateTime getPauseUntil() {
         return pauseUntil;
     }
 
     /**
-     * Gets the priority policy of this consumer configuration.
+     * Gets the priority policy of this consumer configuration. Defaults to PriorityPolicy.None
+     * When PriorityPolicy is specified a PriorityGroup needs to be set as well. The PriorityGroup will be referenced in the ConsumerOptions for Pull consumers.
+     * See {@link io.nats.client.api.PriorityPolicy}
      * @return the priority policy.
      */
+    @NonNull
     public PriorityPolicy getPriorityPolicy() {
         return GetOrDefault(priorityPolicy);
+    }
+
+    /**
+     * For pinned_client priority policy how long before the client times out.
+     * See {@link io.nats.client.api.PriorityPolicy}
+     * @return the duration
+     */
+    @Nullable
+    public Duration getPriorityTimeout() {
+        return priorityTimeout;
     }
 
     /**
@@ -619,6 +715,14 @@ public class ConsumerConfiguration implements JsonSerializable {
     }
 
     /**
+     * Gets whether priority timeout for this consumer configuration was set or left unset
+     * @return true if the timeout was set, false if the timeout was not set
+     */
+    public boolean priorityTimeoutWasSet() {
+        return priorityTimeout != null;
+    }
+
+    /**
      * Creates a builder for the options.
      * @return a publish options builder
      */
@@ -680,6 +784,7 @@ public class ConsumerConfiguration implements JsonSerializable {
 
         private List<String> priorityGroups;
         private PriorityPolicy priorityPolicy;
+        private Duration priorityTimeout;
 
         /**
          * Construct the builder
@@ -737,6 +842,7 @@ public class ConsumerConfiguration implements JsonSerializable {
                     this.priorityGroups = new ArrayList<>(cc.priorityGroups);
                 }
                 this.priorityPolicy = cc.priorityPolicy;
+                this.priorityTimeout = cc.priorityTimeout;
             }
         }
 
@@ -744,7 +850,7 @@ public class ConsumerConfiguration implements JsonSerializable {
          * Initialize values from the json string.
          * @param json the json string to parse
          * @return the builder
-         * @throws JsonParseException if the json is invalid
+         * @throws JsonParseException if there is a problem parsing the json
          */
         public Builder json(String json) throws JsonParseException {
             return jsonValue(JsonParser.parse(json));
@@ -820,6 +926,7 @@ public class ConsumerConfiguration implements JsonSerializable {
 
             priorityGroups(readOptionalStringList(jsonValue, PRIORITY_GROUPS));
             priorityPolicy(PriorityPolicy.get(readString(jsonValue, PRIORITY_POLICY)));
+            priorityTimeout(readNanos(jsonValue, PRIORITY_TIMEOUT));
 
             return this;
         }
@@ -990,7 +1097,11 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder filterSubjects(String... filterSubjects) {
-            return filterSubjects(Arrays.asList(filterSubjects));
+            if (nullOrEmpty(filterSubjects)) {
+                this.filterSubjects = null;
+                return this;
+            }
+            return _filterSubjects(Arrays.asList(filterSubjects));
         }
 
         /**
@@ -1000,12 +1111,18 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder filterSubjects(List<String> filterSubjects) {
+            if (nullOrEmpty(filterSubjects)) {
+                this.filterSubjects = null;
+                return this;
+            }
+            return _filterSubjects(filterSubjects);
+        }
+
+        private Builder _filterSubjects(@NonNull List<String> filterSubjects) {
             this.filterSubjects = new ArrayList<>();
-            if (filterSubjects != null) {
-                for (String fs : filterSubjects) {
-                    if (!nullOrEmpty(fs)) {
-                        this.filterSubjects.add(fs);
-                    }
+            for (String fs : filterSubjects) {
+                if (!nullOrEmpty(fs)) {
+                    this.filterSubjects.add(fs);
                 }
             }
             if (this.filterSubjects.isEmpty()) {
@@ -1244,7 +1361,8 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder numReplicas(Integer numReplicas) {
-            this.numReplicas = numReplicas == null ? null : validateNumberOfReplicas(numReplicas);
+            this.numReplicas = numReplicas == null || numReplicas <= INTEGER_UNSET
+                ? null : validateNumberOfReplicas(numReplicas);
             return this;
         }
 
@@ -1287,23 +1405,21 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder backoff(Duration... backoffs) {
-            if (backoffs == null || (backoffs.length == 1 && backoffs[0] == null))
-            {
-                backoff = null;
+            if (nullOrEmpty(backoffs)) {
+                this.backoff = null;
             }
-            else
-            {
-                backoff = new ArrayList<>();
-                for (Duration d : backoffs)
-                {
-                    if (d != null)
-                    {
-                        if (d.toNanos() < DURATION_MIN_LONG)
-                        {
+            else {
+                this.backoff = new ArrayList<>();
+                for (Duration d : backoffs) {
+                    if (d != null) {
+                        if (d.toNanos() < DURATION_MIN_LONG) {
                             throw new IllegalArgumentException("Backoff cannot be less than " + DURATION_MIN_LONG);
                         }
-                        backoff.add(d);
+                        this.backoff.add(d);
                     }
+                }
+                if (this.backoff.size() == 0) {
+                    this.backoff = null;
                 }
             }
             return this;
@@ -1316,7 +1432,7 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder backoff(long... backoffsMillis) {
-            if (backoffsMillis == null) {
+            if (backoffsMillis == null || backoffsMillis.length == 0) {
                 backoff = null;
             }
             else {
@@ -1348,7 +1464,11 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder priorityGroups(String... priorityGroups) {
-            return priorityGroups(Arrays.asList(priorityGroups));
+            if (nullOrEmpty(priorityGroups)) {
+                this.priorityGroups = null;
+                return this;
+            }
+            return _priorityGroups(Arrays.asList(priorityGroups));
         }
 
         /**
@@ -1358,12 +1478,18 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder priorityGroups(List<String> priorityGroups) {
+            if (nullOrEmpty(priorityGroups)) {
+                this.priorityGroups = null;
+                return this;
+            }
+            return _priorityGroups(priorityGroups);
+        }
+
+        private Builder _priorityGroups(@NonNull List<String> priorityGroups) {
             this.priorityGroups = new ArrayList<>();
-            if (priorityGroups != null) {
-                for (String pg : priorityGroups) {
-                    if (!nullOrEmpty(pg)) {
-                        this.priorityGroups.add(pg);
-                    }
+            for (String pg : priorityGroups) {
+                if (!nullOrEmpty(pg)) {
+                    this.priorityGroups.add(pg);
                 }
             }
             if (this.priorityGroups.isEmpty()) {
@@ -1379,6 +1505,26 @@ public class ConsumerConfiguration implements JsonSerializable {
          */
         public Builder priorityPolicy(PriorityPolicy policy) {
             this.priorityPolicy = policy;
+            return this;
+        }
+
+        /**
+         * Sets the priority policy timeout
+         * @param priorityTimeout the timeout
+         * @return Builder
+         */
+        public Builder priorityTimeout(Duration priorityTimeout) {
+            this.priorityTimeout = normalize(priorityTimeout);
+            return this;
+        }
+
+        /**
+         * Sets the priority policy timeout
+         * @param priorityTimeoutMillis the timeout in milliseconds
+         * @return Builder
+         */
+        public Builder priorityTimeout(long priorityTimeoutMillis) {
+            this.priorityTimeout = normalizeDuration(priorityTimeoutMillis);
             return this;
         }
 
@@ -1489,4 +1635,10 @@ public class ConsumerConfiguration implements JsonSerializable {
     protected static AckPolicy GetOrDefault(AckPolicy p) { return p == null ? DEFAULT_ACK_POLICY : p; }
     protected static ReplayPolicy GetOrDefault(ReplayPolicy p) { return p == null ? DEFAULT_REPLAY_POLICY : p; }
     protected static PriorityPolicy GetOrDefault(PriorityPolicy p) { return p == null ? DEFAULT_PRIORITY_POLICY : p; }
+
+    /**
+     * Not used
+     */
+    @Deprecated
+    public static final Duration DURATION_MIN = Duration.ofNanos(1);
 }

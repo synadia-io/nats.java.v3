@@ -14,15 +14,17 @@
 package io.nats.client.impl;
 
 import io.nats.client.*;
-import io.nats.client.api.Error;
 import io.nats.client.api.*;
+import io.nats.client.api.Error;
+import io.nats.client.support.Validator;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import static io.nats.client.support.Validator.*;
+import static io.nats.client.support.Validator.validateNotNull;
+import static io.nats.client.support.Validator.validateStreamName;
 
 public class NatsJetStreamManagement extends NatsJetStreamImpl implements JetStreamManagement {
     private NatsJetStream js; // this is lazy init'ed
@@ -59,10 +61,6 @@ public class NatsJetStreamManagement extends NatsJetStreamImpl implements JetStr
     private StreamInfo addOrUpdateStream(StreamConfiguration config, String template) throws IOException, JetStreamApiException {
         validateNotNull(config, "Configuration");
         String streamName = config.getName();
-        if (nullOrEmpty(streamName)) {
-            throw new IllegalArgumentException("Configuration must have a valid stream name");
-        }
-
         String subj = String.format(template, streamName);
         Message resp = makeRequestResponseRequired(subj, config.toJson().getBytes(StandardCharsets.UTF_8), getTimeout());
         return createAndCacheStreamInfoThrowOnError(streamName, resp);
@@ -369,10 +367,46 @@ public class NatsJetStreamManagement extends NatsJetStreamImpl implements JetStr
      * {@inheritDoc}
      */
     @Override
+    public boolean unpinConsumer(String streamName, String consumerName, String consumerGroup) throws IOException, JetStreamApiException {
+        validateNotNull(streamName, "Stream Name");
+        validateNotNull(consumerName, "Consumer Name");
+        validateNotNull(consumerGroup, "Consumer Group");
+        String subj = String.format(JSAPI_CONSUMER_UNPIN, streamName, consumerName);
+        byte[] payload = String.format("{\"group\": \"%s\"}", consumerGroup).getBytes();
+        Message resp = makeRequestResponseRequired(subj, payload, getTimeout());
+        return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public JetStream jetStream() {
         if (js == null) {
             js = new NatsJetStream(this);
         }
         return js;
+    }
+
+    @Override
+    public KeyValue keyValue(String bucketName) throws IOException {
+        Validator.validateBucketName(bucketName, true);
+        return new NatsKeyValue(bucketName, null, null, this);
+    }
+
+    @Override
+    public KeyValueManagement keyValueManagement() throws IOException {
+        return new NatsKeyValueManagement(null, null, this);
+    }
+
+    @Override
+    public ObjectStore objectStore(String bucketName) throws IOException {
+        Validator.validateBucketName(bucketName, true);
+        return new NatsObjectStore(bucketName, null, null, this);
+    }
+
+    @Override
+    public ObjectStoreManagement objectStoreManagement() throws IOException {
+        return new NatsObjectStoreManagement(null, null, this);
     }
 }

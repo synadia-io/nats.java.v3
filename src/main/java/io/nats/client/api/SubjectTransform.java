@@ -16,6 +16,8 @@ package io.nats.client.api;
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.JsonValueUtils;
+import io.nats.client.support.Validator;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 import java.util.Objects;
@@ -50,15 +52,16 @@ public class SubjectTransform implements JsonSerializable {
      * @param source the subject matching filter
      * @param destination the SubjectTransform Subject template
      */
-    public SubjectTransform(String source, String destination) {
-        this.source = source;
-        this.destination = destination;
+    public SubjectTransform(@NonNull String source, @NonNull String destination) {
+        this.source = Validator.required(source, "Source");
+        this.destination = Validator.required(destination, "Destination");
     }
 
     /**
      * Get source, the subject matching filter
      * @return the source
      */
+    @NonNull
     public String getSource() {
         return source;
     }
@@ -67,10 +70,13 @@ public class SubjectTransform implements JsonSerializable {
      * Get destination, the SubjectTransform Subject template
      * @return the destination
      */
+    @NonNull
     public String getDestination() {
         return destination;
     }
 
+    @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, SRC, source);
@@ -92,6 +98,11 @@ public class SubjectTransform implements JsonSerializable {
     public static class Builder {
         private String source;
         private String destination;
+
+        /**
+         * Construct an instance of the builder
+         */
+        public Builder() {}
 
         /**
          * Set the Published Subject-matching filter

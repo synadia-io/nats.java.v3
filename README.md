@@ -1,24 +1,26 @@
 ![NATS](src/main/javadoc/images/large-logo.png)
 
-# NATS - Java Client
+# NATS - Java Client VERSION 3
+
+# WORK IN PROGRESS
 
 ### A [Java](http://java.com) client for the [NATS messaging system](https://nats.io).
 
-**Current Release**: 2.21.2 &nbsp; **Current Snapshot**: 2.21.3-SNAPSHOT
+**Current Release**: 0.0.0 &nbsp; **Current Snapshot**: 3.0.0-SNAPSHOT
 
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/jnats/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/jnats)
-[![javadoc](https://javadoc.io/badge2/io.nats/jnats/javadoc.svg)](https://javadoc.io/doc/io.nats/jnats)
-[![Coverage Status](https://coveralls.io/repos/github/nats-io/nats.java/badge.svg?branch=main)](https://coveralls.io/github/nats-io/nats.java?branch=main)
-[![Build Main Badge](https://github.com/nats-io/nats.java/actions/workflows/build-main.yml/badge.svg?event=push)](https://github.com/nats-io/nats.java/actions/workflows/build-main.yml)
-[![Release Badge](https://github.com/nats-io/nats.java/actions/workflows/build-release.yml/badge.svg?event=release)](https://github.com/nats-io/nats.java/actions/workflows/build-release.yml)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/jnats/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/jnats)
+[![javadoc](https://javadoc.io/badge2/io.synadia/jnats/javadoc.svg)](https://javadoc.io/doc/io.synadia/jnats)
+[![Coverage Status](https://coveralls.io/repos/github/synadia-io/nats.java.v3/badge.svg?branch=main)](https://coveralls.io/github/synadia-io/nats.java.v3?branch=main)
+[![Build Main Badge](https://github.com/synadia-io/nats.java.v3/actions/workflows/build-main.yml/badge.svg?event=push)](https://github.com/synadia-io/nats.java.v3/actions/workflows/build-main.yml)
+[![Release Badge](https://github.com/synadia-io/nats.java.v3/actions/workflows/build-release.yml/badge.svg?event=release)](https://github.com/synadia-io/nats.java.v3/actions/workflows/build-release.yml)
 
 ### Examples and other documentation...
 
-1. [**Java API Docs**](https://javadoc.io/doc/io.nats/jnats/latest/index.html) - the latest Java API docs.
+1. [**Java API Docs**](https://javadoc.io/doc/io.synadia/jnats/latest/index.html) - the latest Java API docs.
 1. [**NATS by Example**](https://natsbyexample.com) is an evolving collection of runnable, cross-client reference examples for NATS.
-1. The [**examples directory**](https://github.com/nats-io/nats.java/tree/main/src/examples/java/io/nats/examples) covers basic api use.
-1. The [**Java Nats Examples**](https://github.com/nats-io/java-nats-examples) GitHub repo, a collection of simple use case examples.
+1. The [**examples directory**](https://github.com/synadia-io/nats.java.v3/tree/main/src/examples/java/io/nats/examples) covers basic api use.
+1. The [**Java Nats Examples**](https://github.com/synadia-io/java-nats-examples) github repo, a collection of simple use case examples.
 1. [**Java Orbit**](https://github.com/synadia-io/orbit.java) is a set of independent utilities or extensions for this client. 
 
 ## Table of Contents
@@ -143,7 +145,7 @@ The NATS client is available in the Maven central repository, and can be importe
 
 ```groovy
 dependencies {
-    implementation 'io.nats:jnats:{major.minor.patch}'
+    implementation 'io.synadia:jnats:{major.minor.patch}'
 }
 ```
 
@@ -169,7 +171,7 @@ repositories {
 }
 
 dependencies {
-   implementation 'io.nats:jnats:{major.minor.patch}-SNAPSHOT'
+   implementation 'io.synadia:jnats:{major.minor.patch}-SNAPSHOT'
 }
 ```
 
@@ -179,7 +181,7 @@ The NATS client is available on the Maven Central Repository and can be imported
 
 ```xml
 <dependency>
-    <groupId>io.nats</groupId>
+    <groupId>io.synadia</groupId>
     <artifactId>jnats</artifactId>
     <version>{major.minor.patch}</version>
 </dependency>
@@ -213,7 +215,7 @@ If you need a snapshot version, you must enable snapshots and change your depend
 </repositories>
 
 <dependency>
-    <groupId>io.nats</groupId>
+    <groupId>io.synadia</groupId>
     <artifactId>jnats</artifactId>
     <version>{major.minor.patch}-SNAPSHOT</version>
 </dependency>
@@ -221,15 +223,15 @@ If you need a snapshot version, you must enable snapshots and change your depend
 
 ### Integration with GraalVM
 
-To include this library with a GraalVM project, there are two important configurations you must use: 
-* `--initialize-at-run-time=io.nats.client.support.RandomUtils`
+To inlcude this library with a GraalVM project, there are 2 important configurations you must use: 
+* `--initialize-at-run-time=io.synadia.client.support.RandomUtils`
 * `--initialize-at-run-time=java.security.SecureRandom`. 
 
-These will instruct GraalVM to initialize specified classes at runtime so that these instances don't have fixed seeds. 
+These will instruct GraalVM to initialize specified classes at runtime, so that these instances don't have fixed seeds. 
 GraalVM won't compile without these parameters.
 
 For a much more thorough discussion of the subject, please visit the [nats-graalvm-example](https://github.com/YunaBraska/nats-graalvm-example) repository 
-made by one of our contributors. There is a detailed demonstration for creating an efficient NATS client with GraalVM.
+made by one of our contributors. There is detailed demonstration for creating an efficient NATS clients with GraalVM.
 This example leverages the client to connect to a server.
 
 ## Basic Usage
@@ -238,7 +240,7 @@ Sending and receiving with NATS is as simple as connecting to the nats-server an
 
 Please see the examples in this project. The [Examples Readme](src/examples/java/io/nats/examples/README.md) is a good place to start.
 
-There are also examples in the [java-nats-examples](https://github.com/nats-io/java-nats-examples) repo. 
+There are also examples in the [java-nats-examples](https://github.com/synadia-io/java-nats-examples) repo. 
 
 ### Connecting
 
@@ -330,9 +332,9 @@ It can accept `Properties` object or a path to a Properties file.
 
 ### Property Names
 
-The `io.nats.client.` prefix is not required in the properties file anymore. These are now equivalent:
+The `io.synadia.client.` prefix is not required in the properties file anymore. These are now equivalent:
 ```properties
-io.nats.client.servers=nats://localhost:4222
+io.synadia.client.servers=nats://localhost:4222
 ```
 ```properties
 servers=nats://localhost:4222
@@ -439,7 +441,7 @@ Options options = new Options.Builder()
 ```
 The developer can also set the credential path in a properties file:
 ```properties
-io.nats.client.credential.path=path/to/my.creds
+io.synadia.client.credential.path=path/to/my.creds
 ```
 
 ### SSLContext
@@ -465,15 +467,15 @@ public Builder tlsAlgorithm(String tlsAlgorithm)
 There are equivalent properties for these builder methods (except sslContext):
 ```properties
 # Generic SSLContext Creation
-io.nats.client.secure=true
-io.nats.client.opentls=true
+io.synadia.client.secure=true
+io.synadia.client.opentls=true
 
 # Custom SSLContext Creation Properties
-io.nats.client.keyStore=path/to/keystore.jks
-io.nats.client.keyStorePassword=kspassword
-io.nats.client.trustStore=path/to/truststore.jks
-io.nats.client.trustStorePassword=tspassword
-io.nats.client.tls.algorithm=SunX509
+io.synadia.client.keyStore=path/to/keystore.jks
+io.synadia.client.keyStorePassword=kspassword
+io.synadia.client.trustStore=path/to/truststore.jks
+io.synadia.client.trustStorePassword=tspassword
+io.synadia.client.tls.algorithm=SunX509
 ```
 
 When options are built, the SSLContext will be accepted or created in the following order.
@@ -897,12 +899,12 @@ NATS supports TLS 1.2. The server can be configured to verify client certificate
 If you want to try out these techniques, take a look at the [README.md](src/examples/java/io/nats/examples/README.md) for instructions.
 
 Also, here are some places in the code that may help
-https://github.com/nats-io/nats.java/blob/main/src/main/java/io/nats/client/support/SSLUtils.java
-https://github.com/nats-io/nats.java/blob/main/src/test/java/io/nats/client/TestSSLUtils.java
+https://github.com/synadia-io/nats.java.v3/blob/main/src/main/java/io/nats/client/support/SSLUtils.java
+https://github.com/synadia-io/nats.java.v3/blob/main/src/test/java/io/nats/client/TestSSLUtils.java
 
 ### TLS Certs
 
-The raw TLS test certs are in [src/test/resources/certs](src/test/resources/certs) and come from the [nats.go](https://github.com/nats-io/nats.go) repository. However, the java client also needs a keystore and truststore.jks files for creating a context. These can be created using:
+The raw TLS test certs are in [src/test/resources/certs](src/test/resources/certs) and come from the [nats.go](https://github.com/synadia-io/nats.go) repository. However, the java client also needs a keystore and truststore.jks files for creating a context. These can be created using:
 
 ```bash
 > cd src/test/resources
@@ -983,7 +985,7 @@ and that's where the code in this sample comes in.
 
 ### NKey-based Challenge Response Authentication
 
-The NATS server is adding support for a challenge response authentication scheme based on [NKeys](https://github.com/nats-io/nkeys). Version 2.2.0 of
+The NATS server is adding support for a challenge response authentication scheme based on [NKeys](https://github.com/synadia-io/nkeys). Version 2.2.0 of
 the Java client supports this scheme via an AuthHandler interface. *Version 2.3.0 replaced several NKey methods that used strings with methods using char[] to improve security.*
 
 ### OCSP Stapling
@@ -1000,7 +1002,7 @@ System.setProperty("com.sun.net.ssl.checkRevocation", "true");
 
 For more information, see the Oracle Java documentation page on [Client-Driven OCSP and OCSP Stapling](https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/ocsp.html)
 
-Also, there is a detailed [OCSP Example](https://github.com/nats-io/java-nats-examples/tree/main/ocsp) that shows how to create SSL contexts enabling OCSP stapling.
+Also, there is a detailed [OCSP Example](https://github.com/synadia-io/java-nats-examples/tree/main/ocsp) that shows how to create SSL contexts enabling OCSP stapling.
 
 ### SSL/TLS Performance
 
@@ -1321,8 +1323,8 @@ Final memory usage is 317.62 mb / 960.50 mb / 960.50 mb free/total/max
 The build depends on Gradle, and contains `gradlew` to simplify the process. After cloning, you can build the repository and run the tests with a single command:
 
 ```bash
-> git clone https://github.com/nats-io/nats.java
-> cd nats.java
+> git clone https://github.com/synadia-io/nats.java.v3
+> cd nats.java.v3
 > ./gradlew clean build
 ```
 

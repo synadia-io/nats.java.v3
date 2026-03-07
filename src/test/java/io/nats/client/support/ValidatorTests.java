@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.*;
 
 import static io.nats.client.support.NatsConstants.EMPTY;
+import static io.nats.client.support.NatsJetStreamConstants.NATS_META_KEY_PREFIX;
 import static io.nats.client.support.Validator.*;
 import static io.nats.client.utils.ResourceUtils.dataAsLines;
 import static io.nats.client.utils.TestBase.*;
@@ -39,18 +40,30 @@ public class ValidatorTests {
         allowedRequired(Validator::validateSubject, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOT, HAS_DOLLAR, HAS_LOW, HAS_127));
         allowedRequired(Validator::validateSubject, UTF_ONLY_STRINGS);
         allowedRequired(Validator::validateSubject, Arrays.asList(STAR_SEGMENT, GT_LAST_SEGMENT));
+        allowedRequired(Validator::validateSubject, Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
+        allowedRequired(Validator::validateSubject, Collections.singletonList(ENDS_WITH_DOT));
         notAllowedRequired(Validator::validateSubject, Arrays.asList(null, EMPTY, HAS_SPACE, HAS_CR, HAS_LF));
-        notAllowedRequired(Validator::validateSubject, Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
-        notAllowedRequired(Validator::validateSubject, Arrays.asList(ENDS_WITH_DOT, ENDS_WITH_DOT_SPACE, ENDS_WITH_CR, ENDS_WITH_LF, ENDS_WITH_TAB));
+        notAllowedRequired(Validator::validateSubject, Arrays.asList(ENDS_WITH_CR, ENDS_WITH_LF, ENDS_WITH_TAB));
+        notAllowedRequiredStrict(Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
+        notAllowedRequiredStrict(Arrays.asList(ENDS_WITH_DOT, ENDS_WITH_DOT_SPACE, ENDS_WITH_CR, ENDS_WITH_LF, ENDS_WITH_TAB));
 
         // subject not required, null and empty both mean not supplied
         allowedNotRequiredEmptyAsNull(Validator::validateSubject, Arrays.asList(null, EMPTY));
         allowedNotRequired(Validator::validateSubject, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOT, HAS_DOLLAR, HAS_LOW, HAS_127));
         allowedNotRequired(Validator::validateSubject, UTF_ONLY_STRINGS);
         allowedNotRequired(Validator::validateSubject, Arrays.asList(STAR_SEGMENT, GT_LAST_SEGMENT));
+        allowedNotRequired(Validator::validateSubject, Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
+        allowedNotRequired(Validator::validateSubject, Collections.singletonList(ENDS_WITH_DOT));
+
         notAllowedNotRequired(Validator::validateSubject, Arrays.asList(HAS_SPACE, HAS_CR, HAS_LF));
-        notAllowedNotRequired(Validator::validateSubject, Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
-        notAllowedNotRequired(Validator::validateSubject, Arrays.asList(ENDS_WITH_DOT, ENDS_WITH_DOT_SPACE, ENDS_WITH_CR, ENDS_WITH_LF, ENDS_WITH_TAB));
+        notAllowedNotRequiredStrict(Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
+        notAllowedNotRequiredStrict(Arrays.asList(ENDS_WITH_DOT, ENDS_WITH_DOT_SPACE, ENDS_WITH_CR, ENDS_WITH_LF, ENDS_WITH_TAB));
+
+        allowedRequiredCheckEndWith(Validator::validateSubject, false, Arrays.asList(STAR_SEGMENT, GT_LAST_SEGMENT));
+        allowedRequiredCheckEndWith(Validator::validateSubject, true, Collections.singletonList(STAR_SEGMENT));
+        notAllowedRequiredCheckEndWith(Validator::validateSubject, true, Collections.singletonList(GT_LAST_SEGMENT));
+        allowedNotRequiredCheckEndWith(Validator::validateSubject, false, Arrays.asList(null, GT_LAST_SEGMENT));
+        notAllowedNotRequiredCheckEndWith(Validator::validateSubject, true, Collections.singletonList(GT_LAST_SEGMENT));
     }
 
     @Test
@@ -377,13 +390,16 @@ public class ValidatorTests {
     @Test
     public void testValidateRequired() {
         required("required", "label");
+        //noinspection deprecation
         required("required1", "required2", "label");
         required(new Object(), "label");
         required(Collections.singletonList("list"), "label");
         required(Collections.singletonMap("key", "value"), "label");
 
         assertThrows(IllegalArgumentException.class, () -> required((String)null, "label"));
+        //noinspection deprecation
         assertThrows(IllegalArgumentException.class, () -> required("no-second", null, "label"));
+        //noinspection deprecation
         assertThrows(IllegalArgumentException.class, () -> required(null, "no-first", "label"));
         assertThrows(IllegalArgumentException.class, () -> required(EMPTY, "label"));
         assertThrows(IllegalArgumentException.class, () -> required((Object)null, "label"));
@@ -472,35 +488,72 @@ public class ValidatorTests {
         assertEquals("as", emptyOrNullAs("\t", "as"));
     }
 
-    interface StringTest { String validate(String s, boolean required); }
+    interface StringAndRequiredTest { String validate(String s, boolean required); }
+    interface StringLabelRequiredCantEndWithGtTest { String validate(String s, String l, boolean required, boolean cantEndWithGt); }
 
-    private void allowedRequired(StringTest test, List<String> strings) {
+    private void allowedRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertEquals(s, test.validate(s, true), allowedMessage(s));
         }
     }
 
-    private void notAllowedRequired(StringTest test, List<String> strings) {
+    private void allowedRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+        for (String s : strings) {
+            assertEquals(s, test.validate(s, "allowedRequired", true, cantEndWithGt), allowedMessage(s));
+        }
+    }
+
+    private void notAllowedRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> test.validate(s, true), notAllowedMessage(s));
         }
     }
 
-    private void allowedNotRequired(StringTest test, List<String> strings) {
+    private void notAllowedRequiredStrict(List<String> strings) {
+        for (String s : strings) {
+            assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(s, "notAllowedRequiredStrict", true), notAllowedMessage(s));
+        }
+    }
+
+    private void notAllowedRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+        for (String s : strings) {
+            assertThrows(IllegalArgumentException.class, () -> test.validate(s, "notAllowedRequired", true, cantEndWithGt), notAllowedMessage(s));
+        }
+    }
+
+    private void allowedNotRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertEquals(s, test.validate(s, false), allowedMessage(s));
         }
     }
 
-    private void allowedNotRequiredEmptyAsNull(StringTest test, List<String> strings) {
+    private void allowedNotRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+        for (String s : strings) {
+            assertEquals(s, test.validate(s, "allowedNotRequired", false, cantEndWithGt), allowedMessage(s));
+        }
+    }
+
+    private void allowedNotRequiredEmptyAsNull(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertNull(test.validate(s, false), allowedMessage(s));
         }
     }
 
-    private void notAllowedNotRequired(StringTest test, List<String> strings) {
+    private void notAllowedNotRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> test.validate(s, false), notAllowedMessage(s));
+        }
+    }
+
+    private void notAllowedNotRequiredStrict(List<String> strings) {
+        for (String s : strings) {
+            assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(s, "notAllowedRequiredStrict", false), notAllowedMessage(s));
+        }
+    }
+
+    private void notAllowedNotRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+        for (String s : strings) {
+            assertThrows(IllegalArgumentException.class, () -> test.validate(s, "notAllowedNotRequired", false, cantEndWithGt), notAllowedMessage(s));
         }
     }
 
@@ -608,50 +661,49 @@ public class ValidatorTests {
         List<String> l2 = Arrays.asList("two", "one");
         List<String> l3 = Arrays.asList("one", "not");
         List<String> l4 = Collections.singletonList("three");
-        List<String> l5 = null;
-        List<String> l6 = new ArrayList<>();
+        List<String> l5 = new ArrayList<>();
 
         assertTrue(listsAreEquivalent(l1, l1));
         assertTrue(listsAreEquivalent(l1, l2));
         assertFalse(listsAreEquivalent(l1, l3));
         assertFalse(listsAreEquivalent(l1, l4));
+        assertFalse(listsAreEquivalent(l1, null));
         assertFalse(listsAreEquivalent(l1, l5));
-        assertFalse(listsAreEquivalent(l1, l6));
 
         assertTrue(listsAreEquivalent(l2, l1));
         assertTrue(listsAreEquivalent(l2, l2));
         assertFalse(listsAreEquivalent(l2, l3));
         assertFalse(listsAreEquivalent(l2, l4));
+        assertFalse(listsAreEquivalent(l2, null));
         assertFalse(listsAreEquivalent(l2, l5));
-        assertFalse(listsAreEquivalent(l2, l6));
 
         assertFalse(listsAreEquivalent(l3, l1));
         assertFalse(listsAreEquivalent(l3, l2));
         assertTrue(listsAreEquivalent(l3, l3));
         assertFalse(listsAreEquivalent(l3, l4));
+        assertFalse(listsAreEquivalent(l3, null));
         assertFalse(listsAreEquivalent(l3, l5));
-        assertFalse(listsAreEquivalent(l3, l6));
 
         assertFalse(listsAreEquivalent(l4, l1));
         assertFalse(listsAreEquivalent(l4, l2));
         assertFalse(listsAreEquivalent(l4, l3));
         assertTrue(listsAreEquivalent(l4, l4));
+        assertFalse(listsAreEquivalent(l4, null));
         assertFalse(listsAreEquivalent(l4, l5));
-        assertFalse(listsAreEquivalent(l4, l6));
+
+        assertFalse(listsAreEquivalent(null, l1));
+        assertFalse(listsAreEquivalent(null, l2));
+        assertFalse(listsAreEquivalent(null, l3));
+        assertFalse(listsAreEquivalent(null, l4));
+        assertTrue(listsAreEquivalent(null, null));
+        assertTrue(listsAreEquivalent(null, l5));
 
         assertFalse(listsAreEquivalent(l5, l1));
         assertFalse(listsAreEquivalent(l5, l2));
         assertFalse(listsAreEquivalent(l5, l3));
         assertFalse(listsAreEquivalent(l5, l4));
+        assertTrue(listsAreEquivalent(l5, null));
         assertTrue(listsAreEquivalent(l5, l5));
-        assertTrue(listsAreEquivalent(l5, l6));
-
-        assertFalse(listsAreEquivalent(l6, l1));
-        assertFalse(listsAreEquivalent(l6, l2));
-        assertFalse(listsAreEquivalent(l6, l3));
-        assertFalse(listsAreEquivalent(l6, l4));
-        assertTrue(listsAreEquivalent(l6, l5));
-        assertTrue(listsAreEquivalent(l6, l6));
     }
 
     @Test
@@ -675,63 +727,89 @@ public class ValidatorTests {
         Map<String, String> m5 = new HashMap<>();
         m5.put("five", "5");
 
-        Map<String, String> m6 = null;
-
-        Map<String, String> m7 = new HashMap<>();
+        Map<String, String> m6 = new HashMap<>();
 
         assertTrue(mapsAreEquivalent(m1, m1));
         assertTrue(mapsAreEquivalent(m1, m2));
         assertFalse(mapsAreEquivalent(m1, m3));
         assertFalse(mapsAreEquivalent(m1, m4));
         assertFalse(mapsAreEquivalent(m1, m5));
+        assertFalse(mapsAreEquivalent(m1, null));
         assertFalse(mapsAreEquivalent(m1, m6));
-        assertFalse(mapsAreEquivalent(m1, m7));
 
         assertTrue(mapsAreEquivalent(m2, m1));
         assertTrue(mapsAreEquivalent(m2, m2));
         assertFalse(mapsAreEquivalent(m2, m3));
         assertFalse(mapsAreEquivalent(m2, m4));
         assertFalse(mapsAreEquivalent(m2, m5));
+        assertFalse(mapsAreEquivalent(m2, null));
         assertFalse(mapsAreEquivalent(m2, m6));
-        assertFalse(mapsAreEquivalent(m2, m7));
 
         assertFalse(mapsAreEquivalent(m3, m1));
         assertFalse(mapsAreEquivalent(m3, m2));
         assertTrue(mapsAreEquivalent(m3, m3));
         assertFalse(mapsAreEquivalent(m3, m4));
         assertFalse(mapsAreEquivalent(m3, m5));
+        assertFalse(mapsAreEquivalent(m3, null));
         assertFalse(mapsAreEquivalent(m3, m6));
-        assertFalse(mapsAreEquivalent(m3, m7));
 
         assertFalse(mapsAreEquivalent(m4, m1));
         assertFalse(mapsAreEquivalent(m4, m2));
         assertFalse(mapsAreEquivalent(m4, m3));
         assertTrue(mapsAreEquivalent(m4, m4));
         assertFalse(mapsAreEquivalent(m4, m5));
+        assertFalse(mapsAreEquivalent(m4, null));
         assertFalse(mapsAreEquivalent(m4, m6));
-        assertFalse(mapsAreEquivalent(m4, m7));
 
         assertFalse(mapsAreEquivalent(m5, m1));
         assertFalse(mapsAreEquivalent(m5, m2));
         assertFalse(mapsAreEquivalent(m5, m3));
         assertFalse(mapsAreEquivalent(m5, m4));
         assertTrue(mapsAreEquivalent(m5, m5));
+        assertFalse(mapsAreEquivalent(m5, null));
         assertFalse(mapsAreEquivalent(m5, m6));
-        assertFalse(mapsAreEquivalent(m5, m7));
+
+        assertFalse(mapsAreEquivalent(null, m1));
+        assertFalse(mapsAreEquivalent(null, m2));
+        assertFalse(mapsAreEquivalent(null, m3));
+        assertFalse(mapsAreEquivalent(null, m4));
+        assertFalse(mapsAreEquivalent(null, m5));
+        assertTrue(mapsAreEquivalent(null, null));
+        assertTrue(mapsAreEquivalent(null, m6));
 
         assertFalse(mapsAreEquivalent(m6, m1));
         assertFalse(mapsAreEquivalent(m6, m2));
         assertFalse(mapsAreEquivalent(m6, m3));
-        assertFalse(mapsAreEquivalent(m6, m4));
         assertFalse(mapsAreEquivalent(m6, m5));
+        assertTrue(mapsAreEquivalent(m6, null));
         assertTrue(mapsAreEquivalent(m6, m6));
-        assertTrue(mapsAreEquivalent(m6, m7));
+    }
 
-        assertFalse(mapsAreEquivalent(m7, m1));
-        assertFalse(mapsAreEquivalent(m7, m2));
-        assertFalse(mapsAreEquivalent(m7, m3));
-        assertFalse(mapsAreEquivalent(m7, m5));
-        assertTrue(mapsAreEquivalent(m7, m6));
-        assertTrue(mapsAreEquivalent(m7, m7));
+    @Test
+    public void testMetaIsEquivalent() {
+        Map<String, String> m1 = new HashMap<>();
+        Map<String, String> m2 = new HashMap<>();
+
+        assertTrue(Validator.metaIsEquivalent(null, null));
+        assertTrue(Validator.metaIsEquivalent(null, m1));
+        assertTrue(Validator.metaIsEquivalent(m1, null));
+        assertTrue(Validator.metaIsEquivalent(m1, m2));
+
+        m1.put("A", "a");
+        m1.put(NATS_META_KEY_PREFIX + "foo", "foo");
+        assertFalse(Validator.metaIsEquivalent(m1, m2));
+
+        m2.put("A", "a");
+        m2.put(NATS_META_KEY_PREFIX + "bar", "bar");
+        assertTrue(Validator.metaIsEquivalent(m1, m2));
+
+        m1.put("B", "b");
+        assertFalse(Validator.metaIsEquivalent(m1, m2));
+
+        m2.put("B", "b");
+        assertTrue(Validator.metaIsEquivalent(m1, m2));
+
+        m2.put("C", "C");
+        assertFalse(Validator.metaIsEquivalent(m1, m2));
     }
 }

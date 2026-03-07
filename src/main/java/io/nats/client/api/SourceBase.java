@@ -17,6 +17,8 @@ import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonUtils;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.JsonValueUtils;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -30,7 +32,11 @@ import static io.nats.client.support.JsonUtils.beginJson;
 import static io.nats.client.support.JsonUtils.endJson;
 import static io.nats.client.support.JsonValueUtils.readValue;
 import static io.nats.client.support.Validator.listsAreEquivalent;
+import static io.nats.client.support.Validator.nullOrEmpty;
 
+/**
+ * A base class for sources
+ */
 public abstract class SourceBase implements JsonSerializable {
     private final String name;
     private final long startSeq;
@@ -61,6 +67,8 @@ public abstract class SourceBase implements JsonSerializable {
      * Returns a JSON representation of this mirror
      * @return json mirror json string
      */
+    @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         JsonUtils.addField(sb, NAME, name);
@@ -76,6 +84,7 @@ public abstract class SourceBase implements JsonSerializable {
      * Get the name of the source. Same as getName()
      * @return get the source name
      */
+    @NonNull
     public String getSourceName() {
         return name;
     }
@@ -84,26 +93,51 @@ public abstract class SourceBase implements JsonSerializable {
      * Get the name of the source. Same as getSourceName()
      * @return the source name
      */
+    @NonNull
     public String getName() {
         return name;
     }
 
+    /**
+     * Get the configured start sequence
+     * @return the start sequence
+     */
     public long getStartSeq() {
         return startSeq;
     }
 
+    /**
+     * Get the configured start time
+     * @return the start time
+     */
+    @Nullable
     public ZonedDateTime getStartTime() {
         return startTime;
     }
 
+    /**
+     * Get the configured filter subject
+     * @return the filter subject
+     */
+    @Nullable
     public String getFilterSubject() {
         return filterSubject;
     }
 
+    /**
+     * Get the External reference
+     * @return the External
+     */
+    @Nullable
     public External getExternal() {
         return external;
     }
 
+    /**
+     * Get the subject transforms
+     * @return the list of subject transforms
+     */
+    @Nullable
     public List<SubjectTransform> getSubjectTransforms() {
         return subjectTransforms;
     }
@@ -113,6 +147,10 @@ public abstract class SourceBase implements JsonSerializable {
         return JsonUtils.toKey(getClass()) + toJson();
     }
 
+    /**
+     * A builder base for objects that extend SourceBase
+     * @param <T> the actual source type
+     */
     public abstract static class SourceBaseBuilder<T> {
         String name;
         long startSeq;
@@ -123,60 +161,131 @@ public abstract class SourceBase implements JsonSerializable {
 
         abstract T getThis();
 
+        /**
+         * Construct an instance of the builder
+         */
         public SourceBaseBuilder() {}
 
+        /**
+         * Construct an instance of the builder from a copy of another object that extends SourceBase
+         * @param base the base to copy
+         */
         public SourceBaseBuilder(SourceBase base) {
             this.name = base.name;
             this.startSeq = base.startSeq;
-            this.startTime = base.startTime;
+            this.startTime = base.startTime; // zdt is immutable so copy is fine
             this.filterSubject = base.filterSubject;
-            this.external = base.external;
-            this.subjectTransforms = base.getSubjectTransforms();
+            this.external = base.external == null ? null : new External(base.external);
+            this.subjectTransforms = base.getSubjectTransforms() == null ? null : new ArrayList<>(base.getSubjectTransforms());
         }
 
+        /**
+         * Set the source name
+         * @param name the name
+         * @return the builder
+         */
         public T sourceName(String name) {
             this.name = name;
             return getThis();
         }
 
+        /**
+         * Set the source name. Same as sourceName
+         * @param name the name
+         * @return the builder
+         */
         public T name(String name) {
             this.name = name;
             return getThis();
         }
 
+        /**
+         * Set the start sequence
+         * @param startSeq the sequence
+         * @return the builder
+         */
         public T startSeq(long startSeq) {
             this.startSeq = startSeq;
             return getThis();
         }
 
+        /**
+         * Set the start time
+         * @param startTime the start time
+         * @return the builder
+         */
         public T startTime(ZonedDateTime startTime) {
             this.startTime = startTime;
             return getThis();
         }
 
+        /**
+         * Set the filter subject
+         * @param filterSubject the filter subject
+         * @return the builder
+         */
         public T filterSubject(String filterSubject) {
             this.filterSubject = filterSubject;
             return getThis();
         }
 
+        /**
+         * Set the external reference
+         * @param external the external
+         * @return the builder
+         */
         public T external(External external) {
             this.external = external;
             return getThis();
         }
 
+        /**
+         * Set the domain
+         * @param domain the domain
+         * @return the builder
+         */
         public T domain(String domain) {
             String prefix = convertDomainToPrefix(domain);
             external = prefix == null ? null : External.builder().api(prefix).build();
             return getThis();
         }
 
+        /**
+         * Set subjectTransforms
+         * @param subjectTransforms the array of subjectTransforms
+         * @return the builder
+         */
         public T subjectTransforms(SubjectTransform... subjectTransforms) {
-            this.subjectTransforms = subjectTransforms == null ? null : Arrays.asList(subjectTransforms);
-            return getThis();
+            if (nullOrEmpty(subjectTransforms)) {
+                this.subjectTransforms = null;
+                return getThis();
+            }
+            return _subjectTransforms(Arrays.asList(subjectTransforms));
         }
 
+        /**
+         * Set subjectTransforms
+         * @param subjectTransforms the list of subjectTransforms
+         * @return the builder
+         */
         public T subjectTransforms(List<SubjectTransform> subjectTransforms) {
-            this.subjectTransforms = subjectTransforms;
+            if (nullOrEmpty(subjectTransforms)) {
+                this.subjectTransforms = null;
+                return getThis();
+            }
+            return _subjectTransforms(subjectTransforms);
+        }
+
+        private T _subjectTransforms(@NonNull List<SubjectTransform> subjectTransforms) {
+            this.subjectTransforms = new ArrayList<>();
+            for (SubjectTransform st : subjectTransforms) {
+                if (st != null) {
+                    this.subjectTransforms.add(st);
+                }
+            }
+            if (this.subjectTransforms.size() == 0) {
+                this.subjectTransforms = null;
+            }
             return getThis();
         }
     }
@@ -200,7 +309,7 @@ public abstract class SourceBase implements JsonSerializable {
     @Override
     public int hashCode() {
         int result = name != null ? name.hashCode() : 0;
-        result = 31 * result + (int) (startSeq ^ (startSeq >>> 32));
+        result = 31 * result + Long.hashCode(startSeq);
         result = 31 * result + (startTime != null ? startTime.hashCode() : 0);
         result = 31 * result + (filterSubject != null ? filterSubject.hashCode() : 0);
         result = 31 * result + (external != null ? external.hashCode() : 0);

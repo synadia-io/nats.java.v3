@@ -1,5 +1,7 @@
 package io.nats.client.support;
 
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
+
 public interface NatsJetStreamConstants {
     /**
      * The maximum pull size [NO LONGER ENFORCED]
@@ -13,6 +15,8 @@ public interface NatsJetStreamConstants {
     int MAX_HISTORY_PER_KEY = 64;
 
     long SERVER_DEFAULT_DUPLICATE_WINDOW_MS = 120_000; // 1000ms/sec * 60sec/min * 2 min
+
+    String NATS_META_KEY_PREFIX = "_nats.";
 
     String PREFIX_DOLLAR_JS_DOT = "$JS.";
     String PREFIX_API = "API";
@@ -82,18 +86,26 @@ public interface NatsJetStreamConstants {
     // JSAPI_MSG_DELETE is the endpoint to remove a message.
     String JSAPI_MSG_DELETE = "STREAM.MSG.DELETE.%s";
 
+    // JSAPI_CONSUMER_UNPIN is the endpoint to unpin a consumer
+    String JSAPI_CONSUMER_UNPIN = "CONSUMER.UNPIN.%s.%s";
+
     String MSG_ID_HDR = "Nats-Msg-Id";
     String EXPECTED_STREAM_HDR = "Nats-Expected-Stream";
     String EXPECTED_LAST_SEQ_HDR = "Nats-Expected-Last-Sequence";
     String EXPECTED_LAST_MSG_ID_HDR = "Nats-Expected-Last-Msg-Id";
     String EXPECTED_LAST_SUB_SEQ_HDR = "Nats-Expected-Last-Subject-Sequence";
+    String EXPECTED_LAST_SUB_SEQ_SUB_HDR = "Nats-Expected-Last-Subject-Sequence-Subject";
     String MSG_TTL_HDR = "Nats-TTL";
 
     String LAST_CONSUMER_HDR = "Nats-Last-Consumer";
     String LAST_STREAM_HDR = "Nats-Last-Stream";
-    String CONSUMER_STALLED_HDR = "Nats-Consumer-Stalled";
-    String MSG_SIZE_HDR = "Nats-Msg-Size";
-    String NATS_MARKER_REASON_HDR = "Nats-Marker-Reason";
+
+    String CONSUMER_STALLED_HDR         = "Nats-Consumer-Stalled";
+    String MSG_SIZE_HDR                 = "Nats-Msg-Size";
+    String NATS_MARKER_REASON_HDR       = "Nats-Marker-Reason";
+    byte[] CONSUMER_STALLED_HDR_BYTES   = CONSUMER_STALLED_HDR.getBytes(ISO_8859_1);
+    byte[] MSG_SIZE_HDR_BYTES           = MSG_SIZE_HDR.getBytes(ISO_8859_1);
+    byte[] NATS_MARKER_REASON_HDR_BYTES = NATS_MARKER_REASON_HDR.getBytes(ISO_8859_1);
 
     String ROLLUP_HDR = "Nats-Rollup";
     String ROLLUP_HDR_SUBJECT = "sub";
@@ -107,10 +119,40 @@ public interface NatsJetStreamConstants {
     String NATS_NUM_PENDING   = "Nats-Num-Pending";
     String[] MESSAGE_INFO_HEADERS = new String[]{NATS_SUBJECT, NATS_SEQUENCE, NATS_TIMESTAMP, NATS_STREAM, NATS_LAST_SEQUENCE, NATS_NUM_PENDING};
 
-    String NATS_PENDING_MESSAGES = "Nats-Pending-Messages";
-    String NATS_PENDING_BYTES    = "Nats-Pending-Bytes";
+    // bytes used for faster matching and less string allocation when
+    byte[] NATS_STREAM_BYTES = NATS_STREAM.getBytes(ISO_8859_1);
+    byte[] NATS_SEQUENCE_BYTES = NATS_SEQUENCE.getBytes(ISO_8859_1);
+    byte[] NATS_TIMESTAMP_BYTES = NATS_TIMESTAMP.getBytes(ISO_8859_1);
+    byte[] NATS_SUBJECT_BYTES = NATS_SUBJECT.getBytes(ISO_8859_1);
+    byte[] NATS_LAST_SEQUENCE_BYTES = NATS_LAST_SEQUENCE.getBytes(ISO_8859_1);
+    byte[] NATS_NUM_PENDING_BYTES = NATS_NUM_PENDING.getBytes(ISO_8859_1);
+
+    String NATS_PENDING_MESSAGES       = "Nats-Pending-Messages";
+    String NATS_PENDING_BYTES          = "Nats-Pending-Bytes";
+    byte[] NATS_PENDING_MESSAGES_BYTES = NATS_PENDING_MESSAGES.getBytes(ISO_8859_1);
+    byte[] NATS_PENDING_BYTES_BYTES    = NATS_PENDING_BYTES.getBytes(ISO_8859_1);
+
+    String KV_OPERATION_HEADER_KEY       = "KV-Operation";
+    byte[] KV_OPERATION_HEADER_KEY_BYTES = KV_OPERATION_HEADER_KEY.getBytes(ISO_8859_1);
+
+    // Schedule Headers set to server
+    String NATS_SCHEDULE_HDR           = "Nats-Schedule";
+    String NATS_SCHEDULE_TARGET_HDR    = "Nats-Schedule-Target";
+    String NATS_SCHEDULE_TTL_HDR       = "Nats-Schedule-TTL";
+    String NATS_SCHEDULE_SOURCE_HDR    = "Nats-Schedule-Source";
+    String NATS_SCHEDULE_TIME_ZONE_HDR = "Nats-Schedule-Time-Zone";
+
+    String NATS_SCHEDULER_HDR          = "Nats-Scheduler";
+    String NATS_SCHEDULE_NEXT_HDR      = "Nats-Schedule-Next";
+
+    String NATS_BATCH_ID_HDR        = "Nats-Batch-Id";
+    String NATS_BATCH_SEQUENCE_HDR  = "Nats-Batch-Sequence";
+    String NATS_BATCH_COMMIT_HDR    = "Nats-Batch-Commit";
+
+    String NATS_PIN_ID_HDR = "Nats-Pin-Id";
 
     int JS_CONSUMER_NOT_FOUND_ERR = 10014;
     int JS_NO_MESSAGE_FOUND_ERR = 10037;
     int JS_WRONG_LAST_SEQUENCE = 10071;
+    int JS_SEQUENCE_TEMPORARILY_UNKNOWN = 10164;
 }

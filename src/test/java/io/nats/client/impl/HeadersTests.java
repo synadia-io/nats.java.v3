@@ -1,15 +1,14 @@
 package io.nats.client.impl;
 
-import io.nats.client.support.IncomingHeadersProcessor;
-import io.nats.client.support.Status;
-import io.nats.client.support.Token;
-import io.nats.client.support.TokenType;
+import io.nats.client.support.*;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 
+import static io.nats.client.support.NatsJetStreamConstants.*;
+import static io.nats.client.support.Status.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HeadersTests {
@@ -163,6 +162,7 @@ public class HeadersTests {
     private void assertKeyIgnoreCaseContainsValues(Headers headers, List<String> keys, List<String> values) {
         for (String k : keys) {
             List<String> hVals = headers.getIgnoreCase(k);
+            assertNotNull(hVals);
             assertEquals(values.size(), hVals.size());
             for (String v : values) {
                 assertTrue(hVals.contains(v));
@@ -173,6 +173,7 @@ public class HeadersTests {
     private void assertKeyContainsValues(Headers headers, List<String> keys, List<String> values) {
         for (String k : keys) {
             List<String> hVals = headers.get(k);
+            assertNotNull(hVals);
             assertEquals(values.size(), hVals.size());
             for (String v : values) {
                 assertTrue(hVals.contains(v));
@@ -217,7 +218,14 @@ public class HeadersTests {
         assertTrue(headers1.isReadOnly());
         assertThrows(UnsupportedOperationException.class, () -> headers1.put(KEY1, VAL2));
         assertThrows(UnsupportedOperationException.class, () -> headers1.put(KEY1, VAL2));
+        assertThrows(UnsupportedOperationException.class, () -> headers1.put(KEY1, VAL1, VAL2));
+        assertThrows(UnsupportedOperationException.class, () -> headers1.put(KEY1, Arrays.asList(VAL1, VAL2)));
+        assertThrows(UnsupportedOperationException.class, () -> headers1.put(new HashMap<>()));
         assertThrows(UnsupportedOperationException.class, () -> headers1.remove(KEY1));
+        assertThrows(UnsupportedOperationException.class, () -> headers1.remove(KEY1,KEY2));
+        assertThrows(UnsupportedOperationException.class, () -> headers1.remove(Arrays.asList(KEY1,KEY2)));
+        assertThrows(UnsupportedOperationException.class, () -> headers1.add(KEY1, VAL2));
+        assertThrows(UnsupportedOperationException.class, () -> headers1.add(KEY1, Arrays.asList(VAL1, VAL2)));
         assertThrows(UnsupportedOperationException.class, headers1::clear);
         assertEquals(VAL1, headers1.getFirst(KEY1));
     }
@@ -246,21 +254,51 @@ public class HeadersTests {
         validateDirtyAndLength(headers);
 
         headers.add(KEY1, "");
-        assertEquals(1, headers.get(KEY1).size());
+        List<String> values = headers.get(KEY1);
+        assertNotNull(values);
+        assertEquals(1, values.size());
         validateDirtyAndLength(headers);
 
         headers.put(KEY1, "");
-        assertEquals(1, headers.get(KEY1).size());
+        values = headers.get(KEY1);
+        assertNotNull(values);
+        assertEquals(1, values.size());
         validateDirtyAndLength(headers);
 
         headers = new Headers();
         headers.add(KEY1, VAL1, "", VAL2);
-        assertEquals(3, headers.get(KEY1).size());
+        values = headers.get(KEY1);
+        assertNotNull(values);
+        assertEquals(3, values.size());
         validateDirtyAndLength(headers);
 
         headers.put(KEY1, VAL1, "", VAL2);
-        assertEquals(3, headers.get(KEY1).size());
+        values = headers.get(KEY1);
+        assertNotNull(values);
+        assertEquals(3, values.size());
         validateDirtyAndLength(headers);
+
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("x", new ArrayList<>());
+        map.put("y", null);
+        headers.put(map);
+        assertEquals(3, values.size());
+
+        String[] n = null;
+        headers.remove(n); // coverage
+        assertFalse(headers.isDirty());
+
+        List<String> nk = null;
+        headers.remove(nk); // coverage
+        assertFalse(headers.isDirty());
+
+        nk = new ArrayList<>();
+        nk.add("x");
+        nk.add(null);
+        nk.add("y");
+        headers.remove(nk);
+        assertEquals(3, values.size());
+        assertFalse(headers.isDirty());
     }
 
     @Test
@@ -270,11 +308,15 @@ public class HeadersTests {
         validateDirtyAndLength(headers);
 
         headers.add(KEY1, VAL1, null, VAL2);
-        assertEquals(2, headers.get(KEY1).size());
+        List<String> values = headers.get(KEY1);
+        assertNotNull(values);
+        assertEquals(2, values.size());
         validateDirtyAndLength(headers);
 
         headers.put(KEY1, VAL1, null, VAL2);
-        assertEquals(2, headers.get(KEY1).size());
+        values = headers.get(KEY1);
+        assertNotNull(values);
+        assertEquals(2, values.size());
         validateDirtyAndLength(headers);
 
         headers.clear();
@@ -463,13 +505,19 @@ public class HeadersTests {
         assertEquals(headers1.size(), headers2.size());
         assertTrue(headers2.containsKey(KEY1));
         assertTrue(headers2.containsKey(KEY2));
-        assertEquals(2, headers2.get(KEY1).size());
-        assertEquals(1, headers2.get(KEY2).size());
-        assertEquals(1, headers2.get(KEY3).size());
-        assertTrue(headers2.get(KEY1).contains(VAL1));
-        assertTrue(headers2.get(KEY1).contains(VAL3));
-        assertTrue(headers2.get(KEY2).contains(VAL2));
-        assertTrue(headers2.get(KEY3).contains(EMPTY));
+        List<String> values21 = headers2.get(KEY1);
+        List<String> values22 = headers2.get(KEY2);
+        List<String> values23 = headers2.get(KEY3);
+        assertNotNull(values21);
+        assertNotNull(values22);
+        assertNotNull(values23);
+        assertEquals(2, values21.size());
+        assertEquals(1, values22.size());
+        assertEquals(1, values23.size());
+        assertTrue(values21.contains(VAL1));
+        assertTrue(values21.contains(VAL3));
+        assertTrue(values22.contains(VAL2));
+        assertTrue(values23.contains(EMPTY));
     }
 
     @Test
@@ -502,32 +550,110 @@ public class HeadersTests {
     }
 
     @Test
-    public void constructStatusWithValidBytes() {
-        assertValidStatus("NATS/1.0 503\r\n", 503, "No Responders Available For Request"); // status made message
-        assertValidStatus("NATS/1.0 404\r\n", 404, "Server Status Message: 404");         // status made message
-        assertValidStatus("NATS/1.0 503 No Responders\r\n", 503, "No Responders");         // from data
-        assertValidStatus("NATS/1.0   503   No Responders\r\n", 503, "No Responders");
+    public void constructStatusWithValidBytesAndCoverage() {
+        assertValidStatus("NATS/1.0 503\r\n", 503, NO_RESPONDERS_TEXT); // status made message
+        assertValidStatus("NATS/1.0 404\r\n", 404, "Server Status Message: 404");          // status made message
+        assertValidStatus("NATS/1.0 123 Message And Code Begin With Known Byte\r\n", 123, "Message And Code Begin With Known Byte");       // from data
+        assertValidStatus("NATS/1.0   923   Unknown Message And Code\r\n", 923, "Unknown Message And Code");
+
+        // additional coverage for status extraction comparing status text to known values
+        assertValidStatus(EXCEEDED_MAX_WAITING);
+        assertValidStatus(EXCEEDED_MAX_REQUEST_BATCH);
+        assertValidStatus(EXCEEDED_MAX_REQUEST_MAX_BYTES);
+        assertValidStatus(EXCEEDED_MAX_REQUEST_EXPIRES);
+        assertValidStatus(EOB_TEXT);
+
+        assertValidStatus(BATCH_COMPLETED);
+        assertValidStatus(BAD_REQUEST);
+
+        assertValidStatus(NO_RESPONDERS_TEXT);
+        assertValidStatus(NO_MESSAGES);
+
+        assertValidStatus(FLOW_CONTROL_TEXT);
+        assertValidStatus(HEARTBEAT_TEXT);
+        assertValidStatus(MESSAGE_SIZE_EXCEEDS_MAX_BYTES);
+        assertValidStatus(LEADERSHIP_CHANGE);
+        assertValidStatus(SERVER_SHUTDOWN);
+        assertValidStatus(CONSUMER_DELETED);
+        assertValidStatus(CONSUMER_IS_PUSH_BASED);
+
+        // coverage
+        assertValidStatus("E Test Starts With Known Letter But Not Known");
+        assertValidStatus("B Test Starts With Known Letter But Not Known");
+        assertValidStatus("N Test Starts With Known Letter But Not Known");
+        assertValidStatus("F Test Starts With Known Letter But Not Known");
+        assertValidStatus("I Test Starts With Known Letter But Not Known");
+        assertValidStatus("M Test Starts With Known Letter But Not Known");
+        assertValidStatus("L Test Starts With Known Letter But Not Known");
+        assertValidStatus("S Test Starts With Known Letter But Not Known");
+        assertValidStatus("C Test Starts With Known Letter But Not Known");
+    }
+
+    @Test
+    public void testHeadersKnownTokenCoverage() {
+        Headers headers = new Headers();
+        headers.put(NATS_SUBJECT, "subject");
+        headers.put(NATS_SEQUENCE, "seq");
+        headers.put(NATS_TIMESTAMP, "ts");
+        headers.put(NATS_STREAM, "stream");
+        headers.put(NATS_LAST_SEQUENCE, "lseq");
+        headers.put(NATS_NUM_PENDING, "nnp");
+        headers.put(CONSUMER_STALLED_HDR, "csh");
+        headers.put(MSG_SIZE_HDR, "msh");
+        headers.put(NATS_MARKER_REASON_HDR, "nmrh");
+        headers.put(NATS_PENDING_MESSAGES, "npm");
+        headers.put(NATS_PENDING_BYTES, "npb");
+        headers.put(KV_OPERATION_HEADER_KEY, "op");
+        headers.put("N-Starts-With-Known-Byte", "Starts-With-Known-Byte-N");
+        headers.put("K-Starts-With-Known-Byte", "Starts-With-Known-Byte-K");
+        headers.put("X-Starts-With-Unknown-Byte", "Starts-With-Unknown-Byte");
+        IncomingHeadersProcessor ihp = new IncomingHeadersProcessor(headers.getSerialized());
+        headers = ihp.getHeaders();
+        assertEquals("subject", headers.getFirst(NATS_SUBJECT));
+        assertEquals("seq", headers.getFirst(NATS_SEQUENCE));
+        assertEquals("ts", headers.getFirst(NATS_TIMESTAMP));
+        assertEquals("stream", headers.getFirst(NATS_STREAM));
+        assertEquals("lseq", headers.getFirst(NATS_LAST_SEQUENCE));
+        assertEquals("nnp", headers.getFirst(NATS_NUM_PENDING));
+        assertEquals("csh", headers.getFirst(CONSUMER_STALLED_HDR));
+        assertEquals("msh", headers.getFirst(MSG_SIZE_HDR));
+        assertEquals("nmrh", headers.getFirst(NATS_MARKER_REASON_HDR));
+        assertEquals("npm", headers.getFirst(NATS_PENDING_MESSAGES));
+        assertEquals("npb", headers.getFirst(NATS_PENDING_BYTES));
+        assertEquals("op", headers.getFirst(KV_OPERATION_HEADER_KEY));
+        assertEquals("Starts-With-Known-Byte-N", headers.getFirst("N-Starts-With-Known-Byte"));
+        assertEquals("Starts-With-Known-Byte-K", headers.getFirst("K-Starts-With-Known-Byte"));
+        assertEquals("Starts-With-Unknown-Byte", headers.getFirst("X-Starts-With-Unknown-Byte"));
     }
 
     @Test
     public void verifyStatusBooleans() {
-        Status status = new Status(Status.FLOW_OR_HEARTBEAT_STATUS_CODE, Status.FLOW_CONTROL_TEXT);
+        Status status = new Status(FLOW_OR_HEARTBEAT_STATUS_CODE, FLOW_CONTROL_TEXT);
         assertTrue(status.isFlowControl());
         assertFalse(status.isHeartbeat());
         assertFalse(status.isNoResponders());
+        assertFalse(status.isEob());
 
-        status = new Status(Status.FLOW_OR_HEARTBEAT_STATUS_CODE, Status.HEARTBEAT_TEXT);
+        status = new Status(FLOW_OR_HEARTBEAT_STATUS_CODE, HEARTBEAT_TEXT);
         assertFalse(status.isFlowControl());
         assertTrue(status.isHeartbeat());
         assertFalse(status.isNoResponders());
+        assertFalse(status.isEob());
 
-        status = new Status(Status.NO_RESPONDERS_CODE, Status.NO_RESPONDERS_TEXT);
+        status = new Status(NO_RESPONDERS_CODE, NO_RESPONDERS_TEXT);
         assertFalse(status.isFlowControl());
         assertFalse(status.isHeartbeat());
         assertTrue(status.isNoResponders());
+        assertFalse(status.isEob());
+
+        status = new Status(EOB_CODE, EOB_TEXT);
+        assertFalse(status.isFlowControl());
+        assertFalse(status.isHeartbeat());
+        assertFalse(status.isNoResponders());
+        assertTrue(status.isEob());
 
         // path coverage
-        status = new Status(Status.NO_RESPONDERS_CODE, "not no responders text");
+        status = new Status(NO_RESPONDERS_CODE, "not no responders text");
         assertFalse(status.isNoResponders());
     }
 
@@ -539,13 +665,12 @@ public class HeadersTests {
         assertValidHeader(ihp, "foo", "bar");
     }
 
-    private IncomingHeadersProcessor assertValidHeader(String test, String key, String val) {
+    private void assertValidHeader(String test, String key, String val) {
         IncomingHeadersProcessor ihp = new IncomingHeadersProcessor(test.getBytes());
         assertValidHeader(ihp, key, val);
-        return ihp;
     }
 
-    private IncomingHeadersProcessor assertValidHeader(IncomingHeadersProcessor ihp, String key, String val) {
+    private void assertValidHeader(IncomingHeadersProcessor ihp, String key, String val) {
         Headers headers = ihp.getHeaders();
         if (key == null) {
             assertNull(headers);
@@ -554,10 +679,17 @@ public class HeadersTests {
             assertNotNull(headers);
             assertEquals(1, headers.size());
             assertTrue(headers.containsKey(key));
-            assertEquals(1, headers.get(key).size());
-            assertEquals(val, headers.get(key).get(0));
+            List<String> values = headers.get(key);
+            assertNotNull(values);
+            assertEquals(1, values.size());
+            assertEquals(val, values.get(0));
         }
-        return ihp;
+    }
+
+    private void assertValidStatus(String text) {
+        String test = "NATS/1.0 999 " + text + "\r\n";
+        IncomingHeadersProcessor ihp = new IncomingHeadersProcessor(test.getBytes());
+        assertValidStatus(ihp, 999, text);
     }
 
     private IncomingHeadersProcessor assertValidStatus(String test, int code, String msg) {
@@ -566,7 +698,7 @@ public class HeadersTests {
         return ihp;
     }
 
-    private IncomingHeadersProcessor assertValidStatus(IncomingHeadersProcessor ihp, int code, String msg) {
+    private void assertValidStatus(IncomingHeadersProcessor ihp, int code, String msg) {
         Status status = ihp.getStatus();
         assertNotNull(status);
         assertEquals(code, status.getCode());
@@ -575,8 +707,12 @@ public class HeadersTests {
         }
         IncomingMessageFactory imf = new IncomingMessageFactory("sid", "sub", "rt", 0, false);
         imf.setHeaders(ihp);
+        status = imf.getMessage().getStatus();
+        assertEquals(code, status.getCode());
         assertTrue(imf.getMessage().isStatusMessage());
-        return ihp;
+        if (msg != null) {
+            assertEquals(msg, status.getMessage());
+        }
     }
 
     static class IteratorTestHelper {
@@ -597,7 +733,9 @@ public class HeadersTests {
         for (String key : headers.keySet()) {
             helper.manualCount++;
             helper.manualCompareString.append(key);
-            headers.get(key).forEach(v -> helper.manualCompareString.append(v));
+            List<String> values = headers.get(key);
+            assertNotNull(values);
+            values.forEach(v -> helper.manualCompareString.append(v));
         }
         assertEquals(4, helper.manualCount);
 
@@ -675,6 +813,7 @@ public class HeadersTests {
     public void equalsHash() {
         Headers h1 = new Headers();
         Headers h2 = new Headers();
+        //noinspection MisorderedAssertEqualsArguments
         assertNotEquals(h1, null);
         assertEquals(h1, h1);
         assertEquals(h1, h2);
@@ -690,6 +829,7 @@ public class HeadersTests {
         assertNotEquals(h1, h2);
         assertNotEquals(h1.hashCode(), h2.hashCode());
 
+        //noinspection MisorderedAssertEqualsArguments
         assertNotEquals(h1, new Object());
     }
 
@@ -704,11 +844,15 @@ public class HeadersTests {
         assertEquals(2, h2.size());
         assertTrue(h2.containsKey(KEY1));
         assertTrue(h2.containsKey(KEY2));
-        assertEquals(1, h2.get(KEY1).size());
-        assertEquals(2, h2.get(KEY2).size());
-        assertTrue(h2.get(KEY1).contains(VAL1));
-        assertTrue(h2.get(KEY2).contains(VAL2));
-        assertTrue(h2.get(KEY2).contains(VAL3));
+        List<String> values1 = h2.get(KEY1);
+        List<String> values2 = h2.get(KEY2);
+        assertNotNull(values1);
+        assertNotNull(values2);
+        assertEquals(1, values1.size());
+        assertEquals(2, values2.size());
+        assertTrue(values1.contains(VAL1));
+        assertTrue(values2.contains(VAL2));
+        assertTrue(values2.contains(VAL3));
         validateDirtyAndLength(h2);
     }
 
@@ -732,6 +876,12 @@ public class HeadersTests {
         Token t = new Token("k1:v1\r\n\r\n".getBytes(StandardCharsets.US_ASCII), 9, 0, TokenType.KEY);
         t.mustBe(TokenType.KEY);
         assertThrows(IllegalArgumentException.class, () -> t.mustBe(TokenType.CRLF));
+        assertTrue(t.hasValue());
+
+        Token ts = new Token("    \r\n".getBytes(StandardCharsets.US_ASCII), 4, 0, TokenType.SPACE);
+        assertFalse(ts.hasValue());
+        assertEquals(EMPTY, ts.getValueCheckKnownKeys());
+
     }
 
     @Test
@@ -759,8 +909,72 @@ public class HeadersTests {
     }
 
     @Test
-    public void testToString() {
-        assertNotNull(new Status(1, "msg").toString()); // COVERAGE
+    public void testCoverage() {
+        assertNotNull(new Status(1, "msg").toString());
+
+        Headers h = new Headers();
+        assertEquals("", h.toString());
+        assertEquals(0, h.entrySet().size());
+
+        h.add("NullListAdd");
+        h.add("EmptyListAdd", new ArrayList<>());
+        h.add("EmptyAdd", "");
+        h.add("HasAdd1", "h1-1");
+        h.add("HasAdd2", "h2-1", "h2-2");
+
+        h.put("NullListPut");
+        h.put("EmptyListPut", new ArrayList<>());
+        h.put("EmptyPut", "");
+        h.put("HasPut1", "h1-1");
+        h.put("HasPut2", "h2-1", "h2-2");
+
+        Map<String, List<String>> map = null;
+        h.put(map);
+        h.put(new HashMap<>());
+
+        assertNull(h.getFirst("NullListAdd"));
+        assertNull(h.getFirst("EmptyListAdd"));
+        assertNull(h.getFirst("NullListPut"));
+        assertNull(h.getFirst("NullListPut"));
+
+        String s = h.toString();
+        assertFalse(s.contains("NullListAdd"));
+        assertFalse(s.contains("EmptyListAdd"));
+        assertTrue(s.contains("EmptyAdd:;"));
+        assertTrue(s.contains("HasAdd1:h1-1;"));
+        assertTrue(s.contains("HasAdd2:h2-1;"));
+        assertTrue(s.contains("HasAdd2:h2-2;"));
+        assertFalse(s.contains("NullListPut"));
+        assertFalse(s.contains("EmptyListPut"));
+        assertTrue(s.contains("EmptyPut:;"));
+        assertTrue(s.contains("HasPut1:h1-1;"));
+        assertTrue(s.contains("HasPut2:h2-1;"));
+        assertTrue(s.contains("HasPut2:h2-2;"));
+
+        Headers ro = new Headers(h, true);
+        assertThrows(UnsupportedOperationException.class, () -> ro.add("foo", "bar"));
+        assertThrows(UnsupportedOperationException.class, () -> ro.put("foo", "bar"));
+
+        ByteArrayBuilder bab = new ByteArrayBuilder();
+        //noinspection deprecation
+        s = ro.appendSerialized(bab).toString();
+        assertFalse(s.contains("NullListAdd"));
+        assertFalse(s.contains("EmptyListAdd"));
+        assertTrue(s.contains("EmptyAdd:\r\n"));
+        assertTrue(s.contains("HasAdd1:h1-1\r\n"));
+        assertTrue(s.contains("HasAdd2:h2-1\r\n"));
+        assertTrue(s.contains("HasAdd2:h2-2\r\n"));
+        assertFalse(s.contains("NullListPut"));
+        assertFalse(s.contains("EmptyListPut"));
+        assertTrue(s.contains("EmptyPut:\r\n"));
+        assertTrue(s.contains("HasPut1:h1-1\r\n"));
+        assertTrue(s.contains("HasPut2:h2-1\r\n"));
+        assertTrue(s.contains("HasPut2:h2-2\r\n"));
+
+        h = new Headers(h, false, new String[]{null,
+            "EmptyAdd", "HasAdd1", "HasAdd2",
+            "EmptyPut", "HasPut1", "HasPut2"});
+        assertTrue(h.isEmpty());
     }
 
     @Test
@@ -774,12 +988,65 @@ public class HeadersTests {
         assertEquals(2, h.size());
         assertTrue(h.containsKey(KEY1));
         assertTrue(h.containsKey(KEY2));
-        assertEquals(1, h.get(KEY1).size());
-        assertEquals(2, h.get(KEY2).size());
-        assertTrue(h.get(KEY1).contains(VAL1));
+        List<String> l1 = h.get(KEY1);
+        List<String> l2 = h.get(KEY2);
+        assertNotNull(l1);
+        assertNotNull(l2);
+        assertEquals(1, l1.size());
+        assertEquals(2, l2.size());
+        assertTrue(l1.contains(VAL1));
         assertEquals(VAL1, h.getFirst(KEY1));
-        assertTrue(h.get(KEY2).contains(VAL2));
-        assertTrue(h.get(KEY2).contains(VAL3));
+        assertTrue(l2.contains(VAL2));
+        assertTrue(l2.contains(VAL3));
         assertEquals(VAL2, h.getFirst(KEY2));
     }
+
+    @Test
+    void testForEach() {
+        Headers h = new Headers();
+        h.put("test", "a","b","c");
+        h.forEach((k, v) -> {
+            assertEquals("test", k);
+            assertContainsExactly(v, "a", "b", "c");
+            assertThrows(UnsupportedOperationException.class, ()->v.add("z"));
+        });
+    }
+
+    @Test
+    void testValuesWithNonPrintables() {
+        Headers h = new Headers();
+        h.put("test1", "\u0000 \f\b\t");
+
+        assertThrows(IllegalArgumentException.class, ()->h.put("test", "×"));
+        assertThrows(IllegalArgumentException.class, ()->h.put("test", "\r"));
+        assertThrows(IllegalArgumentException.class, ()->h.put("test", "\n"));
+
+        assertEquals(1, h.size());
+        List<String> l1 = h.get("test1");
+        assertNotNull(l1);
+        assertEquals(1, l1.size());
+        assertEquals("\u0000 \f\b\t", h.getFirst("test1"));
+    }
+
+//    @Test
+//    void benchmark_serializeToArray() {
+//        Headers h = new Headers().put("test", "aaa", "bBb", "ZZZZZZZZ")
+//            .put("ALongLongLongLongLongLongLongKey", "VeryLongLongLongLongLongLongLongLongLong:Value!");
+//        assertEquals(
+//            "ALongLongLongLongLongLongLongKey:VeryLongLongLongLongLongLongLongLongLong:Value!; test:aaa; test:bBb; test:ZZZZZZZZ;",
+//            h.toString());
+//
+//        byte[] dst = new byte[1000];
+//        for (int i = 0; i < 10_000; i++) {// warm-up
+//            assertEquals(129, h.serializeToArray(0, dst));
+//        }
+//
+//        long t = System.nanoTime();
+//        int max = 100_000_000;
+//        for (int i = 0; i < max; i++) {
+//            h.serializeToArray(0, dst);
+//        }
+//        t = System.nanoTime() - t;
+//        System.out.println("Time: " + t / 1000 / 1000.0 +"ms, Op/sec: "+(max*1_000_000_000L/t));
+//    }
 }

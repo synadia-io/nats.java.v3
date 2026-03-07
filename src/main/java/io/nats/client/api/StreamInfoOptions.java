@@ -14,6 +14,8 @@
 package io.nats.client.api;
 
 import io.nats.client.support.JsonSerializable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import static io.nats.client.support.ApiConstants.DELETED_DETAILS;
 import static io.nats.client.support.ApiConstants.SUBJECTS_FILTER;
@@ -33,10 +35,19 @@ public class StreamInfoOptions implements JsonSerializable {
         this.deletedDetails = deletedDetails;
     }
 
+    /**
+     * Get the configured subject filter
+     * @return the subject filter
+     */
+    @Nullable
     public String getSubjectsFilter() {
         return subjectsFilter;
     }
 
+    /**
+     * Get the configured flag requesting deleted details
+     * @return true if configured for deleted details
+     */
     public boolean isDeletedDetails() {
         return deletedDetails;
     }
@@ -66,11 +77,16 @@ public class StreamInfoOptions implements JsonSerializable {
         return new Builder().deletedDetails().build();
     }
 
+    /**
+     * Get an instance of the builder
+     * @return the builder
+     */
     public static Builder builder() {
         return new Builder();
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, SUBJECTS_FILTER, subjectsFilter);
@@ -90,7 +106,7 @@ public class StreamInfoOptions implements JsonSerializable {
         private boolean deletedDetails;
 
         /**
-         * Default Builder
+         * Construct an instance of the builder
          */
         public Builder() {}
 

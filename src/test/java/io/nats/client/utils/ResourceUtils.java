@@ -3,10 +3,29 @@ package io.nats.client.utils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 @SuppressWarnings("DataFlowIssue")
 public abstract class ResourceUtils {
+
+    public static final String CONFIG_FILE_BASE = "src/test/resources/";
+    public static final String JWT_FILE_BASE = "src/test/resources/jwt_nkey/";
+
+    public static String configResource(String configFilePath) {
+        if (configFilePath == null) {
+            return null;
+        }
+        return configFilePath.startsWith(CONFIG_FILE_BASE) ? configFilePath : CONFIG_FILE_BASE + configFilePath;
+    }
+
+    public static String jwtResource(String configFilePath) {
+        if (configFilePath == null) {
+            return null;
+        }
+        return configFilePath.startsWith(JWT_FILE_BASE) ? configFilePath : JWT_FILE_BASE + configFilePath;
+    }
+
     public static List<String> dataAsLines(String fileName) {
         return resourceAsLines("data/" + fileName);
     }
@@ -30,7 +49,7 @@ public abstract class ResourceUtils {
         }
 
     }
-
+    
     public static String resourceAsString(String fileName) {
         try {
             ClassLoader classLoader = ResourceUtils.class.getClassLoader();
@@ -61,5 +80,39 @@ public abstract class ResourceUtils {
         writer.flush();
         writer.close();
         return f.getAbsolutePath();
+    }
+
+    public static Path createTempDirectory() throws IOException {
+        return Files.createTempDirectory(null).toAbsolutePath();
+    }
+
+    public static void deleteFileOrFolder(String path) {
+        if (path != null) {
+            deleteFileOrFolder(new File(path));
+        }
+    }
+
+    public static void deleteFileOrFolder(Path path) {
+        if (path != null) {
+            deleteFileOrFolder(path.toFile());
+        }
+    }
+
+    public static void deleteFileOrFolder(File file) {
+        if (file != null) {
+            try {
+                if (file.isDirectory()) {
+                    File[] entries = file.listFiles();
+                    if (entries != null) {
+                        for (File entry : entries) {
+                            deleteFileOrFolder(entry);
+                        }
+                    }
+                }
+                //noinspection ResultOfMethodCallIgnored
+                file.delete();
+            }
+            catch (Exception ignore) {}
+        }
     }
 }

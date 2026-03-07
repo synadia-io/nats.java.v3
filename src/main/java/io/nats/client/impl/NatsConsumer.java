@@ -14,9 +14,9 @@
 package io.nats.client.impl;
 
 import io.nats.client.Consumer;
+import io.nats.client.NatsSystemClock;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -188,7 +188,6 @@ abstract class NatsConsumer implements Consumer {
            return this.getDrainingFuture();
        }
 
-       Instant start = Instant.now();
        final CompletableFuture<Boolean> tracker = new CompletableFuture<>();
        this.markDraining(tracker);
        this.sendUnsubForDrain();
@@ -201,14 +200,14 @@ abstract class NatsConsumer implements Consumer {
 
        this.markUnsubedForDrain();
 
-        // Wait for the timeout or the pending count to go to 0, skipped if conn is
-        // draining
+        // Wait for the timeout or consumer is drained
+        // Skipped if conn is draining
         connection.getExecutor().submit(() -> {
             try {
-                long stop = (timeout == null || timeout.equals(Duration.ZERO))
-                    ? Long.MAX_VALUE
-                    : System.nanoTime() + timeout.toNanos();
-                while (System.nanoTime() < stop && !Thread.interrupted()) {
+                long timeoutNanos = (timeout == null || timeout.toNanos() <= 0)
+                    ? Long.MAX_VALUE : timeout.toNanos();
+                long startTime = System.nanoTime();
+                while (NatsSystemClock.nanoTime() - startTime < timeoutNanos && !Thread.interrupted()) {
                     if (this.isDrained()) {
                         break;
                     }
@@ -235,7 +234,7 @@ abstract class NatsConsumer implements Consumer {
      */
     public abstract boolean isActive();
 
-    abstract MessageQueue getMessageQueue();
+    abstract ConsumerMessageQueue getMessageQueue();
 
     /**
      * Called during drain to tell the consumer to send appropriate unsub requests

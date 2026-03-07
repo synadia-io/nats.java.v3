@@ -15,6 +15,7 @@ package io.nats.client.support;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -22,17 +23,38 @@ import java.util.regex.Pattern;
 
 import static io.nats.client.support.NatsConstants.DOT;
 import static io.nats.client.support.NatsJetStreamConstants.MAX_HISTORY_PER_KEY;
+import static io.nats.client.support.NatsJetStreamConstants.NATS_META_KEY_PREFIX;
 
 @SuppressWarnings("UnusedReturnValue")
 public abstract class Validator {
+
     private Validator() {} /* ensures cannot be constructed */
+
+    /*
+        cannot contain spaces \r \n \t
+    */
+    public static String validateSubjectTerm(String subject, String label, boolean required) {
+        if (subject == null || subject.length() == 0) {
+            if (required) {
+                throw new IllegalArgumentException(label + " cannot be null or empty.");
+            }
+            return null;
+        }
+        for (int i = 0; i < subject.length(); i++) {
+            char c = subject.charAt(i);
+            if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+                throw new IllegalArgumentException(label + " cannot contain space, tab, carriage return or linefeed character");
+            }
+        }
+        return subject;
+    }
 
     /*
         cannot contain spaces \r \n \t
         cannot start or end with subject token delimiter .
         some things don't allow it to end greater
     */
-    public static String validateSubjectTerm(String subject, String label, boolean required) {
+    public static String validateSubjectTermStrict(String subject, String label, boolean required) {
         subject = emptyAsNull(subject);
         if (subject == null) {
             if (required) {
@@ -57,22 +79,18 @@ public abstract class Validator {
             else {
                 for (int m = 0; m < sl; m++) {
                     char c = segment.charAt(m);
-                    switch (c) {
-                        case 32:
-                        case '\r':
-                        case '\n':
-                        case '\t':
-                            throw new IllegalArgumentException(label + " cannot contain space, tab, carriage return or linefeed character");
-                        case '*':
-                            if (sl != 1) {
-                                throw new IllegalArgumentException(label + " wildcard improperly placed.");
-                            }
-                            break;
-                        case '>':
-                            if (sl != 1 || (seg + 1 != segments.length)) {
-                                throw new IllegalArgumentException(label + " wildcard improperly placed.");
-                            }
-                            break;
+                    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+                        throw new IllegalArgumentException(label + " cannot contain space, tab, carriage return or linefeed character");
+                    }
+                    if (c == '*') {
+                        if (sl != 1) {
+                            throw new IllegalArgumentException(label + " wildcard improperly placed.");
+                        }
+                    }
+                    if (c == '>') {
+                        if (sl != 1 || (seg + 1 != segments.length)) {
+                            throw new IllegalArgumentException(label + " wildcard improperly placed.");
+                        }
                     }
                 }
             }
@@ -84,8 +102,12 @@ public abstract class Validator {
         return validateSubjectTerm(s, "Subject", required);
     }
 
+    public static String validateSubjectStrict(String s, boolean required) {
+        return validateSubjectTermStrict(s, "Subject", required);
+    }
+
     public static String validateSubject(String subject, String label, boolean required, boolean cantEndWithGt) {
-        subject = validateSubjectTerm(subject, label, required);
+        subject = validateSubjectTermStrict(subject, label, required);
         if (subject != null && cantEndWithGt && subject.endsWith(".>")) {
             throw new IllegalArgumentException(label + " last segment cannot be '>'");
         }
@@ -97,7 +119,7 @@ public abstract class Validator {
     }
 
     public static String validateQueueName(String s, boolean required) {
-        return validateSubjectTerm(s, "QueueName", required);
+        return validateSubjectTermStrict(s, "QueueName", required);
     }
 
     public static String validateStreamName(String s, boolean required) {
@@ -441,6 +463,14 @@ public abstract class Validator {
         return s == null || s.trim().isEmpty();
     }
 
+    public static <T> boolean nullOrEmpty(T[] a) {
+        return a == null || a.length == 0;
+    }
+
+    public static boolean nullOrEmpty(Collection<?> c) {
+        return c == null || c.isEmpty();
+    }
+
     public static boolean notPrintable(String s) {
         for (int x = 0; x < s.length(); x++) {
             char c = s.charAt(x);
@@ -579,15 +609,15 @@ public abstract class Validator {
     static final char[] WILD_GT_DOT = {'*', '>', '.'};
     static final char[] WILD_GT_DOT_SLASHES = {'*', '>', '.', '\\', '/'};
 
-    private static boolean notPrintableOrHasWildGt(String s) {
+    public static boolean notPrintableOrHasWildGt(String s) {
         return notPrintableOrHasChars(s, WILD_GT);
     }
 
-    private static boolean notPrintableOrHasWildGtDot(String s) {
+    public static boolean notPrintableOrHasWildGtDot(String s) {
         return notPrintableOrHasChars(s, WILD_GT_DOT);
     }
 
-    private static boolean notPrintableOrHasWildGtDotSlashes(String s) {
+    public static boolean notPrintableOrHasWildGtDotSlashes(String s) {
         return notPrintableOrHasChars(s, WILD_GT_DOT_SLASHES);
     }
 
@@ -674,4 +704,40 @@ public abstract class Validator {
         return true;
     }
 
+    // this is a special case map where the meta has both user and nats headers like
+    // _nats.req.level=0, _nats.ver=2.12.0-preview.2, _nats.level=2
+    // in this case we only want to compare the user keys
+    public static boolean metaIsEquivalent(Map<String, String> m1, Map<String, String> m2) {
+        if (m1 == null || m1.isEmpty()) {
+            return m2 == null || m2.isEmpty();
+        }
+
+        // m1 isn't null or empty
+        if (m2 == null || m2.isEmpty()) {
+            return false;
+        }
+
+        // 1. make sure all user keys from m1 are in m2
+        int user1 = 0;
+        for (Map.Entry<String, String> entry : m1.entrySet()) {
+            String key = entry.getKey();
+            if (!key.startsWith(NATS_META_KEY_PREFIX)) {
+                if (!m2.containsKey(key)) {
+                    return false;
+                }
+                user1++;
+            }
+        }
+
+        // 2. all m1 keys were found in m2, so count m2 user keys
+        int user2 = 0;
+        for (String key : m2.keySet()) {
+            if (!key.startsWith(NATS_META_KEY_PREFIX)) {
+                user2++;
+            }
+        }
+
+        // 3. just make sure m2 didn't have more keys
+        return user1 == user2;
+    }
 }

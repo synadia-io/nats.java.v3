@@ -13,7 +13,6 @@
 
 package io.nats.client.api;
 
-import io.nats.client.JetStreamManagement;
 import io.nats.client.impl.JetStreamTestBase;
 import io.nats.client.support.DateTimeUtils;
 import io.nats.client.support.JsonParseException;
@@ -31,14 +30,23 @@ import static io.nats.client.api.CompressionOption.None;
 import static io.nats.client.api.CompressionOption.S2;
 import static io.nats.client.api.ConsumerConfiguration.*;
 import static io.nats.client.support.ApiConstants.*;
+import static io.nats.client.utils.VersionUtils.atLeast2_10;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class StreamConfigurationTests extends JetStreamTestBase {
 
     public static final String DEFAULT_STREAM_NAME = "sname";
 
+    private static String STREAM_CONFIGURATION_JSON;
+    private static String getStreamConfigurationJson() {
+        if (STREAM_CONFIGURATION_JSON == null) {
+            STREAM_CONFIGURATION_JSON = ResourceUtils.dataAsString("StreamConfiguration.json");
+        }
+        return STREAM_CONFIGURATION_JSON;
+    }
+
     private StreamConfiguration getTestConfiguration() {
-        String json = ResourceUtils.dataAsString("StreamConfiguration.json");
+        String json = getStreamConfigurationJson();
         StreamConfiguration sc = StreamConfiguration.instance(JsonParser.parseUnchecked(json));
         assertNotNull(sc.toString()); // coverage
         return sc;
@@ -46,11 +54,10 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testRoundTrip() throws Exception {
-        runInJsServer(si -> si.isNewerVersionThan("2.8.4"), nc -> {
-            CompressionOption compressionOption = atLeast2_10(ensureRunServerInfo()) ? S2 : None;
-            String stream = stream();
+        runInSharedCustom((nc, ctx) -> {
+            CompressionOption compressionOption = atLeast2_10() ? S2 : None;
             StreamConfiguration sc = StreamConfiguration.builder(getTestConfiguration())
-                .name(stream)
+                .name(ctx.stream)
                 .mirror(null)
                 .sources()
                 .replicas(1)
@@ -60,24 +67,25 @@ public class StreamConfigurationTests extends JetStreamTestBase {
                 .mirrorDirect(false)
                 .sealed(false)
                 .compressionOption(compressionOption)
+                .allowMessageCounter(false)
+                .persistMode(null)
                 .build();
-            JetStreamManagement jsm = nc.jetStreamManagement();
-            validate(jsm.addStream(sc).getConfiguration(), true, stream);
+            validateTestStreamConfiguration(ctx.createOrReplaceStream(sc).getConfiguration(), true, ctx.stream);
         });
     }
 
     @Test
     public void testSerializationDeserialization() throws Exception {
-        String originalJson = ResourceUtils.dataAsString("StreamConfiguration.json");
+        String originalJson = getStreamConfigurationJson();
         StreamConfiguration sc = StreamConfiguration.instance(originalJson);
-        validate(sc, false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(sc, false, DEFAULT_STREAM_NAME);
         String serializedJson = sc.toJson();
-        validate(StreamConfiguration.instance(serializedJson), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(StreamConfiguration.instance(serializedJson), false, DEFAULT_STREAM_NAME);
     }
 
     @Test
     public void testSerializationDeserializationDefaults() throws Exception {
-        StreamConfiguration sc = StreamConfiguration.instance("");
+        StreamConfiguration sc = StreamConfiguration.instance("{\"name\":\"name\"}");
         assertNotNull(sc);
         String serializedJson = sc.toJson();
         assertNotNull(StreamConfiguration.instance(serializedJson));
@@ -91,7 +99,6 @@ public class StreamConfigurationTests extends JetStreamTestBase {
                 add(COMPRESSION);
                 add(STORAGE);
                 add(DISCARD);
-                add(NAME);
                 add(DESCRIPTION);
                 add(MAX_CONSUMERS);
                 add(MAX_MSGS);
@@ -119,12 +126,11 @@ public class StreamConfigurationTests extends JetStreamTestBase {
                 add(DISCARD_NEW_PER_SUBJECT);
                 add(METADATA);
                 add(FIRST_SEQ);
-//                add(ALLOW_MSG_TTL);
                 add(SUBJECT_DELETE_MARKER_TTL);
             }
         };
 
-        String originalJson = ResourceUtils.dataAsString("StreamConfiguration.json");
+        String originalJson = getStreamConfigurationJson();
 
         // Loops through each field in the StreamConfiguration JSON format and ensures that the
         // StreamConfiguration can be built without that field being present in the JSON
@@ -138,9 +144,9 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testInvalidNameInJson() throws Exception{
-        String originalJson = ResourceUtils.dataAsString("StreamConfiguration.json");
+        String originalJson = getStreamConfigurationJson();
         JsonValue originalParsedJson = JsonParser.parse(originalJson);
-        originalParsedJson.map.put(NAME, new JsonValue("Inavlid*Name"));
+        originalParsedJson.map.put("name", new JsonValue("Invalid*Name"));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.instance(originalParsedJson.toJson()));
     }
 
@@ -148,13 +154,13 @@ public class StreamConfigurationTests extends JetStreamTestBase {
     public void testConstruction() {
         StreamConfiguration testSc = getTestConfiguration();
         // from json
-        validate(testSc, false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(testSc, false, DEFAULT_STREAM_NAME);
 
         // test toJson
-        validate(StreamConfiguration.instance(JsonParser.parseUnchecked(testSc.toJson())), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(StreamConfiguration.instance(JsonParser.parseUnchecked(testSc.toJson())), false, DEFAULT_STREAM_NAME);
 
         // copy constructor
-        validate(StreamConfiguration.builder(testSc).build(), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(StreamConfiguration.builder(testSc).build(), false, DEFAULT_STREAM_NAME);
 
         // builder
         StreamConfiguration.Builder builder = StreamConfiguration.builder()
@@ -190,18 +196,50 @@ public class StreamConfigurationTests extends JetStreamTestBase {
             .metadata(testSc.getMetadata())
             .firstSequence(testSc.getFirstSequence())
             .consumerLimits(testSc.getConsumerLimits())
-            .allowMessageTtl(testSc.isAllowMessageTtl())
             .subjectDeleteMarkerTtl(testSc.getSubjectDeleteMarkerTtl())
+            .allowMessageTtl(testSc.getAllowMessageTtl())
+            .allowMessageSchedules(testSc.getAllowMsgSchedules())
+            .allowMessageCounter(testSc.getAllowMessageCounter())
+            .allowAtomicPublish(testSc.getAllowAtomicPublish())
+            .persistMode(testSc.getPersistMode())
             ;
-        validate(builder.build(), false, DEFAULT_STREAM_NAME);
-        validate(builder.addSources((Source)null).build(), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(builder.build(), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(builder.addSources((Source)null).build(), false, DEFAULT_STREAM_NAME);
 
+
+        // COVERAGE of builder methods since I know these to be true
+        builder
+            // clear the flags
+            .allowMessageTtl(false)
+            .allowMessageSchedules(false)
+            .allowMessageCounter(false)
+            .allowAtomicPublish(false)
+            // set the flags
+            .allowMessageTtl()
+            .allowMessageSchedules()
+            .allowMessageCounter()
+            .allowAtomicPublish()
+        ;
+
+        // COVERAGE
+        builder.subjectDeleteMarkerTtl(-1);
+        assertNull(builder.build().getSubjectDeleteMarkerTtl());
+        builder.subjectDeleteMarkerTtl(1000);
+        Duration d = builder.build().getSubjectDeleteMarkerTtl();
+        assertNotNull(d);
+        assertEquals(1000, d.toMillis());
+        builder.subjectDeleteMarkerTtl(testSc.getSubjectDeleteMarkerTtl()); // set it back for the rest of the test
+
+        validateTestStreamConfiguration(builder.build(), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(builder.addSources((Source)null).build(), false, DEFAULT_STREAM_NAME);
+
+        assertNotNull(testSc.getSources());
         List<Source> sources = new ArrayList<>(testSc.getSources());
         sources.add(null);
         Source copy = new Source(JsonParser.parseUnchecked(sources.get(0).toJson()));
         assertEquals(sources.get(0).toString(), copy.toString());
         sources.add(copy);
-        validate(builder.addSources(sources).build(), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(builder.addSources(sources).build(), false, DEFAULT_STREAM_NAME);
 
         // covering add a single source
         sources = new ArrayList<>(testSc.getSources());
@@ -211,30 +249,32 @@ public class StreamConfigurationTests extends JetStreamTestBase {
             builder.addSource(source);
         }
         builder.addSource(sources.get(0));
-        validate(builder.build(), false, DEFAULT_STREAM_NAME);
+        validateTestStreamConfiguration(builder.build(), false, DEFAULT_STREAM_NAME);
 
         // equals and hashcode coverage
-        External external = copy.getExternal();
+        External externalFromCopy = copy.getExternal();
+        assertNotNull(externalFromCopy);
 
         assertEquals(sources.get(0), copy);
         assertEquals(sources.get(0).hashCode(), copy.hashCode());
-        assertEquals(sources.get(0).getExternal(), external);
-        assertEquals(sources.get(0).getExternal().hashCode(), external.hashCode());
+        External externalSource = sources.get(0).getExternal();
+        assertNotNull(externalSource);
+        assertEquals(externalSource, externalFromCopy);
+        assertEquals(externalSource.hashCode(), externalFromCopy.hashCode());
 
         List<String> lines = ResourceUtils.dataAsLines("MirrorsSources.json");
         for (String l1 : lines) {
             if (l1.startsWith("{")) {
                 Mirror m1 = new Mirror(JsonParser.parseUnchecked(l1));
-                //noinspection EqualsWithItself
                 assertEquals(m1, m1);
                 assertEquals(m1, Mirror.builder(m1).build());
                 Source s1 = new Source(JsonParser.parseUnchecked(l1));
-                //noinspection EqualsWithItself
                 assertEquals(s1, s1);
                 assertEquals(s1, Source.builder(s1).build());
                 //this provides testing coverage
                 //noinspection ConstantConditions,SimplifiableAssertion
                 assertTrue(!m1.equals(null));
+                //noinspection MisorderedAssertEqualsArguments
                 assertNotEquals(m1, new Object());
                 for (String l2 : lines) {
                     if (l2.startsWith("{")) {
@@ -256,9 +296,10 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         lines = ResourceUtils.dataAsLines("ExternalJson.txt");
         for (String l1 : lines) {
             External e1 = new External(JsonParser.parseUnchecked(l1));
-            //noinspection EqualsWithItself
             assertEquals(e1, e1);
+            //noinspection MisorderedAssertEqualsArguments
             assertNotEquals(e1, null);
+            //noinspection MisorderedAssertEqualsArguments
             assertNotEquals(e1, new Object());
             for (String l2 : lines) {
                 External e2 = new External(JsonParser.parseUnchecked(l2));
@@ -273,11 +314,12 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
         // coverage for null StreamConfiguration, millis maxAge, millis duplicateWindow
         StreamConfiguration scCov = StreamConfiguration.builder(null)
-                .maxAge(1111)
-                .duplicateWindow(2222)
-                .build();
+            .name(random())
+            .maxAge(1111)
+            .duplicateWindow(2222)
+            .build();
 
-        assertNull(scCov.getName());
+        assertNotNull(scCov.getName());
         assertEquals(Duration.ofMillis(1111), scCov.getMaxAge());
         assertEquals(Duration.ofMillis(2222), scCov.getDuplicateWindow());
     }
@@ -285,6 +327,7 @@ public class StreamConfigurationTests extends JetStreamTestBase {
     @SuppressWarnings("deprecation")
     @Test
     public void testConstructionInvalidsCoverage() {
+        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().name(null).build());
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().name(HAS_SPACE));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxConsumers(0));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxConsumers(-2));
@@ -305,23 +348,28 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().replicas(6));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().duplicateWindow(Duration.ofNanos(-1)));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().duplicateWindow(-1));
+        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().subjectDeleteMarkerTtl(1));
     }
 
     @Test
     public void testSourceBase() {
         StreamConfiguration sc = getTestConfiguration();
         Mirror m = sc.getMirror();
-
+        assertNotNull(m);
         JsonValue v = JsonParser.parseUnchecked(m.toJson());
         Source s1 = new Source(v);
         Source s2 = new Source(v);
         assertEquals(s1, s2);
+        //noinspection MisorderedAssertEqualsArguments
         assertNotEquals(s1, null);
+        //noinspection MisorderedAssertEqualsArguments
         assertNotEquals(s1, new Object());
         Mirror m1 = new Mirror(v);
         Mirror m2 = new Mirror(v);
         assertEquals(m1, m2);
+        //noinspection MisorderedAssertEqualsArguments
         assertNotEquals(m1, null);
+        //noinspection MisorderedAssertEqualsArguments
         assertNotEquals(m1, new Object());
 
         Source.Builder sb = Source.builder();
@@ -354,6 +402,25 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         mb.subjectTransforms((SubjectTransform[]) null);
         assertEquals(sb.subjectTransforms, mb.subjectTransforms);
 
+        List<SubjectTransform> stList = null;
+        sb.subjectTransforms(stList);
+        mb.subjectTransforms(stList);
+        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
+
+        sb.subjectTransforms(stList);
+        mb.subjectTransforms(stList);
+        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
+
+        stList = new ArrayList<>();
+        sb.subjectTransforms(stList);
+        mb.subjectTransforms(stList);
+        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
+
+        stList.add(null);
+        sb.subjectTransforms(stList);
+        mb.subjectTransforms(stList);
+        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
+
         sb.subjectTransforms(m.getSubjectTransforms());
         mb.subjectTransforms(m.getSubjectTransforms());
 
@@ -364,7 +431,9 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals(sb.subjectTransforms, m1.getSubjectTransforms());
 
         // coverage
-        String s = m.getSubjectTransforms().get(0).toString();
+        List<SubjectTransform> st = m.getSubjectTransforms();
+        assertNotNull(st);
+        String s = st.get(0).toString();
         assertTrue(s != null && !s.isEmpty());
     }
 
@@ -381,63 +450,74 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testSubjects() {
-        StreamConfiguration.Builder builder = StreamConfiguration.builder();
+        StreamConfiguration.Builder builder = StreamConfiguration.builder().name(random());
 
+        String subject = random();
         // subjects(...) replaces
-        builder.subjects(subject(0));
-        assertSubjects(builder.build(), 0);
+        builder.subjects(subject);
+        assertSubjects(builder.build(), subject);
 
         // subjects(...) replaces
         builder.subjects();
         assertSubjects(builder.build());
 
         // subjects(...) replaces
-        builder.subjects(subject(1));
-        assertSubjects(builder.build(), 1);
+        subject = random();
+        builder.subjects(subject);
+        assertSubjects(builder.build(), subject);
 
         // subjects(...) replaces
         builder.subjects((String)null);
         assertSubjects(builder.build());
 
         // subjects(...) replaces
-        builder.subjects(subject(2), subject(3));
-        assertSubjects(builder.build(), 2, 3);
+        String subjectA = random();
+        String subjectB = random();
+        builder.subjects(subjectA, subjectB);
+        assertSubjects(builder.build(), subjectA, subjectB);
 
         // subjects(...) replaces
-        builder.subjects(subject(101), null, subject(102));
-        assertSubjects(builder.build(), 101, 102);
+        subjectA = random();
+        subjectB = random();
+        builder.subjects(subjectA, null, subjectB);
+        assertSubjects(builder.build(), subjectA, subjectB);
 
         // subjects(...) replaces
-        builder.subjects(Arrays.asList(subject(4), subject(5)));
-        assertSubjects(builder.build(), 4, 5);
+        subjectA = random();
+        subjectB = random();
+        builder.subjects(Arrays.asList(subjectA, subjectB));
+        assertSubjects(builder.build(), subjectA, subjectB);
 
         // addSubjects(...) adds unique
-        builder.addSubjects(subject(5), subject(6));
-        assertSubjects(builder.build(), 4, 5, 6);
+        String subjectC = random();
+        builder.addSubjects(subjectB, subjectC);
+        assertSubjects(builder.build(), subjectA, subjectB, subjectC);
 
         // addSubjects(...) adds unique
-        builder.addSubjects(Arrays.asList(subject(6), subject(7), subject(8)));
-        assertSubjects(builder.build(), 4, 5, 6, 7, 8);
+        String subjectD = random();
+        String subjectE = random();
+        builder.addSubjects(Arrays.asList(subjectC, subjectD, subjectE));
+        assertSubjects(builder.build(), subjectA, subjectB, subjectC, subjectD, subjectE);
 
         // addSubjects(...) null check
         builder.addSubjects((String[]) null);
-        assertSubjects(builder.build(), 4, 5, 6, 7, 8);
+        assertSubjects(builder.build(), subjectA, subjectB, subjectC, subjectD, subjectE);
 
         // addSubjects(...) null check
         builder.addSubjects((Collection<String>) null);
-        assertSubjects(builder.build(), 4, 5, 6, 7, 8);
+        assertSubjects(builder.build(), subjectA, subjectB, subjectC, subjectD, subjectE);
     }
 
-    private void assertSubjects(StreamConfiguration sc, int... subIds) {
-        assertEquals(subIds.length, sc.getSubjects().size());
-        for (int subId : subIds) {
-            assertTrue(sc.getSubjects().contains(subject(subId)));
+    private void assertSubjects(StreamConfiguration sc, String... subjects) {
+        assertEquals(subjects.length, sc.getSubjects().size());
+        for (String s : subjects) {
+            assertTrue(sc.getSubjects().contains(s));
         }
     }
 
     @Test
     public void testRetentionPolicy() {
-        StreamConfiguration.Builder builder = StreamConfiguration.builder();
+        StreamConfiguration.Builder builder = StreamConfiguration.builder().name(random());
         assertEquals(RetentionPolicy.Limits, builder.build().getRetentionPolicy());
 
         builder.retentionPolicy(RetentionPolicy.Limits);
@@ -455,7 +535,7 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testCompressionOption() {
-        StreamConfiguration.Builder builder = StreamConfiguration.builder();
+        StreamConfiguration.Builder builder = StreamConfiguration.builder().name(random());
         assertEquals(None, builder.build().getCompressionOption());
 
         builder.compressionOption(None);
@@ -472,7 +552,7 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testStorageType() {
-        StreamConfiguration.Builder builder = StreamConfiguration.builder();
+        StreamConfiguration.Builder builder = StreamConfiguration.builder().name(random());
         assertEquals(StorageType.File, builder.build().getStorageType());
 
         builder.storageType(StorageType.Memory);
@@ -484,7 +564,7 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testDiscardPolicy() {
-        StreamConfiguration.Builder builder = StreamConfiguration.builder();
+        StreamConfiguration.Builder builder = StreamConfiguration.builder().name(random());
         assertEquals(DiscardPolicy.Old, builder.build().getDiscardPolicy());
 
         builder.discardPolicy(DiscardPolicy.New);
@@ -494,7 +574,7 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals(DiscardPolicy.Old, builder.build().getDiscardPolicy());
     }
 
-    private void validate(StreamConfiguration sc, boolean serverTest, String name) {
+    private void validateTestStreamConfiguration(StreamConfiguration sc, boolean serverTest, String name) {
         assertEquals(name, sc.getName());
         assertEquals("blah blah", sc.getDescription());
         assertEquals(4, sc.getSubjects().size());
@@ -518,11 +598,15 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals(StorageType.Memory, sc.getStorageType());
         assertSame(DiscardPolicy.New, sc.getDiscardPolicy());
 
-        assertTrue(sc.isAllowMessageTtl());
+        assertTrue(sc.getAllowMessageTtl());
+        //noinspection deprecation
+        assertTrue(sc.isAllowMessageTtl()); // COVERAGE
+
         assertEquals(Duration.ofNanos(73000000000L), sc.getSubjectDeleteMarkerTtl());
 
         assertNotNull(sc.getPlacement());
         assertEquals("clstr", sc.getPlacement().getCluster());
+        assertNotNull(sc.getPlacement().getTags());
         assertEquals(2, sc.getPlacement().getTags().size());
         assertEquals("tag1", sc.getPlacement().getTags().get(0));
         assertEquals("tag2", sc.getPlacement().getTags().get(1));
@@ -563,10 +647,12 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
             validateSubjectTransforms(mirror.getSubjectTransforms(), 2, "m");
 
+            assertNotNull(sc.getSources());
             assertEquals(2, sc.getSources().size());
             validateSource(sc.getSources().get(0), 0, zdt);
             validateSource(sc.getSources().get(1), 1, zdt);
 
+            assertNotNull(sc.getMetadata());
             assertEquals(1, sc.getMetadata().size());
             assertEquals(META_VALUE, sc.getMetadata().get(META_KEY));
             assertEquals(82942, sc.getFirstSequence());
@@ -578,6 +664,13 @@ public class StreamConfigurationTests extends JetStreamTestBase {
             assertNotNull(sc.getConsumerLimits());
             assertEquals(Duration.ofSeconds(50), sc.getConsumerLimits().getInactiveThreshold());
             assertEquals(42, sc.getConsumerLimits().getMaxAckPending());
+
+            assertTrue(sc.getAllowMsgSchedules());
+            assertTrue(sc.getAllowMessageCounter());
+            assertTrue(sc.getAllowAtomicPublish());
+            assertNotNull(sc.getPersistMode());
+            assertSame(PersistMode.Async, sc.getPersistMode());
+            assertSame(PersistMode.Async.getMode(), sc.getPersistMode().getMode());
         }
     }
 
@@ -613,6 +706,13 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertFalse(Placement.builder().cluster("").build().hasData());
         assertFalse(Placement.builder().tags((List<String>)null).build().hasData());
         assertFalse(Placement.builder().tags(new ArrayList<>()).build().hasData());
+        assertFalse(Placement.builder().tags().build().hasData());
+        assertFalse(Placement.builder().tags((String[])null).build().hasData());
+        String[] a = new String[0];
+        assertFalse(Placement.builder().tags(a).build().hasData());
+        a = new String[2];
+        a[0] = "";
+        assertFalse(Placement.builder().tags(a).build().hasData());
 
         Placement p = Placement.builder().cluster("cluster").build();
         assertEquals("cluster", p.getCluster());
@@ -626,21 +726,41 @@ public class StreamConfigurationTests extends JetStreamTestBase {
 
         p = Placement.builder().tags("a", "b").build();
         assertNull(p.getCluster());
+        assertNotNull(p.getTags());
         assertEquals(2, p.getTags().size());
         assertTrue(p.hasData());
 
         p = Placement.builder().tags("a", "b").build();
         assertNull(p.getCluster());
+        assertNotNull(p.getTags());
         assertEquals(2, p.getTags().size());
         assertTrue(p.hasData());
 
         p = Placement.builder().cluster("cluster").tags(Arrays.asList("a", "b")).build();
         assertEquals("cluster", p.getCluster());
+        assertNotNull(p.getTags());
         assertEquals(2, p.getTags().size());
         assertTrue(p.hasData());
 
         String s = p.toString();
         assertTrue(s != null && !s.isEmpty()); // COVERAGE
+
+        // COVERAGE
+        p = new Placement("cluster", null);
+        assertEquals("cluster", p.getCluster());
+        assertNull(p.getTags());
+        assertTrue(p.hasData());
+
+        p = new Placement("cluster", new ArrayList<>());
+        assertEquals("cluster", p.getCluster());
+        assertNull(p.getTags());
+        assertTrue(p.hasData());
+
+        p = new Placement("cluster", Arrays.asList("a", "b"));
+        assertEquals("cluster", p.getCluster());
+        assertNotNull(p.getTags());
+        assertEquals(2, p.getTags().size());
+        assertTrue(p.hasData());
     }
 
     @Test
@@ -666,9 +786,9 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals("src.>", st.getSource());
         assertEquals("dest.>", st.getDestination());
 
-        st = SubjectTransform.builder().build();
-        assertNull(st.getSource());
-        assertNull(st.getDestination());
+        assertThrows(IllegalArgumentException.class, () -> SubjectTransform.builder().build());
+        assertThrows(IllegalArgumentException.class, () -> SubjectTransform.builder().source("source").build());
+        assertThrows(IllegalArgumentException.class, () -> SubjectTransform.builder().destination("dest").build());
 
         EqualsVerifier.simple().forClass(SubjectTransform.class).verify();
     }
@@ -704,6 +824,9 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals(INTEGER_UNSET, cl.getMaxAckPending());
 
         cl = ConsumerLimits.builder().maxAckPending(-2).build();
+        assertEquals(INTEGER_UNSET, cl.getMaxAckPending());
+
+        cl = ConsumerLimits.builder().maxAckPending((Long)null).build();
         assertEquals(INTEGER_UNSET, cl.getMaxAckPending());
 
         cl = ConsumerLimits.builder().maxAckPending(Long.MAX_VALUE).build();

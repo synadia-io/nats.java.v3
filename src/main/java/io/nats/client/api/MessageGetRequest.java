@@ -14,6 +14,8 @@
 package io.nats.client.api;
 
 import io.nats.client.support.JsonSerializable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 
@@ -29,31 +31,37 @@ public class MessageGetRequest implements JsonSerializable {
     private final String nextBySubject;
     private final ZonedDateTime startTime;
 
+    @NonNull
     public static MessageGetRequest forSequence(long sequence) {
         return new MessageGetRequest(sequence, null, null, null);
     }
 
+    @NonNull
     public static MessageGetRequest lastForSubject(String subject) {
         return new MessageGetRequest(-1, subject, null, null);
     }
 
+    @NonNull
     public static MessageGetRequest firstForSubject(String subject) {
         return new MessageGetRequest(-1, null, subject, null);
     }
 
+    @NonNull
     public static MessageGetRequest firstForStartTime(ZonedDateTime startTime) {
         return new MessageGetRequest(-1, null, null, startTime);
     }
 
+    @NonNull
     public static MessageGetRequest firstForStartTimeAndSubject(ZonedDateTime startTime, String subject) {
         return new MessageGetRequest(-1, null, subject, startTime);
     }
 
+    @NonNull
     public static MessageGetRequest nextForSubject(long sequence, String subject) {
         return new MessageGetRequest(sequence, null, subject, null);
     }
 
-    private MessageGetRequest(long sequence, String lastBySubject, String nextBySubject, ZonedDateTime startTime) {
+    protected MessageGetRequest(long sequence, String lastBySubject, String nextBySubject, ZonedDateTime startTime) {
         this.sequence = sequence;
         this.lastBySubject = lastBySubject;
         this.nextBySubject = nextBySubject;
@@ -64,10 +72,12 @@ public class MessageGetRequest implements JsonSerializable {
         return sequence;
     }
 
+    @Nullable
     public String getLastBySubject() {
         return lastBySubject;
     }
 
+    @Nullable
     public String getNextBySubject() {
         return nextBySubject;
     }
@@ -84,7 +94,13 @@ public class MessageGetRequest implements JsonSerializable {
         return nextBySubject != null;
     }
 
+    @Nullable
+    public ZonedDateTime getStartTime() {
+        return startTime;
+    }
+
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, SEQ, sequence);

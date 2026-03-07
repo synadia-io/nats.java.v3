@@ -13,6 +13,8 @@
 
 package io.nats.client.api;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +22,9 @@ import java.util.Map;
  * Represents the replay policy of a consumer.
  */
 public enum ReplayPolicy {
+    /** instant policy */
     Instant("instant"),
+    /** original policy */
     Original("original");
 
     private String policy;
@@ -42,6 +46,12 @@ public enum ReplayPolicy {
         }
     }
 
+    /**
+     * Get an instance from the JSON value
+     * @param value the value
+     * @return the instance or null if the string is not matched
+     */
+    @Nullable
     public static ReplayPolicy get(String value) {
         return strEnumHash.get(value);
     }

@@ -13,6 +13,8 @@
 
 package io.nats.client.api;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +22,14 @@ import java.util.Map;
  * Stream compression policies.
  */
 public enum CompressionOption {
+    /**
+     * No compress
+     */
     None("none"),
+
+    /**
+     * S2 compression
+     */
     S2("s2");
 
     private final String policy;
@@ -42,6 +51,12 @@ public enum CompressionOption {
         }
     }
 
+    /**
+     * Get an instance of the CompressionOption or null if the string does not match the JSON value text
+     * @param value the value to look up
+     * @return the CompressionOption or null if not found
+     */
+    @Nullable
     public static CompressionOption get(String value) {
         return strEnumHash.get(value);
     }

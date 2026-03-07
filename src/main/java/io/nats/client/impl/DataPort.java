@@ -15,6 +15,7 @@ package io.nats.client.impl;
 
 import io.nats.client.Options;
 import io.nats.client.support.NatsUri;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 
@@ -24,13 +25,21 @@ import java.io.IOException;
  * the core communication code.
  */
 public interface DataPort {
-    void connect(String serverURI, NatsConnection conn, long timeoutNanos) throws IOException;
+    @Deprecated
+    void connect(@NonNull String serverURI, @NonNull NatsConnection conn, long timeoutNanos) throws IOException;
 
-    default void connect(NatsConnection conn, NatsUri uri, long timeoutNanos) throws IOException {
+    /**
+     * Execute the connect
+     * @param conn the NatsConnection object
+     * @param uri the NatsUri to connect to
+     * @param timeoutNanos the timeout
+     * @throws IOException if the data port is unable to connect.
+     */
+    default void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException {
         connect(uri.toString(), conn, timeoutNanos);
     }
 
-    default void afterConstruct(Options options) {}
+    default void afterConstruct(@NonNull Options options) {}
 
     /**
      * Upgrade the port to SSL. If it is already secured, this is a no-op.

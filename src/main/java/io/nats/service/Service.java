@@ -24,9 +24,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static io.nats.client.support.ApiConstants.*;
@@ -40,9 +39,21 @@ import static io.nats.client.support.Validator.nullOrEmpty;
  * When multiple instances of a service endpoints are active they work in a queue, meaning only one listener responds to any given request.
  */
 public class Service {
+    /**
+     * Constant for the PING service
+     */
     public static final String SRV_PING = "PING";
+    /**
+     * Constant for the INFO service
+     */
     public static final String SRV_INFO = "INFO";
+    /**
+     * Constant for the STATS service
+     */
     public static final String SRV_STATS = "STATS";
+    /**
+     * Constant of the service prefix
+     */
     public static final String DEFAULT_SERVICE_PREFIX = "$SRV.";
 
     private final Connection conn;
@@ -50,12 +61,13 @@ public class Service {
     private final ConcurrentHashMap<String, EndpointContext> serviceContexts;
     private final List<EndpointContext> discoveryContexts;
     private final List<Dispatcher> dInternals;
+    private final AtomicReference<ZonedDateTime> startTimeRef;
+    private final CompletableFuture<Boolean> startedFuture;
     private final PingResponse pingResponse;
     private final InfoResponse infoResponse;
 
     private final ReentrantLock startStopLock;
     private CompletableFuture<Boolean> runningIndicator;
-    private ZonedDateTime started;
 
     Service(ServiceBuilder b) {
         String id = new io.nats.client.NUID().next();
@@ -63,6 +75,8 @@ public class Service {
         drainTimeout = b.drainTimeout;
         dInternals = new ArrayList<>();
         startStopLock = new ReentrantLock();
+        startTimeRef = new AtomicReference<>(DateTimeUtils.DEFAULT_TIME);
+        startedFuture = new CompletableFuture<>();
 
         // build responses first. info needs to be available when adding service endpoints.
         pingResponse = new PingResponse(id, b.name, b.version, b.metadata);
@@ -90,7 +104,9 @@ public class Service {
      * @param serviceEndpoints one or more service endpoints to be added
      */
     public void addServiceEndpoints(ServiceEndpoint... serviceEndpoints) {
-        addServiceEndpoints(Arrays.asList(serviceEndpoints));
+        if (!nullOrEmpty(serviceEndpoints)) {
+            _addServiceEndpoints(Arrays.asList(serviceEndpoints));
+        }
     }
 
     /**
@@ -98,28 +114,36 @@ public class Service {
      * @param serviceEndpoints service endpoints to be added
      */
     public void addServiceEndpoints(Collection<ServiceEndpoint> serviceEndpoints) {
+        if (!nullOrEmpty(serviceEndpoints)) {
+            _addServiceEndpoints(serviceEndpoints);
+        }
+    }
+
+    private void _addServiceEndpoints(Collection<ServiceEndpoint> serviceEndpoints) {
         startStopLock.lock();
         try {
-            // do this first so it's available on start
-            infoResponse.addServiceEndpoints(serviceEndpoints);
             for (ServiceEndpoint se : serviceEndpoints) {
-                EndpointContext ctx;
-                if (se.getDispatcher() == null) {
-                    Dispatcher dTemp = dInternals.isEmpty() ? null : dInternals.get(0);
-                    if (dTemp == null) {
-                        dTemp = conn.createDispatcher();
-                        dInternals.add(dTemp);
+                if (se != null) {
+                    // do this first so it's available on start
+                    infoResponse.addServiceEndpoint(se);
+                    EndpointContext ctx;
+                    if (se.getDispatcher() == null) {
+                        Dispatcher dTemp = dInternals.isEmpty() ? null : dInternals.get(0);
+                        if (dTemp == null) {
+                            dTemp = conn.createDispatcher();
+                            dInternals.add(dTemp);
+                        }
+                        ctx = new EndpointContext(conn, dTemp, false, se);
                     }
-                    ctx = new EndpointContext(conn, dTemp, false, se);
-                }
-                else {
-                    ctx = new EndpointContext(conn, null, false, se);
-                }
-                serviceContexts.put(se.getName(), ctx);
+                    else {
+                        ctx = new EndpointContext(conn, null, false, se);
+                    }
+                    serviceContexts.put(se.getName(), ctx);
 
-                // if the service is already started, start the newly added context
-                if (runningIndicator != null) {
-                    ctx.start();
+                    // if the service is already started, start the newly added context
+                    if (runningIndicator != null) {
+                        ctx.start();
+                    }
                 }
             }
         }
@@ -189,7 +213,8 @@ public class Service {
                 for (EndpointContext ctx : discoveryContexts) {
                     ctx.start();
                 }
-                started = DateTimeUtils.gmtNow();
+                startTimeRef.set(DateTimeUtils.gmtNow());
+                startedFuture.complete(true);
             }
             return runningIndicator;
         }
@@ -302,7 +327,10 @@ public class Service {
      * Reset the statistics for the endpoints
      */
     public void reset() {
-        started = DateTimeUtils.gmtNow();
+        if (isStarted()) {
+            // has actually been started if the ref has been set
+            startTimeRef.set(DateTimeUtils.gmtNow());
+        }
         for (EndpointContext c : discoveryContexts) {
             c.reset();
         }
@@ -344,6 +372,33 @@ public class Service {
     }
 
     /**
+     * Get whether the service has full started
+     * @return true if started
+     */
+    public boolean isStarted() {
+        return startedFuture.isDone();
+    }
+
+    /**
+     * Get
+     * @param timeout the maximum time to wait
+     * @param unit the time unit of the timeout argument
+     * @return true if started by the timeout
+     */
+    public boolean isStarted(long timeout, TimeUnit unit) {
+        try {
+            return startedFuture.get(timeout, unit);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+        catch (ExecutionException | TimeoutException e) {
+            return false;
+        }
+    }
+
+    /**
      * Get the drain timeout setting
      * @return the drain timeout setting
      */
@@ -376,7 +431,8 @@ public class Service {
         for (EndpointContext c : serviceContexts.values()) {
             endpointStats.add(c.getEndpointStats());
         }
-        return new StatsResponse(pingResponse, started, endpointStats);
+        // StatsResponse handles a start time of DateTimeUtils.DEFAULT_TIME
+        return new StatsResponse(pingResponse, startTimeRef.get(), endpointStats);
     }
 
     /**
@@ -396,6 +452,7 @@ public class Service {
         JsonUtils.addField(sb, NAME, infoResponse.getName());
         JsonUtils.addField(sb, VERSION, infoResponse.getVersion());
         JsonUtils.addField(sb, DESCRIPTION, infoResponse.getDescription());
+        JsonUtils.addField(sb, STARTED, startTimeRef.get());
         return endJson(sb).toString();
     }
 }

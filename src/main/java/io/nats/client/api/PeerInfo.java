@@ -14,12 +14,16 @@
 package io.nats.client.api;
 
 import io.nats.client.support.JsonValue;
+import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
 
 import static io.nats.client.support.ApiConstants.*;
 import static io.nats.client.support.JsonValueUtils.*;
 
+/**
+ * Server peer information
+ */
 public class PeerInfo {
 
     private final String name;
@@ -40,6 +44,7 @@ public class PeerInfo {
      * The server name of the peer
      * @return the name
      */
+    @NonNull
     public String getName() {
         return name;
     }
@@ -64,6 +69,7 @@ public class PeerInfo {
      * Time since this peer was last seen
      * @return the active time
      */
+    @NonNull
     public Duration getActive() {
         return active;
     }

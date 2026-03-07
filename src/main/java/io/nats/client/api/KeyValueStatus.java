@@ -13,6 +13,8 @@
 package io.nats.client.api;
 
 import io.nats.client.support.JsonValueUtils;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.Map;
@@ -25,6 +27,10 @@ public class KeyValueStatus {
     private final StreamInfo streamInfo;
     private final KeyValueConfiguration config;
 
+    /**
+     * Construct an instance from the underlying stream info
+     * @param si the stream info
+     */
     public KeyValueStatus(StreamInfo si) {
         streamInfo = si;
         config = new KeyValueConfiguration(streamInfo.getConfiguration());
@@ -34,6 +40,7 @@ public class KeyValueStatus {
      * Get the name of the bucket
      * @return the name
      */
+    @NonNull
     public String getBucketName() {
         return config.getBucketName();
     }
@@ -42,6 +49,7 @@ public class KeyValueStatus {
      * Gets the description of this bucket.
      * @return the description of the bucket.
      */
+    @Nullable
     public String getDescription() {
         return config.getDescription();
     }
@@ -50,6 +58,7 @@ public class KeyValueStatus {
      * Gets the info for the stream which backs the bucket. Valid for BackingStore "JetStream"
      * @return the stream info
      */
+    @NonNull
     public StreamInfo getBackingStreamInfo() {
         return streamInfo;
     }
@@ -58,6 +67,7 @@ public class KeyValueStatus {
      * Gets the configuration object directly
      * @return the configuration.
      */
+    @NonNull
     public KeyValueConfiguration getConfiguration() {
         return config;
     }
@@ -116,6 +126,7 @@ public class KeyValueStatus {
      * Gets the maximum age for a value in this bucket.
      * @return the maximum age.
      */
+    @Nullable
     public Duration getTtl() {
         return config.getTtl();
     }
@@ -124,6 +135,7 @@ public class KeyValueStatus {
      * Gets the storage type for this bucket.
      * @return the storage type for this stream.
      */
+    @NonNull
     public StorageType getStorageType() {
         return config.getStorageType();
     }
@@ -140,6 +152,7 @@ public class KeyValueStatus {
      * Gets the placement directive for the store.
      * @return the placement
      */
+    @Nullable
     public Placement getPlacement() {
         return config.getPlacement();
     }
@@ -148,6 +161,7 @@ public class KeyValueStatus {
      * Gets the republish configuration
      * @return the republish object
      */
+    @Nullable
     public Republish getRepublish() {
         return config.getRepublish();
     }
@@ -164,6 +178,7 @@ public class KeyValueStatus {
      * Get the metadata for the store
      * @return the metadata map. Might be null.
      */
+    @Nullable
     public Map<String, String> getMetadata() {
         return config.getMetadata();
     }
@@ -172,13 +187,16 @@ public class KeyValueStatus {
      * Get the Limit Marker TTL duration or null if configured.
      * @return the duration.
      */
+    @Nullable
     public Duration getLimitMarkerTtl() {
         return streamInfo.getConfig().getSubjectDeleteMarkerTtl();
     }
+
     /**
      * Gets the name of the type of backing store, currently only "JetStream"
      * @return the name of the store, currently only "JetStream"
      */
+    @NonNull
     public String getBackingStore() {
         return "JetStream";
     }

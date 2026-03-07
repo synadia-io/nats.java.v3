@@ -25,9 +25,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
 import static io.nats.client.support.NatsConstants.*;
-import static io.nats.client.support.Validator.validateReplyTo;
-import static io.nats.client.support.Validator.validateSubject;
-import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class NatsMessage implements Message {
@@ -88,8 +86,8 @@ public class NatsMessage implements Message {
 
     public NatsMessage(String subject, String replyTo, Headers headers, byte[] data) {
         this(data);
-        this.subject = validateSubject(subject, true);
-        this.replyTo = validateReplyTo(replyTo, false);
+        this.subject = subject;
+        this.replyTo = replyTo;
         this.headers = headers;
     }
 
@@ -104,6 +102,10 @@ public class NatsMessage implements Message {
     // Client and Message Internal Methods
     // ----------------------------------------------------------------------------------------------------
     boolean isProtocol() {
+        return false; // overridden in NatsMessage.ProtocolMessage
+    }
+
+    boolean isFilterOnStop() {
         return false; // overridden in NatsMessage.ProtocolMessage
     }
 
@@ -149,11 +151,11 @@ public class NatsMessage implements Message {
 
         // header length if there are headers
         if (headerLen > 0) {
-            bab.append(Integer.toString(headerLen).getBytes(US_ASCII)).append(SP);
+            bab.append(Integer.toString(headerLen).getBytes(ISO_8859_1)).append(SP);
         }
 
         // payload length
-        bab.append(Integer.toString(headerAndDataLen).getBytes(US_ASCII));
+        bab.append(Integer.toString(headerAndDataLen).getBytes(ISO_8859_1));
 
         protocolBab = bab;
         controlLineLength = protocolBab.length() + 2; // One CRLF. This is just how controlLineLength is defined.
@@ -173,6 +175,11 @@ public class NatsMessage implements Message {
     byte[] getProtocolBytes() {
         calculate();
         return protocolBab.toByteArray();
+    }
+
+    int getPayloadSize() {
+        calculate();
+        return dataLen + headerLen;
     }
 
     int getControlLineLength() {
@@ -405,7 +412,7 @@ public class NatsMessage implements Message {
     }
 
     private String headersToString() {
-        return hasHeaders() ? new String(headers.getSerialized(), US_ASCII).replace("\r", "+").replace("\n", "+") : "";
+        return hasHeaders() ? new String(headers.getSerialized(), ISO_8859_1).replace("\r", "+").replace("\n", "+") : "";
     }
 
     private String dataToString() {

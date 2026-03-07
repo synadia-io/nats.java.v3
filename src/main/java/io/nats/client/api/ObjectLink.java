@@ -16,6 +16,8 @@ import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonUtils;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.Validator;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import static io.nats.client.support.ApiConstants.BUCKET;
 import static io.nats.client.support.ApiConstants.NAME;
@@ -46,6 +48,7 @@ public class ObjectLink implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         JsonUtils.addField(sb, BUCKET, bucket);
@@ -53,26 +56,55 @@ public class ObjectLink implements JsonSerializable {
         return endJson(sb).toString();
     }
 
+    /**
+     * Get the bucket the linked object is in
+     * @return the bucket name
+     */
+    @NonNull
     public String getBucket() {
         return bucket;
     }
 
+    /**
+     * Get the name of the object for the link
+     * @return the object name
+     */
+    @Nullable
     public String getObjectName() {
         return objectName;
     }
 
+    /**
+     * True if the object is a link to an object versus a link to a bucket
+     * @return true if the object is a link
+     */
     public boolean isObjectLink() {
         return objectName != null;
     }
 
+    /**
+     * True if the object is a bucket to an object versus a link to a link
+     * @return true if the object is a bucket
+     */
     public boolean isBucketLink() {
         return objectName == null;
     }
 
-    public static ObjectLink bucket(String bucket) {
+    /**
+     * create a bucket link
+     * @param bucket the bucket name
+     * @return the ObjectLink
+     */
+    public static ObjectLink bucket(@NonNull String bucket) {
         return new ObjectLink(bucket, null);
     }
 
+    /**
+     * create an object link
+     * @param bucket the bucket the object is in
+     * @param objectName the object name
+     * @return the ObjectLink
+     */
     public static ObjectLink object(String bucket, String objectName) {
         return new ObjectLink(bucket, objectName);
     }

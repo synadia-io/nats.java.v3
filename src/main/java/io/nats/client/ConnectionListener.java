@@ -18,6 +18,9 @@ package io.nats.client;
  * listener is configured in the {@link Options Options} at creation time.
  */
 public interface ConnectionListener {
+    /**
+     * Enum for connection events
+     */
     enum Events {
         /** The connection has successfully completed the handshake with the nats-server. */
         CONNECTED(true, "opened"),
@@ -38,6 +41,11 @@ public interface ConnectionListener {
         private final String event;
         private final String natsEvent;
 
+        /**
+         * Construct an events enum
+         * @param connectionEvent whether this is a connection event
+         * @param event the simple event text
+         */
         Events(boolean connectionEvent, String event) {
             this.connectionEvent = connectionEvent;
             this.event = event;
@@ -49,14 +57,26 @@ public interface ConnectionListener {
             }
         }
 
+        /**
+         * Whether this event is a connection event.
+         * @return the flag
+         */
         public boolean isConnectionEvent() {
             return connectionEvent;
         }
 
+        /**
+         * Get the simple event text
+         * @return the text
+         */
         public String getEvent() {
             return event;
         }
 
+        /**
+         * Get the event text calculated with if it's a connection event and prefixed with "nats:"
+         * @return the text
+         */
         public String getNatsEvent() {
             return natsEvent;
         }
@@ -70,12 +90,27 @@ public interface ConnectionListener {
     }
 
     /**
+     * @deprecated use new api that gives additional details
      * Connection related events that occur asynchronously in the client code are
      * sent to a ConnectionListener via a single method. The ConnectionListener can
      * use the event type to decide what to do about the problem.
-     * 
+     *
      * @param conn the connection associated with the error
      * @param type the type of event that has occurred
      */
+    @Deprecated
     void connectionEvent(Connection conn, Events type);
+
+    /**
+     * Connection related events that occur asynchronously in the client code are
+     * sent to a ConnectionListener via a single method. The ConnectionListener can
+     * use the event type to decide what to do about the problem.
+     * @param conn the connection associated with the error
+     * @param type the type of event that has occurred
+     * @param time the time of the event, milliseconds since 1/1/1970
+     * @param uriDetails extra details about the uri related to this connection event
+     */
+    default void connectionEvent(Connection conn, Events type, Long time, String uriDetails) {
+        connectionEvent(conn, type);
+    }
 }

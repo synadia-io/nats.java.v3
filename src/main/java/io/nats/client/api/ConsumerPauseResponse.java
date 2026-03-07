@@ -14,23 +14,27 @@
 package io.nats.client.api;
 
 import io.nats.client.Message;
+import org.jspecify.annotations.Nullable;
+
 import java.time.Duration;
 import java.time.ZonedDateTime;
 
-import static io.nats.client.support.ApiConstants.PAUSED;
-import static io.nats.client.support.ApiConstants.PAUSE_REMAINING;
-import static io.nats.client.support.ApiConstants.PAUSE_UNTIL;
-import static io.nats.client.support.JsonValueUtils.readBoolean;
-import static io.nats.client.support.JsonValueUtils.readDate;
-import static io.nats.client.support.JsonValueUtils.readLong;
-import static io.nats.client.support.JsonValueUtils.readNanos;
+import static io.nats.client.support.ApiConstants.*;
+import static io.nats.client.support.JsonValueUtils.*;
 
+/**
+ * The response for a ConsumerPauseRequest
+ */
 public class ConsumerPauseResponse extends ApiResponse<ConsumerPauseResponse> {
 
     private final boolean paused;
     private final ZonedDateTime pauseUntil;
     private final Duration pauseRemaining;
 
+    /**
+     * Construct a ConsumerPauseResponse instance from a message
+     * @param msg the message
+     */
     public ConsumerPauseResponse(Message msg) {
         super(msg);
         paused = readBoolean(jv, PAUSED);
@@ -50,6 +54,7 @@ public class ConsumerPauseResponse extends ApiResponse<ConsumerPauseResponse> {
      * Returns the time until the consumer is paused
      * @return pause until time
      */
+    @Nullable
     public ZonedDateTime getPauseUntil() {
         return pauseUntil;
     }
@@ -58,6 +63,7 @@ public class ConsumerPauseResponse extends ApiResponse<ConsumerPauseResponse> {
      * Returns how much time is remaining for this consumer to be paused
      * @return remaining paused time
      */
+    @Nullable
     public Duration getPauseRemaining() {
         return pauseRemaining;
     }

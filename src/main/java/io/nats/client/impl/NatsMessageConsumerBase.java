@@ -15,12 +15,13 @@ package io.nats.client.impl;
 
 import io.nats.client.JetStreamApiException;
 import io.nats.client.MessageConsumer;
+import io.nats.client.PullRequestOptions;
 import io.nats.client.api.ConsumerInfo;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-class NatsMessageConsumerBase implements MessageConsumer {
+abstract class NatsMessageConsumerBase implements MessageConsumer, PullManagerObserver {
     protected NatsJetStreamPullSubscription sub;
     protected PullMessageManager pmm;
     protected final AtomicBoolean stopped;
@@ -41,9 +42,18 @@ class NatsMessageConsumerBase implements MessageConsumer {
         this.consumerName = consumerName;
     }
 
-    void initSub(NatsJetStreamPullSubscription sub) {
+    void initSub(NatsJetStreamPullSubscription sub, boolean clearCachedConsumerInfo) {
         this.sub = sub;
+        this.consumerName = sub.getConsumerName();
+        if (clearCachedConsumerInfo) {
+            cachedConsumerInfo = null;
+        }
         pmm = (PullMessageManager)sub.manager;
+    }
+
+    protected void rePull() {
+        // may or may not be implemented
+        // fetch does not implement
     }
 
     /**
@@ -65,7 +75,7 @@ class NatsMessageConsumerBase implements MessageConsumer {
      */
     @Override
     public String getConsumerName() {
-        if (consumerName == null) {
+        if (consumerName == null && cachedConsumerInfo != null) {
             consumerName = cachedConsumerInfo.getName();
         }
         return consumerName;
@@ -101,13 +111,19 @@ class NatsMessageConsumerBase implements MessageConsumer {
 
     @Override
     public void close() throws Exception {
-        lenientClose();
+        stopped.set(true);
+        shutdownSub();
     }
 
-    protected void lenientClose() {
+    protected void fullClose() {
+        stopped.set(true);
+        finished.set(true);
+        shutdownSub();
+    }
+
+    protected void shutdownSub() {
         try {
-            if (!stopped.get() || sub.isActive()) {
-                stopped.set(true);
+            if (sub.isActive()) {
                 if (sub.getNatsDispatcher() != null) {
                     sub.getDispatcher().unsubscribe(sub);
                 }
@@ -118,6 +134,28 @@ class NatsMessageConsumerBase implements MessageConsumer {
         }
         catch (Throwable ignore) {
             // nothing to do
+        }
+        if (pmm != null) {
+            try {
+                pmm.shutdownHeartbeatTimer();
+            }
+            catch (Throwable ignore) {
+                // nothing to do
+            }
+        }
+    }
+
+    static class PinnablePullRequestOptions extends PullRequestOptions {
+        final String pinId;
+
+        public PinnablePullRequestOptions(String pinId, Builder b) {
+            super(b);
+            this.pinId = pinId;
+        }
+
+        @Override
+        protected String getPinId() {
+            return pinId;
         }
     }
 }

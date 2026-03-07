@@ -53,7 +53,7 @@ class PushMessageManager extends MessageManager {
         }
         else {
             configureIdleHeartbeat(initialCc.getIdleHeartbeat(), so.getMessageAlarmTime());
-            fc = hb && initialCc.isFlowControl(); // can't have fc w/o heartbeat
+            fc = hb.get() && initialCc.isFlowControl(); // can't have fc w/o heartbeat
         }
     }
 
@@ -65,14 +65,14 @@ class PushMessageManager extends MessageManager {
     protected void startup(NatsJetStreamSubscription sub) {
         super.startup(sub);
         sub.setBeforeQueueProcessor(this::beforeQueueProcessorImpl);
-        if (hb) {
+        if (hb.get()) {
             initOrResetHeartbeatTimer();
         }
     }
 
     @Override
     protected Boolean beforeQueueProcessorImpl(NatsMessage msg) {
-        if (hb) {
+        if (hb.get()) {
             updateLastMessageReceived(); // only need to track when heartbeats are expected
             Status status = msg.getStatus();
             if (status != null) {
@@ -95,7 +95,7 @@ class PushMessageManager extends MessageManager {
 
     @Override
     protected ManageResult manage(Message msg) {
-        if (msg.getStatus() == null) {
+        if (msg.isJetStream()) {
             trackJsMessage(msg);
             return MESSAGE;
         }
@@ -116,7 +116,7 @@ class PushMessageManager extends MessageManager {
             }
         }
 
-        conn.executeCallback((c, el) -> el.unhandledStatus(c, sub, status));
+        conn.notifyErrorListener((c, el) -> el.unhandledStatus(c, sub, status));
         return STATUS_ERROR;
     }
 
@@ -124,9 +124,9 @@ class PushMessageManager extends MessageManager {
         // we may get multiple fc/hb messages with the same reply
         // only need to post to that subject once
         if (fcSubject != null && !fcSubject.equals(lastFcSubject)) {
-            conn.publishInternal(fcSubject, null, null, null, false, false);
+            conn.publishInternal(fcSubject, null, null, null, false);
             lastFcSubject = fcSubject; // set after publish in case the pub fails
-            conn.executeCallback((c, el) -> el.flowControlProcessed(c, sub, fcSubject, source));
+            conn.notifyErrorListener((c, el) -> el.flowControlProcessed(c, sub, fcSubject, source));
         }
     }
 }

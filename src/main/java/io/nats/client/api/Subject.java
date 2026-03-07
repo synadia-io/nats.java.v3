@@ -14,12 +14,16 @@
 package io.nats.client.api;
 
 import io.nats.client.support.JsonValue;
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static io.nats.client.support.JsonValueUtils.getLong;
 
+/**
+ * An object representing a stream's subject and the count of it's messages
+ */
 public class Subject implements Comparable<Subject> {
     private final String name;
     private final long count;
@@ -37,6 +41,11 @@ public class Subject implements Comparable<Subject> {
         return list;
     }
 
+    /**
+     * Construct a Subject instance
+     * @param name the subject name
+     * @param count the message count
+     */
     public Subject(String name, long count) {
         this.name = name;
         this.count = count;
@@ -46,6 +55,7 @@ public class Subject implements Comparable<Subject> {
      * Get the subject name
      * @return the subject
      */
+    @NonNull
     public String getName() {
         return name;
     }

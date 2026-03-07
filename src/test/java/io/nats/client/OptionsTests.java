@@ -16,7 +16,9 @@ package io.nats.client;
 import io.nats.client.ConnectionListener.Events;
 import io.nats.client.impl.*;
 import io.nats.client.support.HttpRequest;
+import io.nats.client.support.Listener;
 import io.nats.client.support.NatsUri;
+import io.nats.client.support.ssl.SslTestingHelper;
 import io.nats.client.utils.CloseOnUpgradeAttempt;
 import io.nats.client.utils.CoverageServerPool;
 import io.nats.client.utils.ResourceUtils;
@@ -39,6 +41,7 @@ import java.util.function.Supplier;
 import static io.nats.client.Options.*;
 import static io.nats.client.support.Encoding.base64UrlEncodeToString;
 import static io.nats.client.support.NatsConstants.DEFAULT_PORT;
+import static io.nats.client.utils.ResourceUtils.jwtResource;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class OptionsTests {
@@ -49,7 +52,11 @@ public class OptionsTests {
 
     @Test
     public void testClientVersion() {
-        assertTrue(Nats.CLIENT_VERSION.endsWith(".dev"));
+        assertFalse(Nats.CLIENT_VERSION.isEmpty());
+        // Either running in an IDE (no generated properties file) or a proper semver x.y.z
+        boolean isDevelopment = Nats.CLIENT_VERSION.equals("development");
+        boolean isSemVer = Nats.CLIENT_VERSION.indexOf(".") != Nats.CLIENT_VERSION.lastIndexOf(".");
+        assertTrue(isDevelopment || isSemVer);
     }
 
     @Test
@@ -100,6 +107,9 @@ public class OptionsTests {
         assertNull(o.getConnectionListener(), "disconnect listener");
         assertNull(o.getStatisticsCollector(), "statistics collector");
         assertFalse(o.isOldRequestStyle(), "default oldstyle");
+        assertFalse(o.isEnableFastFallback(), "fast fallback");
+
+        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
     }
 
     @Test
@@ -219,12 +229,8 @@ public class OptionsTests {
 
     @Test
     public void testHttpRequestInterceptors() {
-        java.util.function.Consumer<HttpRequest> interceptor1 = req -> {
-            req.getHeaders().add("Test1", "Header");
-        };
-        java.util.function.Consumer<HttpRequest> interceptor2 = req -> {
-            req.getHeaders().add("Test2", "Header");
-        };
+        java.util.function.Consumer<HttpRequest> interceptor1 = req -> req.getHeaders().add("Test1", "Header");
+        java.util.function.Consumer<HttpRequest> interceptor2 = req -> req.getHeaders().add("Test2", "Header");
         Options o = new Options.Builder()
             .httpRequestInterceptor(interceptor1)
             .httpRequestInterceptor(interceptor2)
@@ -235,47 +241,6 @@ public class OptionsTests {
             .httpRequestInterceptors(Arrays.asList(interceptor2, interceptor1))
             .build();
         assertEquals(o.getHttpRequestInterceptors(), Arrays.asList(interceptor2, interceptor1));
-    }
-
-    @Test
-    public void testChainedErrorHandler() {
-        ListenerForTesting listener = new ListenerForTesting();
-        Options o = new Options.Builder().errorListener(listener).build();
-        _testChainedErrorListener(listener, o);
-        _testChainedErrorListener(listener, new Options.Builder(o).build());
-    }
-
-    private static void _testChainedErrorListener(ListenerForTesting listener, Options o) {
-        assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertEquals(listener, o.getErrorListener(), "chained error listener");
-    }
-
-    @Test
-    public void testChainedConnectionListener() {
-        ConnectionListener cHandler = (c, e) -> System.out.println("connection event" + e);
-        Options o = new Options.Builder().connectionListener(cHandler).build();
-        _testChainedConnectionListener(cHandler, o);
-        _testChainedConnectionListener(cHandler, new Options.Builder(o).build());
-    }
-
-    private static void _testChainedConnectionListener(ConnectionListener cHandler, Options o) {
-        assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertInstanceOf(ErrorListenerLoggerImpl.class, o.getErrorListener(), "error listener");
-        assertSame(cHandler, o.getConnectionListener(), "chained connection listener");
-    }
-
-    @Test
-    public void testChainedStatisticsCollector() {
-        StatisticsCollector cHandler = new TestStatisticsCollector();
-        Options o = new Options.Builder().statisticsCollector(cHandler).build();
-        _testChainedStatisticsCollector(cHandler, o);
-        _testChainedStatisticsCollector(cHandler, new Options.Builder(o).build());
-    }
-
-    private static void _testChainedStatisticsCollector(StatisticsCollector cHandler, Options o) {
-        assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertInstanceOf(TestStatisticsCollector.class, o.getStatisticsCollector(), "statistics collector");
-        assertSame(cHandler, o.getStatisticsCollector(), "chained statistics collector");
     }
 
     @Test
@@ -326,6 +291,100 @@ public class OptionsTests {
         assertEquals(42123, o.getSocketWriteTimeout().toMillis());
         assertEquals(20345, o.getPingInterval().toMillis());
         assertEquals(10 * HOUR, o.getRequestCleanupInterval().toMillis());
+    }
+
+    @Test
+    public void testPropertiesDoNotOverrideWithDefaultIfNotSupplied() {
+        Options o = new Options.Builder().build();
+        _testDefaultNotOverridden(o);
+
+        Properties props = new Properties();
+        o = new Options.Builder(props).build();
+        _testDefaultNotOverridden(o);
+
+        o = new Options.Builder()
+            .properties(setIgnoredValues(props))
+            .build();
+        _testDefaultNotOverridden(o);
+
+        props = new Properties();
+        o = new Options.Builder()
+            .maxReconnects(42)
+            .reconnectBufferSize(43)
+            .socketReadTimeoutMillis(44)
+            .socketSoLinger(45)
+            .receiveBufferSize(46)
+            .sendBufferSize(47)
+            .maxControlLine(48)
+            .maxPingsOut(49)
+            .maxMessagesInOutgoingQueue(50)
+            .reconnectWait(Duration.ofMillis(73))
+            .reconnectJitter(Duration.ofMillis(74))
+            .reconnectJitterTls(Duration.ofMillis(75))
+            .connectionTimeout(Duration.ofMillis(76))
+            .socketWriteTimeout(Duration.ofMillis(77))
+            .pingInterval(Duration.ofMillis(78))
+            .requestCleanupInterval(Duration.ofMillis(79))
+            .properties(props)
+            .build();
+        _testNonDefaultNotOverridden(o);
+
+        o = new Options.Builder(o)
+            .properties(setIgnoredValues(props))
+            .build();
+        _testNonDefaultNotOverridden(o);
+    }
+
+    private static Properties setIgnoredValues(Properties props) {
+        props.setProperty(PROP_MAX_CONTROL_LINE, "-1");
+        props.setProperty(PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, "-1");
+        props.setProperty(PROP_RECONNECT_WAIT, "-1");
+        props.setProperty(PROP_RECONNECT_JITTER, "-1");
+        props.setProperty(PROP_RECONNECT_JITTER_TLS, "-1");
+        props.setProperty(PROP_CONNECTION_TIMEOUT, "-1");
+        props.setProperty(PROP_SOCKET_WRITE_TIMEOUT, "-1");
+        props.setProperty(PROP_PING_INTERVAL, "-1");
+        props.setProperty(PROP_CLEANUP_INTERVAL, "-1");
+        return props;
+    }
+
+    private static void _testNonDefaultNotOverridden(Options o) {
+        assertEquals(42, o.getMaxReconnect());
+        assertEquals(43, o.getReconnectBufferSize());
+        assertEquals(44, o.getSocketReadTimeoutMillis());
+        assertEquals(45, o.getSocketSoLinger());
+        assertEquals(46, o.getReceiveBufferSize());
+        assertEquals(47, o.getSendBufferSize());
+        assertEquals(48, o.getMaxControlLine());
+        assertEquals(49, o.getMaxPingsOut());
+        assertEquals(50, o.getMaxMessagesInOutgoingQueue());
+        assertEquals(Duration.ofMillis(73), o.getReconnectWait());
+        assertEquals(Duration.ofMillis(74), o.getReconnectJitter());
+        assertEquals(Duration.ofMillis(75), o.getReconnectJitterTls());
+        assertEquals(Duration.ofMillis(76), o.getConnectionTimeout());
+        assertEquals(Duration.ofMillis(77), o.getSocketWriteTimeout());
+        assertEquals(Duration.ofMillis(78), o.getPingInterval());
+        assertEquals(Duration.ofMillis(79), o.getRequestCleanupInterval());
+    }
+
+    private static void _testDefaultNotOverridden(Options o) {
+        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnect());
+        assertEquals(DEFAULT_RECONNECT_BUF_SIZE, o.getReconnectBufferSize());
+        assertEquals(0, o.getSocketReadTimeoutMillis());
+        assertEquals(-1, o.getSocketSoLinger());
+        assertEquals(-1, o.getReceiveBufferSize());
+        assertEquals(-1, o.getSendBufferSize());
+        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnect());
+        assertEquals(DEFAULT_MAX_CONTROL_LINE, o.getMaxControlLine());
+        assertEquals(DEFAULT_MAX_PINGS_OUT, o.getMaxPingsOut());
+        assertEquals(DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE, o.getMaxMessagesInOutgoingQueue());
+        assertEquals(DEFAULT_RECONNECT_WAIT, o.getReconnectWait());
+        assertEquals(DEFAULT_RECONNECT_JITTER, o.getReconnectJitter());
+        assertEquals(DEFAULT_RECONNECT_JITTER_TLS, o.getReconnectJitterTls());
+        assertEquals(DEFAULT_CONNECTION_TIMEOUT, o.getConnectionTimeout());
+        assertEquals(DEFAULT_SOCKET_WRITE_TIMEOUT, o.getSocketWriteTimeout());
+        assertEquals(DEFAULT_PING_INTERVAL, o.getPingInterval());
+        assertEquals(DEFAULT_REQUEST_CLEANUP_INTERVAL, o.getRequestCleanupInterval());
     }
 
     @Test
@@ -436,7 +495,7 @@ public class OptionsTests {
         props.setProperty(Options.PROP_CONNECTION_NAME, "name");
 
         // stringProperty builds an auth handler
-        props.setProperty(Options.PROP_CREDENTIAL_PATH, "src/test/resources/jwt_nkey/test.creds");
+        props.setProperty(Options.PROP_CREDENTIAL_PATH, jwtResource("test.creds"));
 
         // charArrayProperty
         props.setProperty(Options.PROP_USERNAME, "user");
@@ -479,10 +538,15 @@ public class OptionsTests {
         o = new Options.Builder(props).build();
         _testProperties(o);
 
-        String propertiesFilePath = createTempPropertiesFile(props);
-        System.out.println(propertiesFilePath);
-        o = new Options.Builder(propertiesFilePath).build();
-        _testProperties(o);
+        String propertiesFilePath = null;
+        try {
+            propertiesFilePath = createTempPropertiesFile(props);
+            o = new Options.Builder(propertiesFilePath).build();
+            _testProperties(o);
+        }
+        finally {
+            ResourceUtils.deleteFileOrFolder(propertiesFilePath);
+        }
 
         // intGtEqZeroProperty not gt zero gives default
         props.setProperty(Options.PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, "-1");
@@ -528,7 +592,7 @@ public class OptionsTests {
     }
 
     @Test
-    public void testPropertiesCoverageOptions() throws Exception {
+    public void testPropertiesCoverageOptions() {
         Properties props = new Properties();
         props.setProperty(Options.PROP_SECURE, "false");
         props.setProperty(Options.PROP_OPENTLS, "false");
@@ -633,45 +697,142 @@ public class OptionsTests {
     }
 
     @Test
+    public void testPropertiesSubjectValidationType() {
+        Properties props = new Properties();
+        Options o = new Options.Builder(props).build();
+        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
+
+        props.clear();
+        props.setProperty(Options.PROP_NO_SUBJECT_VALIDATION, "false");
+        o = new Options.Builder(props).build();
+        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
+
+        props.clear();
+        props.setProperty(Options.PROP_STRICT_SUBJECT_VALIDATION, "false");
+        o = new Options.Builder(props).build();
+        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
+
+        props.clear();
+        props.setProperty(Options.PROP_NO_SUBJECT_VALIDATION, "true");
+        o = new Options.Builder(props).build();
+        assertEquals(SubjectValidationType.None, o.subjectValidationType());
+
+        props.clear();
+        props.setProperty(Options.PROP_STRICT_SUBJECT_VALIDATION, "true");
+        o = new Options.Builder(props).build();
+        assertEquals(SubjectValidationType.Strict, o.subjectValidationType());
+
+        o = new Options.Builder().build();
+        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
+
+        o = new Options.Builder().noSubjectValidation().build();
+        assertEquals(SubjectValidationType.None, o.subjectValidationType());
+
+        o = new Options.Builder().strictSubjectValidation().build();
+        assertEquals(SubjectValidationType.Strict, o.subjectValidationType());
+    }
+
+    @Test
     public void testPropertyErrorListener() {
         Properties props = new Properties();
-        props.setProperty(Options.PROP_ERROR_LISTENER, ListenerForTesting.class.getCanonicalName());
+        props.setProperty(Options.PROP_ERROR_LISTENER, Listener.class.getCanonicalName());
 
         Options o = new Options.Builder(props).build();
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
         assertNotNull(o.getErrorListener(), "property error listener");
 
         o.getErrorListener().errorOccurred(null, "bad subject");
-        assertEquals(((ListenerForTesting) o.getErrorListener()).getCount(), 1, "property error listener class");
+        assertEquals(0, ((Listener) o.getErrorListener()).getExceptionCount(), "property error listener class");
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testPropertyConnectionListeners() {
         Properties props = new Properties();
-        props.setProperty(Options.PROP_CONNECTION_CB, ListenerForTesting.class.getCanonicalName());
+        props.setProperty(Options.PROP_CONNECTION_CB, Listener.class.getCanonicalName());
 
         Options o = new Options.Builder(props).build();
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
         assertNotNull(o.getConnectionListener(), "property connection listener");
 
+        Listener listener = ((Listener) o.getConnectionListener());
+        listener.queueConnectionEvent(Events.DISCONNECTED);
         o.getConnectionListener().connectionEvent(null, Events.DISCONNECTED);
-        o.getConnectionListener().connectionEvent(null, Events.RECONNECTED);
-        o.getConnectionListener().connectionEvent(null, Events.CLOSED);
+        listener.validate();
 
-        assertEquals(((ListenerForTesting) o.getConnectionListener()).getCount(), 3, "property connect listener class");
+        listener.queueConnectionEvent(Events.RECONNECTED);
+        o.getConnectionListener().connectionEvent(null, Events.RECONNECTED);
+        listener.validate();
+
+        listener.queueConnectionEvent(Events.CLOSED);
+        o.getConnectionListener().connectionEvent(null, Events.CLOSED);
+        listener.validate();
     }
 
     @Test
     public void testPropertyStatisticsCollector() {
         Properties props = new Properties();
-        props.setProperty(Options.PROP_STATISTICS_COLLECTOR, TestStatisticsCollector.class.getCanonicalName());
+        props.setProperty(Options.PROP_STATISTICS_COLLECTOR, CoverageStatisticsCollector.class.getCanonicalName());
 
         Options o = new Options.Builder(props).build();
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertNotNull(o.getStatisticsCollector(), "property statistics collector");
 
-        o.getStatisticsCollector().incrementOutMsgs();
-        assertEquals(o.getStatisticsCollector().getOutMsgs(), 1, "property statistics collector class");
+        StatisticsCollector stats = o.getStatisticsCollector();
+        assertNotNull(stats);
+
+        stats.incrementOut(42);
+        assertEquals(1, stats.getOutMsgs());
+        assertEquals(42, stats.getOutBytes());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testStatisticsCoverage() {
+        validateStatisticsCollector(new NatsStatistics());
+
+        StatisticsCollector stats = new NoOpStatistics();
+        stats.setAdvancedTracking(true);
+        stats.incrementPingCount();
+        stats.incrementReconnects();
+        stats.incrementDroppedCount();
+        stats.incrementOkCount();
+        stats.incrementErrCount();
+        stats.incrementExceptionCount();
+        stats.incrementRequestsSent();
+        stats.incrementRepliesReceived();
+        stats.incrementDuplicateRepliesReceived();
+        stats.incrementOrphanRepliesReceived();
+        stats.incrementInMsgs();
+        stats.incrementOutMsgs();
+        stats.incrementInBytes(42);
+        stats.incrementOutBytes(73);
+        stats.incrementIn(42);
+        stats.incrementOut(73);
+        stats.incrementFlushCounter();
+        stats.incrementOutstandingRequests();
+        stats.decrementOutstandingRequests();
+        stats.registerRead(142);
+        stats.registerWrite(173);
+        validateStatisticsCollector(stats);
+    }
+
+    private static void validateStatisticsCollector(StatisticsCollector stats) {
+        assertEquals(0, stats.getPings());
+        assertEquals(0, stats.getReconnects());
+        assertEquals(0, stats.getDroppedCount());
+        assertEquals(0, stats.getOKs());
+        assertEquals(0, stats.getErrs());
+        assertEquals(0, stats.getExceptions());
+        assertEquals(0, stats.getRequestsSent());
+        assertEquals(0, stats.getRepliesReceived());
+        assertEquals(0, stats.getDuplicateRepliesReceived());
+        assertEquals(0, stats.getOrphanRepliesReceived());
+        assertEquals(0, stats.getInMsgs());
+        assertEquals(0, stats.getOutMsgs());
+        assertEquals(0, stats.getInBytes());
+        assertEquals(0, stats.getOutBytes());
+        assertEquals(0, stats.getFlushCounter());
+        assertEquals(0, stats.getOutstandingRequests());
     }
 
     @Test
@@ -802,17 +963,6 @@ public class OptionsTests {
     }
 
     @Test
-    public void testTimeoutValidations() {
-        assertThrows(IllegalStateException.class, () -> Options.builder()
-            .socketReadTimeoutMillis((int)DEFAULT_PING_INTERVAL.toMillis())
-            .build());
-
-        assertThrows(IllegalStateException.class, () -> Options.builder()
-            .socketWriteTimeout(DEFAULT_CONNECTION_TIMEOUT)
-            .build());
-    }
-
-    @Test
     public void testPropertyDataPortType() {
         Properties props = new Properties();
         props.setProperty(Options.PROP_DATA_PORT_TYPE, CloseOnUpgradeAttempt.class.getCanonicalName());
@@ -892,6 +1042,16 @@ public class OptionsTests {
 
         connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
         assertTrue(connectString.contains("\"auth_token\":\"short-lived-token-2\""));
+
+        Properties properties = new Properties();
+        properties.setProperty(PROP_TOKEN_SUPPLIER, TestingDynamicTokenSupplier.class.getCanonicalName());
+        o = new Options.Builder().properties(properties).build();
+
+        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        assertTrue(connectString.contains("\"auth_token\":\"dynamic-token-1\""));
+
+        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        assertTrue(connectString.contains("\"auth_token\":\"dynamic-token-2\""));
     }
 
     @Test
@@ -959,20 +1119,16 @@ public class OptionsTests {
 
     @Test
     public void testBadClassInPropertyConnectionListeners() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            Properties props = new Properties();
-            props.setProperty(Options.PROP_CONNECTION_CB, "foo");
-            new Options.Builder(props);
-        });
+        Properties props = new Properties();
+        props.setProperty(Options.PROP_CONNECTION_CB, "foo");
+        assertThrows(IllegalArgumentException.class, () -> new Options.Builder(props));
     }
 
     @Test
     public void testBadClassInPropertyStatisticsCollector() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            Properties props = new Properties();
-            props.setProperty(Options.PROP_STATISTICS_COLLECTOR, "foo");
-            new Options.Builder(props);
-        });
+        Properties props = new Properties();
+        props.setProperty(Options.PROP_STATISTICS_COLLECTOR, "foo");
+        assertThrows(IllegalArgumentException.class, () -> new Options.Builder(props));
     }
 
     @Test
@@ -989,10 +1145,8 @@ public class OptionsTests {
 
     @Test
     public void testThrowOnBadServersURI() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            String[] serverUrls = {URL_PROTO_HOST_PORT_8080, "foo:/bar\\:blammer"};
-            new Options.Builder().servers(serverUrls).build();
-        });
+        String[] serverUrls = {URL_PROTO_HOST_PORT_8080, "foo:/bar\\:blammer"};
+        assertThrows(IllegalArgumentException.class, () -> new Builder().servers(serverUrls).build());
     }
 
     @Test
@@ -1021,9 +1175,8 @@ public class OptionsTests {
         Options options = new Options.Builder()
                 .callbackThreadFactory(threadFactory)
                 .build();
-        Future<?> callbackFuture = options.getCallbackExecutor().submit(() -> {
-            assertEquals("test", Thread.currentThread().getName());
-        });
+        Future<?> callbackFuture = options.getCallbackExecutor().submit(
+            () -> assertEquals("test", Thread.currentThread().getName()));
         callbackFuture.get(5, TimeUnit.SECONDS);
     }
 
@@ -1033,16 +1186,15 @@ public class OptionsTests {
         Options options = new Options.Builder()
                 .connectThreadFactory(threadFactory)
                 .build();
-        Future<?> connectFuture = options.getConnectExecutor().submit(() -> {
-            assertEquals("test", Thread.currentThread().getName());
-        });
+        Future<?> connectFuture = options.getConnectExecutor().submit(
+            () -> assertEquals("test", Thread.currentThread().getName()));
         connectFuture.get(5, TimeUnit.SECONDS);
     }
 
     String[] schemes = new String[]   { "NATS", "unk",  "tls",  "opentls",  "ws",   "wss", "nats"};
     boolean[] secures = new boolean[] { false,  false,  true,   true,       false,  true,  false};
     boolean[] wses = new boolean[]    { false,  false,  false,  false,      true,   true,  false};
-    String[] hosts = new String[]     { "host", "1.2.3.4", "[1:2:3:4::5]", null, "nats"};
+    String[] hosts = new String[]     { "host", "1.2.3.4", "[1:2:3:4:5:6:7:8]", null, "nats"};
     boolean[] ips = new boolean[]     { false,  true,      true,           false, false};
     Integer[] ports = new Integer[]   {1122, null};
     String[] userInfos = new String[] {null, "u:p"};
@@ -1055,6 +1207,9 @@ public class OptionsTests {
                 _testNatsUri(-e, schemes[e]);
             }
         }
+
+        //noinspection DataFlowIssue // NatsUri constructor parameters are annotated as @NonNull
+        assertThrows(NullPointerException.class, () -> new NatsUri((String)null));
 
         // coverage
         //noinspection SimplifiableAssertion,ConstantValue
@@ -1127,6 +1282,16 @@ public class OptionsTests {
         assertEquals(ip, uri.hostIsIpAddress());
     }
 
+
+    @Test
+    public void testNuriRehost() throws URISyntaxException {
+        NatsUri nuri = new NatsUri("nats://host:80");
+        assertEquals("nats://rehost:80", nuri.reHost("rehost").toString());
+        assertEquals("nats://1.2.3.4:80", nuri.reHost("1.2.3.4").toString());
+        assertEquals("nats://[1:2:3:4:5:6:7:8]:80", nuri.reHost("[1:2:3:4:5:6:7:8]").toString());
+        assertEquals("nats://[1:2:3:4:5:6:7:8]:80", nuri.reHost("1:2:3:4:5:6:7:8").toString());
+    }
+
     @Test
     public void testReconnectDelayHandler() {
         ReconnectDelayHandler rdh = l -> Duration.ofSeconds(l * 2);
@@ -1148,7 +1313,7 @@ public class OptionsTests {
 
     @Test
     public void testSslContextIsProvided() {
-        Options o = new Options.Builder().server("nats://localhost").build();
+        Options o = new Options.Builder().server("localhost").build();
         assertNull(o.getSslContext());
         o = new Options.Builder().server("ws://localhost").build();
         assertNull(o.getSslContext());
@@ -1180,6 +1345,68 @@ public class OptionsTests {
         assertEquals("user", o.getUsername());
         assertEquals("pass", o.getPassword());
         assertNull(o.getToken());
+    }
+
+    @Test
+    public void testHostnameResolveMode() {
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, false, false, new Options.Builder().build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToAll).build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, false, false, new Options.Builder().hostnameResolveMode(null).build());
+        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToAll", HostnameResolveMode.ResolveToAll, false, false);
+
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAllIncludeIPV6, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToAllIncludeIPV6).build());
+        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToAllIncludeIPV6", HostnameResolveMode.ResolveToAllIncludeIPV6, false, false);
+
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirstIncludeIPV6, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToFirstIncludeIPV6).build());
+        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToFirstIncludeIPV6", HostnameResolveMode.ResolveToFirstIncludeIPV6, false, false);
+
+        //noinspection deprecation
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirst, true, false, new Options.Builder().noResolveHostnames().build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirst, true, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToFirst).build());
+        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToFirst", HostnameResolveMode.ResolveToFirst, true, false);
+        //noinspection deprecation
+        validateHostnameResolveMode(PROP_NO_RESOLVE_HOSTNAMES, "true", HostnameResolveMode.ResolveToFirst, true, false);
+
+        validateHostnameResolveMode(HostnameResolveMode.Unresolved, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.Unresolved).build());
+        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "Unresolved", HostnameResolveMode.Unresolved, false, false);
+
+        //noinspection deprecation
+        validateHostnameResolveMode(HostnameResolveMode.HappyEyeballs, false, true, new Options.Builder().enableFastFallback().build());
+        validateHostnameResolveMode(HostnameResolveMode.HappyEyeballs, false, true, new Options.Builder().hostnameResolveMode(HostnameResolveMode.HappyEyeballs).build());
+        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "HappyEyeballs", HostnameResolveMode.HappyEyeballs, false, true);
+        //noinspection deprecation
+        validateHostnameResolveMode(PROP_FAST_FALLBACK, "true", HostnameResolveMode.HappyEyeballs, false, true);
+
+        // these test where multiple properties. Only the PROP_HOSTNAME_RESOLVE_MODE wins
+        Properties props = new Properties();
+        //noinspection deprecation
+        props.setProperty(PROP_FAST_FALLBACK, "true");
+        props.setProperty(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToAll");
+        Options options = new Options.Builder(props).build();
+        assertEquals(HostnameResolveMode.ResolveToAll, options.hostnameResolveMode());
+    }
+
+    @SuppressWarnings("deprecation")
+    private void validateHostnameResolveMode(HostnameResolveMode expected,
+                                             boolean isNoResolveHostnames, boolean isEnableFastFallback,
+                                             Options options)
+    {
+        assertEquals(expected, options.hostnameResolveMode());
+        assertEquals(isNoResolveHostnames, options.isNoResolveHostnames());
+        assertEquals(isEnableFastFallback, options.isEnableFastFallback());
+
+        Options copy = new Options.Builder(options).build();
+        assertEquals(expected, copy.hostnameResolveMode());
+        assertEquals(isNoResolveHostnames, copy.isNoResolveHostnames());
+        assertEquals(isEnableFastFallback, copy.isEnableFastFallback());
+    }
+
+    private void validateHostnameResolveMode(String key, String value, HostnameResolveMode expected,
+                                             boolean isNoResolveHostnames, boolean isEnableFastFallback)
+    {
+        Properties props = new Properties();
+        props.setProperty(key, value);
+        validateHostnameResolveMode(expected, isNoResolveHostnames, isEnableFastFallback, new Options.Builder(props).build());
     }
 
 /* These next three require that no default is set anywhere, if another test

@@ -16,6 +16,8 @@ package io.nats.client.api;
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.JsonValueUtils;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import static io.nats.client.support.ApiConstants.API;
 import static io.nats.client.support.ApiConstants.DELIVER;
@@ -48,10 +50,20 @@ public class External implements JsonSerializable {
     }
 
     /**
+     * Construct an External configuration copying the information from an External configuration
+     * @param external the source configuration
+     */
+    public External(External external) {
+        this.api = external.api;
+        this.deliver = external.deliver;
+    }
+    /**
      * Returns a JSON representation of this mirror
      *
      * @return json mirror json string
      */
+    @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, API, api);
@@ -61,18 +73,18 @@ public class External implements JsonSerializable {
 
     /**
      * The subject prefix that imports the other account <code>$JS.API.CONSUMER.&gt; subjects</code>
-     *
      * @return the api prefix
      */
+    @Nullable
     public String getApi() {
         return api;
     }
 
     /**
      * The delivery subject to use for the push consumer.
-     *
      * @return delivery subject
      */
+    @Nullable
     public String getDeliver() {
         return deliver;
     }
@@ -112,11 +124,16 @@ public class External implements JsonSerializable {
     }
 
     /**
-     * Placement can be created using a Builder.
+     * External can be created using a Builder.
      */
     public static class Builder {
         private String api;
         private String deliver;
+
+        /**
+         * Construct a builder for an External object
+         */
+        public Builder() {}
 
         /**
          * Set the api string.

@@ -13,6 +13,7 @@
 
 package io.nats.client.support;
 import io.nats.client.PurgeOptions;
+import io.nats.client.api.DeliverPolicy;
 import io.nats.client.impl.Headers;
 import io.nats.client.utils.ResourceUtils;
 import org.junit.jupiter.api.Test;
@@ -179,11 +180,37 @@ public final class JsonUtilsTests {
         addField(sb, "n/a", (Long) null);
         assertEquals(0, sb.length());
 
-        //noinspection UnnecessaryBoxing
-        addField(sb, "iminusone", new Integer(-1));
+        addRawJson(sb, "n/a", null);
         assertEquals(0, sb.length());
 
-        addField(sb, "lminusone", new Long(-1));
+        addRawJson(sb, "n/a", "");
+        assertEquals(0, sb.length());
+
+        //noinspection WrapperTypeMayBePrimitive
+        Integer i = -1;
+        addField(sb, "iminusone", i);
+        assertEquals(0, sb.length());
+
+        Long l = -1L;
+        addField(sb, "lminusone", l);
+        assertEquals(0, sb.length());
+
+        addFieldWhenGteMinusOne(sb, "lnull", null);
+        assertEquals(0, sb.length());
+
+        addFieldWhenGteMinusOne(sb, "lminusone", -2L);
+        assertEquals(0, sb.length());
+
+        addFieldWhenGreaterThan(sb, "gtnull", null, 100);
+        assertEquals(0, sb.length());
+
+        addFieldWhenGreaterThan(sb, "gtLessThan", 99L, 100);
+        assertEquals(0, sb.length());
+
+        addEnumWhenNot(sb, "enum", null, DeliverPolicy.All);
+        assertEquals(0, sb.length());
+
+        addEnumWhenNot(sb, "enum", DeliverPolicy.All, DeliverPolicy.All);
         assertEquals(0, sb.length());
 
         addStrings(sb, "foo", new String[]{"bbb"});
@@ -210,15 +237,15 @@ public final class JsonUtilsTests {
         addFieldWhenGtZero(sb, "longnull", (Long) null);
         assertEquals(87, sb.length());
 
-        //noinspection UnnecessaryBoxing
-        addFieldWhenGtZero(sb, "intnotgt0", new Integer(0));
+        i = 0;
+        addFieldWhenGtZero(sb, "intnotgt0", i);
         assertEquals(87, sb.length());
 
         addFieldWhenGtZero(sb, "longnotgt0", 0L);
         assertEquals(87, sb.length());
 
-        //noinspection UnnecessaryBoxing
-        addFieldWhenGtZero(sb, "intgt0", new Integer(1));
+        i = 1;
+        addFieldWhenGtZero(sb, "intgt0", i);
         assertEquals(98, sb.length());
 
         addFieldWhenGtZero(sb, "longgt0", 1L);
@@ -250,6 +277,12 @@ public final class JsonUtilsTests {
 
         addFieldWhenGreaterThan(sb, "xgt", 2L, 1);
         assertEquals(188, sb.length());
+
+        addJsons(sb, "addEmptyList", null, false);
+        assertEquals(188, sb.length());
+
+        addJsons(sb, "addEmptyList", null, true);
+        assertEquals(206, sb.length());
     }
 
     static final String EXPECTED_LIST_JSON = "{\"a1\":[\"one\"],\"a2\":[\"two\",\"too\"],\"l1\":[\"one\"],\"l2\":[\"two\",\"too\"],\"j1\":[{\"filter\":\"sub1\",\"keep\":421}],\"j2\":[{\"filter\":\"sub2\",\"seq\":732},{\"filter\":\"sub3\"}],\"d1\":[1000000],\"d2\":[2000000,3000000]}";
@@ -450,7 +483,6 @@ public final class JsonUtilsTests {
         addField(sb, "foo64", base64);
         addField(sb, "zdt", zdt);
         endJson(sb);
-        System.out.println(sb);
 
         bytes = readBase64(sb.toString(), string_pattern("foo64"));
         assertArrayEquals(byte64, bytes);
