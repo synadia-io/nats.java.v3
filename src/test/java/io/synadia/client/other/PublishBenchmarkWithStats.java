@@ -1,0 +1,77 @@
+package io.synadia.client.other;
+
+import io.synadia.client.Connection;
+import io.synadia.client.Nats;
+import io.synadia.client.Options;
+
+import java.text.NumberFormat;
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+
+
+public class PublishBenchmarkWithStats {
+    public static void main(String args[]) throws InterruptedException {
+        int threads = 1;
+        int msgsPerThread = 5_000_000;
+        int messageSize = 256;
+        long totalMessages = threads * msgsPerThread;
+        CountDownLatch latch = new CountDownLatch(threads);
+        CompletableFuture<Boolean> starter = new CompletableFuture<>();
+
+        System.out.println("###");
+        System.out.printf("### Running publish benchmark with %s %s byte messages across %s threads.\n",
+                                NumberFormat.getInstance().format(totalMessages),
+                                NumberFormat.getInstance().format(messageSize),
+                                NumberFormat.getInstance().format(threads));
+        System.out.println("###");
+        byte[] body = new byte[messageSize];
+
+        for(int i=0; i<messageSize; i++) {
+            body[i] = 1;
+        }
+
+        try {
+            Options options = new Options.Builder().server(Options.DEFAULT_URL).turnOnAdvancedStats().build();
+            Connection nc = Nats.connect(options);
+
+            for (int k = 0;k<threads;k++) {
+                Thread t = new Thread(() -> {
+                    try {starter.get();}catch(Exception e){}
+                    for(int i = 0; i < msgsPerThread; i++) {
+                        nc.publish("bench", body);
+                    }
+                    try {nc.flush(Duration.ZERO);}catch(Exception e){}
+                    latch.countDown();
+                });
+                t.start();
+            }
+
+            long start = System.nanoTime();
+            starter.complete(Boolean.TRUE);
+            latch.await();
+            long end = System.nanoTime();
+
+            nc.close();
+
+            System.out.printf("### Total time to perform %s operations was %s ms, %f ns/op\n",
+                NumberFormat.getInstance().format(totalMessages), 
+                NumberFormat.getInstance().format((end-start)/1_000_000L),
+                ((double)(end-start))/((double)(totalMessages)));
+            System.out.printf("### This is equivalent to %s msg/sec.\n",
+                NumberFormat.getInstance().format(1_000_000_000L * totalMessages/(end-start)));
+            System.out.printf("### Each operation consists of a publish of a msg of size %s.\n",
+                NumberFormat.getInstance().format(messageSize));
+            System.out.printf("### %s thread(s) were used.\n",
+                NumberFormat.getInstance().format(threads));
+
+            System.out.println("###");
+            System.out.println("### Overall Statistics");
+            System.out.println();
+            System.out.print(nc.getStatistics().toString());
+        } catch (Exception ex) {
+            System.out.println("Exception running benchmark.");
+            ex.printStackTrace();
+        }
+    }
+}
