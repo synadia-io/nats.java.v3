@@ -1,0 +1,8 @@
+NATS Java Client v3
+Copyright 2026 Synadia Communications, Inc.
+
+This product is licensed under the Apache License, Version 2.0.
+
+This product is based on NATS.Java (https://github.com/nats-io/nats.java),
+originally developed by The NATS Authors and licensed under the
+Apache License, Version 2.0.
