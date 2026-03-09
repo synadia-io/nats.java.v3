@@ -1,0 +1,29 @@
+// ---------------------------------------------------------------------------
+// Subproject-specific identity — read by root build.gradle via afterEvaluate
+// ---------------------------------------------------------------------------
+ext {
+    jarVersion        = '3.0.0'
+    moduleNameExt     = 'io.synadia.jnats3.service'
+    bundleNameExt     = 'io.synadia.jnats3.service'
+    pomDescriptionExt = 'Service library for the NATS messaging system.'
+    projectUrlExt     = 'https://github.com/synadia-io/nats.java.v3'
+}
+
+// ---------------------------------------------------------------------------
+// Subproject-specific dependencies
+// ---------------------------------------------------------------------------
+dependencies {
+    api project(':core')
+    testImplementation project(path: ':core', configuration: 'testOutput')
+}
+
+// ---------------------------------------------------------------------------
+// Subproject-specific javadoc config
+// ---------------------------------------------------------------------------
+javadoc {
+    options.overview = 'src/main/javadoc/overview.html'
+    options.memberLevel = JavadocMemberLevel.PUBLIC
+    source = sourceSets.main.allJava
+    title = "SYNADIA.IO Service API"
+    classpath = sourceSets.main.runtimeClasspath
+}

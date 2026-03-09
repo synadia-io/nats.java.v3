@@ -7,7 +7,17 @@ pluginManagement {
         maven { url="https://plugins.gradle.org/m2/" }
     }
     plugins {
-        id("biz.aQute.bnd.builder") version "7.1.0"
+        id("biz.aQute.bnd.builder")                 version "7.1.0"
+        id("org.gradle.test-retry")                 version "1.6.4"
+        id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
     }
 }
+
 rootProject.name = 'jnats3'
+
+include 'core'
+// include 'jsm'
+// include 'jetstream'
+// include 'kv'
+include 'service'
+include 'examples'
