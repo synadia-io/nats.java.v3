@@ -500,7 +500,7 @@ public class OptionsTests {
         props.setProperty(Options.PROP_PING_INTERVAL, "1000");
 
         // classnameProperty
-        props.setProperty(Options.PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, "io.nats.client.utils.CoverageServerPool");
+        props.setProperty(Options.PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, "io.synadia.client.utils.CoverageServerPool");
 
         Options o = new Options.Builder(props).build();
         _testProperties(o);

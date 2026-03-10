@@ -446,7 +446,7 @@ public class ConnectTests {
         };
 
         Options options = optionsBuilder(port)
-            .dataPortType("io.nats.client.impl.SimulateSocketDataPortException")
+            .dataPortType("io.synadia.client.impl.SimulateSocketDataPortException")
             .connectionListener(listener)
             .errorListener(el)
             .reconnectDelayHandler(l -> Duration.ofSeconds(1))
