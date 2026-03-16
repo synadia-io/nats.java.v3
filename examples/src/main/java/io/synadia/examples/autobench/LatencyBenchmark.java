@@ -59,7 +59,7 @@ public class LatencyBenchmark extends AutoBenchmark {
         Thread subThread = new Thread(() -> {
             try {
                 Connection subConnect = Nats.connect(connectOptions);
-                if (subConnect.getStatus() != Connection.Status.CONNECTED) {
+                if (subConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
                 try {
@@ -97,7 +97,7 @@ public class LatencyBenchmark extends AutoBenchmark {
         Thread pubThread = new Thread(() -> {
             try {
                 Connection pubConnect = Nats.connect(connectOptions);
-                if (pubConnect.getStatus() != Connection.Status.CONNECTED) {
+                if (pubConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
                 try {

@@ -1,9 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Connection;
-import io.synadia.client.ErrorListener;
-import io.synadia.client.NatsTestServer;
-import io.synadia.client.Options;
+import io.synadia.client.*;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -83,7 +80,7 @@ public class AuthAndConnectTests extends TestBase {
                 Thread.sleep(2000);
                 running.set(false);
 
-                assertNotEquals(Connection.Status.CLOSED, nc.getStatus());
+                assertNotEquals(ConnectionStatus.CLOSED, nc.getStatus());
             }
         }
     }

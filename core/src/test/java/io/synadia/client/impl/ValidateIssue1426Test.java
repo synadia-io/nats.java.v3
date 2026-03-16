@@ -68,7 +68,7 @@ public class ValidateIssue1426Test {
                 ctx.restartLatch.await();
 
                 // wait until we are connected after the server restart
-                while (nc.getStatus() != Connection.Status.CONNECTED) {
+                while (nc.getStatus() != ConnectionStatus.CONNECTED) {
                     //noinspection BusyWait
                     Thread.sleep(50);
                 }

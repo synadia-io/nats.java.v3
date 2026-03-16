@@ -1,9 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Connection;
-import io.synadia.client.NUID;
-import io.synadia.client.NatsTestServer;
-import io.synadia.client.Options;
+import io.synadia.client.*;
 import io.synadia.client.utils.ConnectionUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -148,7 +145,7 @@ public class SharedServer {
     private void waitUntilStatus(Connection conn) {
         for (long x = 0; x < 100; x++) {
             sleep(100);
-            if (conn.getStatus() == Connection.Status.CONNECTED) {
+            if (conn.getStatus() == ConnectionStatus.CONNECTED) {
                 return;
             }
         }
@@ -164,7 +161,7 @@ public class SharedServer {
                 waitUntilStatus(ncs);
                 initVersionServerInfo(ncs);
             }
-            else if (ncs.getStatus() != Connection.Status.CONNECTED) {
+            else if (ncs.getStatus() != ConnectionStatus.CONNECTED) {
                 try { ncs.close(); } catch (Exception ignore) {}
                 return getSharedConnection(name);
             }

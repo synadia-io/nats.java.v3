@@ -16,8 +16,7 @@ pluginManagement {
 rootProject.name = 'jnats3'
 
 include 'core'
-// include 'jsm'
-// include 'jetstream'
+include 'jetstream'
 // include 'kv'
 include 'service'
 include 'examples'

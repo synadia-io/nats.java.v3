@@ -1,9 +1,6 @@
 package io.synadia.client.utils;
 
-import io.synadia.client.Connection;
-import io.synadia.client.Nats;
-import io.synadia.client.NatsServerProtocolMock;
-import io.synadia.client.Options;
+import io.synadia.client.*;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
@@ -47,7 +44,7 @@ public abstract class ConnectionUtils {
                 sleep(delay);
             }
             try {
-                return waitUntilStatus(Nats.connect(options), waitTime, Connection.Status.CONNECTED);
+                return waitUntilStatus(Nats.connect(options), waitTime, ConnectionStatus.CONNECTED);
             }
             catch (IOException ioe) {
                 last = ioe;
@@ -76,11 +73,11 @@ public abstract class ConnectionUtils {
     // ----------------------------------------------------------------------------------------------------
     @SuppressWarnings("UnusedReturnValue")
     public static Connection confirmConnected(Connection conn) {
-        return waitUntilStatus(conn, DEFAULT_WAIT, Connection.Status.CONNECTED);
+        return waitUntilStatus(conn, DEFAULT_WAIT, ConnectionStatus.CONNECTED);
     }
 
     public static Connection confirmConnected(Connection conn, long waitTime) {
-        return waitUntilStatus(conn, waitTime, Connection.Status.CONNECTED);
+        return waitUntilStatus(conn, waitTime, ConnectionStatus.CONNECTED);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -108,7 +105,7 @@ public abstract class ConnectionUtils {
     public static void closeAndConfirm(Connection conn, long millis) {
         if (conn != null) {
             close(conn);
-            waitUntilStatus(conn, millis, Connection.Status.CLOSED);
+            waitUntilStatus(conn, millis, ConnectionStatus.CLOSED);
             assertClosed(conn);
         }
     }
@@ -123,7 +120,7 @@ public abstract class ConnectionUtils {
     // ----------------------------------------------------------------------------------------------------
     // connection waiting
     // ----------------------------------------------------------------------------------------------------
-    public static Connection waitUntilStatus(Connection conn, long millis, Connection.Status waitUntilStatus) {
+    public static Connection waitUntilStatus(Connection conn, long millis, ConnectionStatus waitUntilStatus) {
         long times = (millis + 99) / 100;
         for (long x = 0; x < times; x++) {
             sleep(100);
@@ -139,13 +136,13 @@ public abstract class ConnectionUtils {
     // assertions
     // ----------------------------------------------------------------------------------------------------
     public static void assertConnected(Connection conn) {
-        assertSame(Connection.Status.CONNECTED, conn.getStatus(),
-            () -> expectingMessage(conn, Connection.Status.CONNECTED));
+        assertSame(ConnectionStatus.CONNECTED, conn.getStatus(),
+            () -> expectingMessage(conn, ConnectionStatus.CONNECTED));
     }
 
     public static void assertClosed(Connection conn) {
-        assertSame(Connection.Status.CLOSED, conn.getStatus(),
-            () -> expectingMessage(conn, Connection.Status.CLOSED));
+        assertSame(ConnectionStatus.CLOSED, conn.getStatus(),
+            () -> expectingMessage(conn, ConnectionStatus.CLOSED));
     }
 
     public static void assertCanConnect(NatsServerProtocolMock ts) {
@@ -156,7 +153,7 @@ public abstract class ConnectionUtils {
         closeAndConfirm(managedConnect(options));
     }
 
-    private static String expectingMessage(Connection conn, Connection.Status expecting) {
+    private static String expectingMessage(Connection conn, ConnectionStatus expecting) {
         return "Failed expecting Connection Status " + expecting.name() + " but was " + conn.getStatus();
     }
 }

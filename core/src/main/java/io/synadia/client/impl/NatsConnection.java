@@ -24,6 +24,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
+import static io.synadia.client.ConnectionStatus.*;
 import static io.synadia.client.support.NatsConstants.*;
 import static io.synadia.client.support.NatsRequestCompletableFuture.CancelAction;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -43,7 +44,7 @@ class NatsConnection implements Connection {
     protected Exception exceptionDuringConnectChange; // exception occurred in another thread while dis/connecting
     protected final ReentrantLock closeSocketLock;
 
-    private Status status;
+    private ConnectionStatus status;
     protected final ReentrantLock statusLock;
     protected final Condition statusChanged;
 
@@ -130,7 +131,7 @@ class NatsConnection implements Connection {
 
         this.statusLock = new ReentrantLock();
         this.statusChanged = this.statusLock.newCondition();
-        this.status = Status.DISCONNECTED;
+        this.status = DISCONNECTED;
         this.reconnectWaiter = new CompletableFuture<>();
         this.reconnectWaiter.complete(Boolean.TRUE);
 
@@ -250,7 +251,7 @@ class NatsConnection implements Connection {
                 connectError.set(""); // new on each attempt
 
                 timeTraceLogger.trace("setting status to connecting");
-                updateStatus(Status.CONNECTING, resolved, cur);
+                updateStatus(CONNECTING, resolved, cur);
 
                 timeTraceLogger.trace("trying to connect to %s", cur);
                 tryToConnect(cur, resolved, NatsSystemClock.nanoTime());
@@ -262,7 +263,7 @@ class NatsConnection implements Connection {
                 }
 
                 timeTraceLogger.trace("setting status to disconnected");
-                updateStatus(Status.DISCONNECTED, resolved, cur);
+                updateStatus(DISCONNECTED, resolved, cur);
 
                 failList.add(cur);
                 serverPool.connectFailed(cur);
@@ -298,11 +299,27 @@ class NatsConnection implements Connection {
         }
     }
 
+    /**
+     * Forces reconnect behavior. Stops the current connection including the reading and writing,
+     * copies already queued outgoing messages, and then begins the reconnect logic.
+     * Does not flush. Does not force close the connection. See {@link ForceReconnectOptions}.
+     * @throws IOException the forceReconnect fails
+     * @throws InterruptedException the connection is not connected
+     */
     @Override
     public void forceReconnect() throws IOException, InterruptedException {
         forceReconnect(ForceReconnectOptions.DEFAULT_INSTANCE);
     }
 
+    /**
+     * Forces reconnect behavior. Stops the current connection including the reading and writing,
+     * copies already queued outgoing messages, and then begins the reconnect logic.
+     * If options are not provided, the default options are used meaning Does not flush and Does not force close the connection.
+     * See {@link ForceReconnectOptions}.
+     * @param options options for how the forceReconnect works.
+     * @throws IOException the forceReconnect fails
+     * @throws InterruptedException the connection is not connected
+     */
     @Override
     public void forceReconnect(ForceReconnectOptions options) throws IOException, InterruptedException {
         if (!tryingToConnect.get()) {
@@ -330,7 +347,7 @@ class NatsConnection implements Connection {
 
         closeSocketLock.lock();
         try {
-            updateStatus(Status.DISCONNECTED);
+            updateStatus(DISCONNECTED);
 
             // Close and reset the current data port and future
             if (dataPortFuture != null) {
@@ -453,7 +470,7 @@ class NatsConnection implements Connection {
                 if (isDisconnectingOrClosed() || this.isClosing()) {
                     return;
                 }
-                updateStatus(Status.RECONNECTING, resolved, cur);
+                updateStatus(RECONNECTING, resolved, cur);
 
                 timeTraceLogger.trace("reconnecting to server %s", cur);
                 tryToConnect(cur, resolved, NatsSystemClock.nanoTime());
@@ -652,7 +669,7 @@ class NatsConnection implements Connection {
 
                 this.currentServer = cur;
                 this.serverAuthErrors.clear(); // reset on successful connection
-                updateStatus(Status.CONNECTED); // will signal status change, we also signal in finally
+                updateStatus(CONNECTED); // will signal status change, we also signal in finally
             }
             finally {
                 statusLock.unlock();
@@ -733,7 +750,7 @@ class NatsConnection implements Connection {
         // If we are connecting or disconnecting, note exception and leave
         statusLock.lock();
         try {
-            if (this.connecting || this.disconnecting || this.status == Status.CLOSED || this.isDraining()) {
+            if (this.connecting || this.disconnecting || this.status == CLOSED || this.isDraining()) {
                 this.exceptionDuringConnectChange = io;
                 return;
             }
@@ -784,7 +801,7 @@ class NatsConnection implements Connection {
                 }
                 this.disconnecting = true;
                 this.exceptionDuringConnectChange = null;
-                wasConnected = (this.status == Status.CONNECTED);
+                wasConnected = (this.status == CONNECTED);
                 statusChanged.signalAll();
             }
             finally {
@@ -795,7 +812,7 @@ class NatsConnection implements Connection {
 
             statusLock.lock();
             try {
-                updateStatus(Status.DISCONNECTED);
+                updateStatus(DISCONNECTED);
                 this.exceptionDuringConnectChange = null; // Ignore IOExceptions during closeSocketImpl()
                 this.disconnecting = false;
                 statusChanged.signalAll();
@@ -820,7 +837,12 @@ class NatsConnection implements Connection {
     // Close is called when the connection should shut down, period
 
     /**
-     * {@inheritDoc}
+     * Close the connection and release all blocking calls like {@link #flush flush}
+     * and {@link Subscription#nextMessage(Duration) nextMessage}.
+     * If close() is called after {@link #drain(Duration) drain} it will wait up to the connection timeout
+     * to return, but it will not initiate a close. The drain takes precedence and will initiate the close.
+     *
+     * @throws InterruptedException if the thread, or one owned by the connection is interrupted during the close
      */
     @Override
     public void close() throws InterruptedException {
@@ -883,7 +905,7 @@ class NatsConnection implements Connection {
 
         statusLock.lock();
         try {
-            updateStatus(Status.CLOSED); // will signal, we also signal when we stop disconnecting
+            updateStatus(CLOSED); // will signal, we also signal when we stop disconnecting
 
             /*
              * if (exceptionDuringConnectChange != null) {
@@ -984,7 +1006,22 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a message to the specified subject. The message body <strong>will
+     * not</strong> be copied. The expected usage with string content is something
+     * like:
+     *
+     * <pre>
+     * nc = Nats.connect()
+     * nc.publish("destination", "message".getBytes("UTF-8"))
+     * </pre>
+     *
+     * where the sender creates a byte array immediately before calling publish.
+     * See {@link #publish(String, String, byte[]) publish()} for more details on
+     * publish during reconnect.
+     *
+     * @param subject the subject to send the message to
+     * @param body the message body
+     * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     @Override
     public void publish(@NonNull String subject, byte @Nullable [] body) {
@@ -992,7 +1029,24 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a message to the specified subject. The message body <strong>will
+     * not</strong> be copied. The expected usage with string content is something
+     * like:
+     *
+     * <pre>
+     * nc = Nats.connect()
+     * Headers h = new Headers().put("key", "value");
+     * nc.publish("destination", h, "message".getBytes("UTF-8"))
+     * </pre>
+     *
+     * where the sender creates a byte array immediately before calling publish.
+     * See {@link #publish(String, String, byte[]) publish()} for more details on
+     * publish during reconnect.
+     *
+     * @param subject the subject to send the message to
+     * @param headers Optional headers to publish with the message.
+     * @param body the message body
+     * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     @Override
     public void publish(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
@@ -1000,7 +1054,27 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request to the specified subject, providing a replyTo subject. The
+     * message body <strong>will not</strong> be copied. The expected usage with
+     * string content is something like:
+     *
+     * <pre>
+     * nc = Nats.connect()
+     * nc.publish("destination", "reply-to", "message".getBytes("UTF-8"))
+     * </pre>
+     *
+     * where the sender creates a byte array immediately before calling publish.
+     * <p>
+     * During reconnect the client will try to buffer messages. The buffer size is set
+     * in the connect options, see {@link Options.Builder#reconnectBufferSize(long) reconnectBufferSize()}
+     * with a default value of {@link Options#DEFAULT_RECONNECT_BUF_SIZE 8 * 1024 * 1024} bytes.
+     * If the buffer is exceeded an IllegalStateException is thrown. Applications should use
+     * this exception as a signal to wait for reconnect before continuing.
+     * </p>
+     * @param subject the subject to send the message to
+     * @param replyTo the subject the receiver should send any response to
+     * @param body the message body
+     * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     @Override
     public void publish(@NonNull String subject, @Nullable String replyTo, byte @Nullable [] body) {
@@ -1008,7 +1082,29 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request to the specified subject, providing a replyTo subject. The
+     * message body <strong>will not</strong> be copied. The expected usage with
+     * string content is something like:
+     *
+     * <pre>
+     * nc = Nats.connect()
+     * Headers h = new Headers().put("key", "value");
+     * nc.publish("destination", "reply-to", h, "message".getBytes("UTF-8"))
+     * </pre>
+     *
+     * where the sender creates a byte array immediately before calling publish.
+     * <p>
+     * During reconnect the client will try to buffer messages. The buffer size is set
+     * in the connect options, see {@link Options.Builder#reconnectBufferSize(long) reconnectBufferSize()}
+     * with a default value of {@link Options#DEFAULT_RECONNECT_BUF_SIZE 8 * 1024 * 1024} bytes.
+     * If the buffer is exceeded an IllegalStateException is thrown. Applications should use
+     * this exception as a signal to wait for reconnect before continuing.
+     * </p>
+     * @param subject the subject to send the message to
+     * @param replyTo the subject the receiver should send any response to
+     * @param headers Optional headers to publish with the message.
+     * @param body the message body
+     * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     @Override
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] body) {
@@ -1016,7 +1112,21 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a message to the specified subject. The message body <strong>will
+     * not</strong> be copied. The expected usage with string content is something
+     * like:
+     *
+     * <pre>
+     * nc = Nats.connect()
+     * nc.publish(NatsMessage.builder()...build())
+     * </pre>
+     *
+     * where the sender creates a byte array immediately before calling publish.
+     * See {@link #publish(String, String, byte[]) publish()} for more details on
+     * publish during reconnect.
+     *
+     * @param message the message
+     * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     @Override
     public void publish(@NonNull Message message) {
@@ -1039,7 +1149,7 @@ class NatsConnection implements Connection {
             throw new IllegalStateException("Connection is Draining"); // Ok to publish while waiting on subs
         }
 
-        if ((status == Status.RECONNECTING || status == Status.DISCONNECTED)
+        if ((status == RECONNECTING || status == DISCONNECTED)
             && !this.writer.canQueueDuringReconnect(npm)) {
             throw new IllegalStateException(
                 "Unable to queue any more messages during reconnect, max buffer is " + options.getReconnectBufferSize());
@@ -1049,7 +1159,18 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Create a synchronous subscription to the specified subject.
+     *
+     * <p>Use the {@link Subscription#nextMessage(Duration) nextMessage}
+     * method to read messages for this subscription.
+     *
+     * <p>See {@link #createDispatcher(MessageHandler) createDispatcher} for
+     * information about creating an asynchronous subscription with callbacks.
+     *
+     * <p>As of 2.6.1 this method will throw an IllegalArgumentException if the subject contains whitespace.
+     *
+     * @param subject the subject to subscribe to
+     * @return an object representing the subscription
      */
     @Override
     @NonNull
@@ -1059,7 +1180,19 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Create a synchronous subscription to the specified subject and queue.
+     *
+     * <p>Use the {@link Subscription#nextMessage(Duration) nextMessage} method to read
+     * messages for this subscription.
+     *
+     * <p>See {@link #createDispatcher(MessageHandler) createDispatcher} for
+     * information about creating an asynchronous subscription with callbacks.
+     *
+     * <p>As of 2.6.1 this method will throw an IllegalArgumentException if either string contains whitespace.
+     *
+     * @param subject the subject to subscribe to
+     * @param queueName the queue group to join
+     * @return an object representing the subscription
      */
     @Override
     @NonNull
@@ -1179,7 +1312,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Create a new inbox subject, can be used for directed replies from
+     * subscribers. These are guaranteed to be unique, but can be shared and subscribed
+     * to by others.
+     * @return the inbox
      */
     @Override
     @NonNull
@@ -1267,7 +1403,15 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request and returns the reply or null. This version of request is equivalent
+     * to calling get on the future returned from {@link #request(String, byte[]) request()} with
+     * the timeout and handling the ExecutionException and TimeoutException.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param body the content of the message
+     * @param timeout the time to wait for a response
+     * @return the reply message or null if the timeout is reached
+     * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Override
     @Nullable
@@ -1276,7 +1420,16 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request and returns the reply or null. This version of request is equivalent
+     * to calling get on the future returned from {@link #request(String, byte[]) request()} with
+     * the timeout and handling the ExecutionException and TimeoutException.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param headers Optional headers to publish with the message.
+     * @param body the content of the message
+     * @param timeout the time to wait for a response
+     * @return the reply message or null if the timeout is reached
+     * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Override
     @Nullable
@@ -1285,7 +1438,18 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request and returns the reply or null. This version of request is equivalent
+     * to calling get on the future returned from {@link #request(String, byte[]) request()} with
+     * the timeout and handling the ExecutionException and TimeoutException.
+     *
+     * <p>The Message object allows you to set a replyTo, but in requests,
+     * the replyTo is reserved for internal use as the address for the
+     * server to respond to the client with the consumer's reply.</p>
+     *
+     * @param message the message
+     * @param timeout the time to wait for a response
+     * @return the reply message or null if the timeout is reached
+     * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Override
     @Nullable
@@ -1315,7 +1479,12 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request. The returned future will be completed when the
+     * response comes back.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param body the content of the message
+     * @return a Future for the response, which may be cancelled on error or timed out
      */
     @Override
     @NonNull
@@ -1324,7 +1493,13 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request. The returned future will be completed when the
+     * response comes back.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param headers Optional headers to publish with the message.
+     * @param body the content of the message
+     * @return a Future for the response, which may be cancelled on error or timed out
      */
     @Override
     @NonNull
@@ -1333,7 +1508,13 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request. The returned future will be completed when the
+     * response comes back.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param body the content of the message
+     * @param timeout the time to wait for a response. If not supplied a default will be used.
+     * @return a Future for the response, which may be cancelled on error or timed out
      */
     @Override
     @NonNull
@@ -1342,7 +1523,14 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request. The returned future will be completed when the
+     * response comes back.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param body the content of the message
+     * @param headers Optional headers to publish with the message.
+     * @param timeout the time to wait for a response
+     * @return a Future for the response, which may be cancelled on error or timed out
      */
     @Override
     @NonNull
@@ -1351,7 +1539,16 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request. The returned future will be completed when the
+     * response comes back.
+     *
+     * <p>The Message object allows you to set a replyTo, but in requests,
+     * the replyTo is reserved for internal use as the address for the
+     * server to respond to the client with the consumer's reply.</p>
+     *
+     * @param message the message
+     * @param timeout the time to wait for a response
+     * @return a Future for the response, which may be cancelled on error or timed out
      */
     @Override
     @NonNull
@@ -1361,7 +1558,15 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Send a request. The returned future will be completed when the
+     * response comes back.
+     *
+     * <p>The Message object allows you to set a replyTo, but in requests,
+     * the replyTo is reserved for internal use as the address for the
+     * server to respond to the client with the consumer's reply.</p>
+     *
+     * @param message the message
+     * @return a Future for the response, which may be cancelled on error or timed out
      */
     @Override
     @NonNull
@@ -1476,7 +1681,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Convenience method to create a dispatcher with no default handler. Only used
+     * with JetStream push subscriptions that require specific handlers per subscription.
+     *
+     * @return a new Dispatcher
      */
     @NonNull
     public Dispatcher createDispatcher() {
@@ -1484,7 +1692,21 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Create a {@code Dispatcher} for this connection. The dispatcher can group one
+     * or more subscriptions into a single callback thread. All messages go to the
+     * same {@code MessageHandler}.
+     *
+     * <p>Use the Dispatcher's {@link Dispatcher#subscribe(String)} and
+     * {@link Dispatcher#subscribe(String, String)} methods to add subscriptions.
+     *
+     * <pre>
+     * nc = Nats.connect()
+     * d = nc.createDispatcher((m) -&gt; System.out.println(m)).subscribe("hello");
+     * </pre>
+     *
+     * @param handler The target for the messages. If the handler is null, subscribing without
+     *                using its API that accepts a handler will discard messages.
+     * @return a new Dispatcher
      */
     @NonNull
     public Dispatcher createDispatcher(@Nullable MessageHandler handler) {
@@ -1503,7 +1725,11 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Close a dispatcher. This will unsubscribe any subscriptions and stop the delivery thread.
+     *
+     * <p>Once closed the dispatcher will throw an exception on subsequent subscribe or unsubscribe calls.
+     *
+     * @param d the dispatcher to close
      */
     public void closeDispatcher(@NonNull Dispatcher d) {
         if (isClosed()) {
@@ -1536,21 +1762,39 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Attach another ConnectionListener.
+     *
+     * <p>The ConnectionListener will only receive Connection events arriving after it has been attached.  When
+     * a Connection event is raised, the invocation order and parallelism of multiple ConnectionListeners is not
+     * specified.
+     *
+     * @param connectionListener the ConnectionListener to attach. A null listener is a no-op
      */
     public void addConnectionListener(@NonNull ConnectionListener connectionListener) {
         connectionListeners.add(connectionListener);
     }
 
     /**
-     * {@inheritDoc}
+     * Detach a ConnectionListioner. This will cease delivery of any further Connection events to this instance.
+     *
+     * @param connectionListener the ConnectionListener to detach
      */
     public void removeConnectionListener(@NonNull ConnectionListener connectionListener) {
         connectionListeners.remove(connectionListener);
     }
 
     /**
-     * {@inheritDoc}
+     * Flush the connection's buffer of outgoing messages, including sending a
+     * protocol message to and from the server. Passing null is equivalent to
+     * passing 0, which will wait forever.
+     * If called while the connection is closed, this method will immediately
+     * throw a TimeoutException, regardless of the timeout.
+     * If called while the connection is disconnected due to network issues this
+     * method will wait for up to the timeout for a reconnect or close.
+     *
+     * @param timeout The time to wait for the flush to succeed, pass 0 or null to wait forever.
+     * @throws TimeoutException if the timeout is exceeded
+     * @throws InterruptedException if the underlying thread is interrupted
      */
     public void flush(@Nullable Duration timeout) throws TimeoutException, InterruptedException {
         Instant start = Instant.now();
@@ -1627,7 +1871,9 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Calculates the round trip time between this client and the server.
+     * @return the RTT as a duration
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -1932,7 +2178,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Return the server info object. Will never be null, but will be an instance of {@link ServerInfo#EMPTY_INFO}
+     * before a connection is made, and will represent the last connected server once connected and while disconnected
+     * until a new connection is made.
+     * @return the server information such as id, client info, etc.
      */
     @Override
     @NonNull
@@ -1941,7 +2190,8 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * the InetAddress of client as known by the NATS server, otherwise null.
+     * @return the InetAddress
      */
     @Override
     @Nullable
@@ -1956,7 +2206,8 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * the read-only options used to create this connection
+     * @return the Options
      */
     @Override
     @NonNull
@@ -1965,7 +2216,8 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * a wrapper for useful statistics about the connection
+     * @return the Statistics implementation
      */
     @Override
     @NonNull
@@ -1987,7 +2239,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * MaxPayload returns the size limit that a message payload can have. This is
+     * set by the server configuration and delivered to the client upon connect.
+     *
+     * @return the maximum size of a message payload
      */
     @Override
     public long getMaxPayload() {
@@ -2001,7 +2256,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Return the list of known server urls, including additional servers discovered
+     * after a connection has been established.
+     * Will be empty (but not null) before a connection is made and will represent the last connected server while disconnected
+     * @return this connection's list of known server URLs
      */
     @Override
     @NonNull
@@ -2049,7 +2307,8 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * the url used for the current connection, or null if disconnected
+     * @return the url string
      */
     @Override
     @Nullable
@@ -2058,16 +2317,19 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Returns the connection's current status.
+     *
+     * @return the connection's status
      */
     @Override
     @NonNull
-    public Status getStatus() {
+    public ConnectionStatus getStatus() {
         return this.status;
     }
 
     /**
-     * {@inheritDoc}
+     * the error text from the last error sent by the server to this client
+     * @return the last error text
      */
     @Override
     @Nullable
@@ -2076,7 +2338,7 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Clear the last error from the server
      */
     @Override
     public void clearLastError() {
@@ -2091,20 +2353,20 @@ class NatsConnection implements Connection {
         return scheduledExecutor;
     }
 
-    protected void updateStatus(Status newStatus) {
+    protected void updateStatus(ConnectionStatus newStatus) {
         updateStatus(newStatus, uriDetail(currentServer == null ? lastServer : currentServer));
     }
 
-    protected void updateStatus(Status newStatus, NatsUri resolvedUri, NatsUri hostUri) {
+    protected void updateStatus(ConnectionStatus newStatus, NatsUri resolvedUri, NatsUri hostUri) {
         updateStatus(newStatus, uriDetail(resolvedUri, hostUri));
     }
 
-    protected void updateStatus(Status newStatus, String uriDetail) {
-        Status oldStatus = this.status;
+    protected void updateStatus(ConnectionStatus newStatus, String uriDetail) {
+        ConnectionStatus oldStatus = this.status;
 
         statusLock.lock();
         try {
-            if (oldStatus == Status.CLOSED || newStatus == oldStatus) {
+            if (oldStatus == CLOSED || newStatus == oldStatus) {
                 return;
             }
             this.status = newStatus;
@@ -2113,16 +2375,16 @@ class NatsConnection implements Connection {
             statusLock.unlock();
         }
 
-        if (this.status == Status.DISCONNECTED) {
+        if (this.status == DISCONNECTED) {
             processConnectionEvent(Events.DISCONNECTED, uriDetail);
         }
-        else if (this.status == Status.CLOSED) {
+        else if (this.status == CLOSED) {
             processConnectionEvent(Events.CLOSED, uriDetail);
         }
-        else if (oldStatus == Status.RECONNECTING && this.status == Status.CONNECTED) {
+        else if (oldStatus == RECONNECTING && this.status == CONNECTED) {
             processConnectionEvent(Events.RECONNECTED, uriDetail);
         }
-        else if (this.status == Status.CONNECTED) {
+        else if (this.status == CONNECTED) {
             processConnectionEvent(Events.CONNECTED, uriDetail);
         }
     }
@@ -2132,21 +2394,21 @@ class NatsConnection implements Connection {
     }
 
     protected boolean isClosed() {
-        return this.status == Status.CLOSED;
+        return this.status == CLOSED;
     }
 
     protected boolean isConnected() {
-        return this.status == Status.CONNECTED;
+        return this.status == CONNECTED;
     }
 
     protected boolean isDisconnected() {
-        return this.status == Status.DISCONNECTED;
+        return this.status == DISCONNECTED;
     }
 
     protected boolean isConnectedOrConnecting() {
         statusLock.lock();
         try {
-            return this.status == Status.CONNECTED || this.connecting;
+            return this.status == CONNECTED || this.connecting;
         } finally {
             statusLock.unlock();
         }
@@ -2155,7 +2417,7 @@ class NatsConnection implements Connection {
     protected boolean isDisconnectingOrClosed() {
         statusLock.lock();
         try {
-            return this.status == Status.CLOSED || this.disconnecting;
+            return this.status == CLOSED || this.disconnecting;
         } finally {
             statusLock.unlock();
         }
@@ -2287,7 +2549,30 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Drain tells the connection to process in flight messages before closing.
+     * Drain initially drains all the consumers, stopping incoming messages.
+     * Next, publishing is halted and a flush call is used to insure all published
+     * messages have reached the server.
+     * Finally, the connection is closed.
+     * In order to drain subscribers, an unsub protocol message is sent to the server followed by a flush.
+     * These two steps occur before drain returns. The remaining steps occur in a background thread.
+     * This method tries to manage the timeout properly, so that if the timeout is 1 second, and the flush
+     * takes 100ms, the remaining steps have 900ms in the background thread.
+     * The connection will try to let all messages be drained, but when the timeout is reached
+     * the connection is closed and any outstanding dispatcher threads are interrupted.
+     * A future allows this call to be treated as synchronous or asynchronous as
+     * needed by the application. The value of the future will be true if all the subscriptions
+     * were drained in the timeout, and false otherwise. The future completes after the connection
+     * is closed, so any connection handler notifications will happen before the future completes.
+     *
+     * @param timeout The time to wait for the drain to succeed, pass 0 or null to wait
+     *                    forever. Drain involves moving messages to and from the server
+     *                    so a very short timeout is not recommended. If the timeout is reached before
+     *                    the drain completes, the connection is simply closed, which can result in message
+     *                    loss.
+     * @return A future that can be used to check if the drain has completed
+     * @throws InterruptedException if the thread is interrupted
+     * @throws TimeoutException if the initial flush times out
      */
     @Override
     @NonNull
@@ -2400,7 +2685,8 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Immediately flushes the underlying connection buffer if the connection is valid.
+     * @throws IOException if the connection flush fails
      */
     @Override
     public void flushBuffer() throws IOException {
@@ -2411,7 +2697,14 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Get a stream context for a specific stream.
+     *
+     * <p><b>Recommended:</b> See {@link #getStreamContext(String, JetStreamOptions) getStreamContext(String, JetStreamOptions)}
+     * @param streamName the stream for the context
+     * @return a StreamContext instance.
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      */
     @Override
     @NonNull public StreamContext getStreamContext(@NonNull String streamName) throws IOException, JetStreamApiException {
@@ -2421,7 +2714,29 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Get a stream context for a specific stream
+     * <p><b>Recommended:</b> {@link StreamContext StreamContext} and {@link ConsumerContext ConsumerContext} are the preferred way to interact with existing streams and consume from streams.
+     * {@link JetStreamManagement JetStreamManagement} should be used to create streams and consumers. {@link ConsumerContext#consume ConsumerContext.consume()} supports both push and pull consumers transparently.
+     *
+     * <pre>
+     * nc = Nats.connect();
+     * StreamContext streamContext = nc.getStreamContext("my-stream");
+     * ConsumerContext consumerContext = streamContext.getConsumerContext("my-consumer");
+     * // Or directly:
+     * // ConsumerContext consumerContext = nc.getConsumerContext("my-stream", "my-consumer");
+     * consumerContext.consume(
+     *      	msg -&gt; {
+     *             System.out.println("   Received " + msg.getSubject());
+     *             msg.ack();
+     *           });
+     * </pre>
+     *
+     * @param streamName the stream for the context
+     * @param options JetStream options. If null, default / no options are used.
+     * @return a StreamContext instance.
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      */
     @Override
     @NonNull
@@ -2432,7 +2747,17 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Get a consumer context for a specific named stream and specific named consumer.
+     * Verifies that the stream and consumer exist.
+     *
+     * <p><b>Recommended:</b> See {@link #getStreamContext(String, JetStreamOptions) getStreamContext(String, JetStreamOptions)}
+     *
+     * @param streamName the name of the stream
+     * @param consumerName the name of the consumer
+     * @return a ConsumerContext object
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      */
     @Override
     @NonNull
@@ -2441,7 +2766,18 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Get a consumer context for a specific named stream and specific named consumer.
+     * Verifies that the stream and consumer exist.
+     *
+     * <p><b>Recommended:</b> See {@link #getStreamContext(String, JetStreamOptions) getStreamContext(String, JetStreamOptions)}
+     *
+     * @param streamName the name of the stream
+     * @param consumerName the name of the consumer
+     * @param options JetStream options. If null, default / no options are used.
+     * @return a ConsumerContext object
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      */
     @Override
     @NonNull
@@ -2450,7 +2786,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for publishing and subscribing to subjects backed by Jetstream streams
+     * and consumers.
+     * @return a JetStream instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2459,7 +2798,12 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for publishing and subscribing to subjects backed by Jetstream streams
+     * and consumers.
+     * @param options JetStream options. If null, default / no options are used.
+     * @return a JetStream instance.
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2469,7 +2813,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for managing Jetstream streams
+     * and consumers.
+     * @return a JetStreamManagement instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2478,7 +2825,12 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for managing Jetstream streams
+     * and consumers.
+     * @param options JetStream options. If null, default / no options are used.
+     * @return a JetStreamManagement instance.
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2488,7 +2840,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for working with a Key Value bucket
+     * @param bucketName the bucket name
+     * @return a KeyValue instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2497,7 +2852,11 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for working with a Key Value bucket
+     * @param bucketName the bucket name
+     * @param options KeyValue options. If null, default / no options are used.
+     * @return a KeyValue instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2508,7 +2867,9 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for managing Key Value buckets
+     * @return a KeyValueManagement instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2517,7 +2878,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for managing Key Value buckets
+     * @param options KeyValue options. If null, default / no options are used.
+     * @return a KeyValueManagement instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2527,7 +2891,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for working with an Object Store.
+     * @param bucketName the bucket name
+     * @return an ObjectStore instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2536,7 +2903,11 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for working with an Object Store.
+     * @param bucketName the bucket name
+     * @param options ObjectStore options. If null, default / no options are used.
+     * @return an ObjectStore instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2547,7 +2918,9 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for managing Object Stores
+     * @return an ObjectStoreManagement instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2557,7 +2930,10 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a context for managing Object Stores
+     * @param options ObjectStore options. If null, default / no options are used.
+     * @return a ObjectStoreManagement instance.
+     * @throws IOException various IO exception such as timeout or interruption
      */
     @Override
     @NonNull
@@ -2573,7 +2949,11 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Get the number of messages in the outgoing queue for this connection.
+     * This value is volatile in the sense that it changes often and may be adjusted by more than one message.
+     * It changes every time a message is published (put in the outgoing queue)
+     * and every time a message is removed from the queue to be written over the socket
+     * @return the number of messages in the outgoing queue
      */
     @Override
     public long outgoingPendingMessageCount() {
@@ -2587,7 +2967,11 @@ class NatsConnection implements Connection {
     }
 
     /**
-     * {@inheritDoc}
+     * Get the number of bytes based to be written calculated from the messages in the outgoing queue for this connection.
+     * This value is volatile in the sense that it changes often and may be adjusted by more than one message's bytes.
+     * It changes every time a message is published (put in the outgoing queue)
+     * and every time a message is removed from the queue to be written over the socket
+     * @return the number of messages in the outgoing queue
      */
     @Override
     public long outgoingPendingBytes() {

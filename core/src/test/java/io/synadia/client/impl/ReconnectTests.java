@@ -37,8 +37,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ReconnectTests {
 
     void checkNotConnected(Connection nc) {
-        Connection.Status status = nc.getStatus();
-        assertTrue(Connection.Status.RECONNECTING == status || Connection.Status.DISCONNECTED == status, "Reconnecting status");
+        ConnectionStatus status = nc.getStatus();
+        assertTrue(ConnectionStatus.RECONNECTING == status || ConnectionStatus.DISCONNECTED == status, "Reconnecting status");
     }
 
     @Test

@@ -13,10 +13,7 @@
 
 package io.synadia.examples.autobench;
 
-import io.synadia.client.Connection;
-import io.synadia.client.Dispatcher;
-import io.synadia.client.Nats;
-import io.synadia.client.Options;
+import io.synadia.client.*;
 
 import java.text.NumberFormat;
 import java.time.Duration;
@@ -45,7 +42,7 @@ public class PubDispatchBenchmark extends ThrottledBenchmark {
         Thread subThread = new Thread(() -> {
             try {
                 Connection subConnect = Nats.connect(connectOptions);
-                if (subConnect.getStatus() != Connection.Status.CONNECTED) {
+                if (subConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
                 try {
@@ -61,7 +58,7 @@ public class PubDispatchBenchmark extends ThrottledBenchmark {
                     
                     // For simplicity the test doesn't have a connection listener so just loop
                     // we are async so otherwise we can't know if the connection closed under us
-                    while (subConnect.getStatus() == Connection.Status.CONNECTED
+                    while (subConnect.getStatus() == ConnectionStatus.CONNECTED
                                 && !subDone.isDone()) {
                         try {
                             subDone.get(100, TimeUnit.MILLISECONDS);
@@ -92,7 +89,7 @@ public class PubDispatchBenchmark extends ThrottledBenchmark {
         Thread pubThread = new Thread(() -> {
             try {
                 Connection pubConnect = Nats.connect(connectOptions);
-                if (pubConnect.getStatus() != Connection.Status.CONNECTED) {
+                if (pubConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
                 try {

@@ -515,7 +515,7 @@ public class TLSConnectTests extends TestBase {
                         .build();
 
                     nc = Nats.connect(options);
-                    assertEquals(Connection.Status.CONNECTED, nc.getStatus());
+                    assertEquals(ConnectionStatus.CONNECTED, nc.getStatus());
                     assertTrue(cl.latch.await(2, TimeUnit.SECONDS));
                     sleep(CLIENT_CERT_VALIDITY_MILLIS); // sleep enough time for the cert to expire
                     validateExpiry(expiring, true);
@@ -554,7 +554,7 @@ public class TLSConnectTests extends TestBase {
                     .build();
 
                 try (Connection nc = Nats.connect(options)) {
-                    assertEquals(Connection.Status.CONNECTED, nc.getStatus());
+                    assertEquals(ConnectionStatus.CONNECTED, nc.getStatus());
                     assertTrue(cl.latch.await(2, TimeUnit.SECONDS));
                     sleep(CLIENT_CERT_VALIDITY_MILLIS); // sleep enough time for the cert to expire
                     validateExpiry(expiring, true);

@@ -73,7 +73,7 @@ public class AuthViolationDuringReconnectOnFlushTimeoutTest {
 
             synchronized(ctx.nc.getStatus()) {
                 //noinspection StatementWithEmptyBody
-                while (ctx.nc.getStatus() != Connection.Status.CONNECTED && ctx.nc.getStatus() != Connection.Status.CLOSED) {}
+                while (ctx.nc.getStatus() != ConnectionStatus.CONNECTED && ctx.nc.getStatus() != ConnectionStatus.CLOSED) {}
             }
             assertFalse(ctx.violated.get());
 

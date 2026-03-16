@@ -2,7 +2,6 @@ package io.synadia.client;
 
 import io.nats.NatsRunnerUtils;
 import io.nats.NatsServerRunner;
-import io.synadia.client.Connection.Status;
 import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.support.JwtUtils;
 import io.synadia.client.support.Listener;
@@ -227,9 +226,9 @@ public class AuthTests extends TestBase {
 
         listener.validate();
 
-        Status status = nc.getStatus();
+        ConnectionStatus status = nc.getStatus();
         assertTrue(
-                Connection.Status.RECONNECTING == status || Connection.Status.DISCONNECTED == status, "Reconnecting status");
+                ConnectionStatus.RECONNECTING == status || ConnectionStatus.DISCONNECTED == status, "Reconnecting status");
         listener.queueConnectionEvent(Events.RESUBSCRIBED);
 
         try (NatsTestServer ignored = new NatsTestServer(customArgs, port)) {

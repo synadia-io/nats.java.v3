@@ -24,7 +24,7 @@ import java.util.concurrent.TimeoutException;
  * <li> A dispatch thread to handle request/reply traffic
  * </ul>
  * 
- * <p>The connection has a {@link Connection.Status status} which can be checked using the {@link #getStatus() getStatus}
+ * <p>The connection has a {@link ConnectionStatus status} which can be checked using the {@link #getStatus() getStatus}
  * method or watched using a {@link ConnectionListener ConnectionListener}.
  * 
  * <p>Connections, by default, are configured to try to reconnect to the server if there is a network failure up to
@@ -70,33 +70,6 @@ import java.util.concurrent.TimeoutException;
  * after thorough testing. 
  */
 public interface Connection extends AutoCloseable {
-
-    /**
-     * Enum representing the status of a connection
-     */
-    enum Status {
-        /**
-         * The {@code Connection} is not connected.
-         */
-        DISCONNECTED,
-        /**
-         * The {@code Connection} is currently connected.
-         */
-        CONNECTED,
-        /**
-         * The {@code Connection} is currently closed.
-         */
-        CLOSED,
-        /**
-         * The {@code Connection} is currently attempting to reconnect to a server from its server list.
-         */
-        RECONNECTING,
-        /**
-         * The {@code Connection} is currently connecting to a server for the first
-         * time.
-         */
-        CONNECTING;
-    }
 
     /**
      * Send a message to the specified subject. The message body <strong>will
@@ -411,7 +384,7 @@ public interface Connection extends AutoCloseable {
      * Attach another ConnectionListener. 
      * 
      * <p>The ConnectionListener will only receive Connection events arriving after it has been attached.  When
-     * a Connection event is raised, the invocation order and parallelism of multiple ConnectionListeners is not 
+     * a Connection event is raised, the invocation order and parallelism of multiple ConnectionListeners is not
      * specified.
      * 
      * @param connectionListener the ConnectionListener to attach. A null listener is a no-op
@@ -485,7 +458,7 @@ public interface Connection extends AutoCloseable {
      * @return the connection's status
      */
     @NonNull
-    Status getStatus();
+    ConnectionStatus getStatus();
 
     /**
      * MaxPayload returns the size limit that a message payload can have. This is

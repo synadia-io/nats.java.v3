@@ -38,7 +38,7 @@ public class ReqReplyBenchmark extends AutoBenchmark {
         Thread replyThread = new Thread(() -> {
             try {
                 Connection replyConnect = Nats.connect(connectOptions);
-                if (replyConnect.getStatus() != Connection.Status.CONNECTED) {
+                if (replyConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
                 try {
@@ -75,7 +75,7 @@ public class ReqReplyBenchmark extends AutoBenchmark {
         Thread requestThread = new Thread(() -> {
             try {
                 Connection requestConnect = Nats.connect(connectOptions);
-                if (requestConnect.getStatus() != Connection.Status.CONNECTED) {
+                if (requestConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
                 try {

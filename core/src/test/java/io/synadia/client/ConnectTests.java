@@ -351,7 +351,7 @@ public class ConnectTests {
             nc.flushBuffer();
 
             ts.shutdown();
-            while (nc.getStatus() == Connection.Status.CONNECTED) {
+            while (nc.getStatus() == ConnectionStatus.CONNECTED) {
                 sleep(10);
             }
 
