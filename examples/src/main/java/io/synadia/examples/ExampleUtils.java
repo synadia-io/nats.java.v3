@@ -30,7 +30,7 @@ public class ExampleUtils {
         return Options.DEFAULT_URL;
     }
 
-    public static final ConnectionListener EXAMPLE_CONNECTION_LISTENER = (conn, type) -> System.out.println("Status change "+ type);
+    public static final ConnectionListener EXAMPLE_CONNECTION_LISTENER = (conn, event, time, details) -> System.out.println("Status change "+ event);
 
     public static final ErrorListener EXAMPLE_ERROR_LISTENER = new ErrorListenerLoggerImpl();
 

@@ -70,14 +70,6 @@ public class NatsKeyValueManagement implements KeyValueManagement {
      * {@inheritDoc}
      */
     @Override
-    public KeyValueStatus getBucketInfo(String bucketName) throws IOException, JetStreamApiException {
-        return getStatus(bucketName);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public KeyValueStatus getStatus(String bucketName) throws IOException, JetStreamApiException {
         Validator.validateBucketName(bucketName, true);
         return new KeyValueStatus(jsm.getStreamInfo(toStreamName(bucketName)));

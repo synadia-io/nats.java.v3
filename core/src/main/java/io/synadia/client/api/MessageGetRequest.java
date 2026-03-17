@@ -96,44 +96,4 @@ public class MessageGetRequest implements JsonSerializable {
         addField(sb, START_TIME, startTime);
         return endJson(sb).toString();
     }
-
-    /**
-     * @deprecated use static method forSequence with .serialize instead
-     * @param sequence start sequence
-     * @return rendered output
-     */
-    @Deprecated
-    public static byte[] seqBytes(long sequence) {
-        return forSequence(sequence).serialize();
-    }
-
-    /**
-     * @deprecated use static method lastForSubject with .serialize instead
-     * @param subject filter subject
-     * @return rendered output
-     */
-    @Deprecated
-    public static byte[] lastBySubjectBytes(String subject) {
-        return lastForSubject(subject).serialize();
-    }
-
-    /**
-     * @deprecated use static method forSequence instead
-     *
-     * @param sequence start sequence number
-     */
-    @Deprecated
-    public MessageGetRequest(long sequence) {
-        this(sequence, null, null, null);
-    }
-
-    /**
-     * @deprecated use static method lastForSubject instead
-     *
-     * @param lastBySubject filter subject
-     */
-    @Deprecated
-    public MessageGetRequest(String lastBySubject) {
-        this(-1, lastBySubject, null, null);
-    }
 }

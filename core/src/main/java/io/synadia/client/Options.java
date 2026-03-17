@@ -1,7 +1,10 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.*;
-import io.synadia.client.support.*;
+import io.synadia.client.support.HttpRequest;
+import io.synadia.client.support.NatsConstants;
+import io.synadia.client.support.NatsUri;
+import io.synadia.client.support.SSLUtils;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLContext;
@@ -108,21 +111,9 @@ public class Options {
     public static final Duration DEFAULT_SOCKET_WRITE_TIMEOUT = Duration.ofMinutes(1);
 
     /**
-     * @deprecated No longer enforcing a minimum compared to the connection timeout
-     */
-    @Deprecated
-    public static final long MINIMUM_SOCKET_WRITE_TIMEOUT_GT_CONNECTION_TIMEOUT = 100;
-
-    /**
      * This is set to 100 nanos to ensure that the scheduled task can execute
      */
     public static final long MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS = 100;
-
-    /**
-     * @deprecated No longer enforcing a minimum
-     */
-    @Deprecated
-    public static final long MINIMUM_SOCKET_READ_TIMEOUT_GT_CONNECTION_TIMEOUT = 100;
 
     /**
      * Default server ping interval. The client will send a ping to the server on this interval to insure liveness.
@@ -456,19 +447,6 @@ public class Options {
      */
     public static final String PROP_NORANDOMIZE = PFX + "norandomize";
     /**
-     * @deprecated Prefer to use hostname resolve mode
-     * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#noResolveHostnames() noResolveHostnames}.
-     */
-    @Deprecated
-    public static final String PROP_NO_RESOLVE_HOSTNAMES = PFX + "noResolveHostnames";
-    /**
-     * @deprecated Prefer to use hostname resolve mode
-     * Property used to enable fast fallback algorithm for socket connection.
-     * {@link Builder#enableFastFallback() enableFastFallback}.
-     */
-    @Deprecated
-    public static final String PROP_FAST_FALLBACK = PFX + "fast.fallback";
-    /**
      * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#hostnameResolveMode(HostnameResolveMode) hostnameResolveMode}.
      * Takes precedence over PROP_NO_RESOLVE_HOSTNAMES and PROP_FAST_FALLBACK
      */
@@ -505,7 +483,7 @@ public class Options {
      */
     public static final String PROP_USERNAME = PFX + "username";
     /**
-     * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#token(String) token}.
+     * Property used to configure a builder from a Properties object. {@value}, see {@link Builder#token(char[]) token}.
      */
     public static final String PROP_TOKEN = PFX + "token";
     /**
@@ -689,8 +667,7 @@ public class Options {
     static final String OPTION_TLS_REQUIRED = "tls_required";
 
     /**
-     * Protocol key {@value}, see {@link Builder#token(String)
-     * token}.
+     * Protocol key {@value}, see {@link Builder#token(char[]) token}.
      */
     static final String OPTION_AUTH_TOKEN = "auth_token";
 
@@ -878,25 +855,10 @@ public class Options {
             this.token = token == null || token.length == 0 ? null : token;
         }
 
-        public DefaultTokenSupplier(String token) {
-            token = Validator.emptyAsNull(token);
-            this.token = token == null ? null : token.toCharArray();
-        }
-
         @Override
         public char[] get() {
             return token;
         }
-    }
-
-    /**
-     * Set old request style.
-     * @param value true to use the old request style
-     * @deprecated Use Builder
-     */
-    @Deprecated
-    public void setOldRequestStyle(boolean value) {
-        useOldRequestStyle = value;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -1119,16 +1081,6 @@ public class Options {
             booleanProperty(props, PROP_USE_DISPATCHER_WITH_EXECUTOR, b -> this.useDispatcherWithExecutor = b);
             booleanProperty(props, PROP_FORCE_FLUSH_ON_REQUEST, b -> this.forceFlushOnRequest = b);
 
-            booleanProperty(props, PROP_NO_RESOLVE_HOSTNAMES, b -> {
-                if (b) {
-                    hostnameResolveMode = HostnameResolveMode.ResolveToFirst;
-                }
-            });
-            booleanProperty(props, PROP_FAST_FALLBACK, b -> {
-                if (b) {
-                    hostnameResolveMode = HostnameResolveMode.HappyEyeballs;
-                }
-            });
             stringProperty(props, PROP_HOSTNAME_RESOLVE_MODE, s -> {
                 HostnameResolveMode mode = HostnameResolveMode.get(s);
                 if (mode != null) {
@@ -1204,28 +1156,6 @@ public class Options {
          */
         public Builder noRandomize() {
             this.noRandomize = true;
-            return this;
-        }
-
-        /**
-         * @deprecated use hostnameResolveMode()
-         * If the connection should not resolve hostnames to ip addresses.
-         * @return the Builder for chaining
-         */
-        @Deprecated
-        public Builder noResolveHostnames() {
-            this.hostnameResolveMode = HostnameResolveMode.ResolveToFirst;
-            return this;
-        }
-
-        /**
-         * @deprecated use hostnameResolveMode()
-         * Whether to enable Fast fallback algorithm for socket connect
-         * @return the Builder for chaining
-         */
-        @Deprecated
-        public Builder enableFastFallback() {
-            this.hostnameResolveMode = HostnameResolveMode.HappyEyeballs;
             return this;
         }
 
@@ -1790,20 +1720,6 @@ public class Options {
         public Builder userInfo(char[] userName, char[] password) {
             this.username = userName;
             this.password = password;
-            return this;
-        }
-
-        /**
-         * Set the token for token-based authentication.
-         * If a token is provided in a server URI, it overrides this value.
-         *
-         * @param token The token
-         * @return the Builder for chaining
-         * @deprecated use the char[] version instead for better security
-         */
-        @Deprecated
-        public Builder token(String token) {
-            this.tokenSupplier = new DefaultTokenSupplier(token);
             return this;
         }
 
@@ -2787,25 +2703,6 @@ public class Options {
     }
 
     /**
-     * @deprecated use hostnameResolveMode instead
-     * @return true if HostnameResolveMode is HostnameResolveMode.ResolveToFirst since that mode replaces isNoResolveHostnames
-     */
-    @Deprecated
-    public boolean isNoResolveHostnames() {
-        return hostnameResolveMode == HostnameResolveMode.ResolveToFirst;
-    }
-
-    /**
-     * @deprecated use hostnameResolveMode instead
-     * Whether Fast fallback algorithm is enabled for socket connect
-     * @return true if HostnameResolveMode is HostnameResolveMode.HappyEyeballs since that mode replaces isEnableFastFallback
-     */
-    @Deprecated
-    public boolean isEnableFastFallback() {
-        return hostnameResolveMode == HostnameResolveMode.HappyEyeballs;
-    }
-
-    /**
      * Get the Hostname Resolve Mode
      * @return the mode
      */
@@ -3064,29 +2961,11 @@ public class Options {
     }
 
     /**
-     * @deprecated converts the char array to a string, use getUserNameChars instead for more security
-     * @return the username to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
-     */
-    @Deprecated
-    public String getUsername() {
-        return username == null ? null : new String(username);
-    }
-
-    /**
      * the username to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
      * @return the username
      */
     public char[] getUsernameChars() {
         return username;
-    }
-
-    /**
-     * @deprecated converts the char array to a string, use getPasswordChars instead for more security
-     * @return the password to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
-     */
-    @Deprecated
-    public String getPassword() {
-        return password == null ? null : new String(password);
     }
 
     /**
@@ -3098,17 +2977,7 @@ public class Options {
     }
 
     /**
-     * @deprecated converts the char array to a string, use getTokenChars instead for more security
-     * @return the token to be used for token-based authentication, see {@link Builder#token(String) token()} in the builder doc
-     */
-    @Deprecated
-    public String getToken() {
-        char[] token = tokenSupplier.get();
-        return token == null ? null : new String(token);
-    }
-
-    /**
-     * the token to be used for token-based authentication, see {@link Builder#token(String) token()} in the builder doc
+     * the token to be used for token-based authentication, see {@link Builder#token(char[]) token()} in the builder doc
      * generated from the token supplier if the user supplied one.
      * @return the token
      */

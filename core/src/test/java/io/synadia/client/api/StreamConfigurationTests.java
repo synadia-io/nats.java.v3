@@ -311,7 +311,6 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals(Duration.ofMillis(2222), scCov.getDuplicateWindow());
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     public void testConstructionInvalidsCoverage() {
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().name(null).build());
@@ -326,9 +325,6 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxBytes(-2));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxAge(Duration.ofNanos(-1)));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxAge(-1));
-        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxMsgSize(0)); // COVERAGE for deprecated
-        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxMsgSize(-2)); // COVERAGE for deprecated
-        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxMsgSize((long)Integer.MAX_VALUE + 1)); // COVERAGE for deprecated, TOO LARGE A NUMBER
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maximumMessageSize(0));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maximumMessageSize(-2));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().replicas(0));
@@ -579,15 +575,11 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals(732, sc.getMaxBytes());
         assertEquals(Duration.ofNanos(43000000000L), sc.getMaxAge());
         assertEquals(Duration.ofNanos(42000000000L), sc.getDuplicateWindow());
-        //noinspection deprecation
-        assertEquals(734, sc.getMaxMsgSize()); // COVERAGE for deprecated
         assertEquals(734, sc.getMaximumMessageSize());
         assertEquals(StorageType.Memory, sc.getStorageType());
         assertSame(DiscardPolicy.New, sc.getDiscardPolicy());
 
         assertTrue(sc.getAllowMessageTtl());
-        //noinspection deprecation
-        assertTrue(sc.isAllowMessageTtl()); // COVERAGE
 
         assertEquals(Duration.ofNanos(73000000000L), sc.getSubjectDeleteMarkerTtl());
 

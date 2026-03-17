@@ -101,24 +101,4 @@ public class AccountTier {
     public AccountLimits getLimits() {
         return limits;
     }
-
-    /**
-     * @deprecated use getMemoryBytes instead
-     * Memory Storage being used for Stream Message storage in this tier.
-     * @return the memory storage in bytes
-     */
-    @Deprecated
-    public int getMemory() {
-        return (int)memory;
-    }
-
-    /**
-     * @deprecated use getStorageBytes instead
-     * File Storage being used for Stream Message storage in this tier.
-     * @return the storage in bytes
-     */
-    @Deprecated
-    public int getStorage() {
-        return (int)storage;
-    }
 }

@@ -83,7 +83,7 @@ public class CommandLine {
     public final List<CommandLineConsumer> commandLineConsumers;
 
     public Options makeManagmentOptions() {
-        return makeOptions((conn, event) -> {}, new ErrorListener() {}, 0);
+        return makeOptions((conn, event, time, details) -> {}, new ErrorListener() {}, 0);
     }
 
     public Options makeOptions(ConnectionListener cl, ErrorListener el) {

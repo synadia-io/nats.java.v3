@@ -48,9 +48,7 @@ public class FetchResilientExample implements Runnable {
 
     public static void main(String[] args) {
         Options options = Options.builder().server(SERVER)
-            .connectionListener((c, t) -> {
-                report("Connection: " + c.getServerInfo().getPort() + " " + t);
-            })
+            .connectionListener((c, e, t, d) -> report("Connection: " + c.getServerInfo().getPort() + " " + e))
             .build();
 
         try (NatsConnection nc = Nats.connect(options)) {

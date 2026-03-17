@@ -55,8 +55,8 @@ public class ReconnectCheck {
             .connectionTimeout(Duration.ofSeconds(5))
             .pingInterval(Duration.ofMillis(100))
             .reconnectBufferSize(-1) // Do not cache any messages when Nats connection is down.// Do not cache any messages when Nats connection is down.
-            .connectionListener((conn, e) ->
-                System.out.printf("Tid: %d, %s, NATS: connection event - %s, connected url: %s. servers: %s %n", Thread.currentThread().getId(), name, e, conn.getConnectedUrl(), conn.getServers()))
+            .connectionListener((conn, event, time, details) ->
+                System.out.printf("Tid: %d, %s, NATS: connection event - %s, connected url: %s. servers: %s %n", Thread.currentThread().getId(), name, event, conn.getConnectedUrl(), conn.getServers()))
             .errorListener(new ErrorListener() {
                 @Override
                 public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {

@@ -8,7 +8,6 @@ import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -20,7 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static io.synadia.client.support.DateTimeUtils.DEFAULT_TIME;
 import static io.synadia.client.support.DateTimeUtils.ZONE_ID_GMT;
 import static io.synadia.client.support.NatsJetStreamConstants.*;
-import static io.synadia.client.utils.ResourceUtils.dataAsString;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -57,8 +55,6 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertEquals(-1, sc.getMaxConsumers());
             assertEquals(-1, sc.getMaxMsgs());
             assertEquals(-1, sc.getMaxBytes());
-            //noinspection deprecation
-            assertEquals(-1, sc.getMaxMsgSize()); // COVERAGE for deprecated
             assertEquals(-1, sc.getMaximumMessageSize());
             assertEquals(1, sc.getReplicas());
 
@@ -235,8 +231,6 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertStatus(10058, assertThrows(JetStreamApiException.class, () -> ctx.jsm.addStream(StreamConfiguration.builder(sc).maxMessages(1).build())));
             assertStatus(10058, assertThrows(JetStreamApiException.class, () -> ctx.jsm.addStream(StreamConfiguration.builder(sc).maxMessagesPerSubject(1).build())));
             assertStatus(10058, assertThrows(JetStreamApiException.class, () -> ctx.jsm.addStream(StreamConfiguration.builder(sc).maxAge(Duration.ofSeconds(1L)).build())));
-            //noinspection deprecation
-            assertStatus(10058, assertThrows(JetStreamApiException.class, () -> ctx.jsm.addStream(StreamConfiguration.builder(sc).maxMsgSize(1).build()))); // COVERAGE for deprecated
             assertStatus(10058, assertThrows(JetStreamApiException.class, () -> ctx.jsm.addStream(StreamConfiguration.builder(sc).maximumMessageSize(1).build())));
             assertStatus(10058, assertThrows(JetStreamApiException.class, () -> ctx.jsm.addStream(StreamConfiguration.builder(sc).storageType(StorageType.File).build())));
 
@@ -1148,28 +1142,6 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         assertEquals(lastBySubject != null, mgr.isLastBySubject());
         assertEquals(nextBySubject != null, mgr.isNextBySubject());
         assertEquals(zdt, mgr.getStartTime());
-    }
-
-    @Test
-    public void testMessageGetRequestObjectDeprecatedMethods() {
-        // coverage for deprecated methods
-        //noinspection deprecation
-        MessageGetRequest.seqBytes(1);
-        //noinspection deprecation
-        MessageGetRequest.lastBySubjectBytes(random());
-        //noinspection deprecation
-        new MessageGetRequest(1);
-        //noinspection deprecation
-        new MessageGetRequest(random());
-
-        // coverage for MessageInfo, has error
-        String json = dataAsString("GenericErrorResponse.json");
-        NatsMessage m = new NatsMessage("sub", null, json.getBytes(StandardCharsets.US_ASCII));
-        //noinspection deprecation
-        MessageInfo mi = new MessageInfo(m);
-        assertTrue(mi.hasError());
-        assertEquals(-1, mi.getLastSeq());
-        assertFalse(mi.toString().contains("last_seq"));
     }
 
     @Test

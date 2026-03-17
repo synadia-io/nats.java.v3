@@ -1,6 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.ByteArrayBuilder;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -486,28 +485,6 @@ public class Headers {
 	}
 
 	/**
-	 * @deprecated
-	 * Used for unit testing.
-     * Appends the serialized bytes to the builder. 
-	 * @param bab the ByteArrayBuilder to append
-	 * @return the builder
-	 */
-	@Deprecated
-	public ByteArrayBuilder appendSerialized(ByteArrayBuilder bab) {
-		bab.append(HEADER_VERSION_BYTES_PLUS_CRLF);
-		for (Map.Entry<String, List<String>> entry : valuesMap.entrySet()) {
-			for (String value : entry.getValue()) {
-				bab.append(entry.getKey());
-				bab.append(COLON_BYTES);
-				bab.append(value);
-				bab.append(CRLF_BYTES);
-			}
-		}
-		bab.append(CRLF_BYTES);
-		return bab;
-	}
-
-	/**
 	 * Write the header to the byte array. Assumes that the caller has
 	 * already validated that the destination array is large enough by using {@link #serializedLength()}.
 	 * <p>deprecated {@link String#getBytes(int, int, byte[], int)} is used, because it still exists in JDK 25
@@ -523,13 +500,13 @@ public class Headers {
 		for (Map.Entry<String, List<String>> entry : valuesMap.entrySet()) {
 			String key = entry.getKey();
 			for (String value : entry.getValue()) {
-                //noinspection deprecation
+                //TODO REMOVE noinspection deprecation
                 key.getBytes(0, key.length(), dest, destPosition);// key has only US_ASCII
 				destPosition += key.length();
 
 				dest[destPosition++] = COLON;
 
-				//noinspection deprecation
+				//TODO REMOVE noinspection deprecation
 				value.getBytes(0, value.length(), dest, destPosition);
 				destPosition += value.length();
 

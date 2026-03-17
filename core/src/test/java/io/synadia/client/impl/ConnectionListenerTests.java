@@ -110,13 +110,13 @@ public class ConnectionListenerTests extends TestBase {
             //noinspection DataFlowIssue // removeConnectionListener parameter is annotated as @NonNull
             assertThrows(NullPointerException.class, () -> nc.removeConnectionListener(null));
 
-            ConnectionListener removedConnectionListener = (conn, event) -> capturedEvents.add("NEVER INVOKED");
+            ConnectionListener removedConnectionListener = (conn, event, time, details) -> capturedEvents.add("NEVER INVOKED");
             nc.addConnectionListener(removedConnectionListener);
-            nc.addConnectionListener((conn, event) -> capturedEvents.add("CL1-" + event.name()));
-            nc.addConnectionListener((conn, event) -> capturedEvents.add("CL2-" + event.name()));
-            nc.addConnectionListener((conn, event) -> { throw new RuntimeException("should not interfere with other listeners"); });
-            nc.addConnectionListener((conn, event) -> capturedEvents.add("CL3-" + event.name()));
-            nc.addConnectionListener((conn, event) -> capturedEvents.add("CL4-" + event.name()));
+            nc.addConnectionListener((conn, event, time, details) -> capturedEvents.add("CL1-" + event.name()));
+            nc.addConnectionListener((conn, event, time, details) -> capturedEvents.add("CL2-" + event.name()));
+            nc.addConnectionListener((conn, event, time, details) -> { throw new RuntimeException("should not interfere with other listeners"); });
+            nc.addConnectionListener((conn, event, time, details) -> capturedEvents.add("CL3-" + event.name()));
+            nc.addConnectionListener((conn, event, time, details) -> capturedEvents.add("CL4-" + event.name()));
             nc.removeConnectionListener(removedConnectionListener);
 
             closeAndConfirm(nc);

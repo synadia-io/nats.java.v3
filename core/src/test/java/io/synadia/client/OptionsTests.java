@@ -93,7 +93,6 @@ public class OptionsTests {
         assertNull(o.getConnectionListener(), "disconnect listener");
         assertNull(o.getStatisticsCollector(), "statistics collector");
         assertFalse(o.isOldRequestStyle(), "default oldstyle");
-        assertFalse(o.isEnableFastFallback(), "fast fallback");
 
         assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
     }
@@ -101,13 +100,9 @@ public class OptionsTests {
     @Test
     public void testOldStyle() {
         Options o = new Options.Builder().build();
-        assertFalse(o.isOldRequestStyle(), "default oldstyle");
-        //noinspection deprecation
-        o.setOldRequestStyle(true);
-        assertTrue(o.isOldRequestStyle(), "true oldstyle");
-        //noinspection deprecation
-        o.setOldRequestStyle(false);
-        assertFalse(o.isOldRequestStyle(), "false oldstyle");
+        assertFalse(o.isOldRequestStyle());
+        o = new Options.Builder().oldRequestStyle().build();
+        assertTrue(o.isOldRequestStyle());
     }
 
     @Test
@@ -588,7 +583,6 @@ public class OptionsTests {
         props.setProperty(Options.PROP_RECONNECT_JITTER_TLS, "2000");
         props.setProperty(Options.PROP_CLIENT_SIDE_LIMIT_CHECKS, "true"); // deprecated
         props.setProperty(Options.PROP_IGNORE_DISCOVERED_SERVERS, "true");
-        props.setProperty(Options.PROP_NO_RESOLVE_HOSTNAMES, "true");
         props.setProperty(PROP_FORCE_FLUSH_ON_REQUEST, "false");
 
         Options o = new Options.Builder(props).build();
@@ -602,7 +596,6 @@ public class OptionsTests {
         assertTrue(o.isNoNoResponders());
         assertTrue(o.clientSideLimitChecks());
         assertTrue(o.isIgnoreDiscoveredServers());
-        assertTrue(o.isNoResolveHostnames());
         assertFalse(o.forceFlushOnRequest());
     }
 
@@ -731,7 +724,6 @@ public class OptionsTests {
         assertEquals(0, ((Listener) o.getErrorListener()).getExceptionCount(), "property error listener class");
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     public void testPropertyConnectionListeners() {
         Properties props = new Properties();
@@ -743,15 +735,15 @@ public class OptionsTests {
 
         Listener listener = ((Listener) o.getConnectionListener());
         listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
-        o.getConnectionListener().connectionEvent(null, ConnectionEvents.DISCONNECTED);
+        o.getConnectionListener().connectionEvent(null, ConnectionEvents.DISCONNECTED, null, null);
         listener.validate();
 
         listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
-        o.getConnectionListener().connectionEvent(null, ConnectionEvents.RECONNECTED);
+        o.getConnectionListener().connectionEvent(null, ConnectionEvents.RECONNECTED, null, null);
         listener.validate();
 
         listener.queueConnectionEvent(ConnectionEvents.CLOSED);
-        o.getConnectionListener().connectionEvent(null, ConnectionEvents.CLOSED);
+        o.getConnectionListener().connectionEvent(null, ConnectionEvents.CLOSED, null, null);
         listener.validate();
     }
 
@@ -771,7 +763,6 @@ public class OptionsTests {
         assertEquals(42, stats.getOutBytes());
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     public void testStatisticsCoverage() {
         validateStatisticsCollector(new NatsStatistics());
@@ -788,10 +779,6 @@ public class OptionsTests {
         stats.incrementRepliesReceived();
         stats.incrementDuplicateRepliesReceived();
         stats.incrementOrphanRepliesReceived();
-        stats.incrementInMsgs();
-        stats.incrementOutMsgs();
-        stats.incrementInBytes(42);
-        stats.incrementOutBytes(73);
         stats.incrementIn(42);
         stats.incrementOut(73);
         stats.incrementFlushCounter();
@@ -1001,17 +988,7 @@ public class OptionsTests {
         String connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
         assertFalse(connectString.contains("\"auth_token\""));
 
-        //noinspection deprecation
-        o = new Options.Builder().token((String)null).build();
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
-        assertFalse(connectString.contains("\"auth_token\""));
-
-        //noinspection deprecation
-        o = new Options.Builder().token("   ").build();
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
-        assertFalse(connectString.contains("\"auth_token\""));
-
-        o = new Options.Builder().token((char[])null).build();
+        o = new Options.Builder().token(null).build();
         connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
         assertFalse(connectString.contains("\"auth_token\""));
 
@@ -1315,84 +1292,47 @@ public class OptionsTests {
         assertNotNull(o.getSslContext());
     }
 
-    @SuppressWarnings("deprecation")
-    @Test
-    public void coverageForDeprecated() {
-        Options o = new Options.Builder()
-            .token("deprecated")
-            .build();
-        assertEquals("deprecated", o.getToken());
-        assertNull(o.getUsername());
-        assertNull(o.getPassword());
-
-        o = new Options.Builder()
-            .userInfo("user", "pass")
-            .build();
-        assertEquals("user", o.getUsername());
-        assertEquals("pass", o.getPassword());
-        assertNull(o.getToken());
-    }
-
     @Test
     public void testHostnameResolveMode() {
-        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, false, false, new Options.Builder().build());
-        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToAll).build());
-        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, false, false, new Options.Builder().hostnameResolveMode(null).build());
-        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToAll", HostnameResolveMode.ResolveToAll, false, false);
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, new Options.Builder().build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToAll).build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, new Options.Builder().hostnameResolveMode(null).build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAll, "ResolveToAll");
 
-        validateHostnameResolveMode(HostnameResolveMode.ResolveToAllIncludeIPV6, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToAllIncludeIPV6).build());
-        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToAllIncludeIPV6", HostnameResolveMode.ResolveToAllIncludeIPV6, false, false);
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAllIncludeIPV6, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToAllIncludeIPV6).build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToAllIncludeIPV6, "ResolveToAllIncludeIPV6");
 
-        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirstIncludeIPV6, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToFirstIncludeIPV6).build());
-        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToFirstIncludeIPV6", HostnameResolveMode.ResolveToFirstIncludeIPV6, false, false);
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirstIncludeIPV6, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToFirstIncludeIPV6).build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirstIncludeIPV6, "ResolveToFirstIncludeIPV6");
 
-        //noinspection deprecation
-        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirst, true, false, new Options.Builder().noResolveHostnames().build());
-        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirst, true, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToFirst).build());
-        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToFirst", HostnameResolveMode.ResolveToFirst, true, false);
-        //noinspection deprecation
-        validateHostnameResolveMode(PROP_NO_RESOLVE_HOSTNAMES, "true", HostnameResolveMode.ResolveToFirst, true, false);
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirst, new Options.Builder().hostnameResolveMode(HostnameResolveMode.ResolveToFirst).build());
+        validateHostnameResolveMode(HostnameResolveMode.ResolveToFirst, "ResolveToFirst");
 
-        validateHostnameResolveMode(HostnameResolveMode.Unresolved, false, false, new Options.Builder().hostnameResolveMode(HostnameResolveMode.Unresolved).build());
-        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "Unresolved", HostnameResolveMode.Unresolved, false, false);
+        validateHostnameResolveMode(HostnameResolveMode.Unresolved, new Options.Builder().hostnameResolveMode(HostnameResolveMode.Unresolved).build());
+        validateHostnameResolveMode(HostnameResolveMode.Unresolved, "Unresolved");
 
-        //noinspection deprecation
-        validateHostnameResolveMode(HostnameResolveMode.HappyEyeballs, false, true, new Options.Builder().enableFastFallback().build());
-        validateHostnameResolveMode(HostnameResolveMode.HappyEyeballs, false, true, new Options.Builder().hostnameResolveMode(HostnameResolveMode.HappyEyeballs).build());
-        validateHostnameResolveMode(PROP_HOSTNAME_RESOLVE_MODE, "HappyEyeballs", HostnameResolveMode.HappyEyeballs, false, true);
-        //noinspection deprecation
-        validateHostnameResolveMode(PROP_FAST_FALLBACK, "true", HostnameResolveMode.HappyEyeballs, false, true);
+        validateHostnameResolveMode(HostnameResolveMode.HappyEyeballs, new Options.Builder().hostnameResolveMode(HostnameResolveMode.HappyEyeballs).build());
+        validateHostnameResolveMode(HostnameResolveMode.HappyEyeballs, "HappyEyeballs");
 
         // these test where multiple properties. Only the PROP_HOSTNAME_RESOLVE_MODE wins
         Properties props = new Properties();
-        //noinspection deprecation
-        props.setProperty(PROP_FAST_FALLBACK, "true");
         props.setProperty(PROP_HOSTNAME_RESOLVE_MODE, "ResolveToAll");
         Options options = new Options.Builder(props).build();
         assertEquals(HostnameResolveMode.ResolveToAll, options.hostnameResolveMode());
     }
 
-    @SuppressWarnings("deprecation")
-    private void validateHostnameResolveMode(HostnameResolveMode expected,
-                                             boolean isNoResolveHostnames, boolean isEnableFastFallback,
-                                             Options options)
+    private void validateHostnameResolveMode(HostnameResolveMode expected, Options options)
     {
         assertEquals(expected, options.hostnameResolveMode());
-        assertEquals(isNoResolveHostnames, options.isNoResolveHostnames());
-        assertEquals(isEnableFastFallback, options.isEnableFastFallback());
-
         Options copy = new Options.Builder(options).build();
         assertEquals(expected, copy.hostnameResolveMode());
-        assertEquals(isNoResolveHostnames, copy.isNoResolveHostnames());
-        assertEquals(isEnableFastFallback, copy.isEnableFastFallback());
     }
 
-    private void validateHostnameResolveMode(String key, String value, HostnameResolveMode expected,
-                                             boolean isNoResolveHostnames, boolean isEnableFastFallback)
+    private void validateHostnameResolveMode(HostnameResolveMode expected, String value)
     {
         Properties props = new Properties();
-        props.setProperty(key, value);
-        validateHostnameResolveMode(expected, isNoResolveHostnames, isEnableFastFallback, new Options.Builder(props).build());
+        props.setProperty(Options.PROP_HOSTNAME_RESOLVE_MODE, value);
+        validateHostnameResolveMode(expected, new Options.Builder(props).build());
     }
 
 /* These next three require that no default is set anywhere, if another test

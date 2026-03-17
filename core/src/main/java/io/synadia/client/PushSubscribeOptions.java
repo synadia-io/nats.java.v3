@@ -37,21 +37,6 @@ public class PushSubscribeOptions extends SubscribeOptions {
      * Macro to create a default PushSubscribeOptions except for
      * where you must specify the stream because
      * the subject could apply to both a stream and a mirror.
-     * @deprecated
-     * This method resolves to {@link #stream(String)} as bind has a different meaning
-     * and requires both stream and consumer name
-     * @param stream the stream name
-     * @return push subscribe options
-     */
-    @Deprecated
-    public static PushSubscribeOptions bind(String stream) {
-        return stream(stream);
-    }
-
-    /**
-     * Macro to create a default PushSubscribeOptions except for
-     * where you must specify the stream because
-     * the subject could apply to both a stream and a mirror.
      * @param stream the stream name
      * @return push subscribe options
      */

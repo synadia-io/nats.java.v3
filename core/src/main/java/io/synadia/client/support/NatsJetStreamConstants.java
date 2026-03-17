@@ -3,11 +3,6 @@ package io.synadia.client.support;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 public interface NatsJetStreamConstants {
-    /**
-     * The maximum pull size [NO LONGER ENFORCED]
-     */
-    @Deprecated
-    int MAX_PULL_SIZE = 256;
 
     /**
      * The Max History Per Key KV key

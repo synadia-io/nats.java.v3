@@ -33,8 +33,8 @@ public class CoverageServerPool implements ServerPool {
     }
 
     @Override
-    @Nullable public List<String> resolveHostToIps(@NonNull String host) {
-        return null;
+    public @Nullable List<String> resolveHostToIps(@NonNull String host, boolean maxOneResult, boolean includeIPV6) {
+        return List.of();
     }
 
     @Override

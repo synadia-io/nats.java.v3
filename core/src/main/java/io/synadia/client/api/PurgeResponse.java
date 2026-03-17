@@ -34,19 +34,6 @@ public class PurgeResponse extends ApiResponse<PurgeResponse> {
     }
 
     /**
-     * @deprecated
-     * Returns the number of items purged from the stream
-     * This method is replaced since the purged value is a long
-     * value, not an int value
-     * See {@link #getPurged()} instead.
-     * @return the count
-     */
-    @Deprecated
-    public int getPurgedCount() {
-        return Long.valueOf(purged).intValue();
-    }
-
-    /**
      * Returns the number of items purged from the stream
      * @return the count
      */

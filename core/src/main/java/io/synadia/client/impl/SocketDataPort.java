@@ -17,7 +17,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -39,17 +38,6 @@ public class SocketDataPort implements DataPort {
 
     protected InputStream in;
     protected OutputStream out;
-
-    @Deprecated
-    @Override
-    public void connect(@NonNull String serverURI, @NonNull NatsConnection conn, long timeoutNanos) throws IOException {
-        try {
-            connect(conn, new NatsUri(serverURI), timeoutNanos);
-        }
-        catch (URISyntaxException e) {
-            throw new IOException(e);
-        }
-    }
 
     @Override
     public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {

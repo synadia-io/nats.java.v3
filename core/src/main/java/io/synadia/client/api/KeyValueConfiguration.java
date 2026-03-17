@@ -31,16 +31,6 @@ public class KeyValueConfiguration extends FeatureConfiguration {
 
     /**
      * Gets the maximum size for an individual value in the bucket.
-     * @deprecated the server value is a 32-bit signed value. Use {@link #getMaximumValueSize()} instead.
-     * @return the maximum size for a value.
-     */
-    @Deprecated
-    public long getMaxValueSize() {
-        return sc.getMaximumMessageSize();
-    }
-
-    /**
-     * Gets the maximum size for an individual value in the bucket.
      * @return the maximum size for a value.
      */
     public int getMaximumValueSize() {
@@ -94,7 +84,7 @@ public class KeyValueConfiguration extends FeatureConfiguration {
         JsonValueUtils.MapBuilder mb = new JsonValueUtils.MapBuilder(super.toJsonValue());
         mb.jv.mapOrder.remove("metaData");
         mb.put("maxHistoryPerKey", getMaxHistoryPerKey());
-        mb.put("maxValueSize", getMaxValueSize());
+        mb.put("maxValueSize", getMaximumValueSize());
         mb.put("republish", getRepublish());
         mb.put("mirror", getMirror());
         mb.put("sources", getSources());
@@ -218,18 +208,6 @@ public class KeyValueConfiguration extends FeatureConfiguration {
         @Override
         public Builder maxBucketSize(long maxBucketSize) {
             return super.maxBucketSize(maxBucketSize);
-        }
-
-        /**
-         * Sets the maximum size for an individual value in the KeyValueConfiguration.
-         * @deprecated the server value is a 32-bit signed value. Use {@link #maximumValueSize(int)} instead.
-         * @param maxValueSize the maximum size for a value
-         * @return Builder
-         */
-        @Deprecated
-        public Builder maxValueSize(long maxValueSize) {
-            scBuilder.maximumMessageSize((int)validateMaxValueSize(maxValueSize));
-            return this;
         }
 
         /**

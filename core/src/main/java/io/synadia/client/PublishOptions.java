@@ -16,18 +16,10 @@ public class PublishOptions {
     public static final Duration DEFAULT_TIMEOUT = Options.DEFAULT_CONNECTION_TIMEOUT;
 
     /**
-     * @deprecated Just use null to unset
-     * Use this variable to unset a stream in publish options.
-     */
-    @Deprecated
-    public static final String UNSET_STREAM = null;
-
-    /**
      * Use this variable to unset a sequence number in publish options.
      */
     public static final long UNSET_LAST_SEQUENCE = -1;
 
-    private final String pubAckStream;
     private final Duration streamTimeout;
     private final String expectedStream;
     private final String expectedLastMsgId;
@@ -38,7 +30,6 @@ public class PublishOptions {
     private final MessageTtl messageTtl;
 
     private PublishOptions(Builder b) {
-        this.pubAckStream = b.pubAckStream;
         this.streamTimeout = b.streamTimeout;
         this.expectedStream = b.expectedStream;
         this.expectedLastMsgId = b.expectedLastMsgId;
@@ -52,7 +43,6 @@ public class PublishOptions {
     @Override
     public String toString() {
         return "PublishOptions{" +
-            "pubAckStream='" + pubAckStream + '\'' +
             ", streamTimeout=" + streamTimeout +
             ", expectedStream='" + expectedStream + '\'' +
             ", expectedLastMsgId='" + expectedLastMsgId + '\'' +
@@ -65,24 +55,9 @@ public class PublishOptions {
     }
 
     /**
-     * Property used to configure a builder from a Properties object.
-     */
-    public static final String PROP_STREAM_NAME = Options.PFX + "publish.stream";
-
-    /**
      * Property used to configure a builder from a Properties object..
      */
     public static final String PROP_PUBLISH_TIMEOUT = Options.PFX + "publish.timeout";
-
-    /**
-     * @deprecated this field isn't really very useful since it's used after the publish
-     * Gets the name of the stream to check after the publish has succeeded
-     * @return the name of the stream.
-     */
-    @Deprecated
-    public String getStream() {
-        return pubAckStream;
-    }
 
     /**
      * Gets the publish timeout.
@@ -164,7 +139,6 @@ public class PublishOptions {
      * prefix PROP_ in this class.
      */
     public static class Builder {
-        String pubAckStream = null;
         Duration streamTimeout = DEFAULT_TIMEOUT;
         String expectedStream;
         String expectedLastMsgId;
@@ -188,26 +162,6 @@ public class PublishOptions {
             if (s != null) {
                 streamTimeout = Duration.parse(s);
             }
-
-            s = properties.getProperty(PublishOptions.PROP_STREAM_NAME);
-            if (s != null) {
-                pubAckStream = s;
-            }
-        }
-
-        /**
-         * @deprecated Not a very useful function
-         * Sets the stream name to expect the pub ack to have.
-         * This really should never be an issue and it does
-         * not prevent the message from being published,
-         * it's an exception after the fact
-         * @param stream The name of the stream.
-         * @return The Builder
-         */
-        @Deprecated
-        public Builder stream(String stream) {
-            this.pubAckStream = validateStreamName(stream, false);
-            return this;
         }
 
         /**

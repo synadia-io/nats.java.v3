@@ -44,18 +44,6 @@ public interface KeyValueManagement {
 
     /**
      * Gets the status for an existing bucket.
-     * @deprecated Use {@link #getStatus(String)} instead.
-     * @param bucketName the bucket name to use
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     * @return the bucket status object
-     */
-    @Deprecated
-    KeyValueStatus getBucketInfo(String bucketName) throws IOException, JetStreamApiException;
-
-    /**
-     * Gets the status for an existing bucket.
      * @param bucketName the bucket name to use
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption

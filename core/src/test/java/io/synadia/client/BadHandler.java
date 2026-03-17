@@ -11,11 +11,12 @@ public class BadHandler implements ErrorListener, ConnectionListener {
         throw new IllegalStateException("Intentional");
     }
 
-    public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
+    public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
         throw new IllegalStateException("Intentional");
     }
-    
-    public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
+
+    @Override
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails) {
         throw new IllegalStateException("Intentional");
     }
 }

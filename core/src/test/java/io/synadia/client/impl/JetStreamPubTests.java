@@ -396,16 +396,6 @@ public class JetStreamPubTests extends JetStreamTestBase {
     @Test
     public void testPublishMiscExceptions() throws Exception {
         runInShared((nc, ctx) -> {
-            // stream supplied and matches
-            //noinspection deprecation
-            PublishOptions po = PublishOptions.builder().stream(ctx.stream).build();
-            ctx.js.publish(ctx.subject(), dataBytes(9), po);
-
-            // mismatch stream to PO stream
-            //noinspection deprecation
-            PublishOptions pox = PublishOptions.builder().stream(random()).build();
-            assertThrows(IOException.class, () -> ctx.js.publish(ctx.subject(), dataBytes(), pox));
-
             // invalid subject
             assertThrows(IOException.class, () -> ctx.js.publish(random(), dataBytes()));
         });

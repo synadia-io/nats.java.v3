@@ -377,17 +377,11 @@ public class ValidatorTests {
     @Test
     public void testValidateRequired() {
         required("required", "label");
-        //noinspection deprecation
-        required("required1", "required2", "label");
         required(new Object(), "label");
         required(Collections.singletonList("list"), "label");
         required(Collections.singletonMap("key", "value"), "label");
 
         assertThrows(IllegalArgumentException.class, () -> required((String)null, "label"));
-        //noinspection deprecation
-        assertThrows(IllegalArgumentException.class, () -> required("no-second", null, "label"));
-        //noinspection deprecation
-        assertThrows(IllegalArgumentException.class, () -> required(null, "no-first", "label"));
         assertThrows(IllegalArgumentException.class, () -> required(EMPTY, "label"));
         assertThrows(IllegalArgumentException.class, () -> required((Object)null, "label"));
         assertThrows(IllegalArgumentException.class, () -> required((List)null, "label"));

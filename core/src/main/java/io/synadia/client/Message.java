@@ -68,14 +68,6 @@ public interface Message {
 	byte[] getData();
 
 	/**
-	 * @deprecated because the mode doesn't matter
-	 * if is utf8Mode
-	 * @return always false
-	 */
-	@Deprecated
-	boolean isUtf8mode();
-
-	/**
 	 * the Subscription associated with this message, may be owned by a Dispatcher
 	 * @return the subscription
 	 */

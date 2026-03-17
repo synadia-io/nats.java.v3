@@ -56,16 +56,6 @@ public class NatsMessage implements Message {
         dataLen = this.data.length;
     }
 
-    @Deprecated // utf8-mode is ignored
-    public NatsMessage(String subject, String replyTo, byte[] data, boolean utf8mode) {
-        this(subject, replyTo, null, data);
-    }
-
-    @Deprecated // utf8-mode is ignored
-    public NatsMessage(String subject, String replyTo, Headers headers, byte[] data, boolean utf8mode) {
-        this(subject, replyTo, headers, data);
-    }
-
     public NatsMessage(String subject, String replyTo, byte[] data) {
         this(subject, replyTo, null, data);
     }
@@ -267,14 +257,6 @@ public class NatsMessage implements Message {
     @Override
     public byte[] getData() {
         return data;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isUtf8mode() {
-        return false;
     }
 
     /**
@@ -510,17 +492,6 @@ public class NatsMessage implements Message {
          */
         public Builder data(final byte[] data) {
             this.data = data;
-            return this;
-        }
-
-        /**
-         * Set if the subject should be treated as utf
-         * @deprecated Code is just always treating as utf8
-         * @param utf8mode true if utf8 mode for subject
-         * @return the builder
-         */
-        @Deprecated
-        public Builder utf8mode(final boolean utf8mode) {
             return this;
         }
 

@@ -197,13 +197,6 @@ public class NatsServerPool implements ServerPool {
         }
     }
 
-    @Deprecated // this implementation has been deprecated but implemented for completeness
-    @Override
-    @Nullable
-    public List<String> resolveHostToIps(@NonNull String host) {
-        return NatsHostResolver.resolveHostToIps(host, false, false);
-    }
-
     @Override
     @Nullable
     public List<String> resolveHostToIps(@NonNull String host, boolean maxOneResult, boolean includeIPV6) {

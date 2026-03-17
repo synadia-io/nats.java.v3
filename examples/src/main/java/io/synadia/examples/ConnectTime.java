@@ -38,7 +38,7 @@ public class ConnectTime {
                         maxReconnects(-1).
                         traceConnection();
 
-        builder = builder.connectionListener((conn, type) -> System.out.println("Status change "+type));
+        builder = builder.connectionListener((conn, event, time, details) -> System.out.println("Status change "+event));
 
         builder = builder.errorListener(new ErrorListener() {
             @Override
