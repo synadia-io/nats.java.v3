@@ -1,9 +1,9 @@
 package io.synadia.service;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.NatsSystemClock;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.DateTimeUtils;
 
 import java.time.Duration;
@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 class EndpointContext {
 
-    private final Connection conn;
+    private final NatsConnection conn;
     private final ServiceEndpoint se;
     private final ServiceMessageHandler handler;
     private final boolean recordStats;
@@ -32,7 +32,7 @@ class EndpointContext {
     private final AtomicLong numErrors;
     private final AtomicLong processingTime;
 
-    EndpointContext(Connection conn, Dispatcher internalDispatcher, boolean internalEndpoint, ServiceEndpoint se) {
+    EndpointContext(NatsConnection conn, Dispatcher internalDispatcher, boolean internalEndpoint, ServiceEndpoint se) {
         this.conn = conn;
         this.se = se;
         handler = se.getHandler();

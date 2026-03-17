@@ -1,14 +1,14 @@
 package io.synadia.examples.natsIoDoc;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Nats;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class BasicsPublish {
     public static void main(String[] args) {
-        try (Connection nc = Nats.connect("nats://localhost:4222")) {
+        try (NatsConnection nc = Nats.connect("nats://localhost:4222")) {
             // NATS-DOC-START
             // Publish a message to the subject "weather.updates"
             byte[] data = "Temperature: 72°F".getBytes(StandardCharsets.UTF_8);

@@ -149,7 +149,7 @@ public class RunProxy implements Runnable {
             System.err.println("Remote connect to " + remoteHost + ":" + remotePort + " failed:");
             ex.printStackTrace(System.err);
             client.getOutputStream().write(
-                "HTTP/1.0 400 Bad Connection\r\nContent-Length: 0\r\n\r\n".getBytes(UTF_8));
+                "HTTP/1.0 400 Bad NatsConnection\r\nContent-Length: 0\r\n\r\n".getBytes(UTF_8));
             return null;
         }
         client.getOutputStream().write(

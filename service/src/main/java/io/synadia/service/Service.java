@@ -1,8 +1,8 @@
 package io.synadia.service;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.NUID;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.DateTimeUtils;
 import io.synadia.client.support.JsonUtils;
 
@@ -44,7 +44,7 @@ public class Service {
      */
     public static final String DEFAULT_SERVICE_PREFIX = "$SRV.";
 
-    private final Connection conn;
+    private final NatsConnection conn;
     private final Duration drainTimeout;
     private final ConcurrentHashMap<String, EndpointContext> serviceContexts;
     private final List<EndpointContext> discoveryContexts;

@@ -1,11 +1,11 @@
 package io.synadia.client.support;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.Message;
 import io.synadia.client.api.*;
 import io.synadia.client.impl.Headers;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsJetStreamMetaData;
 import io.synadia.client.impl.NatsMessage;
 
@@ -446,7 +446,7 @@ public abstract class Debug {
         }
     }
 
-    public static void streamAndConsumer(DebugPrinter printer, Connection nc, String stream, String conName) throws IOException, JetStreamApiException {
+    public static void streamAndConsumer(DebugPrinter printer, NatsConnection nc, String stream, String conName) throws IOException, JetStreamApiException {
         streamAndConsumer(printer, nc.jetStreamManagement(), stream, conName);
     }
 
@@ -455,7 +455,7 @@ public abstract class Debug {
         printConsumerInfo(printer, jsm.getConsumerInfo(stream, conName));
     }
 
-    public static void consumer(DebugPrinter printer, Connection nc, String stream, String conName) throws IOException, JetStreamApiException {
+    public static void consumer(DebugPrinter printer, NatsConnection nc, String stream, String conName) throws IOException, JetStreamApiException {
         consumer(printer, nc.jetStreamManagement(), stream, conName);
     }
 

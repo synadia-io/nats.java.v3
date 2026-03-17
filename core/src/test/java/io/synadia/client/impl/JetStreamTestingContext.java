@@ -1,6 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.api.*;
 import io.synadia.client.utils.TestBase;
@@ -28,7 +27,7 @@ public class JetStreamTestingContext implements AutoCloseable {
     private final Set<String> kvBuckets;
     private final Set<String> osBuckets;
 
-    public JetStreamTestingContext(Connection nc, int subjectCount) throws JetStreamApiException, IOException {
+    public JetStreamTestingContext(NatsConnection nc, int subjectCount) throws JetStreamApiException, IOException {
         jsm = (NatsJetStreamManagement)nc.jetStreamManagement();
         js = (NatsJetStream)jsm.jetStream();
         kvm = (NatsKeyValueManagement)jsm.keyValueManagement();

@@ -15,6 +15,7 @@ package io.synadia.examples.jetstream.simple;
 
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 
@@ -36,7 +37,7 @@ public class FetchBytesExample {
 
     public static void main(String[] args) {
         Options options = Options.builder().server(SERVER).build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
 
             // bytes don't work before server v2.9.1
             if (nc.getServerInfo().isOlderThanVersion("2.9.1")) {
@@ -72,7 +73,7 @@ public class FetchBytesExample {
         }
     }
 
-    private static void simpleFetch(Connection nc, JetStream js, String label, int maxMessages, int maxBytes) {
+    private static void simpleFetch(NatsConnection nc, JetStream js, String label, int maxMessages, int maxBytes) {
         String consumerName = generateConsumerName(maxMessages, maxBytes);
 
         // get stream context, create consumer and get the consumer context

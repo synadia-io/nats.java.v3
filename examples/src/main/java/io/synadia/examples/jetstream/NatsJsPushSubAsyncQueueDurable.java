@@ -15,6 +15,7 @@ package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
 import io.synadia.client.api.PublishAck;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -55,7 +56,7 @@ public class NatsJsPushSubAsyncQueueDurable {
                 .defaultSubCount(5)
                 .build();
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
 
             // Create a JetStreamManagement context.
             JetStreamManagement jsm = nc.jetStreamManagement();

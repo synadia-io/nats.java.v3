@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Isolated
 public class JetStreamPullTests extends JetStreamTestBase {
 
-    static Connection conflictNc;
+    static NatsConnection conflictNc;
     static Listener conflictListener;
 
     @AfterAll
@@ -716,7 +716,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
     }
 
     interface ConflictSetup {
-        JetStreamSubscription setup(Connection nc, JetStreamTestingContext ctx) throws Exception;
+        JetStreamSubscription setup(NatsConnection nc, JetStreamTestingContext ctx) throws Exception;
     }
 
     interface BuilderCustomizer {

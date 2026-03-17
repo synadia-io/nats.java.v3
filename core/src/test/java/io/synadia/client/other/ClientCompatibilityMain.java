@@ -1,6 +1,10 @@
 package io.synadia.client.other;
 
-import io.synadia.client.*;
+import io.synadia.client.Dispatcher;
+import io.synadia.client.ErrorListener;
+import io.synadia.client.Nats;
+import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.compatibility.*;
 
 import java.io.IOException;
@@ -30,7 +34,7 @@ public class ClientCompatibilityMain {
             .errorListener(new ErrorListener() {})
             .build();
 
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             Dispatcher d = nc.createDispatcher();
             d.subscribe("tests.>", m-> {
                 try {

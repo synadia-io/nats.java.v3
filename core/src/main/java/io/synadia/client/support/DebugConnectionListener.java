@@ -1,7 +1,8 @@
 package io.synadia.client.support;
 
-import io.synadia.client.Connection;
+import io.synadia.client.ConnectionEvents;
 import io.synadia.client.ConnectionListener;
+import io.synadia.client.impl.NatsConnection;
 
 public class DebugConnectionListener implements ConnectionListener {
     String label;
@@ -19,14 +20,14 @@ public class DebugConnectionListener implements ConnectionListener {
     }
 
     @Override
-    public void connectionEvent(Connection conn, Events type) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
         if (label != null) {
             Debug.info(label, "%s/%s/%s", Integer.toHexString(conn.hashCode()), conn.getStatus(), type.getEvent());
         }
     }
 
     @Override
-    public void connectionEvent(Connection conn, Events type, Long time, String uriDetails) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails) {
         if (label != null) {
             Debug.info(label, "%s@%s", Integer.toHexString(conn.hashCode()).toUpperCase(), time, "%s(%s)", type.getEvent(), conn.getStatus(), uriDetails);
         }

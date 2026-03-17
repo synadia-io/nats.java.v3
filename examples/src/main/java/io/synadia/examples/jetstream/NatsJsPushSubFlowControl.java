@@ -15,6 +15,7 @@ package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
@@ -49,14 +50,14 @@ public class NatsJsPushSubFlowControl {
 
         ErrorListener el = new ErrorListener() {
             @Override
-            public void flowControlProcessed(Connection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {
+            public void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {
                 System.out.printf("Flow Control Processed (%d), Connection: %d, Subject: %s, Source: %s\n",
                     flowControlMessagesProcessed.incrementAndGet(),
                     conn.getServerInfo().getClientId(), subject, source);
             }
         };
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, false, el, null))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, false, el, null))) {
 
             JetStreamManagement jsm = nc.jetStreamManagement();
 

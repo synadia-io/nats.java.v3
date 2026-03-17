@@ -15,6 +15,7 @@ package io.synadia.examples.chaosTestApp;
 
 import io.synadia.client.*;
 import io.synadia.client.api.ServerInfo;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.Status;
 
 public class OutputErrorListener implements ErrorListener {
@@ -31,7 +32,7 @@ public class OutputErrorListener implements ErrorListener {
     }
 
     @Override
-    public String supplyMessage(String label, Connection conn, Consumer consumer, Subscription sub, Object... pairs) {
+    public String supplyMessage(String label, NatsConnection conn, Consumer consumer, Subscription sub, Object... pairs) {
         StringBuilder sb = new StringBuilder(label);
         if (conn != null) {
             ServerInfo si = conn.getServerInfo();
@@ -62,7 +63,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void errorOccurred(final Connection conn, final String error) {
+    public void errorOccurred(final NatsConnection conn, final String error) {
         Output.controlMessage(id, supplyMessage("SEVERE errorOccurred", conn, null, null, "Error: ", error));
     }
 
@@ -70,7 +71,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void exceptionOccurred(final Connection conn, final Exception exp) {
+    public void exceptionOccurred(final NatsConnection conn, final Exception exp) {
         Output.controlMessage(id, supplyMessage("SEVERE exceptionOccurred", conn, null, null, "EX: ", exp));
     }
 
@@ -78,7 +79,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void slowConsumerDetected(final Connection conn, final Consumer consumer) {
+    public void slowConsumerDetected(final NatsConnection conn, final Consumer consumer) {
         Output.controlMessage(id, supplyMessage("WARN slowConsumerDetected", conn, consumer, null));
     }
 
@@ -86,7 +87,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void messageDiscarded(final Connection conn, final Message msg) {
+    public void messageDiscarded(final NatsConnection conn, final Message msg) {
         Output.controlMessage(id, supplyMessage("INFO messageDiscarded", conn, null, null, "Message: ", msg));
     }
 
@@ -94,7 +95,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void heartbeatAlarm(final Connection conn, final JetStreamSubscription sub,
+    public void heartbeatAlarm(final NatsConnection conn, final JetStreamSubscription sub,
                                final long lastStreamSequence, final long lastConsumerSequence) {
         Output.controlMessage(id, supplyMessage("SEVERE HB Alarm", conn, null, sub, "lastStreamSeq: ", lastStreamSequence, "lastConsumerSeq: ", lastConsumerSequence));
     }
@@ -103,7 +104,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void unhandledStatus(final Connection conn, final JetStreamSubscription sub, final Status status) {
+    public void unhandledStatus(final NatsConnection conn, final JetStreamSubscription sub, final Status status) {
         Output.controlMessage(id, supplyMessage("WARN unhandledStatus", conn, null, sub, "Status:", status));
     }
 
@@ -111,7 +112,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void pullStatusWarning(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {
 //        Output.controlMessage(id, supplyMessage("WARN pullStatusWarning", conn, null, sub, "Status:", status));
     }
 
@@ -119,7 +120,7 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void pullStatusError(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {
         Output.controlMessage(id, supplyMessage("SEVERE pullStatusError", conn, null, sub, "Status:", status));
     }
 
@@ -127,12 +128,12 @@ public class OutputErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void flowControlProcessed(Connection conn, JetStreamSubscription sub, String id, FlowControlSource source) {
+    public void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String id, FlowControlSource source) {
         Output.controlMessage(this.id, supplyMessage("INFO flowControlProcessed", conn, null, sub, "FlowControlSource:", source));
     }
 
     @Override
-    public void socketWriteTimeout(Connection conn) {
+    public void socketWriteTimeout(NatsConnection conn) {
         Output.controlMessage(this.id, supplyMessage("SEVERE socketWriteTimeout", conn, null, null));
     }
 }

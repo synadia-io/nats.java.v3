@@ -1,7 +1,7 @@
 package io.synadia.client;
 
 /**
- * Connections can provide an instance of Statistics, {@link Connection#getStatistics() getStatistics()}. The statistics
+ * Connections can provide an instance of Statistics, {@link NatsConnection#getStatistics() getStatistics()}. The statistics
  * object provides information about key metrics related to the connection over its entire lifecycle.
  *
  * <p>The Statistics toString() provides a summary of the statistics.

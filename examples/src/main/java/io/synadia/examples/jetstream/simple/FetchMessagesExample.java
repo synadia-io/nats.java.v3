@@ -15,6 +15,7 @@ package io.synadia.examples.jetstream.simple;
 
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 
@@ -36,7 +37,7 @@ public class FetchMessagesExample {
 
     public static void main(String[] args) {
         Options options = Options.builder().server(SERVER).build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
             JetStream js = nc.jetStream();
 
@@ -66,7 +67,7 @@ public class FetchMessagesExample {
         }
     }
 
-    private static void simpleFetch(Connection nc, JetStream js, String label, int maxMessages) {
+    private static void simpleFetch(NatsConnection nc, JetStream js, String label, int maxMessages) {
         String consumerName = CONSUMER_NAME_PREFIX + "-" + maxMessages + "-messages";
 
         // get stream context, create consumer and get the consumer context

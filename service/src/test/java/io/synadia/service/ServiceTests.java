@@ -1,6 +1,5 @@
 package io.synadia.service;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.Options;
@@ -64,9 +63,9 @@ public class ServiceTests extends JetStreamTestBase {
         verifyMap.put(reverseEndpointName, "reverseEndpointName");
 
         runInSharedNamed(SERVICE_TESTS_SHARED_NAME, ts -> {
-            Connection clientNc = SharedServer.sharedConnectionForServer(ts);
-            Connection serviceNc1 = SharedServer.sharedConnectionForServer(ts);
-            Connection serviceNc2 = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection clientNc = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection serviceNc1 = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection serviceNc2 = SharedServer.sharedConnectionForServer(ts);
 
             Endpoint endEcho = Endpoint.builder()
                 .name(echoEndpointName)
@@ -349,7 +348,7 @@ public class ServiceTests extends JetStreamTestBase {
     }
 
     private static void verifyServiceExecution(
-        Connection nc, String endpointName, String serviceSubject, Group group, Map<String, String> verifyMap) {
+        NatsConnection nc, String endpointName, String serviceSubject, Group group, Map<String, String> verifyMap) {
         try {
             String request = Long.toHexString(System.currentTimeMillis()) + Long.toHexString(System.nanoTime()); // just some random text
             String subject = group == null ? serviceSubject : group.getSubject() + DOT + serviceSubject;
@@ -377,11 +376,11 @@ public class ServiceTests extends JetStreamTestBase {
     }
 
     static class EchoHandler implements ServiceMessageHandler {
-        Connection conn;
+        NatsConnection conn;
         Function<byte[], String> responder;
         AtomicInteger counter = new AtomicInteger();
 
-        public EchoHandler(Connection conn) {
+        public EchoHandler(NatsConnection conn) {
             this.conn = conn;
             this.responder = d -> {
                 counter.incrementAndGet();
@@ -389,7 +388,7 @@ public class ServiceTests extends JetStreamTestBase {
             };
         }
 
-        public EchoHandler(Connection conn, Function<byte[], String> responder) {
+        public EchoHandler(NatsConnection conn, Function<byte[], String> responder) {
             this.conn = conn;
             this.responder = responder;
         }
@@ -402,21 +401,21 @@ public class ServiceTests extends JetStreamTestBase {
     }
 
     static class SortHandlerA extends EchoHandler {
-        public SortHandlerA(Connection conn) {
+        public SortHandlerA(NatsConnection conn) {
             super(conn, ServiceTests::sortA); // override the response with sortA
         }
     }
 
     static class SortHandlerD extends EchoHandler {
-        public SortHandlerD(Connection conn) {
+        public SortHandlerD(NatsConnection conn) {
             super(conn, ServiceTests::sortD); // override the response with sortD
         }
     }
 
     static class ReverseHandler implements ServiceMessageHandler {
-        Connection conn;
+        NatsConnection conn;
 
-        public ReverseHandler(Connection conn) {
+        public ReverseHandler(NatsConnection conn) {
             this.conn = conn;
         }
 
@@ -471,9 +470,9 @@ public class ServiceTests extends JetStreamTestBase {
         String serviceName2 = "Service2" + random();
 
         runInSharedNamed(SERVICE_TESTS_SHARED_NAME, ts -> {
-            Connection clientNc = SharedServer.sharedConnectionForServer(ts);
-            Connection serviceNc1 = SharedServer.sharedConnectionForServer(ts);
-            Connection serviceNc2 = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection clientNc = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection serviceNc1 = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection serviceNc2 = SharedServer.sharedConnectionForServer(ts);
 
             String yesQueueSubject = "subjyes";
             String noQueueSubject = "subjno";
@@ -575,9 +574,9 @@ public class ServiceTests extends JetStreamTestBase {
         String serviceName2 = "Service2" + random();
 
         runInSharedNamed(SERVICE_TESTS_SHARED_NAME, ts -> {
-            Connection clientNc = SharedServer.sharedConnectionForServer(ts);
-            Connection serviceNc1 = SharedServer.sharedConnectionForServer(ts);
-            Connection serviceNc2 = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection clientNc = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection serviceNc1 = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection serviceNc2 = SharedServer.sharedConnectionForServer(ts);
 
             Endpoint ep = Endpoint.builder()
                 .name("ep")
@@ -767,7 +766,7 @@ public class ServiceTests extends JetStreamTestBase {
     @Test
     public void testServiceBuilderConstruction() {
         Options options = options(); // server not needed, a connection is never made
-        Connection conn = new MockNatsConnection(options);
+        NatsConnection conn = new MockNatsConnection(options);
         ServiceEndpoint se = ServiceEndpoint.builder()
             .endpoint(new Endpoint(random()))
             .handler(m -> {})
@@ -849,7 +848,7 @@ public class ServiceTests extends JetStreamTestBase {
     @Test
     public void testAddingEndpointAfterServiceBuilderConstruction() {
         Options options = options(); // server not needed, a connection is never made
-        Connection conn = new MockNatsConnection(options);
+        NatsConnection conn = new MockNatsConnection(options);
         ServiceEndpoint se = ServiceEndpoint.builder()
                 .endpoint(new Endpoint(random()))
                 .handler(m -> {
@@ -912,7 +911,7 @@ public class ServiceTests extends JetStreamTestBase {
     @Test
     public void testHandlerException() throws Exception {
         runInSharedNamed(SERVICE_TESTS_SHARED_NAME, ts -> {
-            Connection nc = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection nc = SharedServer.sharedConnectionForServer(ts);
             ServiceEndpoint exServiceEndpoint = ServiceEndpoint.builder()
                 .endpointName("exEndpoint")
                 .endpointSubject("exSubject")
@@ -944,7 +943,7 @@ public class ServiceTests extends JetStreamTestBase {
     @Test
     public void testServiceMessage() throws Exception {
         runInSharedNamed(SERVICE_TESTS_SHARED_NAME, ts -> {
-            Connection nc = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection nc = SharedServer.sharedConnectionForServer(ts);
             AtomicInteger which = new AtomicInteger();
             ServiceEndpoint se = ServiceEndpoint.builder()
                 .endpointName("testServiceMessage")
@@ -1584,7 +1583,7 @@ public class ServiceTests extends JetStreamTestBase {
     @Test
     public void testInboxSupplier() throws Exception {
         runInSharedNamed(SERVICE_TESTS_SHARED_NAME, ts -> {
-            Connection nc = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection nc = SharedServer.sharedConnectionForServer(ts);
             Discovery discovery = new Discovery(nc, 100, 1);
             TestInboxSupplier supplier = new TestInboxSupplier();
             discovery.setInboxSupplier(supplier);

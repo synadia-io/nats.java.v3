@@ -1838,7 +1838,7 @@ public class SimplificationTests extends JetStreamTestBase {
 
         // reconnect and get some more messages
         messageCount.set(0);
-        listener.queueConnectionEvent(ConnectionListener.Events.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
         /* start server */ ts.start();
         listener.validate(); // reconnected
         listener.queueHeartbeat();
@@ -1854,7 +1854,7 @@ public class SimplificationTests extends JetStreamTestBase {
         listener.validate(); // heartbeat
 
         messageCount.set(0);
-        listener.queueConnectionEvent(ConnectionListener.Events.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
         /* start server */ ts.start();
         listener.validate(); // reconnected
         listener.queueHeartbeat();

@@ -1406,7 +1406,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         }
     }
 
-    private static ConsumerContext setupFor1026Simplification(Connection nc, JetStreamManagement jsm, Listener listener, String stream, String subject) throws IOException, JetStreamApiException {
+    private static ConsumerContext setupFor1026Simplification(NatsConnection nc, JetStreamManagement jsm, Listener listener, String stream, String subject) throws IOException, JetStreamApiException {
         listener.reset();
         String consumer = create1026Consumer(jsm, stream, subject);
         ConsumerContext cCtx = nc.getConsumerContext(stream, consumer);

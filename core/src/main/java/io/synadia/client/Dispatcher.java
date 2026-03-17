@@ -12,8 +12,8 @@ package io.synadia.client;
  * a set of messages that require a lot of work and a set of fast moving messages, or create other threads as necessary.
  * The Dispatcher will only use one.
  *
- * <p>Dispatchers are created from the connection using {@link Connection#createDispatcher(MessageHandler) createDispatcher()}
- * and can be closed using {@link Connection#closeDispatcher(Dispatcher) closeDispatcher()}. Closing a dispatcher will
+ * <p>Dispatchers are created from the connection using {@link NatsConnection#createDispatcher(MessageHandler) createDispatcher()}
+ * and can be closed using {@link NatsConnection#closeDispatcher(Dispatcher) closeDispatcher()}. Closing a dispatcher will
  * clean up the thread it is using for message deliver.
  *
  * <p><em>See the documentation on {@link Consumer Consumer} for configuring behavior in a slow consumer situation.</em>

@@ -15,6 +15,7 @@ package io.synadia.examples.jetstream.simple;
 
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,7 +41,7 @@ public class QueueExample {
 
     public static void main(String[] args) {
         Options options = Options.builder().server(SERVER).build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             JetStream js = nc.jetStream();
             createOrReplaceStream(nc.jetStreamManagement(), STREAM, SUBJECT);
 

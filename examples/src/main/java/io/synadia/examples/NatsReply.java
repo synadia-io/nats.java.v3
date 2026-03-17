@@ -13,9 +13,9 @@
 
 package io.synadia.examples;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Nats;
+import io.synadia.client.impl.NatsConnection;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -34,7 +34,7 @@ public class NatsReply {
     public static void main(String[] args) {
         ExampleArgs exArgs = ExampleUtils.expectSubjectAndMsgCount(args, usageString);
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
 
             CountDownLatch latch = new CountDownLatch(exArgs.msgCount); // dispatcher runs callback in another thread
             final AtomicInteger counter = new AtomicInteger(0);

@@ -89,7 +89,7 @@ public class SocketDataPortProxyHostnameTest extends TestBase {
                     }
 
                     // Send 200 OK response
-                    out.write("HTTP/1.1 200 Connection Established\r\n".getBytes());
+                    out.write("HTTP/1.1 200 NatsConnection Established\r\n".getBytes());
                     out.write("Content-Length: 0\r\n".getBytes());
                     out.write("\r\n".getBytes());
                     out.flush();
@@ -98,7 +98,7 @@ public class SocketDataPortProxyHostnameTest extends TestBase {
                     Thread.sleep(1000);
                 }
             } catch (IOException | InterruptedException e) {
-                // Connection closed or error
+                // NatsConnection closed or error
             }
         }
 

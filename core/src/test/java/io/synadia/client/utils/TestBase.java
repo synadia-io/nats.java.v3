@@ -89,15 +89,15 @@ public class TestBase {
     }
 
     public interface OneConnectionTest {
-        void test(Connection nc) throws Exception;
+        void test(NatsConnection nc) throws Exception;
     }
 
     public interface TwoConnectionTest {
-        void test(Connection nc1, Connection nc2) throws Exception;
+        void test(NatsConnection nc1, NatsConnection nc2) throws Exception;
     }
 
     public interface ThreeConnectionTest {
-        void test(Connection nc1, Connection nc2, Connection nc3) throws Exception;
+        void test(NatsConnection nc1, NatsConnection nc2, NatsConnection nc3) throws Exception;
     }
 
     public interface ThreeServerTestOptions {
@@ -108,11 +108,11 @@ public class TestBase {
     }
 
     public interface JetStreamTest {
-        void test(Connection nc, JetStreamManagement jsm, JetStream js) throws Exception;
+        void test(NatsConnection nc, JetStreamManagement jsm, JetStream js) throws Exception;
     }
 
     public interface JetStreamTestingContextTest {
-        void test(Connection nc, JetStreamTestingContext ctx) throws Exception;
+        void test(NatsConnection nc, JetStreamTestingContext ctx) throws Exception;
     }
 
     // --------------------------------------------------
@@ -189,7 +189,7 @@ public class TestBase {
     // ----------------------------------------------------------------------------------------------------
     private static void _runInOwnServer(@NonNull OneConnectionTest oneNcTest) throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
-            try (Connection nc = managedConnect(options(ts))) {
+            try (NatsConnection nc = managedConnect(options(ts))) {
                 initVersionServerInfo(nc);
                 oneNcTest.test(nc);
             }
@@ -210,7 +210,7 @@ public class TestBase {
 
         NatsServerRunner.Builder nsrb = NatsServerRunner.builder().jetstream(true);
         try (NatsTestServer ts = new NatsTestServer(nsrb)) {
-            try (Connection nc = managedConnect(options(ts))) {
+            try (NatsConnection nc = managedConnect(options(ts))) {
                 initVersionServerInfo(nc);
                 if (vc == null || vc.runTest(VERSION_SERVER_INFO)) {
                     NatsJetStreamManagement jsm = (NatsJetStreamManagement) nc.jetStreamManagement();
@@ -251,8 +251,8 @@ public class TestBase {
         // no builder, we can use the long-running connection since it's totally generic
         // with a builder, just make a fresh connection and close it at the end.
         boolean closeNcWhenDone;
-        Connection nc;
-        Connection nc2 = null;
+        NatsConnection nc;
+        NatsConnection nc2 = null;
 
         if (optionsBuilder == null) {
             closeNcWhenDone = false;
@@ -387,7 +387,7 @@ public class TestBase {
     }
 
     public static void runInExternalServer(String url, OneConnectionTest oneNcTest) throws Exception {
-        try (Connection nc = Nats.connect(url)) {
+        try (NatsConnection nc = Nats.connect(url)) {
             oneNcTest.test(nc);
         }
     }
@@ -425,9 +425,9 @@ public class TestBase {
         };
 
         try (NatsTestServer hub = new NatsTestServer(hubPort, true, null, hubInserts, null);
-             Connection nchub = managedConnect(options(hub));
+             NatsConnection nchub = managedConnect(options(hub));
              NatsTestServer leaf = new NatsTestServer(leafPort, true, null, leafInserts, null);
-             Connection ncleaf = managedConnect(options(leaf))
+             NatsConnection ncleaf = managedConnect(options(leaf))
         ) {
             twoConnectionTest.test(nchub, ncleaf);
         }
@@ -461,9 +461,9 @@ public class TestBase {
         try (NatsTestServer srv1 = new NatsTestServer(port1, tstOpts.jetStream(), null, server1Inserts, null);
              NatsTestServer srv2 = new NatsTestServer(port2, tstOpts.jetStream(), null, server2Inserts, null);
              NatsTestServer srv3 = new NatsTestServer(port3, tstOpts.jetStream(), null, server3Inserts, null);
-             Connection nc1 = managedConnect(makeOptions(0, tstOpts, srv1, srv2, srv3));
-             Connection nc2 = managedConnect(makeOptions(1, tstOpts, srv2, srv1, srv3));
-             Connection nc3 = managedConnect(makeOptions(2, tstOpts, srv3, srv1, srv2))
+             NatsConnection nc1 = managedConnect(makeOptions(0, tstOpts, srv1, srv2, srv3));
+             NatsConnection nc2 = managedConnect(makeOptions(1, tstOpts, srv2, srv1, srv3));
+             NatsConnection nc3 = managedConnect(makeOptions(2, tstOpts, srv3, srv1, srv2))
         ) {
             threeServerTest.test(nc1, nc2, nc3);
         }
@@ -578,7 +578,7 @@ public class TestBase {
     // assertions
     // ----------------------------------------------------------------------------------------------------
     public static void assertCanConnectAndPubSub(Options options) throws IOException, InterruptedException {
-        Connection conn = managedConnect(options);
+        NatsConnection conn = managedConnect(options);
         assertPubSub(conn);
         closeAndConfirm(conn);
     }
@@ -595,7 +595,7 @@ public class TestBase {
         }
     }
 
-    public static void assertPubSub(Connection conn) throws InterruptedException {
+    public static void assertPubSub(NatsConnection conn) throws InterruptedException {
         String subject = random();
         String data = data(null);
         Subscription sub = conn.subscribe(subject);
@@ -608,15 +608,15 @@ public class TestBase {
     // ----------------------------------------------------------------------------------------------------
     // flush
     // ----------------------------------------------------------------------------------------------------
-    public static void flushConnection(Connection conn) {
+    public static void flushConnection(NatsConnection conn) {
         flushConnection(conn, Duration.ofMillis(STANDARD_FLUSH_TIMEOUT_MS));
     }
 
-    public static void flushConnection(Connection conn, long timeoutMillis) {
+    public static void flushConnection(NatsConnection conn, long timeoutMillis) {
         flushConnection(conn, Duration.ofMillis(timeoutMillis));
     }
 
-    public static void flushConnection(Connection conn, Duration timeout) {
+    public static void flushConnection(NatsConnection conn, Duration timeout) {
         try { conn.flush(timeout); } catch (Exception exp) { /* ignored */ }
     }
 

@@ -1,6 +1,9 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
+import io.synadia.client.ConnectionStatus;
+import io.synadia.client.NUID;
+import io.synadia.client.NatsTestServer;
+import io.synadia.client.Options;
 import io.synadia.client.utils.ConnectionUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -47,7 +50,7 @@ public class SharedServer {
 
     private final ReentrantLock instanceLock;
     private final String reusableConnectionPrefix;
-    private final Map<String, Connection> connectionMap;
+    private final Map<String, NatsConnection> connectionMap;
     private final AtomicInteger currentReusableId;
     private NatsTestServer natsTestServer;
 
@@ -107,7 +110,7 @@ public class SharedServer {
         return natsTestServer;
     }
 
-    public Connection getSharedConnection() {
+    public NatsConnection getSharedConnection() {
         int id = currentReusableId.incrementAndGet();
         if (id >= NUM_REUSABLE_CONNECTIONS) {
             currentReusableId.set(0);
@@ -116,7 +119,7 @@ public class SharedServer {
         return getSharedConnection(reusableConnectionPrefix + "-" + id);
     }
 
-    public static Connection sharedConnectionForServer(NatsTestServer ts) {
+    public static NatsConnection sharedConnectionForServer(NatsTestServer ts) {
         for (Map.Entry<String, SharedServer> entry : SHARED_BY_NAME.entrySet()) {
             SharedServer shared = entry.getValue();
             if (shared.natsTestServer == ts) {
@@ -126,7 +129,7 @@ public class SharedServer {
         throw new RuntimeException("No shared matching server.");
     }
 
-    public static Connection sharedConnectionForSameServer(Connection nc) {
+    public static NatsConnection sharedConnectionForSameServer(NatsConnection nc) {
         SharedServer shared = SHARED_BY_URL.get(nc.getConnectedUrl());
         if (shared == null) {
             throw new RuntimeException("No shared server for that connection.");
@@ -134,7 +137,7 @@ public class SharedServer {
         return shared.getSharedConnection();
     }
 
-    public static Connection connectionForSameServer(Connection nc, Options.Builder builder) {
+    public static NatsConnection connectionForSameServer(NatsConnection nc, Options.Builder builder) {
         SharedServer shared = SHARED_BY_URL.get(nc.getConnectedUrl());
         if (shared == null) {
             throw new RuntimeException("No shared server for that connection.");
@@ -142,7 +145,7 @@ public class SharedServer {
         return shared.newConnection(builder);
     }
 
-    private void waitUntilStatus(Connection conn) {
+    private void waitUntilStatus(NatsConnection conn) {
         for (long x = 0; x < 100; x++) {
             sleep(100);
             if (conn.getStatus() == ConnectionStatus.CONNECTED) {
@@ -151,10 +154,10 @@ public class SharedServer {
         }
     }
 
-    private Connection getSharedConnection(String name) {
+    private NatsConnection getSharedConnection(String name) {
         instanceLock.lock();
         try {
-            Connection ncs = connectionMap.get(name);
+            NatsConnection ncs = connectionMap.get(name);
             if (ncs == null) {
                 ncs = newConnection(optionsBuilder());
                 connectionMap.put(name, ncs);
@@ -172,14 +175,14 @@ public class SharedServer {
         }
     }
 
-    public Connection newConnection(Options.Builder builder) {
+    public NatsConnection newConnection(Options.Builder builder) {
         return ConnectionUtils.managedConnect(builder.server(serverUrl).build());
     }
 
     public void shutdown() {
         instanceLock.lock();
         try {
-            for (Connection nc : connectionMap.values()) {
+            for (NatsConnection nc : connectionMap.values()) {
                 try {
                     ((NatsConnection)nc).close(false, true);
                 }

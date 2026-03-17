@@ -184,7 +184,7 @@ public class SlowConsumerTests extends TestBase {
         }
 
         @Override
-        public void slowConsumerDetected(Connection conn, Consumer consumer) {
+        public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
             consumers.add(consumer);
             if (future != null) {
                 future.complete(true);

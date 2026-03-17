@@ -1081,8 +1081,8 @@ public class KeyValueTests extends JetStreamTestBase {
             Options acctA = optionsBuilder(ts).userInfo("a", "a").build();
             Options acctI = optionsBuilder(ts).userInfo("i", "i").inboxPrefix("ForI").build();
 
-            try (Connection connUserA = Nats.connect(acctA);
-                 Connection connUserI = Nats.connect(acctI)) {
+            try (NatsConnection connUserA = Nats.connect(acctA);
+                 NatsConnection connUserI = Nats.connect(acctI)) {
                 // some prep
                 KeyValueOptions jsOpt_UserI_BucketA_WithPrefix =
                     KeyValueOptions.builder().jsPrefix("FromA").build();

@@ -196,7 +196,7 @@ public class DispatcherTests extends TestBase {
     public void testDispatcherMessageContainsConnection() throws Exception {
         runInShared(nc -> {
             final CompletableFuture<Message> msgFuture = new CompletableFuture<>();
-            final CompletableFuture<Connection> connFuture = new CompletableFuture<>();
+            final CompletableFuture<NatsConnection> connFuture = new CompletableFuture<>();
             Dispatcher d = nc.createDispatcher(msg -> {
                 msgFuture.complete(msg);
                 connFuture.complete(msg.getConnection());
@@ -209,7 +209,7 @@ public class DispatcherTests extends TestBase {
             nc.publish(subject, new byte[16]);
 
             Message msg = msgFuture.get(5000, TimeUnit.MILLISECONDS);
-            Connection conn = connFuture.get(5000, TimeUnit.MILLISECONDS);
+            NatsConnection conn = connFuture.get(5000, TimeUnit.MILLISECONDS);
 
             assertTrue(d.isActive());
             assertEquals(subject, msg.getSubject());

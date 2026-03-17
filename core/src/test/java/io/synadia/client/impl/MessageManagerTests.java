@@ -46,7 +46,7 @@ public class MessageManagerTests extends JetStreamTestBase {
         }
     }
 
-    private void _pushConstruction(Connection nc, boolean hb, boolean fc, SubscribeOptions so, NatsJetStreamSubscription sub) {
+    private void _pushConstruction(NatsConnection nc, boolean hb, boolean fc, SubscribeOptions so, NatsJetStreamSubscription sub) {
         tf(ordered -> tf(syncMode -> tf(queueMode -> {
             PushMessageManager manager = getPushManager(nc, so, sub, ordered, syncMode, queueMode);
             assertEquals(syncMode, manager.isSyncMode());
@@ -75,7 +75,7 @@ public class MessageManagerTests extends JetStreamTestBase {
         });
     }
 
-    private void _testPushBqpAndManageRetriable(Connection nc, JetStreamTestingContext ctx, Listener listener, PushSubscribeOptions pso, boolean ordered, boolean syncMode, boolean queueMode) throws JetStreamApiException, IOException {
+    private void _testPushBqpAndManageRetriable(NatsConnection nc, JetStreamTestingContext ctx, Listener listener, PushSubscribeOptions pso, boolean ordered, boolean syncMode, boolean queueMode) throws JetStreamApiException, IOException {
         listener.reset();
 
         NatsJetStreamSubscription sub = genericPushSub(ctx);
@@ -120,7 +120,7 @@ public class MessageManagerTests extends JetStreamTestBase {
         });
     }
 
-    private void _testPullBqpAndManage(Connection nc, JetStreamTestingContext ctx, Listener listener, PullRequestOptions pro) throws JetStreamApiException, IOException {
+    private void _testPullBqpAndManage(NatsConnection nc, JetStreamTestingContext ctx, Listener listener, PullRequestOptions pro) throws JetStreamApiException, IOException {
         NatsJetStreamSubscription sub = genericPullSub(ctx);
         PullMessageManager manager = getPullManager(nc, sub, true);
         manager.startPullRequest(random(), pro, true, null);
@@ -448,11 +448,11 @@ public class MessageManagerTests extends JetStreamTestBase {
         return new PushSubscribeOptions.Builder().configuration(cc_xfc_xhb()).build();
     }
 
-    private PushMessageManager getPushManager(Connection conn, SubscribeOptions so, NatsJetStreamSubscription sub, boolean ordered) {
+    private PushMessageManager getPushManager(NatsConnection conn, SubscribeOptions so, NatsJetStreamSubscription sub, boolean ordered) {
         return getPushManager(conn, so, sub, ordered, true, false);
     }
 
-    private PushMessageManager getPushManager(Connection conn, SubscribeOptions so, NatsJetStreamSubscription sub, boolean ordered, boolean syncMode, boolean queueMode) {
+    private PushMessageManager getPushManager(NatsConnection conn, SubscribeOptions so, NatsJetStreamSubscription sub, boolean ordered, boolean syncMode, boolean queueMode) {
         PushMessageManager manager;
         if (ordered) {
             manager = new OrderedMessageManager((NatsConnection) conn, null, null, so, so.getConsumerConfiguration(), queueMode, syncMode);
@@ -466,7 +466,7 @@ public class MessageManagerTests extends JetStreamTestBase {
         return manager;
     }
 
-    private PullMessageManager getPullManager(Connection conn, NatsJetStreamSubscription sub, boolean syncMode) {
+    private PullMessageManager getPullManager(NatsConnection conn, NatsJetStreamSubscription sub, boolean syncMode) {
         PullMessageManager manager = new PullMessageManager((NatsConnection) conn, PullSubscribeOptions.DEFAULT_PULL_OPTS, syncMode);
         if (sub != null) {
             manager.startup(sub);

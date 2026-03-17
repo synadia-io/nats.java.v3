@@ -1,6 +1,9 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
+import io.synadia.client.ConnectionStatus;
+import io.synadia.client.ErrorListener;
+import io.synadia.client.NatsTestServer;
+import io.synadia.client.Options;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -47,7 +50,7 @@ public class AuthAndConnectTests extends TestBase {
         // Use a custom error listener that doesn't log errors, since we'll spam exception messages otherwise.
         ErrorListener noopErrorListener = new ErrorListener() {
             @Override
-            public void errorOccurred(Connection conn, String error) {
+            public void errorOccurred(NatsConnection conn, String error) {
                 // noop
             }
         };

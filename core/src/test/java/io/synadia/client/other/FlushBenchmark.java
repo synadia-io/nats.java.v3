@@ -1,8 +1,8 @@
 package io.synadia.client.other;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 
 import java.text.NumberFormat;
 
@@ -17,7 +17,7 @@ public class FlushBenchmark {
 
         try {
             Options options = new Options.Builder().turnOnAdvancedStats().build();
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
 
             long start = System.nanoTime();
             for (int i=0; i<flushes; i++){

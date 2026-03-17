@@ -1,7 +1,6 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.AuthHandler;
-import io.synadia.client.Connection;
 import io.synadia.client.Options;
 import io.synadia.client.Statistics;
 
@@ -11,7 +10,7 @@ import java.io.IOException;
  * Adapter to impl package to minimize access leakage.
  */
 public class NatsImpl {
-    public static Connection createConnection(Options options, boolean reconnectOnConnect) throws IOException, InterruptedException {
+    public static NatsConnection createConnection(Options options, boolean reconnectOnConnect) throws IOException, InterruptedException {
         NatsConnection conn = new NatsConnection(options);
         conn.connect(reconnectOnConnect);
         return conn;

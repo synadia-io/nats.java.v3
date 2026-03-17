@@ -18,6 +18,7 @@ import io.synadia.client.api.Mirror;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
 import io.synadia.client.api.StreamInfo;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -51,7 +52,7 @@ public class NatsJsMirrorSubUseCases {
                 .defaultDurable("example-durable")
                 .build();
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
 
             JetStreamManagement jsm = nc.jetStreamManagement();
             JetStream js = nc.jetStream();

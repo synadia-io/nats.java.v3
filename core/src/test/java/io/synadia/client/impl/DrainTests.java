@@ -1,7 +1,6 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.support.Listener;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +23,7 @@ public class DrainTests {
     @Test
     public void testCloseOnDrainFailure() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
-            final Connection nc = managedConnect(optionsBuilder(ts).maxReconnects(0).build());
+            final NatsConnection nc = managedConnect(optionsBuilder(ts).maxReconnects(0).build());
 
             nc.subscribe(random());
             nc.flush(Duration.ofSeconds(1)); // Get the sub to the server, so drain has things to do
@@ -400,11 +399,11 @@ public class DrainTests {
             AtomicInteger count = new AtomicInteger();
             Instant start = Instant.now();
             Instant now = start;
-            Connection working;
+            NatsConnection working;
             NatsDispatcher workingD;
             NatsDispatcher drainingD;
 
-            Connection draining = SharedServer.connectionForSameServer(pubCon, optionsBuilder().maxReconnects(0));
+            NatsConnection draining = SharedServer.connectionForSameServer(pubCon, optionsBuilder().maxReconnects(0));
 
             String subject = random();
             String queue = random();
@@ -523,7 +522,7 @@ public class DrainTests {
     public void testSlowAsyncDuringDrainCanBeInterrupted() throws Exception {
         Listener listener = new Listener();
         runInSharedOwnNc(optionsBuilder().errorListener(listener).maxReconnects(0), subCon -> {
-            Connection pubCon = SharedServer.sharedConnectionForSameServer(subCon);
+            NatsConnection pubCon = SharedServer.sharedConnectionForSameServer(subCon);
             AtomicInteger count = new AtomicInteger();
             Dispatcher d = subCon.createDispatcher(msg -> {
                 try {
@@ -562,10 +561,10 @@ public class DrainTests {
         Listener listener = new Listener();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
-            try (Connection subCon = managedConnect(options)) {
+            try (NatsConnection subCon = managedConnect(options)) {
                 subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
 
-                listener.queueConnectionEvent(Events.DISCONNECTED);
+                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
                 ts.close(); // make the drain flush fail
                 listener.validate();
 

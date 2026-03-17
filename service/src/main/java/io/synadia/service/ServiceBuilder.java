@@ -1,7 +1,7 @@
 package io.synadia.service;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
+import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -24,7 +24,7 @@ public class ServiceBuilder {
      */
     public static final Duration DEFAULT_DRAIN_TIMEOUT = Duration.ofMillis(DEFAULT_DRAIN_TIMEOUT_MILLIS);
 
-    Connection conn;
+    NatsConnection conn;
     String name;
     String description;
     String version;
@@ -45,7 +45,7 @@ public class ServiceBuilder {
      * @param conn connection
      * @return the ServiceBuilder
      */
-    public ServiceBuilder connection(Connection conn) {
+    public ServiceBuilder connection(NatsConnection conn) {
         this.conn = conn;
         return this;
     }

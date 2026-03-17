@@ -13,10 +13,10 @@
 
 package io.synadia.examples;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Message;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -26,7 +26,7 @@ public class ReportNoResponders {
 
         // without new option
         Options options = new Options.Builder().server(Options.DEFAULT_URL).build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             CompletableFuture<Message> future = nc.request("no-one-is-listening", null);
             try {
                 future.get();
@@ -44,7 +44,7 @@ public class ReportNoResponders {
             .reportNoResponders()
             .build();
 
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             CompletableFuture<Message> future = nc.request("no-one-is-listening", null);
             try {
                 future.get();

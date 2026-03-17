@@ -319,7 +319,7 @@ class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
             throw new IllegalArgumentException("Subject is required in unsubscribe");
         }
 
-        // Connection unsubscribe ends up calling invalidate on the sub which calls dispatcher.remove
+        // NatsConnection unsubscribe ends up calling invalidate on the sub which calls dispatcher.remove
         // meaning all we do is call this unsubscribe method and the workflow takes care of the rest
         NatsSubscription defaultHandlerSub = subWithDefaultHandlerBySubject.get(subject);
         if (defaultHandlerSub != null) {
@@ -358,7 +358,7 @@ class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
         NatsSubscription sub = subWithNonDefaultHandlerBySid.get(ns.getSID());
 
         if (sub != null) {
-            connection.unsubscribe(sub, after); // Connection will tell us when to remove from the map
+            connection.unsubscribe(sub, after); // NatsConnection will tell us when to remove from the map
         }
 
         return this;

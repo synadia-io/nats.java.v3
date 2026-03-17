@@ -13,9 +13,9 @@
 
 package io.synadia.examples;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Nats;
+import io.synadia.client.impl.NatsConnection;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -35,7 +35,7 @@ public class NatsSubDispatch {
 
         System.out.printf("Trying to connect to %s, and listen to %s for %d messages.\n\n", exArgs.server, exArgs.subject, exArgs.msgCount);
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
 
             CountDownLatch latch = new CountDownLatch(exArgs.msgCount); // dispatcher runs callback in another thread
             

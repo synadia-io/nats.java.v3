@@ -1,6 +1,10 @@
 package io.synadia.client.support;
 
-import io.synadia.client.*;
+import io.synadia.client.Consumer;
+import io.synadia.client.ErrorListener;
+import io.synadia.client.JetStreamSubscription;
+import io.synadia.client.Message;
+import io.synadia.client.impl.NatsConnection;
 
 public class DebugErrorListener implements ErrorListener {
     String label;
@@ -31,7 +35,7 @@ public class DebugErrorListener implements ErrorListener {
         this.printStackTrace = printStackTrace;
     }
 
-    public String string(Connection conn) {
+    public String string(NatsConnection conn) {
         return "Connection(" + conn.hashCode() + ") " + conn.getStatus();
     }
 
@@ -39,7 +43,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void errorOccurred(final Connection conn, final String error) {
+    public void errorOccurred(final NatsConnection conn, final String error) {
         Debug.info(label, "errorOccurred", string(conn), "Error: " + error);
     }
 
@@ -48,7 +52,7 @@ public class DebugErrorListener implements ErrorListener {
      */
     @SuppressWarnings("CallToPrintStackTrace")
     @Override
-    public void exceptionOccurred(final Connection conn, final Exception exp) {
+    public void exceptionOccurred(final NatsConnection conn, final Exception exp) {
         if (printStackTrace) {
             Debug.stackTrace(label, exp, string(conn));
         }
@@ -66,7 +70,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void slowConsumerDetected(final Connection conn, final Consumer consumer) {
+    public void slowConsumerDetected(final NatsConnection conn, final Consumer consumer) {
         Debug.info(label, "slowConsumerDetected", string(conn), consumer);
     }
 
@@ -74,7 +78,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void messageDiscarded(final Connection conn, final Message msg) {
+    public void messageDiscarded(final NatsConnection conn, final Message msg) {
         Debug.info(label, "messageDiscarded", string(conn), "Message: " + msg);
     }
 
@@ -82,7 +86,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void heartbeatAlarm(final Connection conn, final JetStreamSubscription sub,
+    public void heartbeatAlarm(final NatsConnection conn, final JetStreamSubscription sub,
                                final long lastStreamSequence, final long lastConsumerSequence) {
         Debug.info(label, "heartbeatAlarm", string(conn), sub.hashCode(), "lastStreamSequence: " + lastStreamSequence, "lastConsumerSequence: " + lastConsumerSequence);
     }
@@ -91,7 +95,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void unhandledStatus(final Connection conn, final JetStreamSubscription sub, final Status status) {
+    public void unhandledStatus(final NatsConnection conn, final JetStreamSubscription sub, final Status status) {
         Debug.info(label, "unhandledStatus", string(conn), sub, "Status: " + status);
     }
 
@@ -99,7 +103,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void pullStatusWarning(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {
         Debug.info(label, "pullStatusWarning", string(conn), sub, "Status: " + status);
     }
 
@@ -107,7 +111,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void pullStatusError(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {
         Debug.info(label, "pullStatusError", string(conn), sub, "Status: " + status);
     }
 
@@ -115,7 +119,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void flowControlProcessed(Connection conn, JetStreamSubscription sub, String id, FlowControlSource source) {
+    public void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String id, FlowControlSource source) {
         Debug.info(label, "flowControlProcessed", string(conn), sub, "FlowControlSource: " + source);
     }
 
@@ -123,7 +127,7 @@ public class DebugErrorListener implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void socketWriteTimeout(Connection conn) {
+    public void socketWriteTimeout(NatsConnection conn) {
         Debug.info(label, "socketWriteTimeout", string(conn));
     }
 }

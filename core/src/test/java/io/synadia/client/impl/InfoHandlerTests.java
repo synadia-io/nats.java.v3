@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Connection;
+import io.synadia.client.ConnectionEvents;
 import io.synadia.client.ConnectionListener;
 import io.synadia.client.NatsServerProtocolMock;
 import io.synadia.client.Options;
@@ -22,7 +22,7 @@ public class InfoHandlerTests {
     public void testInitialInfo() throws IOException, InterruptedException {
         String customInfo = "{\"server_id\":\"myid\", \"version\":\"9.9.99\"}";
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(null, customInfo)) {
-            try (Connection nc = standardConnect(mockTs)) {
+            try (NatsConnection nc = standardConnect(mockTs)) {
                 assertEquals("myid", nc.getServerInfo().getServerId(), "got custom info");
             }
         }
@@ -72,7 +72,7 @@ public class InfoHandlerTests {
         };
 
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(infoCustomizer, customInfo)) {
-            try (Connection nc = standardConnect(mockTs)) {
+            try (NatsConnection nc = standardConnect(mockTs)) {
                 assertEquals("myid", nc.getServerInfo().getServerId(), "got custom info");
                 sendInfo.complete(Boolean.TRUE);
 
@@ -87,7 +87,7 @@ public class InfoHandlerTests {
         String customInfo = "{\"server_id\":\"myid\", \"version\":\"9.9.99\", \"ldm\":true}";
         CompletableFuture<Boolean> gotPong = new CompletableFuture<>();
         CompletableFuture<Boolean> sendInfo = new CompletableFuture<>();
-        CompletableFuture<ConnectionListener.Events> connectLDM = new CompletableFuture<>();
+        CompletableFuture<ConnectionEvents> connectLDM = new CompletableFuture<>();
 
         NatsServerProtocolMock.Customizer infoCustomizer = (ts, r, w) -> {
             // Wait for client to be ready.
@@ -128,12 +128,12 @@ public class InfoHandlerTests {
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(infoCustomizer, customInfo)) {
 
             ConnectionListener cl = (conn, type) -> {
-                if (type.equals(ConnectionListener.Events.LAME_DUCK)) connectLDM.complete(type);
+                if (type.equals(ConnectionEvents.LAME_DUCK)) connectLDM.complete(type);
             };
 
             Options options = optionsBuilder(mockTs).connectionListener(cl).build();
 
-            try (Connection nc = standardConnect(options)) {
+            try (NatsConnection nc = standardConnect(options)) {
                 assertEquals("myid", nc.getServerInfo().getServerId(), "got custom info");
                 sendInfo.complete(Boolean.TRUE);
 
@@ -142,8 +142,8 @@ public class InfoHandlerTests {
             }
         }
 
-        ConnectionListener.Events event = connectLDM.get(5, TimeUnit.SECONDS);
-        assertEquals(ConnectionListener.Events.LAME_DUCK, event);
+        ConnectionEvents event = connectLDM.get(5, TimeUnit.SECONDS);
+        assertEquals(ConnectionEvents.LAME_DUCK, event);
         // System.out.println(event);
     }
 }

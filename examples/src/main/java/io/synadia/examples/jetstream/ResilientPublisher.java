@@ -18,6 +18,7 @@ import io.synadia.client.api.MessageInfo;
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.impl.ErrorListenerConsoleImpl;
+import io.synadia.client.impl.NatsConnection;
 
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,7 +44,7 @@ public class ResilientPublisher implements Runnable {
             .connectionListener((conn, type) -> System.out.println(type))
             .errorListener(new ErrorListenerConsoleImpl())
             .build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
 
 // JetStream PUBLISHER EXAMPLE
             JetStreamManagement jsm = nc.jetStreamManagement();
@@ -74,7 +75,7 @@ public class ResilientPublisher implements Runnable {
         Time, Labeled, Plain
     }
 
-    private final Connection nc;
+    private final NatsConnection nc;
     private final JetStreamManagement jsm;
     private final JetStream js;
     private final String stream;
@@ -89,16 +90,16 @@ public class ResilientPublisher implements Runnable {
     private long reportFrequency;
     private ReportStyle reportStyle;
     private Function<Long, byte[]> dataProvider;
-    private java.util.function.BiConsumer<Connection, Long> beforePublish;
-    private java.util.function.BiConsumer<Connection, PublishAck> afterPublish;
-    private java.util.function.BiConsumer<Connection, Long> publishReporter;
-    private java.util.function.BiConsumer<Connection, Exception> exceptionReporter;
+    private java.util.function.BiConsumer<NatsConnection, Long> beforePublish;
+    private java.util.function.BiConsumer<NatsConnection, PublishAck> afterPublish;
+    private java.util.function.BiConsumer<NatsConnection, Long> publishReporter;
+    private java.util.function.BiConsumer<NatsConnection, Exception> exceptionReporter;
 
-    public ResilientPublisher(Connection nc, String subject) {
+    public ResilientPublisher(NatsConnection nc, String subject) {
         this(nc, null, null, subject);
     }
 
-    public ResilientPublisher(Connection nc, JetStreamManagement jsm, String stream, String subject) {
+    public ResilientPublisher(NatsConnection nc, JetStreamManagement jsm, String stream, String subject) {
         this.nc = nc;
         if (jsm == null) {
             this.jsm = null;
@@ -157,28 +158,28 @@ public class ResilientPublisher implements Runnable {
         return this;
     }
 
-    public ResilientPublisher beforePublish(BiConsumer<Connection, Long> beforePublish) {
+    public ResilientPublisher beforePublish(BiConsumer<NatsConnection, Long> beforePublish) {
         this.beforePublish = beforePublish == null ? (c, l) -> {} : beforePublish;
         return this;
     }
 
     boolean lastPublishOk = false;
 
-    public ResilientPublisher afterPublish(BiConsumer<Connection, PublishAck> afterPublish) {
+    public ResilientPublisher afterPublish(BiConsumer<NatsConnection, PublishAck> afterPublish) {
         this.afterPublish = afterPublish == null
             ? (c, l) -> { if (!lastPublishOk) { report("Publish Start/Resume: " + l); lastPublishOk = true; } }
             : afterPublish;
         return this;
     }
 
-    public ResilientPublisher publishReporter(BiConsumer<Connection, Long> publishReporter) {
+    public ResilientPublisher publishReporter(BiConsumer<NatsConnection, Long> publishReporter) {
         this.publishReporter = publishReporter == null
             ? (c, l) -> report("Published Id: " + l)
             : publishReporter;
         return this;
     }
 
-    public ResilientPublisher exceptionReporter(BiConsumer<Connection, Exception> exceptionReporter) {
+    public ResilientPublisher exceptionReporter(BiConsumer<NatsConnection, Exception> exceptionReporter) {
         this.exceptionReporter = exceptionReporter == null
             ? (c, e) -> { if (lastPublishOk) { report("Publish Exception: " + e); lastPublishOk = false; }}
             : exceptionReporter;

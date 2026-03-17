@@ -1,9 +1,9 @@
 package io.synadia.examples.natsIoDoc;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Message;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.util.concurrent.*;
@@ -16,7 +16,7 @@ public class RequestReplyNoResponders {
             .server("nats://localhost:4222")
             .reportNoResponders()
             .build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             // Make a request expecting a future
             CompletableFuture<Message> responseFuture = nc.request("no.such.service", null);
             try {

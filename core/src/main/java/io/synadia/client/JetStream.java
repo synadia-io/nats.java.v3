@@ -2,6 +2,7 @@ package io.synadia.client;
 
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.impl.Headers;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -410,7 +411,7 @@ public interface JetStream {
      * <p>Use the {@link Subscription#nextMessage(Duration)}
      * method to read messages for this subscription.
      *
-     * <p>See {@link Connection#createDispatcher(MessageHandler) createDispatcher} for
+     * <p>See {@link NatsConnection#createDispatcher(MessageHandler) createDispatcher} for
      * information about creating an asynchronous subscription with callbacks.
      *
      * @param subscribeSubject the subject to subscribe to
@@ -427,7 +428,7 @@ public interface JetStream {
      * <p>Use the {@link Subscription#nextMessage(Duration)}
      * method to read messages for this subscription.
      *
-     * <p>See {@link Connection#createDispatcher(MessageHandler) createDispatcher} for
+     * <p>See {@link NatsConnection#createDispatcher(MessageHandler) createDispatcher} for
      * information about creating an asynchronous subscription with callbacks.
      *
      * @param subscribeSubject the subject to subscribe to.
@@ -446,7 +447,7 @@ public interface JetStream {
      * <p>Use the {@link Subscription#nextMessage(Duration) nextMessage}
      * method to read messages for this subscription.
      *
-     * <p>See {@link Connection#createDispatcher(MessageHandler) createDispatcher} for
+     * <p>See {@link NatsConnection#createDispatcher(MessageHandler) createDispatcher} for
      * information about creating an asynchronous subscription with callbacks.
      *
      * @param subscribeSubject the subject to subscribe to

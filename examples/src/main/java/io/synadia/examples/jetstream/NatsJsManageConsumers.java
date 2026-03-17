@@ -13,13 +13,13 @@
 
 package io.synadia.examples.jetstream;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.Nats;
 import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.ConsumerInfo;
 import io.synadia.client.api.ConsumerPauseResponse;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -54,7 +54,7 @@ public class NatsJsManageConsumers {
         String durable1 = exArgs.durable + "1";
         String durable2 = exArgs.durable + "2";
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
             // Create a JetStreamManagement context.
             JetStreamManagement jsm = nc.jetStreamManagement();
 

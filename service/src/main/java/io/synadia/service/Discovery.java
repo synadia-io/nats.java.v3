@@ -1,9 +1,9 @@
 package io.synadia.service;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Message;
 import io.synadia.client.NatsSystemClock;
 import io.synadia.client.Subscription;
+import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class Discovery {
     /** Default discoverer max results */
     public static final int DEFAULT_DISCOVERY_MAX_RESULTS = 10;
 
-    private final Connection conn;
+    private final NatsConnection conn;
     private final long maxTimeNanos;
     private final int maxResults;
 
@@ -38,7 +38,7 @@ public class Discovery {
      * Construct a Discovery instance with a connection and default maxTimeMillis / maxResults
      * @param conn the NATS Connection
      */
-    public Discovery(Connection conn) {
+    public Discovery(NatsConnection conn) {
         this(conn, 0, 0);
     }
 
@@ -48,7 +48,7 @@ public class Discovery {
      * @param maxTimeMillis the maximum time to wait for discovery requests to complete or any number less than 1 to use the default
      * @param maxResults the maximum number of results to wait for or any number less than 1 to use the default
      */
-    public Discovery(Connection conn, long maxTimeMillis, int maxResults) {
+    public Discovery(NatsConnection conn, long maxTimeMillis, int maxResults) {
         this.conn = conn;
         this.maxTimeNanos = (maxTimeMillis < 1 ? DEFAULT_DISCOVERY_MAX_TIME_MILLIS : maxTimeMillis) * NANOS_PER_MILLI;
         this.maxResults = maxResults < 1 ? DEFAULT_DISCOVERY_MAX_RESULTS : maxResults;

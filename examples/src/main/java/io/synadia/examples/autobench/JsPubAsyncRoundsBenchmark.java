@@ -17,6 +17,7 @@ import io.synadia.client.*;
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ public class JsPubAsyncRoundsBenchmark extends AutoBenchmark {
         String stream = getStream();
 
         try {
-            Connection nc = Nats.connect(connectOptions);
+            NatsConnection nc = Nats.connect(connectOptions);
 
             StreamConfiguration sc = StreamConfiguration.builder()
                     .name(stream)

@@ -1,5 +1,6 @@
 package io.synadia.client;
 
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsImpl;
 
 import java.io.IOException;
@@ -16,7 +17,7 @@ import java.util.Properties;
  * effect every connection, as described in the {@link Options Options} documentation.
  * 
  * <p>At its simplest, you can connect to a nats-server on the local host using the default port with:
- * <pre>Connection nc = Nats.connect()</pre>
+ * <pre>NatsConnection nc = Nats.connect()</pre>
  * <p>and start sending or receiving messages immediately after that.
  * 
  * <p>While the simple case relies on a single URL, the options allows you to configure a list of servers
@@ -53,7 +54,7 @@ import java.util.Properties;
  * <p>Authentication, if configured on the server, is managed via the Options as well. However, the url passed to {@link #connect(String) connect()}
  * can provide a user/password pair or a token using the forms: {@code nats://user:password@server:port} and {@code nats://token@server:port}.
  * 
- * <p>Regardless of the method used a {@link Connection Connection} object is created, and provides the methods for
+ * <p>Regardless of the method used a {@link NatsConnection NatsConnection} object is created, and provides the methods for
  * sending, receiving and dispatching messages.
  */
 public abstract class Nats {
@@ -99,7 +100,7 @@ public abstract class Nats {
      * @throws IOException if a networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static Connection connect() throws IOException, InterruptedException {
+    public static NatsConnection connect() throws IOException, InterruptedException {
         Options options = new Options.Builder().server(Options.DEFAULT_URL).build();
         return createConnection(options, false);
     }
@@ -111,7 +112,7 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static Connection connectReconnectOnConnect() throws IOException, InterruptedException {
+    public static NatsConnection connectReconnectOnConnect() throws IOException, InterruptedException {
         Options options = new Options.Builder().server(Options.DEFAULT_URL).build();
         return createConnection(options, true);
     }
@@ -143,7 +144,7 @@ public abstract class Nats {
      * @throws InterruptedException if the current thread is interrupted
      * @return the connection
      */
-    public static Connection connect(String url) throws IOException, InterruptedException {
+    public static NatsConnection connect(String url) throws IOException, InterruptedException {
         Options options = new Options.Builder().server(url).build();
         return createConnection(options, false);
     }
@@ -156,7 +157,7 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static Connection connectReconnectOnConnect(String url) throws IOException, InterruptedException {
+    public static NatsConnection connectReconnectOnConnect(String url) throws IOException, InterruptedException {
         Options options = new Options.Builder().server(url).build();
         return createConnection(options, true);
     }
@@ -178,7 +179,7 @@ public abstract class Nats {
      * @throws IOException if a networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static Connection connect(String url, AuthHandler handler) throws IOException, InterruptedException {
+    public static NatsConnection connect(String url, AuthHandler handler) throws IOException, InterruptedException {
         Options options = new Options.Builder().server(url).authHandler(handler).build();
         return createConnection(options, false);
     }
@@ -192,7 +193,7 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static Connection connectReconnectOnConnect(String url, AuthHandler handler) throws IOException, InterruptedException {
+    public static NatsConnection connectReconnectOnConnect(String url, AuthHandler handler) throws IOException, InterruptedException {
         Options options = new Options.Builder().server(url).authHandler(handler).build();
         return createConnection(options, true);
     }
@@ -226,7 +227,7 @@ public abstract class Nats {
      * @throws IOException if a networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static Connection connect(Options options) throws IOException, InterruptedException {
+    public static NatsConnection connect(Options options) throws IOException, InterruptedException {
         return createConnection(options, false);
     }
 
@@ -237,7 +238,7 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static Connection connectReconnectOnConnect(Options options) throws IOException, InterruptedException {
+    public static NatsConnection connectReconnectOnConnect(Options options) throws IOException, InterruptedException {
         return createConnection(options, true);
     }
 
@@ -264,7 +265,7 @@ public abstract class Nats {
             throws InterruptedException {
 
         if (options.getConnectionListener() == null) {
-            throw new IllegalArgumentException("Connection Listener required in connectAsynchronously");
+            throw new IllegalArgumentException("NatsConnection Listener required in connectAsynchronously");
         }
 
         Thread t = new Thread(() -> {
@@ -327,7 +328,7 @@ public abstract class Nats {
         return NatsImpl.staticCredentials(jwt, nkey);
     }
 
-    private static Connection createConnection(Options options, boolean reconnectOnConnect)
+    private static NatsConnection createConnection(Options options, boolean reconnectOnConnect)
             throws IOException, InterruptedException {
         return NatsImpl.createConnection(options, reconnectOnConnect);
     }

@@ -15,6 +15,7 @@ package io.synadia.examples.jetstream.simple;
 
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.jetstream.ResilientPublisher;
 
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class IterableConsumerExample {
 
     public static void main(String[] args) {
         Options options = Options.builder().server(SERVER).build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
             createOrReplaceStream(jsm, STREAM, SUBJECT);
 

@@ -2,7 +2,6 @@ package io.synadia.client.impl;
 
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.support.Listener;
 import io.synadia.client.support.ssl.ExpiringClientCertUtil;
 import io.synadia.client.support.ssl.ExpiringComponents;
@@ -236,7 +235,7 @@ public class TLSConnectTests extends TestBase {
                 .maxReconnects(0)
                 .sslContext(ctx)
                 .build();
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 Dispatcher d = nc.createDispatcher(
                     msg -> nc.publish(msg.getReplyTo(), new byte[16]));
                 String subject = random();
@@ -271,14 +270,14 @@ public class TLSConnectTests extends TestBase {
                 .build();
             ncRef.set((NatsConnection) managedConnect(options));
             assertInstanceOf(SocketDataPort.class, ncRef.get().getDataPort(), "Correct data port class");
-            listener.queueConnectionEvent(Events.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         });
 
         NatsConnection nc = ncRef.get();
         flushConnection(nc);
         listener.validate();
 
-        listener.queueConnectionEvent(Events.RESUBSCRIBED);
+        listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
         runInConfiguredServer("tlsverify.conf", newPort, ts -> listener.validate());
         closeAndConfirm(nc);
     }
@@ -436,7 +435,7 @@ public class TLSConnectTests extends TestBase {
                 .errorListener(el)
                 .build();
 
-            try (Connection nc = Nats.connect(options)) {
+            try (NatsConnection nc = Nats.connect(options)) {
                 fail("Should not have connected");
             }
             catch (Exception e) {
@@ -469,7 +468,7 @@ public class TLSConnectTests extends TestBase {
                     .errorListener(el)
                     .build();
 
-                try (Connection nc = Nats.connect(options)) {
+                try (NatsConnection nc = Nats.connect(options)) {
                     fail("should have thrown an exception");
                 }
                 catch (Exception e) {
@@ -499,7 +498,7 @@ public class TLSConnectTests extends TestBase {
             SslTestConnectionListener cl = new SslTestConnectionListener(1);
             SslTestErrorListener el = new SslTestErrorListener(2);
 
-            Connection nc;
+            NatsConnection nc;
             NatsServerRunner.Builder b1 = NatsServerRunner.builder().configFilePath(configFilePath);
             NatsServerRunner.Builder b2 = NatsServerRunner.builder().configFilePath(configFilePath);
             try (NatsTestServer ts1 = new NatsTestServer(b1)) {
@@ -553,7 +552,7 @@ public class TLSConnectTests extends TestBase {
                     .errorListener(el)
                     .build();
 
-                try (Connection nc = Nats.connect(options)) {
+                try (NatsConnection nc = Nats.connect(options)) {
                     assertEquals(ConnectionStatus.CONNECTED, nc.getStatus());
                     assertTrue(cl.latch.await(2, TimeUnit.SECONDS));
                     sleep(CLIENT_CERT_VALIDITY_MILLIS); // sleep enough time for the cert to expire
@@ -587,8 +586,8 @@ public class TLSConnectTests extends TestBase {
         }
 
         @Override
-        public void connectionEvent(Connection conn, Events type) {
-            if (type == Events.CONNECTED) {
+        public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
+            if (type == ConnectionEvents.CONNECTED) {
                 latch.countDown();
             }
         }
@@ -602,7 +601,7 @@ public class TLSConnectTests extends TestBase {
         }
 
         @Override
-        public void exceptionOccurred(Connection conn, Exception exp) {
+        public void exceptionOccurred(NatsConnection conn, Exception exp) {
             if (hasSslOrSocketCauseInChain(exp)) {
                 if (latch.getCount() > 0) {
                     latch.countDown();

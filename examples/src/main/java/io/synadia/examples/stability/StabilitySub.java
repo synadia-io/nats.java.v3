@@ -13,7 +13,11 @@
 
 package io.synadia.examples.stability;
 
-import io.synadia.client.*;
+import io.synadia.client.Message;
+import io.synadia.client.Nats;
+import io.synadia.client.Options;
+import io.synadia.client.Subscription;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.benchmark.Utils;
 
 import java.text.NumberFormat;
@@ -52,7 +56,7 @@ public class StabilitySub {
         while (true) {
             try {
                 Options options = new Options.Builder().server(server).noReconnect().build();
-                Connection nc = Nats.connect(options);
+                NatsConnection nc = Nats.connect(options);
                 Subscription sub = nc.subscribe(subject);
 
                 try {

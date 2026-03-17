@@ -31,7 +31,7 @@ public class ValidateIssue1426Test {
             AtomicBoolean violated = new AtomicBoolean(false);
             ErrorListener errorListener = new ErrorListener() {
                 @Override
-                public void errorOccurred(Connection conn, String error) {
+                public void errorOccurred(NatsConnection conn, String error) {
                     if (error.contains("Authorization Violation")) {
                         violated.set(true);
                     }
@@ -47,7 +47,7 @@ public class ValidateIssue1426Test {
                 .errorListener(errorListener)
                 .build();
 
-            try (Connection nc = Nats.connect(options)) {
+            try (NatsConnection nc = Nats.connect(options)) {
 
                 NatsDispatcher[] dispatchers = new NatsDispatcher[NUM_DISPATCHERS];
                 for (int i = 0; i < NUM_DISPATCHERS; i++) {

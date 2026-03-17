@@ -1,8 +1,8 @@
 package io.synadia.client;
 
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.JetStreamTestingContext;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 import io.synadia.client.support.Listener;
 import io.synadia.client.utils.TestBase;
@@ -56,7 +56,7 @@ public class PublishTests extends TestBase {
         h.put("abcd", "12345"); // NATS/1.0\r\nabcd:12345\r\n\r\n 24 characters 971 + 24 = 1001
 
         runInConfiguredServer("max_payload.conf", ts -> {
-            try (Connection nc = managedConnect(options(ts))) {
+            try (NatsConnection nc = managedConnect(options(ts))) {
                 assertThrows(IllegalArgumentException.class, () -> nc.publish(random(), null, null, body1001));
                 assertThrows(IllegalArgumentException.class, () -> nc.publish("subject", null, h, body977));
             }
@@ -66,7 +66,7 @@ public class PublishTests extends TestBase {
                 .clientSideLimitChecks(false)
                 .errorListener(listener)
                 .build();
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 listener.queueError("Maximum Payload Violation");
                 listener.queueException(SocketException.class);
                 nc.publish(random(), null, null, body1001);
@@ -79,7 +79,7 @@ public class PublishTests extends TestBase {
     public void testThrowsIfHeadersNotSupported() throws Exception {
         String customInfo = "{\"server_id\":\"test\", \"version\":\"9.9.99\"}";
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(null, customInfo)) {
-            try (Connection nc = standardConnect(mockTs)) {
+            try (NatsConnection nc = standardConnect(mockTs)) {
                 assertThrows(IllegalArgumentException.class,
                     () -> nc.publish(NatsMessage.builder()
                         .subject("testThrowsIfheadersNotSupported")
@@ -155,7 +155,7 @@ public class PublishTests extends TestBase {
         };
 
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(receiveMessageCustomizer)) {
-            try (Connection nc = standardConnect(mockTs)) {
+            try (NatsConnection nc = standardConnect(mockTs)) {
                 byte[] bodyBytes;
                 if (bodyString == null || bodyString.isEmpty()) {
                     bodyBytes = EMPTY_BODY;
@@ -219,7 +219,7 @@ public class PublishTests extends TestBase {
 
         runInSharedOwnNc(builder, nc -> {
             listener.queueError("Maximum Payload Violation");
-            listener.queueConnectionEvent(Events.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
             int maxPayload = (int)nc.getServerInfo().getMaxPayload();
             nc.publish(random(), new byte[maxPayload + 1]);
             listener.validateAll();
@@ -243,7 +243,7 @@ public class PublishTests extends TestBase {
         Options.Builder ncNotSupportedOptionsBuilder = optionsBuilder().noReconnect().clientSideLimitChecks(false);
         runInSharedOwnNc(ncNotSupportedOptionsBuilder, ncNotSupported -> {
             Options ncSupportedOptions = optionsBuilder(ncNotSupported).supportUTF8Subjects().build();
-            try (Connection ncSupported = managedConnect(ncSupportedOptions)) {
+            try (NatsConnection ncSupported = managedConnect(ncSupportedOptions)) {
                 try (JetStreamTestingContext ctxNotSupported = new JetStreamTestingContext(ncNotSupported, 0)) {
                     ctxNotSupported.createOrReplaceStream(jsSubject);
                     JetStream jsNotSupported = ncNotSupported.jetStream();

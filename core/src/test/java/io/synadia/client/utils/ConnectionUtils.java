@@ -1,6 +1,10 @@
 package io.synadia.client.utils;
 
-import io.synadia.client.*;
+import io.synadia.client.ConnectionStatus;
+import io.synadia.client.Nats;
+import io.synadia.client.NatsServerProtocolMock;
+import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
@@ -26,7 +30,7 @@ public abstract class ConnectionUtils {
     private static final int CONNECTION_RETRIES = 10;
     private static final long RETRY_DELAY = 100;
 
-    public static Connection managedConnect(Options options) {
+    public static NatsConnection managedConnect(Options options) {
         try {
             return managedConnect(options, DEFAULT_WAIT);
         }
@@ -35,7 +39,7 @@ public abstract class ConnectionUtils {
         }
     }
 
-    public static Connection managedConnect(Options options, long waitTime) throws IOException, InterruptedException {
+    public static NatsConnection managedConnect(Options options, long waitTime) throws IOException, InterruptedException {
         IOException last = null;
         long delay = RETRY_DELAY - RETRY_DELAY_INCREMENT;
         for (int x = 1; x <= CONNECTION_RETRIES; x++) {
@@ -60,11 +64,11 @@ public abstract class ConnectionUtils {
     // ----------------------------------------------------------------------------------------------------
     // standardConnect
     // ----------------------------------------------------------------------------------------------------
-    public static Connection standardConnect(NatsServerProtocolMock ts) throws IOException, InterruptedException {
+    public static NatsConnection standardConnect(NatsServerProtocolMock ts) throws IOException, InterruptedException {
         return confirmConnected(Nats.connect(options(ts)));
     }
 
-    public static Connection standardConnect(Options options) throws IOException, InterruptedException {
+    public static NatsConnection standardConnect(Options options) throws IOException, InterruptedException {
         return confirmConnected(Nats.connect(options));
     }
 
@@ -72,37 +76,37 @@ public abstract class ConnectionUtils {
     // connect or wait for a connection
     // ----------------------------------------------------------------------------------------------------
     @SuppressWarnings("UnusedReturnValue")
-    public static Connection confirmConnected(Connection conn) {
+    public static NatsConnection confirmConnected(NatsConnection conn) {
         return waitUntilStatus(conn, DEFAULT_WAIT, ConnectionStatus.CONNECTED);
     }
 
-    public static Connection confirmConnected(Connection conn, long waitTime) {
+    public static NatsConnection confirmConnected(NatsConnection conn, long waitTime) {
         return waitUntilStatus(conn, waitTime, ConnectionStatus.CONNECTED);
     }
 
     // ----------------------------------------------------------------------------------------------------
     // connect or wait for a connection
     // ----------------------------------------------------------------------------------------------------
-    public static void confirmConnectedThenClosed(Connection conn) {
+    public static void confirmConnectedThenClosed(NatsConnection conn) {
         closeAndConfirm(confirmConnected(conn, DEFAULT_WAIT), DEFAULT_WAIT);
     }
 
-    public static void confirmConnectedThenClosed(Connection conn, long waitTime) {
+    public static void confirmConnectedThenClosed(NatsConnection conn, long waitTime) {
         closeAndConfirm(confirmConnected(conn, waitTime), DEFAULT_WAIT);
     }
 
-    public static void confirmConnectedThenClosed(Connection conn, long waitTime, long closeTime) {
+    public static void confirmConnectedThenClosed(NatsConnection conn, long waitTime, long closeTime) {
         closeAndConfirm(confirmConnected(conn, waitTime), closeTime);
     }
 
     // ----------------------------------------------------------------------------------------------------
     // close
     // ----------------------------------------------------------------------------------------------------
-    public static void closeAndConfirm(Connection conn) {
+    public static void closeAndConfirm(NatsConnection conn) {
         closeAndConfirm(conn, DEFAULT_WAIT);
     }
 
-    public static void closeAndConfirm(Connection conn, long millis) {
+    public static void closeAndConfirm(NatsConnection conn, long millis) {
         if (conn != null) {
             close(conn);
             waitUntilStatus(conn, millis, ConnectionStatus.CLOSED);
@@ -110,7 +114,7 @@ public abstract class ConnectionUtils {
         }
     }
 
-    public static void close(Connection conn) {
+    public static void close(NatsConnection conn) {
         try {
             conn.close();
         }
@@ -120,7 +124,7 @@ public abstract class ConnectionUtils {
     // ----------------------------------------------------------------------------------------------------
     // connection waiting
     // ----------------------------------------------------------------------------------------------------
-    public static Connection waitUntilStatus(Connection conn, long millis, ConnectionStatus waitUntilStatus) {
+    public static NatsConnection waitUntilStatus(NatsConnection conn, long millis, ConnectionStatus waitUntilStatus) {
         long times = (millis + 99) / 100;
         for (long x = 0; x < times; x++) {
             sleep(100);
@@ -135,12 +139,12 @@ public abstract class ConnectionUtils {
     // ----------------------------------------------------------------------------------------------------
     // assertions
     // ----------------------------------------------------------------------------------------------------
-    public static void assertConnected(Connection conn) {
+    public static void assertConnected(NatsConnection conn) {
         assertSame(ConnectionStatus.CONNECTED, conn.getStatus(),
             () -> expectingMessage(conn, ConnectionStatus.CONNECTED));
     }
 
-    public static void assertClosed(Connection conn) {
+    public static void assertClosed(NatsConnection conn) {
         assertSame(ConnectionStatus.CLOSED, conn.getStatus(),
             () -> expectingMessage(conn, ConnectionStatus.CLOSED));
     }
@@ -153,7 +157,7 @@ public abstract class ConnectionUtils {
         closeAndConfirm(managedConnect(options));
     }
 
-    private static String expectingMessage(Connection conn, ConnectionStatus expecting) {
-        return "Failed expecting Connection Status " + expecting.name() + " but was " + conn.getStatus();
+    private static String expectingMessage(NatsConnection conn, ConnectionStatus expecting) {
+        return "Failed expecting NatsConnection Status " + expecting.name() + " but was " + conn.getStatus();
     }
 }

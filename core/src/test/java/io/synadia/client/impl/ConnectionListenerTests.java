@@ -1,7 +1,6 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.support.Listener;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
@@ -22,13 +21,13 @@ public class ConnectionListenerTests extends TestBase {
 
     @Test
     public void testToString() {
-        assertEquals("nats: connection closed", Events.CLOSED.toString());
+        assertEquals("nats: connection closed", ConnectionEvents.CLOSED.toString());
     }
     
     @Test
     public void testCloseEvent() throws Exception {
         Listener listener = new Listener();
-        listener.queueConnectionEvent(Events.CLOSED);
+        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
         Options.Builder builder = optionsBuilder().connectionListener(listener);
         runInSharedOwnNc(builder, nc -> {
             closeAndConfirm(nc);
@@ -47,8 +46,8 @@ public class ConnectionListenerTests extends TestBase {
                     .maxReconnects(0)
                     .connectionListener(listener)
                     .build();
-                listener.queueConnectionEvent(Events.DISCOVERED_SERVERS);
-                try (Connection ignore = standardConnect(options)) {
+                listener.queueConnectionEvent(ConnectionEvents.DISCOVERED_SERVERS);
+                try (NatsConnection ignore = standardConnect(options)) {
                     listener.validate();
                 }
             }
@@ -58,7 +57,7 @@ public class ConnectionListenerTests extends TestBase {
     @Test
     public void testDisconnectReconnectCount() throws Exception {
         int port;
-        Connection nc;
+        NatsConnection nc;
         Listener listener = new Listener();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts)
@@ -69,7 +68,7 @@ public class ConnectionListenerTests extends TestBase {
             port = ts.getPort();
             nc = managedConnect(options);
             assertEquals(ts.getServerUri(), nc.getConnectedUrl());
-            listener.queueConnectionEvent(Events.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         }
 
         try { nc.flush(Duration.ofMillis(250)); } catch (Exception exp) { /* ignored */ }
@@ -77,7 +76,7 @@ public class ConnectionListenerTests extends TestBase {
         listener.validate();
         assertNull(nc.getConnectedUrl());
 
-        listener.queueConnectionEvent(Events.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
         try (NatsTestServer ts = new NatsTestServer(port)) {
             confirmConnected(nc); // wait for reconnect
             listener.validate();
@@ -100,7 +99,7 @@ public class ConnectionListenerTests extends TestBase {
     public void testMultipleConnectionListeners() throws Exception {
         Set<String> capturedEvents = ConcurrentHashMap.newKeySet();
         Listener listener = new Listener();
-        listener.queueConnectionEvent(Events.CLOSED);
+        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
         AtomicReference<Statistics> stats = new AtomicReference<>();
         Options.Builder builder = optionsBuilder().connectionListener(listener);
         runInSharedOwnNc(builder, nc -> {
@@ -137,20 +136,20 @@ public class ConnectionListenerTests extends TestBase {
 
     @Test
     public void testConnectionListenerEventCoverage() {
-        assertTrue(Events.CONNECTED.isConnectionEvent());
-        assertTrue(Events.CLOSED.isConnectionEvent());
-        assertTrue(Events.DISCONNECTED.isConnectionEvent());
-        assertTrue(Events.RECONNECTED.isConnectionEvent());
-        assertFalse(Events.RESUBSCRIBED.isConnectionEvent());
-        assertFalse(Events.DISCOVERED_SERVERS.isConnectionEvent());
-        assertFalse(Events.LAME_DUCK.isConnectionEvent());
+        assertTrue(ConnectionEvents.CONNECTED.isConnectionEvent());
+        assertTrue(ConnectionEvents.CLOSED.isConnectionEvent());
+        assertTrue(ConnectionEvents.DISCONNECTED.isConnectionEvent());
+        assertTrue(ConnectionEvents.RECONNECTED.isConnectionEvent());
+        assertFalse(ConnectionEvents.RESUBSCRIBED.isConnectionEvent());
+        assertFalse(ConnectionEvents.DISCOVERED_SERVERS.isConnectionEvent());
+        assertFalse(ConnectionEvents.LAME_DUCK.isConnectionEvent());
 
-        assertEquals("opened", Events.CONNECTED.getEvent());
-        assertEquals("nats: connection opened", Events.CONNECTED.getNatsEvent());
-        assertEquals(Events.CONNECTED.getNatsEvent(), Events.CONNECTED.toString());
+        assertEquals("opened", ConnectionEvents.CONNECTED.getEvent());
+        assertEquals("nats: connection opened", ConnectionEvents.CONNECTED.getNatsEvent());
+        assertEquals(ConnectionEvents.CONNECTED.getNatsEvent(), ConnectionEvents.CONNECTED.toString());
 
-        assertEquals("lame duck mode", Events.LAME_DUCK.getEvent());
-        assertEquals("nats: lame duck mode", Events.LAME_DUCK.getNatsEvent());
-        assertEquals(Events.LAME_DUCK.getNatsEvent(), Events.LAME_DUCK.toString());
+        assertEquals("lame duck mode", ConnectionEvents.LAME_DUCK.getEvent());
+        assertEquals("nats: lame duck mode", ConnectionEvents.LAME_DUCK.getNatsEvent());
+        assertEquals(ConnectionEvents.LAME_DUCK.getNatsEvent(), ConnectionEvents.LAME_DUCK.toString());
     }
 }

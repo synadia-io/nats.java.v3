@@ -16,6 +16,7 @@ package io.synadia.examples.jetstream;
 import io.synadia.client.*;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleUtils;
 
 import java.io.IOException;
@@ -82,8 +83,8 @@ public class NatsJsPrefix {
         String serverSrc = "nats://src:spass@localhost:4222";
         String serverTar = "nats://tar:tpass@localhost:4222";
 
-        try (Connection ncSrc = Nats.connect(ExampleUtils.createExampleOptions(serverSrc));
-             Connection ncTar = Nats.connect(ExampleUtils.createExampleOptions(serverTar))
+        try (NatsConnection ncSrc = Nats.connect(ExampleUtils.createExampleOptions(serverSrc));
+             NatsConnection ncTar = Nats.connect(ExampleUtils.createExampleOptions(serverTar))
         ) {
             // Setup JetStreamOptions. SOURCE does not need prefix
             JetStreamOptions jsoSrc = JetStreamOptions.builder().build();
@@ -150,7 +151,7 @@ public class NatsJsPrefix {
         }
     }
 
-    private static void readMessages(Connection nc, JetStream js, String subject) throws InterruptedException, IOException, JetStreamApiException, TimeoutException {
+    private static void readMessages(NatsConnection nc, JetStream js, String subject) throws InterruptedException, IOException, JetStreamApiException, TimeoutException {
         JetStreamSubscription sub = js.subscribe(subject);
         nc.flush(Duration.ofSeconds(1));
         Message msg = sub.nextMessage(Duration.ofSeconds(1));

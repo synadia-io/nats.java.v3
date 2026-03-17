@@ -1,7 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Connection;
-
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
@@ -32,7 +30,7 @@ class NatsJetStreamMessage extends IncomingMessage {
     public void ackSync(Duration d) throws InterruptedException, TimeoutException {
         if (ackHasntBeenTermed()) {
             validateDurationRequired(d);
-            Connection nc = getJetStreamValidatedConnection();
+            NatsConnection nc = getJetStreamValidatedConnection();
             if (nc.request(replyTo, AckAck.bytes, d) == null) {
                 throw new TimeoutException("Ack response timed out.");
             }
@@ -101,7 +99,7 @@ class NatsJetStreamMessage extends IncomingMessage {
 
     private void ackReply(AckType ackType, long delayNanos) {
         if (ackHasntBeenTermed()) {
-            Connection nc = getJetStreamValidatedConnection();
+            NatsConnection nc = getJetStreamValidatedConnection();
             nc.publish(replyTo, ackType.bodyBytes(delayNanos));
             lastAck = ackType;
         }
@@ -111,12 +109,12 @@ class NatsJetStreamMessage extends IncomingMessage {
         return lastAck == null || !lastAck.terminal;
     }
 
-    Connection getJetStreamValidatedConnection() {
+    NatsConnection getJetStreamValidatedConnection() {
         if (getSubscription() == null) {
             throw new IllegalStateException("Message is not bound to a subscription.");
         }
 
-        Connection c = getConnection();
+        NatsConnection c = getConnection();
         if (c == null) {
             throw new IllegalStateException("Message is not bound to a connection");
         }

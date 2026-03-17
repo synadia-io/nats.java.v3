@@ -2,6 +2,7 @@ package io.synadia.client;
 
 import io.synadia.client.impl.AckType;
 import io.synadia.client.impl.Headers;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsJetStreamMetaData;
 import io.synadia.client.support.Status;
 
@@ -91,7 +92,7 @@ public interface Message {
 	 * the connection which can be used for publishing, will be null if the subscription is null
 	 * @return the connection
 	 */
-	Connection getConnection();
+	NatsConnection getConnection();
 
 	/**
 	 * Gets the metadata associated with a JetStream message.

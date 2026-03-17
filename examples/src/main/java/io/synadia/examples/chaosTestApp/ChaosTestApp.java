@@ -13,13 +13,13 @@
 
 package io.synadia.examples.chaosTestApp;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
 import io.synadia.client.api.StreamInfo;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.chaosTestApp.support.CommandLine;
 import io.synadia.examples.chaosTestApp.support.CommandLineConsumer;
 
@@ -70,7 +70,7 @@ public class ChaosTestApp {
 
             if (cmd.create) {
                 Options options = cmd.makeManagmentOptions();
-                try (Connection nc = Nats.connect(options)) {
+                try (NatsConnection nc = Nats.connect(options)) {
                     System.out.println(nc.getServerInfo());
                     JetStreamManagement jsm = nc.jetStreamManagement();
                     createOrReplaceStream(cmd, jsm);

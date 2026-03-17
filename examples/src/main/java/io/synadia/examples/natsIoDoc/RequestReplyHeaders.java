@@ -1,10 +1,10 @@
 package io.synadia.examples.natsIoDoc;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.Nats;
 import io.synadia.client.impl.Headers;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -12,7 +12,7 @@ import java.util.concurrent.*;
 
 public class RequestReplyHeaders {
     public static void main(String[] args) {
-        try (Connection nc = Nats.connect("nats://localhost:4222")) {
+        try (NatsConnection nc = Nats.connect("nats://localhost:4222")) {
 
             // NATS-DOC-START
             // Set up the header echo service

@@ -17,6 +17,7 @@ import io.synadia.client.*;
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 import io.synadia.examples.ExampleUtils;
 
@@ -44,7 +45,7 @@ public class JsPublishInRoundsBench {
 
         Arguments a = readArgs(args);
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(a.server, true))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(a.server, true))) {
             JetStreamManagement jsm = nc.jetStreamManagement();
             StreamConfiguration.Builder builder = StreamConfiguration.builder()
                     .name(a.stream)

@@ -1,6 +1,10 @@
 package io.synadia.examples.natsIoDoc;
 
-import io.synadia.client.*;
+import io.synadia.client.Dispatcher;
+import io.synadia.client.Message;
+import io.synadia.client.Nats;
+import io.synadia.client.Subscription;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -8,7 +12,7 @@ import java.util.concurrent.CountDownLatch;
 
 public class BasicsSubscribe {
     public static void main(String[] args) {
-        try (Connection nc = Nats.connect("nats://localhost:4222")) {
+        try (NatsConnection nc = Nats.connect("nats://localhost:4222")) {
             // NATS-DOC-START
             // Asynchronous Subscriber requires a dispatcher
             // Dispatchers can be shared

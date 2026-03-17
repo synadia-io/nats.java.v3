@@ -1,7 +1,7 @@
 package io.synadia.client.utils;
 
-import io.synadia.client.Connection;
 import io.synadia.client.api.ServerInfo;
+import io.synadia.client.impl.NatsConnection;
 
 public abstract class VersionUtils {
     public static ServerInfo VERSION_SERVER_INFO;
@@ -10,7 +10,7 @@ public abstract class VersionUtils {
         boolean runTest(ServerInfo si);
     }
 
-    public static void initVersionServerInfo(Connection nc) {
+    public static void initVersionServerInfo(NatsConnection nc) {
         if (VERSION_SERVER_INFO == null) {
             VERSION_SERVER_INFO = nc.getServerInfo();
         }

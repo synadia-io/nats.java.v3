@@ -1,5 +1,6 @@
 package io.synadia.client;
 
+import io.synadia.client.impl.NatsConnection;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -94,7 +95,7 @@ public class SubscriberTests {
         };
 
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(receiveMessageCustomizer)) {
-            try (Connection nc = standardConnect(mockTs)) {
+            try (NatsConnection nc = standardConnect(mockTs)) {
                 String subject = random();
                 Subscription sub = nc.subscribe(subject);
 

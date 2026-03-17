@@ -14,6 +14,7 @@
 package io.synadia.examples.autobench;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -37,7 +38,7 @@ public class ReqReplyBenchmark extends AutoBenchmark {
 
         Thread replyThread = new Thread(() -> {
             try {
-                Connection replyConnect = Nats.connect(connectOptions);
+                NatsConnection replyConnect = Nats.connect(connectOptions);
                 if (replyConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
@@ -74,7 +75,7 @@ public class ReqReplyBenchmark extends AutoBenchmark {
 
         Thread requestThread = new Thread(() -> {
             try {
-                Connection requestConnect = Nats.connect(connectOptions);
+                NatsConnection requestConnect = Nats.connect(connectOptions);
                 if (requestConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }

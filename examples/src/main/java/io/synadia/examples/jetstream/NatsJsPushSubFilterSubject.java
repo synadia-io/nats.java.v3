@@ -16,6 +16,7 @@ package io.synadia.examples.jetstream;
 import io.synadia.client.*;
 import io.synadia.client.api.AckPolicy;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -48,7 +49,7 @@ public class NatsJsPushSubFilterSubject {
         String subjectA = exArgs.subject + ".A";
         String subjectB = exArgs.subject + ".B";
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
             // Create a JetStreamManagement context.
             JetStreamManagement jsm = nc.jetStreamManagement();
 

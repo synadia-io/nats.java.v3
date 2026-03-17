@@ -17,6 +17,7 @@ import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.impl.ErrorListenerConsoleImpl;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -47,7 +48,7 @@ public class NatsJsPushSubOrdered {
             .connectionListener((c, e) -> System.out.println(e.name()))
             .errorListener(new ErrorListenerConsoleImpl())
             .build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
             createOrReplaceStream(jsm, STREAM, StorageType.File, SUBJECT); // file is important, memory won't survive a restart
 

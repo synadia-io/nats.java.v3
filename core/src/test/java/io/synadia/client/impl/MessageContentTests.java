@@ -2,7 +2,6 @@ package io.synadia.client.impl;
 
 
 import io.synadia.client.*;
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.support.Listener;
 import io.synadia.client.utils.ConnectionUtils;
 import io.synadia.client.utils.TestBase;
@@ -182,8 +181,8 @@ public class MessageContentTests extends TestBase {
                 .errorListener(listener)
                 .connectionListener(listener)
                 .build();
-            try (Connection ignore = ConnectionUtils.standardConnect(options)) {
-                listener.queueConnectionEvent(Events.DISCONNECTED);
+            try (NatsConnection ignore = ConnectionUtils.standardConnect(options)) {
+                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
                 ready.complete(Boolean.TRUE);
                 listener.validate();
             }

@@ -1,7 +1,10 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
+import io.synadia.client.Message;
+import io.synadia.client.NatsServerProtocolMock;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
+import io.synadia.client.Options;
+import io.synadia.client.Subscription;
 import io.synadia.client.support.IncomingHeadersProcessor;
 import io.synadia.client.utils.ConnectionUtils;
 import org.junit.jupiter.api.Test;
@@ -120,7 +123,7 @@ public class NatsMessageTests extends JetStreamTestBase {
             subject.append(subject);
         }
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.NO_EXIT)) {
-            try (Connection nc = ConnectionUtils.standardConnect(options(mockTs))) {
+            try (NatsConnection nc = ConnectionUtils.standardConnect(options(mockTs))) {
                 // Without Body
                 assertThrows(IllegalArgumentException.class, () -> nc.subscribe(subject.toString()));
 

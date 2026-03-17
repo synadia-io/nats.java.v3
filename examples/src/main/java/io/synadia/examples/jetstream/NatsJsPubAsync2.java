@@ -13,11 +13,11 @@
 
 package io.synadia.examples.jetstream;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStream;
 import io.synadia.client.Message;
 import io.synadia.client.Nats;
 import io.synadia.client.api.PublishAck;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
@@ -55,7 +55,7 @@ public class NatsJsPubAsync2 {
         String hdrNote = exArgs.hasHeaders() ? ", with " + exArgs.headers.size() + " header(s)" : "";
         System.out.printf("\nPublishing to %s%s. Server is %s\n\n", exArgs.subject, hdrNote, exArgs.server);
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
 
             // Create a JetStream context.  This hangs off the original connection
             // allowing us to produce data to streams and consume data from

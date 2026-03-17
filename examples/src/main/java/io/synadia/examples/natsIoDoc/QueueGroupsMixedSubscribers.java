@@ -1,9 +1,9 @@
 package io.synadia.examples.natsIoDoc;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.Nats;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +11,7 @@ import java.time.Duration;
 
 public class QueueGroupsMixedSubscribers {
     public static void main(String[] args) {
-        try (Connection nc = Nats.connect("nats://localhost:4222")) {
+        try (NatsConnection nc = Nats.connect("nats://localhost:4222")) {
 
             // NATS-DOC-START
             // Set up 3 instances of the service

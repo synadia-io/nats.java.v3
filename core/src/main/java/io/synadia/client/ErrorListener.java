@@ -1,5 +1,6 @@
 package io.synadia.client;
 
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.Status;
 
 /**
@@ -27,7 +28,7 @@ public interface ErrorListener {
      * @param conn The connection associated with the error
      * @param error The text of error that has occurred, directly from the server
      */
-    default void errorOccurred(Connection conn, String error) {};
+    default void errorOccurred(NatsConnection conn, String error) {};
 
     /**
      * Exceptions that occur in the "normal" course of operations are sent to the
@@ -39,7 +40,7 @@ public interface ErrorListener {
      * @param conn The connection associated with the error
      * @param exp The exception that has occurred, and was handled by the library
      */
-    default void exceptionOccurred(Connection conn, Exception exp) {};
+    default void exceptionOccurred(NatsConnection conn, Exception exp) {};
 
     /**
      * Called by the connection when a &quot;slow&quot; consumer is detected. This call is only made once
@@ -55,7 +56,7 @@ public interface ErrorListener {
      * @param conn The connection associated with the error
      * @param consumer The consumer that is being marked slow
      */
-    default void slowConsumerDetected(Connection conn, Consumer consumer) {};
+    default void slowConsumerDetected(NatsConnection conn, Consumer consumer) {};
 
     /**
      * Called by the connection when a message is discarded.
@@ -63,7 +64,7 @@ public interface ErrorListener {
      * @param conn The connection that discarded the message
      * @param msg The message that is discarded
      */
-    default void messageDiscarded(Connection conn, Message msg) {}
+    default void messageDiscarded(NatsConnection conn, Message msg) {}
 
     /**
      * Called when subscription heartbeats are missed according to the configured period and threshold.
@@ -74,7 +75,7 @@ public interface ErrorListener {
      * @param lastStreamSequence the last received stream sequence
      * @param lastConsumerSequence the last received consumer sequence
      */
-    default void heartbeatAlarm(Connection conn, JetStreamSubscription sub,
+    default void heartbeatAlarm(NatsConnection conn, JetStreamSubscription sub,
                                 long lastStreamSequence, long lastConsumerSequence) {}
 
     /**
@@ -83,7 +84,7 @@ public interface ErrorListener {
      * @param sub the JetStreamSubscription that this occurred on
      * @param status the status
      */
-    default void unhandledStatus(Connection conn, JetStreamSubscription sub, Status status) {}
+    default void unhandledStatus(NatsConnection conn, JetStreamSubscription sub, Status status) {}
 
     /**
      * Called when a pull subscription receives a status message that indicates either
@@ -93,7 +94,7 @@ public interface ErrorListener {
      * @param sub    the JetStreamSubscription that this occurred on
      * @param status the status
      */
-    default void pullStatusWarning(Connection conn, JetStreamSubscription sub, Status status) {}
+    default void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {}
 
     /**
      * Called when a pull subscription receives a status message that indicates either
@@ -103,7 +104,7 @@ public interface ErrorListener {
      * @param sub    the JetStreamSubscription that this occurred on
      * @param status the status
      */
-    default void pullStatusError(Connection conn, JetStreamSubscription sub, Status status) {}
+    default void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {}
 
     /**
      * Enum for the flow control source
@@ -128,14 +129,14 @@ public interface ErrorListener {
      * @param subject the flow control subject that was handled
      * @param source enum indicating flow control handling in response to which type of message
      */
-    default void flowControlProcessed(Connection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {}
+    default void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {}
 
     /**
      * Called by the connection when a low level socket write timeout occurs.
      *
      * @param conn The connection that had the issue
      */
-    default void socketWriteTimeout(Connection conn) {}
+    default void socketWriteTimeout(NatsConnection conn) {}
 
     /**
      * General message producing function which understands the possible parameters to listener calls.
@@ -147,10 +148,10 @@ public interface ErrorListener {
      *              to the message like ", foo: &lt;fooValue&gt;, bar-&lt;barValue&gt;".
      * @return the message
      */
-    default String supplyMessage(String label, Connection conn, Consumer consumer, Subscription sub, Object... pairs) {
+    default String supplyMessage(String label, NatsConnection conn, Consumer consumer, Subscription sub, Object... pairs) {
         StringBuilder sb = new StringBuilder(label == null ? "" : label);
         if (conn != null) {
-            sb.append(", Connection: ").append(conn.getServerInfo().getClientId());
+            sb.append(", NatsConnection: ").append(conn.getServerInfo().getClientId());
         }
         if (consumer != null) {
             sb.append(", Consumer: ").append(consumer.hashCode());

@@ -14,6 +14,7 @@
 package io.synadia.examples.autobench;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -37,7 +38,7 @@ public class PubSubBenchmark extends ThrottledBenchmark {
         Thread subThread = new Thread(() -> {
             try {
                 int count = 0;
-                Connection subConnect = Nats.connect(connectOptions);
+                NatsConnection subConnect = Nats.connect(connectOptions);
 
                 if (subConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
@@ -74,7 +75,7 @@ public class PubSubBenchmark extends ThrottledBenchmark {
 
         Thread pubThread = new Thread(() -> {
             try {
-                Connection pubConnect = Nats.connect(connectOptions);
+                NatsConnection pubConnect = Nats.connect(connectOptions);
                 if (pubConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }

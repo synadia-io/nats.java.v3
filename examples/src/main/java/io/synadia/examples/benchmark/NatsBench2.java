@@ -14,6 +14,7 @@
 package io.synadia.examples.benchmark;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -101,13 +102,13 @@ public class NatsBench2 {
         builder.connectionListener(new ConnectionListener() {
 
             @Override
-            public void connectionEvent(Connection conn, Events type) {
+            public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
                 System.out.println("Connection Event:" + type);
-                if (type == Events.DISCOVERED_SERVERS)
+                if (type == ConnectionEvents.DISCOVERED_SERVERS)
                 {
                     conn.getServers().forEach(System.out::println);
                 }
-                if (type == Events.RECONNECTED)
+                if (type == ConnectionEvents.RECONNECTED)
                 {
                     System.out.println("Reconnected to:" + conn.getConnectedUrl());
                 }
@@ -116,18 +117,18 @@ public class NatsBench2 {
         });
         builder.errorListener(new ErrorListener() {
             @Override
-            public void errorOccurred(Connection conn, String error) {
+            public void errorOccurred(NatsConnection conn, String error) {
                 System.out.printf("An error occurred %s\n", error);
             }
 
             @Override
-            public void exceptionOccurred(Connection conn, Exception exp) {
+            public void exceptionOccurred(NatsConnection conn, Exception exp) {
                 System.out.println("An exception occurred...");
                 exp.printStackTrace();
             }
 
             @Override
-            public void slowConsumerDetected(Connection conn, Consumer consumer) {
+            public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
                 System.out.println("Slow consumer detected");
             }
         });
@@ -201,7 +202,7 @@ public class NatsBench2 {
         public void run() {
             try {
                 Options opts = prepareOptions(this.secure);
-                Connection nc = Nats.connect(opts);
+                NatsConnection nc = Nats.connect(opts);
 
                 Subscription sub = nc.subscribe(subject);
                 nc.flush(null);
@@ -262,7 +263,7 @@ public class NatsBench2 {
         public void run() {
             try {
                 Options opts = prepareOptions(this.secure);
-                Connection nc = Nats.connect(opts);
+                NatsConnection nc = Nats.connect(opts);
 
                 byte[] payload = null;
                 if (size > 0) {

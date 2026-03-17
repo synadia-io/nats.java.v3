@@ -13,11 +13,11 @@
 
 package io.synadia.examples.chaosTestApp;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
 import io.synadia.client.api.StreamInfo;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.chaosTestApp.support.CommandLine;
 
 import java.time.Duration;
@@ -64,7 +64,7 @@ public class Monitor implements Runnable, java.util.function.Consumer<String> {
 
         long started = System.currentTimeMillis();
         int shortReportsOwed = 0;
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
             //noinspection InfiniteLoopStatement
             while (true) {

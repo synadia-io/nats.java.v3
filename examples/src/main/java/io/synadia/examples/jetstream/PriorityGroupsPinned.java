@@ -3,6 +3,7 @@ package io.synadia.examples.jetstream;
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.PriorityPolicy;
+import io.synadia.client.impl.NatsConnection;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
@@ -41,7 +42,7 @@ public class PriorityGroupsPinned {
 
 	public static void main(String[] args) {
 		Options options = Options.builder().server(SERVER).build();
-		try (Connection nc = Nats.connect(options)) {
+		try (NatsConnection nc = Nats.connect(options)) {
 			JetStreamManagement jsm = nc.jetStreamManagement();
 			createOrReplaceStream(jsm, STREAM, SUBJECT);
 

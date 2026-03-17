@@ -120,7 +120,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         });
     }
 
-    private static void _testOrderedConsumerAsync(Connection nc, JetStreamTestingContext ctx, String consumerNamePrefix, PushSubscribeOptions pso) throws JetStreamApiException, IOException, InterruptedException {
+    private static void _testOrderedConsumerAsync(NatsConnection nc, JetStreamTestingContext ctx, String consumerNamePrefix, PushSubscribeOptions pso) throws JetStreamApiException, IOException, InterruptedException {
         // Get this in place before any subscriptions are made
         ctx.js._pushOrderedMessageManagerFactory = OrderedTestDropSimulator::new;
 

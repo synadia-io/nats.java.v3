@@ -1,8 +1,8 @@
 package io.synadia.examples.natsIoDoc;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Nats;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class QueueGroupsBasic {
     // NATS-DOC-START
     public static void main(String[] args) {
-        try (Connection nc = Nats.connect("nats://localhost:4222")) {
+        try (NatsConnection nc = Nats.connect("nats://localhost:4222")) {
             AtomicInteger count1 = new AtomicInteger();
             AtomicInteger count2 = new AtomicInteger();
             AtomicInteger count3 = new AtomicInteger();

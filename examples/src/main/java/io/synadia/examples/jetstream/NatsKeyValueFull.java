@@ -13,11 +13,15 @@
 
 package io.synadia.examples.jetstream;
 
-import io.synadia.client.*;
+import io.synadia.client.JetStreamApiException;
+import io.synadia.client.KeyValue;
+import io.synadia.client.KeyValueManagement;
+import io.synadia.client.Nats;
 import io.synadia.client.api.KeyValueConfiguration;
 import io.synadia.client.api.KeyValueEntry;
 import io.synadia.client.api.KeyValueStatus;
 import io.synadia.client.api.StorageType;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -43,7 +47,7 @@ public class NatsKeyValueFull {
             .defaultDescription("Example Description")
             .build();
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
             // get the kv management context
             KeyValueManagement kvm = nc.keyValueManagement();
 

@@ -1,6 +1,7 @@
 package io.synadia.client.utils;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
@@ -45,7 +46,7 @@ public abstract class OptionsUtils {
         return optionsBuilder().servers(servers);
     }
 
-    public static Options.Builder optionsBuilder(Connection nc) {
+    public static Options.Builder optionsBuilder(NatsConnection nc) {
         //noinspection DataFlowIssue
         return optionsBuilder().server(nc.getConnectedUrl());
     }
@@ -54,7 +55,7 @@ public abstract class OptionsUtils {
         return optionsBuilder().build();
     }
 
-    public static Options options(Connection nc) {
+    public static Options options(NatsConnection nc) {
         return optionsBuilder(nc).build();
     }
 

@@ -13,8 +13,8 @@
 
 package io.synadia.examples.autobench;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
@@ -75,7 +75,7 @@ public abstract class ThrottledBenchmark extends AutoBenchmark {
      * @param nc the connection
      * @throws InterruptedException
      */
-	void adjustAndSleep(Connection nc) throws InterruptedException {
+	void adjustAndSleep(NatsConnection nc) throws InterruptedException {
 
         long count = sent.incrementAndGet();
 

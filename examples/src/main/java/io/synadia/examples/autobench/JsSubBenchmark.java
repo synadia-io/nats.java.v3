@@ -16,6 +16,7 @@ package io.synadia.examples.autobench;
 import io.synadia.client.*;
 import io.synadia.client.api.AckPolicy;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -30,7 +31,7 @@ public class JsSubBenchmark extends AutoBenchmark {
         String subject = JsPubBenchmark.getSubject(getMessageCount(), getMessageSize());
 
         try {
-            Connection nc = Nats.connect(connectOptions);
+            NatsConnection nc = Nats.connect(connectOptions);
 
             JetStream js = nc.jetStream();
             ConsumerConfiguration c = ConsumerConfiguration.builder().ackPolicy(AckPolicy.None).build();

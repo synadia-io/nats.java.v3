@@ -95,18 +95,18 @@ public class AuthViolationDuringReconnectOnFlushTimeoutTest {
         CountDownLatch restartsLeft = new CountDownLatch(1);
         ErrorListener errorListener = new ErrorListener() {
 //            @Override
-//            public void slowConsumerDetected(Connection conn, Consumer consumer) {
+//            public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
 //                System.out.printf("Tid: %d, %s: Slow Consumer%n", Thread.currentThread().getId(), conn.getConnectedUrl());
 //            }
 //
 //            @Override
-//            public void exceptionOccurred(Connection conn, Exception exp) {
+//            public void exceptionOccurred(NatsConnection conn, Exception exp) {
 //                exp.printStackTrace();
 //                System.out.printf("Tid: %d, Nats '%s' exception: %s%n", Thread.currentThread().getId(), conn.getConnectedUrl(), exp);
 //            }
 
             @Override
-            public void errorOccurred(Connection conn, String error) {
+            public void errorOccurred(NatsConnection conn, String error) {
 //                System.out.printf("Tid: %d, Nats '%s': Error %s%n", Thread.currentThread().getId(), conn.getConnectedUrl(), error);
                 if (error.contains("Authorization Violation")) {
                     violated.set(true);

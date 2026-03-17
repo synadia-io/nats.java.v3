@@ -13,11 +13,11 @@
 
 package io.synadia.examples.chaosTestApp;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStream;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
 import io.synadia.client.api.PublishAck;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.chaosTestApp.support.CommandLine;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -53,7 +53,7 @@ public class Publisher implements Runnable {
             .maxReconnects(-1)
             .build();
 
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             JetStream js = nc.jetStream();
             //noinspection InfiniteLoopStatement
             while (true) {

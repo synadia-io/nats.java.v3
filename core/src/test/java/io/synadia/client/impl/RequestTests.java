@@ -112,7 +112,7 @@ public class RequestTests extends TestBase {
     @Test
     public void testSimpleResponseMessageHasConnection() throws Exception {
         try (NatsTestServer ts = new NatsTestServer();
-             Connection nc = Nats.connect(optionsBuilder(ts).maxReconnects(0).build())) {
+             NatsConnection nc = Nats.connect(optionsBuilder(ts).maxReconnects(0).build())) {
             assertConnected(nc);
             
             Dispatcher d = nc.createDispatcher(msg -> {
@@ -136,7 +136,7 @@ public class RequestTests extends TestBase {
     @Test
     public void testSafeRequest() throws Exception {
         try (NatsTestServer ts = new NatsTestServer();
-                Connection nc = Nats.connect(optionsBuilder(ts).maxReconnects(0).build())) {
+                NatsConnection nc = Nats.connect(optionsBuilder(ts).maxReconnects(0).build())) {
             assertConnected(nc);
             
             Dispatcher d = nc.createDispatcher(msg -> nc.publish(msg.getReplyTo(), null));
@@ -155,7 +155,7 @@ public class RequestTests extends TestBase {
     @Test
     public void testMultipleRequest() throws Exception {
         try (NatsTestServer ts = new NatsTestServer();
-                Connection nc = Nats.connect(optionsBuilder(ts).maxReconnects(0).build())) {
+                NatsConnection nc = Nats.connect(optionsBuilder(ts).maxReconnects(0).build())) {
             assertConnected(nc);
             
             Dispatcher d = nc.createDispatcher(msg -> nc.publish(msg.getReplyTo(), new byte[7]));
@@ -220,7 +220,7 @@ public class RequestTests extends TestBase {
     @Test
     public void testManualRequestReplyAndPublishSignatures() throws Exception {
         try (NatsTestServer ts = new NatsTestServer();
-             Connection nc = Nats.connect(ts.getServerUri())) {
+             NatsConnection nc = Nats.connect(ts.getServerUri())) {
             assertConnected(nc);
 
             Dispatcher d = nc.createDispatcher(msg -> {
@@ -256,7 +256,7 @@ public class RequestTests extends TestBase {
     @Test
     public void testRequestWithCustomInboxPrefix() throws Exception {
         try (NatsTestServer ts = new NatsTestServer();
-                Connection nc = Nats.connect(optionsBuilder(ts).inboxPrefix("myinbox").maxReconnects(0).build())) {
+                NatsConnection nc = Nats.connect(optionsBuilder(ts).inboxPrefix("myinbox").maxReconnects(0).build())) {
             assertConnected(nc);
             
             Dispatcher d = nc.createDispatcher(msg -> {
@@ -283,7 +283,7 @@ public class RequestTests extends TestBase {
                     .requestCleanupInterval(Duration.ofHours(1))
                     .noNoResponders().build();
 
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
 
@@ -332,7 +332,7 @@ public class RequestTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer())
         {
             Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofHours(1)).build();
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
 
             try {
 
@@ -416,7 +416,7 @@ public class RequestTests extends TestBase {
             Options options = optionsBuilder(ts)
                     .requestCleanupInterval(Duration.ofHours(1)).build();
 
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
                 assertThrows(CancellationException.class, () -> nc.request(random(), null).get(100, TimeUnit.MILLISECONDS));
@@ -436,7 +436,7 @@ public class RequestTests extends TestBase {
             Options options = optionsBuilder(ts)
                     .requestCleanupInterval(Duration.ofHours(1)).build();
 
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
                 assertThrows(CancellationException.class, () -> nc.requestWithTimeout(random(), null, Duration.ofMillis(100)).get(100, TimeUnit.MILLISECONDS));
@@ -456,7 +456,7 @@ public class RequestTests extends TestBase {
                     .requestCleanupInterval(Duration.ofHours(1))
                     .noNoResponders().build();
 
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
 
@@ -475,7 +475,7 @@ public class RequestTests extends TestBase {
     public void testRequireCleanupOnCancel() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofHours(1)).build();
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
                 NatsRequestCompletableFuture incoming = (NatsRequestCompletableFuture)nc.request(random(), null);
@@ -497,7 +497,7 @@ public class RequestTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             long cleanupInterval = 50;
             Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofMillis(cleanupInterval)).build();
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
 
@@ -538,7 +538,7 @@ public class RequestTests extends TestBase {
             long cleanupInterval = 50;
             int msgCount = 100;
             Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofMillis(cleanupInterval)).build();
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 Dispatcher d = nc.createDispatcher(msg -> nc.publish(msg.getReplyTo(), null));
                 String subject = random();
                 d.subscribe(subject);
@@ -567,7 +567,7 @@ public class RequestTests extends TestBase {
             try (NatsTestServer ts = new NatsTestServer()) {
                 int msgCount = 100;
                 ArrayList<Future<Message>> messages = new ArrayList<>();
-                try (Connection nc = managedConnect(options(ts))) {
+                try (NatsConnection nc = managedConnect(options(ts))) {
                     String subject = random();
                     Dispatcher d = nc.createDispatcher(msg -> nc.publish(msg.getReplyTo(), new byte[1]));
                     d.subscribe(subject);
@@ -616,7 +616,7 @@ public class RequestTests extends TestBase {
             int initialSize = 128;
             int messageSize = 1024;
             Options options = optionsBuilder(ts).bufferSize(initialSize).connectionTimeout(Duration.ofSeconds(10)).build();
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 Dispatcher d = nc.createDispatcher(msg -> nc.publish(msg.getReplyTo(), msg.getData()));
                 String subject = random();
                 d.subscribe(subject);

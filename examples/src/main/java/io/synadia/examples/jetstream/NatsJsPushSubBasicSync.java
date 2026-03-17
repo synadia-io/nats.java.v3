@@ -14,6 +14,7 @@
 package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -53,7 +54,7 @@ public class NatsJsPushSubBasicSync {
 
         int count = exArgs.msgCount < 1 ? Integer.MAX_VALUE : exArgs.msgCount;
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, true))) {
 
             // The stream (and data) must exist
             exitIfStreamNotExists(nc, exArgs.stream);

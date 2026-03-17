@@ -13,7 +13,6 @@
 
 package io.synadia.examples.jetstream;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.Nats;
@@ -21,6 +20,7 @@ import io.synadia.client.api.PurgeResponse;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
 import io.synadia.client.api.StreamInfo;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -55,7 +55,7 @@ public class NatsJsManageStreams {
         String subject3 = exArgs.subject + "3";
         String subject4 = exArgs.subject + "4";
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
 
             // Create a JetStreamManagement context.
             JetStreamManagement jsm = nc.jetStreamManagement();

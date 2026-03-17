@@ -18,8 +18,8 @@ import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static io.synadia.client.ConnectionListener.Events.CONNECTED;
-import static io.synadia.client.ConnectionListener.Events.RECONNECTED;
+import static io.synadia.client.ConnectionEvents.CONNECTED;
+import static io.synadia.client.ConnectionEvents.RECONNECTED;
 import static io.synadia.client.NatsTestServer.configFileBuilder;
 import static io.synadia.client.NatsTestServer.nextPort;
 import static io.synadia.client.utils.ConnectionUtils.assertConnected;
@@ -48,7 +48,7 @@ public class WebsocketConnectTests extends TestBase {
     }
 
     private static void _test(Options.Builder builder) throws InterruptedException {
-        try (Connection connection = managedConnect(builder.build())) {
+        try (NatsConnection connection = managedConnect(builder.build())) {
             Dispatcher dispatcher = connection.createDispatcher(
                 msg -> connection.publish(msg.getReplyTo(), (new String(msg.getData()) + ":reply").getBytes()));
             String subject = random();
@@ -150,7 +150,7 @@ public class WebsocketConnectTests extends TestBase {
 
     @Test
     public void testTLSOnReconnect() throws Exception {
-        Connection nc;
+        NatsConnection nc;
         Listener listener = new Listener();
         int port = nextPort();
         int wssPort = nextPort();

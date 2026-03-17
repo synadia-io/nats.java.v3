@@ -1,7 +1,6 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.support.Listener;
 import io.synadia.client.support.Status;
 import io.synadia.client.utils.TestBase;
@@ -40,8 +39,8 @@ public class ErrorListenerTests extends TestBase {
             nc = (NatsConnection) Nats.connect(options);
             assertConnected(nc);
             assertEquals(ts.getServerUri(), nc.getConnectedUrl());
-            listener.queueConnectionEvent(Events.DISCONNECTED);
-            listener.queueConnectionEvent(Events.RECONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
             listener.queueError("Authorization Violation");
 
             ts.close();
@@ -71,7 +70,7 @@ public class ErrorListenerTests extends TestBase {
                 .maxReconnects(0)
                 .errorListener(listener)
                 .build();
-            try (Connection nc = Nats.connect(options)) {
+            try (NatsConnection nc = Nats.connect(options)) {
                 Dispatcher d = nc.createDispatcher(msg -> {
                     throw new ArithmeticException();
                 });
@@ -110,7 +109,7 @@ public class ErrorListenerTests extends TestBase {
     public void testExceptionInSlowConsumerHandler() throws Exception {
         BadHandler listener = new BadHandler();
         try (NatsTestServer ts = new NatsTestServer();
-             Connection nc = Nats.connect(optionsBuilder(ts).errorListener(listener).build())) {
+             NatsConnection nc = Nats.connect(optionsBuilder(ts).errorListener(listener).build())) {
 
             String subject = random();
             Subscription sub = nc.subscribe(subject);
@@ -136,7 +135,7 @@ public class ErrorListenerTests extends TestBase {
         BadHandler listener = new BadHandler();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).maxReconnects(0).errorListener(listener).build();
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             try {
                 Dispatcher d = nc.createDispatcher(msg -> {
                     throw new ArithmeticException();
@@ -209,9 +208,9 @@ public class ErrorListenerTests extends TestBase {
                 .errorListener(listener)
                 .pingInterval(Duration.ofSeconds(100)) // make this long so we don't ping during test
                 .build();
-            listener.queueConnectionEvent(Events.CONNECTED, LONG_VALIDATE_TIMEOUT);
-            listener.queueConnectionEvent(Events.DISCONNECTED, LONG_VALIDATE_TIMEOUT);
-            try (Connection nc = managedConnect(options)) {
+            listener.queueConnectionEvent(ConnectionEvents.CONNECTED, LONG_VALIDATE_TIMEOUT);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED, LONG_VALIDATE_TIMEOUT);
+            try (NatsConnection nc = managedConnect(options)) {
                 nc.flush(Duration.ofSeconds(1));
                 listener.validate();
                 ts.close();
@@ -253,47 +252,47 @@ public class ErrorListenerTests extends TestBase {
 
         _cover(new ErrorListener() {
             @Override
-            public void errorOccurred(Connection conn, String error) {
+            public void errorOccurred(NatsConnection conn, String error) {
                 errorOccurredFlag.set(true);
             }
 
             @Override
-            public void exceptionOccurred(Connection conn, Exception exp) {
+            public void exceptionOccurred(NatsConnection conn, Exception exp) {
                 exceptionOccurredFlag.set(true);
             }
 
             @Override
-            public void slowConsumerDetected(Connection conn, Consumer consumer) {
+            public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
                 slowConsumerDetectedFlag.set(true);
             }
 
             @Override
-            public void messageDiscarded(Connection conn, Message msg) {
+            public void messageDiscarded(NatsConnection conn, Message msg) {
                 messageDiscardedFlag.set(true);
             }
 
             @Override
-            public void heartbeatAlarm(Connection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
+            public void heartbeatAlarm(NatsConnection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
                 heartbeatAlarmFlag.set(true);
             }
 
             @Override
-            public void unhandledStatus(Connection conn, JetStreamSubscription sub, Status status) {
+            public void unhandledStatus(NatsConnection conn, JetStreamSubscription sub, Status status) {
                 unhandledStatusFlag.set(true);
             }
 
             @Override
-            public void pullStatusWarning(Connection conn, JetStreamSubscription sub, Status status) {
+            public void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {
                 pullStatusWarningFlag.set(true);
             }
 
             @Override
-            public void pullStatusError(Connection conn, JetStreamSubscription sub, Status status) {
+            public void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {
                 pullStatusErrorFlag.set(true);
             }
 
             @Override
-            public void flowControlProcessed(Connection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {
+            public void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {
                 flowControlProcessedFlag.set(true);
             }
         });

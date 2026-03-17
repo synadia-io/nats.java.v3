@@ -1,8 +1,8 @@
 package io.synadia.service;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Message;
 import io.synadia.client.impl.Headers;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 import io.synadia.client.support.JsonSerializable;
 
@@ -34,7 +34,7 @@ public class ServiceMessage {
      * @param conn the NATS connection
      * @param response the response payload in the form of a byte array 
      */
-    public void respond(Connection conn, byte[] response) {
+    public void respond(NatsConnection conn, byte[] response) {
         conn.publish(message.getReplyTo(), response);
     }
 
@@ -43,7 +43,7 @@ public class ServiceMessage {
      * @param conn the NATS connection
      * @param response the response payload in the form of a string
      */
-    public void respond(Connection conn, String response) {
+    public void respond(NatsConnection conn, String response) {
         conn.publish(message.getReplyTo(), response.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -52,7 +52,7 @@ public class ServiceMessage {
      * @param conn the NATS connection
      * @param response the response payload in the form of a {@link JsonSerializable} object
      */
-    public void respond(Connection conn, JsonSerializable response) {
+    public void respond(NatsConnection conn, JsonSerializable response) {
         conn.publish(message.getReplyTo(), response.serialize());
     }
 
@@ -62,7 +62,7 @@ public class ServiceMessage {
      * @param response the response payload in the form of a byte array
      * @param headers the custom headers                 
      */
-    public void respond(Connection conn, byte[] response, Headers headers) {
+    public void respond(NatsConnection conn, byte[] response, Headers headers) {
         conn.publish(NatsMessage.builder().subject(message.getReplyTo()).data(response).headers(headers).build());
     }
 
@@ -72,7 +72,7 @@ public class ServiceMessage {
      * @param response the response payload in the form of a string
      * @param headers the custom headers                 
      */
-    public void respond(Connection conn, String response, Headers headers) {
+    public void respond(NatsConnection conn, String response, Headers headers) {
         conn.publish(NatsMessage.builder().subject(message.getReplyTo()).data(response).headers(headers).build());
     }
 
@@ -82,7 +82,7 @@ public class ServiceMessage {
      * @param response the response payload in the form of a {@link JsonSerializable} object
      * @param headers the custom headers                 
      */
-    public void respond(Connection conn, JsonSerializable response, Headers headers) {
+    public void respond(NatsConnection conn, JsonSerializable response, Headers headers) {
         conn.publish(NatsMessage.builder().subject(message.getReplyTo()).data(response.serialize()).headers(headers).build());
     }
 
@@ -92,7 +92,7 @@ public class ServiceMessage {
      * @param errorText the error message text
      * @param errorCode the error message code
      */
-    public void respondStandardError(Connection conn, String errorText, int errorCode) {
+    public void respondStandardError(NatsConnection conn, String errorText, int errorCode) {
         conn.publish(NatsMessage.builder()
             .subject(message.getReplyTo())
             .headers(new Headers()

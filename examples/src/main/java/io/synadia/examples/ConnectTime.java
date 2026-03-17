@@ -14,6 +14,7 @@
 package io.synadia.examples;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
 
@@ -41,18 +42,18 @@ public class ConnectTime {
 
         builder = builder.errorListener(new ErrorListener() {
             @Override
-            public void slowConsumerDetected(Connection conn, Consumer consumer) {
+            public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
                 System.out.println("NATS connection slow consumer detected");
             }
 
             @Override
-            public void exceptionOccurred(Connection conn, Exception exp) {
+            public void exceptionOccurred(NatsConnection conn, Exception exp) {
                 System.out.println("NATS connection exception occurred");
                 exp.printStackTrace();
             }
 
             @Override
-            public void errorOccurred(Connection conn, String error) {
+            public void errorOccurred(NatsConnection conn, String error) {
                 System.out.println("NATS connection error occurred " + error);
             }
         });
@@ -78,7 +79,7 @@ public class ConnectTime {
             Options options = createOptions(server);
 
             long start = System.nanoTime();
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             long end = System.nanoTime();
             double seconds = ((double)(end - start)) / 1_000_000_000.0;
             System.out.printf("Connect time to %s was %.3f seconds\n", server, seconds);

@@ -13,9 +13,9 @@
 
 package io.synadia.examples.autobench;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 
@@ -30,7 +30,7 @@ public class PubBenchmark extends AutoBenchmark {
         String subject = getSubject();
 
         try {
-            Connection nc = Nats.connect(connectOptions);
+            NatsConnection nc = Nats.connect(connectOptions);
             try {
                 this.startTiming();
                 for(int i = 0; i < this.getMessageCount(); i++) {

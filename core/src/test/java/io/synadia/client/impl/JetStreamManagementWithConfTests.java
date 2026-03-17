@@ -1,6 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Connection;
 import io.synadia.client.JetStream;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.api.*;
@@ -18,7 +17,7 @@ public class JetStreamManagementWithConfTests extends JetStreamTestBase {
     @Test
     public void testGetStreamInfoSubjectPagination() throws Exception {
         runInConfiguredServer("pagination.conf", ts -> {
-            try (Connection nc = ConnectionUtils.managedConnect(options(ts))) {
+            try (NatsConnection nc = ConnectionUtils.managedConnect(options(ts))) {
                 JetStreamManagement jsm = nc.jetStreamManagement();
                 JetStream js = jsm.jetStream();
 
@@ -108,7 +107,7 @@ public class JetStreamManagementWithConfTests extends JetStreamTestBase {
     @Test
     public void testGoodAuthAccount() throws Exception {
         runInConfiguredServer("js_authorization.conf", ts -> {
-            try (Connection nc = ConnectionUtils.managedConnect(optionsBuilder(ts).userInfo("serviceup", "uppass").build())) {
+            try (NatsConnection nc = ConnectionUtils.managedConnect(optionsBuilder(ts).userInfo("serviceup", "uppass").build())) {
                 JetStreamManagement jsm = nc.jetStreamManagement();
                 // add streams with both account
                 String stream = random();

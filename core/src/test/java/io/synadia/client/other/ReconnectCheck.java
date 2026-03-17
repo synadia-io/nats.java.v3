@@ -1,6 +1,7 @@
 package io.synadia.client.other;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
 
@@ -16,8 +17,8 @@ public class ReconnectCheck {
 
     public static void main(String []args) throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
-            Connection natsIn = Nats.connect(buildOptions("IN", ts));
-            Connection natsOut = Nats.connect(buildOptions("OUT", ts));
+            NatsConnection natsIn = Nats.connect(buildOptions("IN", ts));
+            NatsConnection natsOut = Nats.connect(buildOptions("OUT", ts));
             Dispatcher natsDispatcher = natsIn.createDispatcher(m -> {
                 long receivedId = Long.parseLong(new String(m.getData()));
 
@@ -58,17 +59,17 @@ public class ReconnectCheck {
                 System.out.printf("Tid: %d, %s, NATS: connection event - %s, connected url: %s. servers: %s %n", Thread.currentThread().getId(), name, e, conn.getConnectedUrl(), conn.getServers()))
             .errorListener(new ErrorListener() {
                 @Override
-                public void slowConsumerDetected(Connection conn, Consumer consumer) {
+                public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
                     System.out.printf("Tid: %d, %s, %s: Slow Consumer%n", Thread.currentThread().getId(), name, conn.getConnectedUrl());
                 }
 
                 @Override
-                public void exceptionOccurred(Connection conn, Exception exp) {
+                public void exceptionOccurred(NatsConnection conn, Exception exp) {
                     System.out.printf("Tid: %d, %s, Nats '%s' exception: %s%n", Thread.currentThread().getId(), name, conn.getConnectedUrl(), exp.toString());
                 }
 
                 @Override
-                public void errorOccurred(Connection conn, String error) {
+                public void errorOccurred(NatsConnection conn, String error) {
                     System.out.printf("Tid: %d, %s, Nats '%s': Error %s%n", Thread.currentThread().getId(), name, conn.getConnectedUrl(), error.toString());
                 }
             })

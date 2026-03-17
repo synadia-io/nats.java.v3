@@ -1,7 +1,6 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.Options.HostnameResolveMode;
 import io.synadia.client.api.ServerInfo;
 import io.synadia.client.support.*;
@@ -29,7 +28,7 @@ import static io.synadia.client.support.NatsConstants.*;
 import static io.synadia.client.support.NatsRequestCompletableFuture.CancelAction;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-class NatsConnection implements Connection {
+public class NatsConnection implements AutoCloseable {
 
     public static final double NANOS_PER_SECOND = 1_000_000_000.0;
 
@@ -306,7 +305,6 @@ class NatsConnection implements Connection {
      * @throws IOException the forceReconnect fails
      * @throws InterruptedException the connection is not connected
      */
-    @Override
     public void forceReconnect() throws IOException, InterruptedException {
         forceReconnect(ForceReconnectOptions.DEFAULT_INSTANCE);
     }
@@ -320,7 +318,6 @@ class NatsConnection implements Connection {
      * @throws IOException the forceReconnect fails
      * @throws InterruptedException the connection is not connected
      */
-    @Override
     public void forceReconnect(ForceReconnectOptions options) throws IOException, InterruptedException {
         if (!tryingToConnect.get()) {
             try {
@@ -443,7 +440,7 @@ class NatsConnection implements Connection {
 
         writer.enterWaitingForEndReconnectMode();
 
-        processConnectionEvent(Events.RESUBSCRIBED, uriDetail(currentServer));
+        processConnectionEvent(ConnectionEvents.RESUBSCRIBED, uriDetail(currentServer));
     }
 
     protected void reconnectImplConnect() throws InterruptedException {
@@ -844,7 +841,6 @@ class NatsConnection implements Connection {
      *
      * @throws InterruptedException if the thread, or one owned by the connection is interrupted during the close
      */
-    @Override
     public void close() throws InterruptedException {
         this.close(true, false);
     }
@@ -1023,7 +1019,6 @@ class NatsConnection implements Connection {
      * @param body the message body
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    @Override
     public void publish(@NonNull String subject, byte @Nullable [] body) {
         publishInternal(subject, null, null, body, false);
     }
@@ -1048,7 +1043,6 @@ class NatsConnection implements Connection {
      * @param body the message body
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    @Override
     public void publish(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
         publishInternal(subject, null, headers, body, false);
     }
@@ -1076,7 +1070,6 @@ class NatsConnection implements Connection {
      * @param body the message body
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    @Override
     public void publish(@NonNull String subject, @Nullable String replyTo, byte @Nullable [] body) {
         publishInternal(subject, replyTo, null, body, false);
     }
@@ -1106,7 +1099,6 @@ class NatsConnection implements Connection {
      * @param body the message body
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    @Override
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] body) {
         publishInternal(subject, replyTo, headers, body, false);
     }
@@ -1128,7 +1120,6 @@ class NatsConnection implements Connection {
      * @param message the message
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    @Override
     public void publish(@NonNull Message message) {
         Validator.validateNotNull(message, "Message");
         publishInternal(message.getSubject(), message.getReplyTo(), message.getHeaders(), message.getData(), false);
@@ -1172,7 +1163,6 @@ class NatsConnection implements Connection {
      * @param subject the subject to subscribe to
      * @return an object representing the subscription
      */
-    @Override
     @NonNull
     public Subscription subscribe(@NonNull String subject) {
         subjectValidate(subject, true);
@@ -1194,7 +1184,6 @@ class NatsConnection implements Connection {
      * @param queueName the queue group to join
      * @return an object representing the subscription
      */
-    @Override
     @NonNull
     public Subscription subscribe(@NonNull String subject, @NonNull String queueName) {
         subjectValidate(subject, true);
@@ -1317,7 +1306,6 @@ class NatsConnection implements Connection {
      * to by others.
      * @return the inbox
      */
-    @Override
     @NonNull
     public String createInbox() {
         return options.getInboxPrefix() + nuid.next();
@@ -1413,7 +1401,6 @@ class NatsConnection implements Connection {
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
-    @Override
     @Nullable
     public Message request(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
         return requestInternal(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
@@ -1431,7 +1418,6 @@ class NatsConnection implements Connection {
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
-    @Override
     @Nullable
     public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
         return requestInternal(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
@@ -1451,7 +1437,6 @@ class NatsConnection implements Connection {
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
-    @Override
     @Nullable
     public Message request(@NonNull Message message, @Nullable Duration timeout) throws InterruptedException {
         Validator.validateNotNull(message, "Message");
@@ -1486,7 +1471,6 @@ class NatsConnection implements Connection {
      * @param body the content of the message
      * @return a Future for the response, which may be cancelled on error or timed out
      */
-    @Override
     @NonNull
     public CompletableFuture<Message> request(@NonNull String subject, byte @Nullable [] body) {
         return requestFutureInternal(subject, null, body, null, cancelAction, forceFlushOnRequest);
@@ -1501,7 +1485,6 @@ class NatsConnection implements Connection {
      * @param body the content of the message
      * @return a Future for the response, which may be cancelled on error or timed out
      */
-    @Override
     @NonNull
     public CompletableFuture<Message> request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
         return requestFutureInternal(subject, headers, body, null, cancelAction, forceFlushOnRequest);
@@ -1516,7 +1499,6 @@ class NatsConnection implements Connection {
      * @param timeout the time to wait for a response. If not supplied a default will be used.
      * @return a Future for the response, which may be cancelled on error or timed out
      */
-    @Override
     @NonNull
     public CompletableFuture<Message> requestWithTimeout(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) {
         return requestFutureInternal(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
@@ -1532,7 +1514,6 @@ class NatsConnection implements Connection {
      * @param timeout the time to wait for a response
      * @return a Future for the response, which may be cancelled on error or timed out
      */
-    @Override
     @NonNull
     public CompletableFuture<Message> requestWithTimeout(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, Duration timeout) {
         return requestFutureInternal(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
@@ -1550,7 +1531,6 @@ class NatsConnection implements Connection {
      * @param timeout the time to wait for a response
      * @return a Future for the response, which may be cancelled on error or timed out
      */
-    @Override
     @NonNull
     public CompletableFuture<Message> requestWithTimeout(@NonNull Message message, @Nullable Duration timeout) {
         Validator.validateNotNull(message, "Message");
@@ -1568,7 +1548,6 @@ class NatsConnection implements Connection {
      * @param message the message
      * @return a Future for the response, which may be cancelled on error or timed out
      */
-    @Override
     @NonNull
     public CompletableFuture<Message> request(@NonNull Message message) {
         Validator.validateNotNull(message, "Message");
@@ -1875,7 +1854,6 @@ class NatsConnection implements Connection {
      * @return the RTT as a duration
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public Duration RTT() throws IOException {
         if (!isConnected()) {
@@ -2030,12 +2008,12 @@ class NatsConnection implements Connection {
         List<String> urls = this.serverInfo.get().getConnectURLs();
         if (!urls.isEmpty()) {
             if (serverPool.acceptDiscoveredUrls(urls)) {
-                processConnectionEvent(Events.DISCOVERED_SERVERS, urls.toString());
+                processConnectionEvent(ConnectionEvents.DISCOVERED_SERVERS, urls.toString());
             }
         }
 
         if (serverInfo.isLameDuckMode()) {
-            processConnectionEvent(Events.LAME_DUCK, uriDetail(currentServer));
+            processConnectionEvent(ConnectionEvents.LAME_DUCK, uriDetail(currentServer));
         }
     }
 
@@ -2149,7 +2127,7 @@ class NatsConnection implements Connection {
     }
 
     protected interface ErrorListenerCaller {
-        void call(Connection conn, ErrorListener el);
+        void call(NatsConnection conn, ErrorListener el);
     }
 
     protected void notifyErrorListener(ErrorListenerCaller elc) {
@@ -2170,7 +2148,7 @@ class NatsConnection implements Connection {
         return hostOrlast == null ? null : hostOrlast.toString();
     }
 
-    protected void processConnectionEvent(Events type, String uriDetails) {
+    protected void processConnectionEvent(ConnectionEvents type, String uriDetails) {
         long time = System.currentTimeMillis();
         for (ConnectionListener listener : connectionListeners) {
             makeCallback(() -> listener.connectionEvent(this, type, time, uriDetails));
@@ -2183,7 +2161,6 @@ class NatsConnection implements Connection {
      * until a new connection is made.
      * @return the server information such as id, client info, etc.
      */
-    @Override
     @NonNull
     public ServerInfo getServerInfo() {
         return serverInfo.get();
@@ -2193,7 +2170,6 @@ class NatsConnection implements Connection {
      * the InetAddress of client as known by the NATS server, otherwise null.
      * @return the InetAddress
      */
-    @Override
     @Nullable
     public InetAddress getClientInetAddress() {
         try {
@@ -2209,7 +2185,6 @@ class NatsConnection implements Connection {
      * the read-only options used to create this connection
      * @return the Options
      */
-    @Override
     @NonNull
     public Options getOptions() {
         return this.options;
@@ -2219,7 +2194,6 @@ class NatsConnection implements Connection {
      * a wrapper for useful statistics about the connection
      * @return the Statistics implementation
      */
-    @Override
     @NonNull
     public Statistics getStatistics() {
         return this.statistics;
@@ -2244,7 +2218,6 @@ class NatsConnection implements Connection {
      *
      * @return the maximum size of a message payload
      */
-    @Override
     public long getMaxPayload() {
         ServerInfo info = this.serverInfo.get();
 
@@ -2261,7 +2234,6 @@ class NatsConnection implements Connection {
      * Will be empty (but not null) before a connection is made and will represent the last connected server while disconnected
      * @return this connection's list of known server URLs
      */
-    @Override
     @NonNull
     public Collection<String> getServers() {
         return serverPool.getServerList();
@@ -2310,7 +2282,6 @@ class NatsConnection implements Connection {
      * the url used for the current connection, or null if disconnected
      * @return the url string
      */
-    @Override
     @Nullable
     public String getConnectedUrl() {
         return currentServer == null ? null : currentServer.toString();
@@ -2321,7 +2292,6 @@ class NatsConnection implements Connection {
      *
      * @return the connection's status
      */
-    @Override
     @NonNull
     public ConnectionStatus getStatus() {
         return this.status;
@@ -2331,7 +2301,6 @@ class NatsConnection implements Connection {
      * the error text from the last error sent by the server to this client
      * @return the last error text
      */
-    @Override
     @Nullable
     public String getLastError() {
         return lastError.get();
@@ -2340,7 +2309,6 @@ class NatsConnection implements Connection {
     /**
      * Clear the last error from the server
      */
-    @Override
     public void clearLastError() {
         lastError.set(null);
     }
@@ -2376,16 +2344,16 @@ class NatsConnection implements Connection {
         }
 
         if (this.status == DISCONNECTED) {
-            processConnectionEvent(Events.DISCONNECTED, uriDetail);
+            processConnectionEvent(ConnectionEvents.DISCONNECTED, uriDetail);
         }
         else if (this.status == CLOSED) {
-            processConnectionEvent(Events.CLOSED, uriDetail);
+            processConnectionEvent(ConnectionEvents.CLOSED, uriDetail);
         }
         else if (oldStatus == RECONNECTING && this.status == CONNECTED) {
-            processConnectionEvent(Events.RECONNECTED, uriDetail);
+            processConnectionEvent(ConnectionEvents.RECONNECTED, uriDetail);
         }
         else if (this.status == CONNECTED) {
-            processConnectionEvent(Events.CONNECTED, uriDetail);
+            processConnectionEvent(ConnectionEvents.CONNECTED, uriDetail);
         }
     }
 
@@ -2574,7 +2542,6 @@ class NatsConnection implements Connection {
      * @throws InterruptedException if the thread is interrupted
      * @throws TimeoutException if the initial flush times out
      */
-    @Override
     @NonNull
     public CompletableFuture<Boolean> drain(@Nullable Duration timeout) throws TimeoutException, InterruptedException {
 
@@ -2688,12 +2655,51 @@ class NatsConnection implements Connection {
      * Immediately flushes the underlying connection buffer if the connection is valid.
      * @throws IOException if the connection flush fails
      */
-    @Override
     public void flushBuffer() throws IOException {
         if (!isConnected()) {
             throw new IllegalStateException("Connection is not active.");
         }
         writer.flushBuffer();
+    }
+
+    protected void ensureNotClosing() throws IOException {
+        if (isClosing() || isClosed()) {
+            throw new IOException("A JetStream context can't be established during close.");
+        }
+    }
+
+    /**
+     * Get the number of messages in the outgoing queue for this connection.
+     * This value is volatile in the sense that it changes often and may be adjusted by more than one message.
+     * It changes every time a message is published (put in the outgoing queue)
+     * and every time a message is removed from the queue to be written over the socket
+     * @return the number of messages in the outgoing queue
+     */
+    public long outgoingPendingMessageCount() {
+        closeSocketLock.lock();
+        try {
+            return writer == null ? -1 : writer.outgoingPendingMessageCount();
+        }
+        finally {
+            closeSocketLock.unlock();
+        }
+    }
+
+    /**
+     * Get the number of bytes based to be written calculated from the messages in the outgoing queue for this connection.
+     * This value is volatile in the sense that it changes often and may be adjusted by more than one message's bytes.
+     * It changes every time a message is published (put in the outgoing queue)
+     * and every time a message is removed from the queue to be written over the socket
+     * @return the number of messages in the outgoing queue
+     */
+    public long outgoingPendingBytes() {
+        closeSocketLock.lock();
+        try {
+            return writer == null ? -1 : writer.outgoingPendingBytes();
+        }
+        finally {
+            closeSocketLock.unlock();
+        }
     }
 
     /**
@@ -2706,7 +2712,6 @@ class NatsConnection implements Connection {
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
      */
-    @Override
     @NonNull public StreamContext getStreamContext(@NonNull String streamName) throws IOException, JetStreamApiException {
         Validator.validateStreamName(streamName, true);
         ensureNotClosing();
@@ -2738,7 +2743,6 @@ class NatsConnection implements Connection {
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
      */
-    @Override
     @NonNull
     public StreamContext getStreamContext(@NonNull String streamName, @Nullable JetStreamOptions options) throws IOException, JetStreamApiException {
         Validator.validateStreamName(streamName, true);
@@ -2759,7 +2763,6 @@ class NatsConnection implements Connection {
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
      */
-    @Override
     @NonNull
     public ConsumerContext getConsumerContext(@NonNull String streamName, @NonNull String consumerName) throws IOException, JetStreamApiException {
         return getStreamContext(streamName).getConsumerContext(consumerName);
@@ -2779,7 +2782,6 @@ class NatsConnection implements Connection {
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
      */
-    @Override
     @NonNull
     public ConsumerContext getConsumerContext(@NonNull String streamName, @NonNull String consumerName, @Nullable JetStreamOptions options) throws IOException, JetStreamApiException {
         return getStreamContext(streamName, options).getConsumerContext(consumerName);
@@ -2791,7 +2793,6 @@ class NatsConnection implements Connection {
      * @return a JetStream instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public JetStream jetStream() throws IOException {
         return jetStream(null);
@@ -2805,7 +2806,6 @@ class NatsConnection implements Connection {
      * @throws IOException covers various communication issues with the NATS
      *         server such as timeout or interruption
      */
-    @Override
     @NonNull
     public JetStream jetStream(JetStreamOptions options) throws IOException {
         ensureNotClosing();
@@ -2818,7 +2818,6 @@ class NatsConnection implements Connection {
      * @return a JetStreamManagement instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public JetStreamManagement jetStreamManagement() throws IOException {
         return jetStreamManagement(null);
@@ -2832,7 +2831,6 @@ class NatsConnection implements Connection {
      * @throws IOException covers various communication issues with the NATS
      *         server such as timeout or interruption
      */
-    @Override
     @NonNull
     public JetStreamManagement jetStreamManagement(JetStreamOptions options) throws IOException {
         ensureNotClosing();
@@ -2845,7 +2843,6 @@ class NatsConnection implements Connection {
      * @return a KeyValue instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public KeyValue keyValue(@NonNull String bucketName) throws IOException {
         return keyValue(bucketName, null);
@@ -2858,7 +2855,6 @@ class NatsConnection implements Connection {
      * @return a KeyValue instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public KeyValue keyValue(@NonNull String bucketName, @Nullable KeyValueOptions options) throws IOException {
         Validator.validateBucketName(bucketName, true);
@@ -2871,7 +2867,6 @@ class NatsConnection implements Connection {
      * @return a KeyValueManagement instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public KeyValueManagement keyValueManagement() throws IOException {
         return keyValueManagement(null);
@@ -2883,7 +2878,6 @@ class NatsConnection implements Connection {
      * @return a KeyValueManagement instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public KeyValueManagement keyValueManagement(@Nullable KeyValueOptions options) throws IOException {
         ensureNotClosing();
@@ -2896,7 +2890,6 @@ class NatsConnection implements Connection {
      * @return an ObjectStore instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public ObjectStore objectStore(@NonNull String bucketName) throws IOException {
         return objectStore(bucketName, null);
@@ -2909,7 +2902,6 @@ class NatsConnection implements Connection {
      * @return an ObjectStore instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public ObjectStore objectStore(@NonNull String bucketName, @Nullable ObjectStoreOptions options) throws IOException {
         Validator.validateBucketName(bucketName, true);
@@ -2922,7 +2914,6 @@ class NatsConnection implements Connection {
      * @return an ObjectStoreManagement instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public ObjectStoreManagement objectStoreManagement() throws IOException {
         ensureNotClosing();
@@ -2935,52 +2926,9 @@ class NatsConnection implements Connection {
      * @return a ObjectStoreManagement instance.
      * @throws IOException various IO exception such as timeout or interruption
      */
-    @Override
     @NonNull
     public ObjectStoreManagement objectStoreManagement(@Nullable ObjectStoreOptions options) throws IOException {
         ensureNotClosing();
         return new NatsObjectStoreManagement(this, options, null);
-    }
-
-    protected void ensureNotClosing() throws IOException {
-        if (isClosing() || isClosed()) {
-            throw new IOException("A JetStream context can't be established during close.");
-        }
-    }
-
-    /**
-     * Get the number of messages in the outgoing queue for this connection.
-     * This value is volatile in the sense that it changes often and may be adjusted by more than one message.
-     * It changes every time a message is published (put in the outgoing queue)
-     * and every time a message is removed from the queue to be written over the socket
-     * @return the number of messages in the outgoing queue
-     */
-    @Override
-    public long outgoingPendingMessageCount() {
-        closeSocketLock.lock();
-        try {
-            return writer == null ? -1 : writer.outgoingPendingMessageCount();
-        }
-        finally {
-            closeSocketLock.unlock();
-        }
-    }
-
-    /**
-     * Get the number of bytes based to be written calculated from the messages in the outgoing queue for this connection.
-     * This value is volatile in the sense that it changes often and may be adjusted by more than one message's bytes.
-     * It changes every time a message is published (put in the outgoing queue)
-     * and every time a message is removed from the queue to be written over the socket
-     * @return the number of messages in the outgoing queue
-     */
-    @Override
-    public long outgoingPendingBytes() {
-        closeSocketLock.lock();
-        try {
-            return writer == null ? -1 : writer.outgoingPendingBytes();
-        }
-        finally {
-            closeSocketLock.unlock();
-        }
     }
 }

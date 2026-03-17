@@ -16,6 +16,7 @@ package io.synadia.examples.chaosTestApp;
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.DeliverPolicy;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.chaosTestApp.support.CommandLine;
 import io.synadia.examples.chaosTestApp.support.ConsumerKind;
 
@@ -24,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class ConnectableConsumer implements ConnectionListener {
 
-    protected final Connection nc;
+    protected final NatsConnection nc;
     protected final JetStream js;
     protected final OutputErrorListener errorListener;
     protected final AtomicLong lastReceivedSequence;
@@ -78,7 +79,7 @@ public abstract class ConnectableConsumer implements ConnectionListener {
     public abstract void refreshInfo();
 
     @Override
-    public void connectionEvent(Connection conn, Events type) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
         Output.controlMessage(label, "Connection: " + conn.getServerInfo().getPort() + " " + type.name().toLowerCase());
         refreshInfo();
     }

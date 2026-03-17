@@ -1,6 +1,5 @@
 package io.synadia.client;
 
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.impl.*;
 import io.synadia.client.support.HttpRequest;
 import io.synadia.client.support.Listener;
@@ -743,16 +742,16 @@ public class OptionsTests {
         assertNotNull(o.getConnectionListener(), "property connection listener");
 
         Listener listener = ((Listener) o.getConnectionListener());
-        listener.queueConnectionEvent(Events.DISCONNECTED);
-        o.getConnectionListener().connectionEvent(null, Events.DISCONNECTED);
+        listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+        o.getConnectionListener().connectionEvent(null, ConnectionEvents.DISCONNECTED);
         listener.validate();
 
-        listener.queueConnectionEvent(Events.RECONNECTED);
-        o.getConnectionListener().connectionEvent(null, Events.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+        o.getConnectionListener().connectionEvent(null, ConnectionEvents.RECONNECTED);
         listener.validate();
 
-        listener.queueConnectionEvent(Events.CLOSED);
-        o.getConnectionListener().connectionEvent(null, Events.CLOSED);
+        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
+        o.getConnectionListener().connectionEvent(null, ConnectionEvents.CLOSED);
         listener.validate();
     }
 

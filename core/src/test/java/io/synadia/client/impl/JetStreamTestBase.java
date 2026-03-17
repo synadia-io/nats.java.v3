@@ -109,11 +109,11 @@ public class JetStreamTestBase extends TestBase {
         jsPublish(js, subject, 1, count);
     }
 
-    public static void jsPublish(Connection nc, String subject, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(NatsConnection nc, String subject, int count) throws IOException, JetStreamApiException {
         jsPublish(nc.jetStream(), subject, 1, count);
     }
 
-    public static void jsPublish(Connection nc, String subject, int startId, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(NatsConnection nc, String subject, int startId, int count) throws IOException, JetStreamApiException {
         jsPublish(nc.jetStream(), subject, startId, count);
     }
 

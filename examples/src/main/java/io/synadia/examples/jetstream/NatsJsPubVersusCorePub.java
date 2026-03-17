@@ -13,8 +13,12 @@
 
 package io.synadia.examples.jetstream;
 
-import io.synadia.client.*;
+import io.synadia.client.JetStream;
+import io.synadia.client.JetStreamSubscription;
+import io.synadia.client.Message;
+import io.synadia.client.Nats;
 import io.synadia.client.api.PublishAck;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
@@ -24,7 +28,7 @@ import java.time.Duration;
 
 /**
  * This example will demonstrate the ability to publish to a stream with either
- * the JetStream.publish(...) or with core Connection.publish(...)
+ * the JetStream.publish(...) or with core NatsConnection.publish(...)
  *
  * The difference lies in the whether it's important to your application to receive
  * a publish ack and whether or not you want to set publish expectations.
@@ -46,7 +50,7 @@ public class NatsJsPubVersusCorePub {
                 .defaultSubject("js-or-core-subject")
                 .build();
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
 
             // Create a JetStream context.  This hangs off the original connection
             // allowing us to produce data to streams and consume data from

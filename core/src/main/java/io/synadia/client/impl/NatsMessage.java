@@ -1,6 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
 import io.synadia.client.support.ByteArrayBuilder;
@@ -210,7 +209,7 @@ public class NatsMessage implements Message {
      * {@inheritDoc}
      */
     @Override
-    public Connection getConnection() {
+    public NatsConnection getConnection() {
         return subscription == null ? null : subscription.connection;
     }
 

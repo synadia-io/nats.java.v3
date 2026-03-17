@@ -13,11 +13,11 @@
 
 package io.synadia.examples.autobench;
 
-import io.synadia.client.Connection;
 import io.synadia.client.NUID;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
 import io.synadia.client.impl.Headers;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 
 import java.io.IOException;
@@ -43,7 +43,7 @@ public class PubWithHeadersBenchmark extends AutoBenchmark {
         String subject = getSubject();
 
         try {
-            Connection nc = Nats.connect(connectOptions);
+            NatsConnection nc = Nats.connect(connectOptions);
             try {
                 this.startTiming();
                 for (int i = 0; i < this.getMessageCount(); i++) {

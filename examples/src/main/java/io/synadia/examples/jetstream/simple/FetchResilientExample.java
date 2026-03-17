@@ -16,6 +16,7 @@ package io.synadia.examples.jetstream.simple;
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.StorageType;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.jetstream.ResilientPublisher;
 
 import java.io.IOException;
@@ -52,7 +53,7 @@ public class FetchResilientExample implements Runnable {
             })
             .build();
 
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             final JetStreamManagement jsm = nc.jetStreamManagement();
 
             createOrReplaceStream(jsm, STREAM, StorageType.File, SUBJECT);

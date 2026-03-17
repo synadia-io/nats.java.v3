@@ -1,8 +1,8 @@
 package io.synadia.client;
 
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
 import io.synadia.client.api.ServerInfo;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SimulateSocketDataPortException;
 import io.synadia.client.support.Listener;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ public class ConnectTests {
             try (NatsTestServer ts2 = new NatsTestServer()) {
                 // commas in one server url
                 Options options = optionsBuilder().server(ts1.getServerUri() + "," + ts2.getServerUri()).build();
-                try (Connection nc = managedConnect(options)) {
+                try (NatsConnection nc = managedConnect(options)) {
                     // coverage for getClientAddress
                     InetAddress inetAddress = nc.getClientInetAddress();
                     assertNotNull(inetAddress);
@@ -53,7 +53,7 @@ public class ConnectTests {
                 int tries = 20;
                 options = options(ts1, ts2);
                 while (tries-- > 0 && (needOne || needTwo)) {
-                    try (Connection nc = managedConnect(options)) {
+                    try (NatsConnection nc = managedConnect(options)) {
                         Collection<String> servers = nc.getServers();
                         assertTrue(servers.contains(ts1.getServerUri()));
                         assertTrue(servers.contains(ts2.getServerUri()));
@@ -76,7 +76,7 @@ public class ConnectTests {
                 // should never get a two
                 options = optionsBuilder(ts1.getServerUri(), ts2.getServerUri()).noRandomize().build();
                 for (int i = 0; i < tries; i++) {
-                    try (Connection nc = managedConnect(options)) {
+                    try (NatsConnection nc = managedConnect(options)) {
                         Collection<String> servers = nc.getServers();
                         assertTrue(servers.contains(ts1.getServerUri()));
                         assertTrue(servers.contains(ts2.getServerUri()));
@@ -196,11 +196,11 @@ public class ConnectTests {
         Listener listener = new Listener();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
-            listener.queueConnectionEvent(Events.CONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.CONNECTED);
             Nats.connectAsynchronously(options, false);
             listener.validate();
 
-            Connection nc = listener.getLastConnectionEventConnection();
+            NatsConnection nc = listener.getLastConnectionEventConnection();
             assertNotNull(nc);
             assertConnected(nc);
             closeAndConfirm(nc);
@@ -218,10 +218,10 @@ public class ConnectTests {
 
         sleep(5000); // No server at this point, let it fail and try to start over
 
-        Connection nc = listener.getLastConnectionEventConnection(); // will be disconnected, but should be there
+        NatsConnection nc = listener.getLastConnectionEventConnection(); // will be disconnected, but should be there
         assertNotNull(nc);
 
-        listener.queueConnectionEvent(Events.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
         try (NatsTestServer ignored = new NatsTestServer(port)) {
             confirmConnectedThenClosed(nc);
         }
@@ -241,7 +241,7 @@ public class ConnectTests {
             .errorListener(listener)
             .noReconnect()
             .build();
-        listener.queueConnectionEvent(Events.CLOSED);
+        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
         Nats.connectAsynchronously(options, false);
         listener.validate();
         assertTrue(listener.getExceptionCount() > 0);
@@ -321,7 +321,7 @@ public class ConnectTests {
                     .connectionTimeout(Duration.ofSeconds(2))
                     .build();
 
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 assertConnected(nc);
                 ts.close();
                 Thread.sleep(3000);
@@ -345,7 +345,7 @@ public class ConnectTests {
     @Test
     public void testFlushBuffer() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
-            Connection nc = managedConnect(options(ts));
+            NatsConnection nc = managedConnect(options(ts));
 
             // test connected
             nc.flushBuffer();
@@ -367,7 +367,7 @@ public class ConnectTests {
     @Test
     public void testFlushBufferThreadSafety() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
-            Connection nc = managedConnect(options(ts));
+            NatsConnection nc = managedConnect(options(ts));
 
             // use two latches to sync the threads as close as
             // possible.
@@ -438,7 +438,7 @@ public class ConnectTests {
         Listener listener = new Listener();
         ErrorListener el = new ErrorListener() {
             @Override
-            public void exceptionOccurred(Connection conn, Exception exp) {
+            public void exceptionOccurred(NatsConnection conn, Exception exp) {
                 if (exp.getMessage().contains("Simulated Exception")) {
                     simExReceived.set(true);
                 }
@@ -452,7 +452,7 @@ public class ConnectTests {
             .reconnectDelayHandler(l -> Duration.ofSeconds(1))
             .build();
 
-        Connection connection = null;
+        NatsConnection connection = null;
 
         // 1. DO NOT RECONNECT ON CONNECT
         try (NatsTestServer ts = new NatsTestServer(port)) {
@@ -473,10 +473,10 @@ public class ConnectTests {
         try (NatsTestServer ts = new NatsTestServer(port)) {
             try {
                 SimulateSocketDataPortException.THROW_ON_CONNECT.set(true);
-                listener.queueConnectionEvent(Events.RECONNECTED);
+                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
                 connection = Nats.connectReconnectOnConnect(options);
                 listener.validate();
-                listener.queueConnectionEvent(Events.DISCONNECTED);
+                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
             }
             catch (Exception e) {
                 fail("should have connected " + e);
@@ -487,7 +487,7 @@ public class ConnectTests {
         simExReceived.set(false);
 
         // 2. NORMAL RECONNECT
-        listener.queueConnectionEvent(Events.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
         try (NatsTestServer ts = new NatsTestServer(port)) {
             SimulateSocketDataPortException.THROW_ON_CONNECT.set(true);
             listener.validate();
@@ -569,7 +569,7 @@ public class ConnectTests {
         Options options = Options.builder().server("demo.nats.io")
             .hostnameResolveMode(Options.HostnameResolveMode.HappyEyeballs)
             .build();
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             assertConnected(nc);
         }
     }

@@ -14,6 +14,7 @@
 package io.synadia.examples.autobench;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -58,7 +59,7 @@ public class LatencyBenchmark extends AutoBenchmark {
 
         Thread subThread = new Thread(() -> {
             try {
-                Connection subConnect = Nats.connect(connectOptions);
+                NatsConnection subConnect = Nats.connect(connectOptions);
                 if (subConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }
@@ -96,7 +97,7 @@ public class LatencyBenchmark extends AutoBenchmark {
 
         Thread pubThread = new Thread(() -> {
             try {
-                Connection pubConnect = Nats.connect(connectOptions);
+                NatsConnection pubConnect = Nats.connect(connectOptions);
                 if (pubConnect.getStatus() != ConnectionStatus.CONNECTED) {
                     throw new Exception("Unable to connect");
                 }

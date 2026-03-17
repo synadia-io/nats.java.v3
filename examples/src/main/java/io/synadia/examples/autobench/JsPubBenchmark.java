@@ -16,6 +16,7 @@ package io.synadia.examples.autobench;
 import io.synadia.client.*;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -59,7 +60,7 @@ public class JsPubBenchmark extends AutoBenchmark {
         }
 
         try {
-            Connection nc = Nats.connect(connectOptions);
+            NatsConnection nc = Nats.connect(connectOptions);
 
             StreamConfiguration sc = StreamConfiguration.builder()
                     .name(stream)

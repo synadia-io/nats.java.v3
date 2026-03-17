@@ -2,7 +2,7 @@ package io.synadia.client;
 
 import io.nats.NatsRunnerUtils;
 import io.nats.NatsServerRunner;
-import io.synadia.client.ConnectionListener.Events;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.JwtUtils;
 import io.synadia.client.support.Listener;
 import io.synadia.client.support.ssl.SslTestingHelper;
@@ -108,7 +108,7 @@ public class AuthTests extends TestBase {
     private void assertEncoded(String encoded, int port) throws IOException, InterruptedException {
         String url = userPassInUrl("u" + encoded, "p" + encoded, port);
         Options options = optionsBuilder(url).build();
-        Connection c = Nats.connect(options);
+        NatsConnection c = Nats.connect(options);
         c.getServerInfo();
         c.close();
     }
@@ -143,7 +143,7 @@ public class AuthTests extends TestBase {
     @Test
     public void testUserPassOnReconnect() throws Exception {
         Listener listener = new Listener();
-        Connection nc;
+        NatsConnection nc;
         Subscription sub;
         String[] customArgs = { "--user", "uuu", "--pass", "ppp" };
         int port;
@@ -161,13 +161,13 @@ public class AuthTests extends TestBase {
             Message msg = sub.nextMessage(Duration.ofSeconds(5));
             assertNotNull(msg);
 
-            listener.queueConnectionEvent(Events.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         }
 
         TestBase.flushConnection(nc);
         listener.validate();
 
-        listener.queueConnectionEvent(Events.RESUBSCRIBED);
+        listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
 
         try (NatsTestServer ignored = new NatsTestServer(customArgs, port)) {
             confirmConnected(nc); // wait for reconnect
@@ -203,7 +203,7 @@ public class AuthTests extends TestBase {
     public void testUserPassInURLOnReconnect() throws Exception {
         Listener listener = new Listener();
         int port;
-        Connection nc;
+        NatsConnection nc;
         Subscription sub;
         String[] customArgs = { "--user", "uuu", "--pass", "ppp" };
 
@@ -219,7 +219,7 @@ public class AuthTests extends TestBase {
             flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
             Message msg = sub.nextMessage(Duration.ofSeconds(5));
             assertNotNull(msg);
-            listener.queueConnectionEvent(Events.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         }
 
         TestBase.flushConnection(nc);
@@ -229,7 +229,7 @@ public class AuthTests extends TestBase {
         ConnectionStatus status = nc.getStatus();
         assertTrue(
                 ConnectionStatus.RECONNECTING == status || ConnectionStatus.DISCONNECTED == status, "Reconnecting status");
-        listener.queueConnectionEvent(Events.RESUBSCRIBED);
+        listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
 
         try (NatsTestServer ignored = new NatsTestServer(customArgs, port)) {
             confirmConnected(nc); // wait for reconnect
@@ -257,9 +257,9 @@ public class AuthTests extends TestBase {
                 .pingInterval(Duration.ofMillis(100))
                 .build();
 
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
-                listener.queueConnectionEvent(Events.RESUBSCRIBED);
+                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
                 ts1.close();
                 confirmConnected(nc); // wait for reconnect
                 assertEquals(nc.getConnectedUrl(), url2);
@@ -281,10 +281,10 @@ public class AuthTests extends TestBase {
                 .noRandomize()
                 .connectionListener(listener)
                 .pingInterval(Duration.ofMillis(100)).build();
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
 
-                listener.queueConnectionEvent(Events.RESUBSCRIBED, LONG_VALIDATE_TIMEOUT);
+                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED, LONG_VALIDATE_TIMEOUT);
                 ts1.close();
                 listener.validate();
                 assertConnected(nc);
@@ -308,10 +308,10 @@ public class AuthTests extends TestBase {
                 .connectionListener(listener)
                 .pingInterval(Duration.ofMillis(100))
                 .build();
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
 
-                listener.queueConnectionEvent(Events.RESUBSCRIBED);
+                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
                 ts1.close();
                 listener.validate();
 
@@ -337,10 +337,10 @@ public class AuthTests extends TestBase {
                 .pingInterval(Duration.ofMillis(100))
                 .build();
 
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
 
-                listener.queueConnectionEvent(Events.RESUBSCRIBED);
+                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
                 ts1.close();
                 listener.validate();
 
@@ -422,7 +422,7 @@ public class AuthTests extends TestBase {
             assertCanConnect(staticOptions);
 
             // direct through Nats.connect
-            Connection nc = Nats.connect(ts.getServerUri(), Nats.staticCredentials(null, theKey.getSeed()));
+            NatsConnection nc = Nats.connect(ts.getServerUri(), Nats.staticCredentials(null, theKey.getSeed()));
             confirmConnectedThenClosed(nc);
 
             // fails with no nkey
@@ -447,7 +447,7 @@ public class AuthTests extends TestBase {
             assertCanConnect(options);
 
             //test Nats.connect method
-            Connection nc = Nats.connect(ts.getServerUri(), getUserCredsAuthHander());
+            NatsConnection nc = Nats.connect(ts.getServerUri(), getUserCredsAuthHander());
             confirmConnectedThenClosed(nc);
         });
     }
@@ -456,7 +456,7 @@ public class AuthTests extends TestBase {
     public void testJWTAuthWithCredsFileAlso() throws Exception {
         //test Nats.connect method
         runInConfiguredServer("operatorJnatsTest.conf", ts -> {
-            Connection nc = Nats.connect(ts.getServerUri(), Nats.credentials(jwtResource("userJnatsTest.creds")));
+            NatsConnection nc = Nats.connect(ts.getServerUri(), Nats.credentials(jwtResource("userJnatsTest.creds")));
             confirmConnectedThenClosed(nc);
         });
     }
@@ -471,7 +471,7 @@ public class AuthTests extends TestBase {
             assertCanConnect(options);
 
             // directly Nats.connect
-            Connection nc = Nats.connect(uri, getUserCredsAuthHander());
+            NatsConnection nc = Nats.connect(uri, getUserCredsAuthHander());
             confirmConnectedThenClosed(nc);
         });
     }
@@ -513,10 +513,10 @@ public class AuthTests extends TestBase {
                     .connectionListener(listener)
                     .errorListener(listener)
                     .build();
-                Connection nc = managedConnect(options);
+                NatsConnection nc = managedConnect(options);
                 assertEquals(ts1.getServerUri(), nc.getConnectedUrl());
 
-                listener.queueConnectionEvent(Events.RECONNECTED);
+                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
 
                 ts1.close();
 
@@ -543,10 +543,10 @@ public class AuthTests extends TestBase {
                     .authHandler(getUserCredsAuthHander())
                     .build();
 
-                try (Connection nc = managedConnect(options)) {
+                try (NatsConnection nc = managedConnect(options)) {
                     assertEquals(ts2.getServerUri(), nc.getConnectedUrl());
 
-                    listener.queueConnectionEvent(Events.CLOSED, LONG_VALIDATE_TIMEOUT);
+                    listener.queueConnectionEvent(ConnectionEvents.CLOSED, LONG_VALIDATE_TIMEOUT);
 
                     ts2.close();
 
@@ -559,7 +559,7 @@ public class AuthTests extends TestBase {
 
     @Test
     public void testThatAuthErrorIsCleared() throws Exception {
-        AtomicReference<Connection> ncRef = new AtomicReference<>();
+        AtomicReference<NatsConnection> ncRef = new AtomicReference<>();
         AtomicReference<String> server2Ref = new AtomicReference<>();
         AtomicInteger port2Ref = new AtomicInteger();
 
@@ -576,7 +576,7 @@ public class AuthTests extends TestBase {
                     .reconnectWait(Duration.ofSeconds(1)) // wait a tad to allow restarts
                     .authHandler(getUserCredsAuthHander())
                     .build();
-                Connection nc = managedConnect(options);
+                NatsConnection nc = managedConnect(options);
                 ncRef.set(nc);
                 assertEquals(server2, nc.getConnectedUrl());
             });
@@ -631,9 +631,9 @@ public class AuthTests extends TestBase {
                     .connectionListener(listener)
                     .build();
 
-                listener.queueConnectionEvent(Events.RECONNECTED);
+                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
 
-                try (Connection nc = standardConnect(options)) {
+                try (NatsConnection nc = standardConnect(options)) {
                     assertEquals(mockTs.getServerUri(), nc.getConnectedUrl());
                     fMock.complete(true);
                     listener.validate();
@@ -684,7 +684,7 @@ public class AuthTests extends TestBase {
                 // 2. sometimes the connect exceptions right away
                 // 3. sometimes the connect happens but still exceptions
                 // this is all simply the speed and timing of the machine/server/connection
-                try (Connection ignored = Nats.connect(options)) {
+                try (NatsConnection ignored = Nats.connect(options)) {
                     sleep(2500); // 1. connected, so the validate() at the end verifies this
                 }
                 catch (AuthenticationException ignore) {

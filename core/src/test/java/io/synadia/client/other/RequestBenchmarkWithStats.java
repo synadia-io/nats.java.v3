@@ -1,6 +1,10 @@
 package io.synadia.client.other;
 
-import io.synadia.client.*;
+import io.synadia.client.Dispatcher;
+import io.synadia.client.Message;
+import io.synadia.client.Nats;
+import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -40,7 +44,7 @@ public class RequestBenchmarkWithStats {
                         turnOnAdvancedStats().
                         build();
 
-            Connection handlerC = Nats.connect(o);
+            NatsConnection handlerC = Nats.connect(o);
             Dispatcher d = handlerC.createDispatcher(msg -> {
                 try {
                     handlerC.publish(msg.getReplyTo(), msg.getData());
@@ -51,7 +55,7 @@ public class RequestBenchmarkWithStats {
             });
             d.subscribe("req");
 
-            Connection nc = Nats.connect(o);
+            NatsConnection nc = Nats.connect(o);
 
             for (int k = 0; k < threads; k++) {
                 Thread t = new Thread(() -> {

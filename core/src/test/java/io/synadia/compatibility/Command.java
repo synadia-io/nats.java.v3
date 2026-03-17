@@ -1,19 +1,19 @@
 package io.synadia.compatibility;
 
-import io.synadia.client.Connection;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.JsonParseException;
 import io.synadia.client.support.JsonParser;
 import io.synadia.client.support.JsonValue;
 import io.synadia.client.support.JsonValueUtils;
 
 public abstract class Command extends TestMessage {
-    public final Connection nc;
+    public final NatsConnection nc;
 
     // info from the message data
     public final JsonValue full;
     public final JsonValue config;
 
-    protected Command(Connection nc, TestMessage tm) {
+    protected Command(NatsConnection nc, TestMessage tm) {
         super(tm);
         this.nc = nc;
 

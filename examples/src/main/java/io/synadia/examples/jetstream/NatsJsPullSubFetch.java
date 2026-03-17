@@ -15,6 +15,7 @@ package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
 import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -51,7 +52,7 @@ public class NatsJsPullSubFetch {
                 .defaultMsgCount(15)
                 .build();
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server))) {
             // Create a JetStreamManagement context.
             JetStreamManagement jsm = nc.jetStreamManagement();
 

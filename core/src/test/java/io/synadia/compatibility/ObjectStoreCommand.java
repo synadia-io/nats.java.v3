@@ -1,9 +1,9 @@
 package io.synadia.compatibility;
 
-import io.synadia.client.Connection;
 import io.synadia.client.ObjectStore;
 import io.synadia.client.ObjectStoreManagement;
 import io.synadia.client.api.*;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsObjectStoreWatchSubscription;
 import io.synadia.client.support.ApiConstants;
 import io.synadia.client.support.JsonValueUtils;
@@ -24,7 +24,7 @@ public class ObjectStoreCommand extends Command {
     final String object;
     final String url;
 
-    public ObjectStoreCommand(Connection nc, TestMessage tm) {
+    public ObjectStoreCommand(NatsConnection nc, TestMessage tm) {
         super(nc, tm);
         bucket = JsonValueUtils.readString(full, "bucket");
         object = JsonValueUtils.readString(full, "object");

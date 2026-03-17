@@ -13,9 +13,9 @@
 
 package io.synadia.examples.stability;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.examples.benchmark.Utils;
 
 import java.text.NumberFormat;
@@ -50,7 +50,7 @@ public class StabilityPub {
 
         try {
             Options options = new Options.Builder().server(server).noReconnect().build();
-            Connection nc = Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
             Instant start = Instant.now();
 
             byte[] payload = new byte[msgSize];

@@ -18,6 +18,7 @@ import io.synadia.client.api.ConsumerInfo;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamConfiguration;
 import io.synadia.client.api.StreamInfo;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsJetStreamMetaData;
 import io.synadia.client.impl.NatsMessage;
 
@@ -49,7 +50,7 @@ public class NatsJsUtils {
         return getStreamInfoOrNullWhenNotExist(jsm, streamName) != null;
     }
 
-    public static boolean streamExists(Connection nc, String streamName) throws IOException, JetStreamApiException {
+    public static boolean streamExists(NatsConnection nc, String streamName) throws IOException, JetStreamApiException {
         return getStreamInfoOrNullWhenNotExist(nc.jetStreamManagement(), streamName) != null;
     }
 
@@ -62,7 +63,7 @@ public class NatsJsUtils {
         }
     }
 
-    public static void exitIfStreamNotExists(Connection nc, String streamName) throws IOException, JetStreamApiException {
+    public static void exitIfStreamNotExists(NatsConnection nc, String streamName) throws IOException, JetStreamApiException {
         if (!streamExists(nc, streamName)) {
             System.out.println("\nThe example cannot run since the stream '" + streamName + "' does not exist.\n" +
                 "It depends on the stream existing and having data.");
@@ -70,7 +71,7 @@ public class NatsJsUtils {
         }
     }
 
-    public static StreamInfo createOrReplaceStream(Connection nc, String stream, String... subjects) throws IOException {
+    public static StreamInfo createOrReplaceStream(NatsConnection nc, String stream, String... subjects) throws IOException {
         return createOrReplaceStream(nc.jetStreamManagement(), stream, StorageType.Memory, subjects);
     }
 
@@ -118,11 +119,11 @@ public class NatsJsUtils {
         return createStream(jsm, streamName, StorageType.Memory, subjects);
     }
 
-    public static StreamInfo createStream(Connection nc, String stream, String... subjects) throws IOException, JetStreamApiException {
+    public static StreamInfo createStream(NatsConnection nc, String stream, String... subjects) throws IOException, JetStreamApiException {
         return createStream(nc.jetStreamManagement(), stream, StorageType.Memory, subjects);
     }
 
-    public static StreamInfo createStreamExitWhenExists(Connection nc, String streamName, String... subjects) throws IOException, JetStreamApiException {
+    public static StreamInfo createStreamExitWhenExists(NatsConnection nc, String streamName, String... subjects) throws IOException, JetStreamApiException {
         return createStreamExitWhenExists(nc.jetStreamManagement(), streamName, subjects);
     }
 
@@ -169,14 +170,14 @@ public class NatsJsUtils {
         return createStreamOrUpdateSubjects(jsm, streamName, StorageType.Memory, subjects);
     }
 
-    public static StreamInfo createStreamOrUpdateSubjects(Connection nc, String stream, String... subjects) throws IOException, JetStreamApiException {
+    public static StreamInfo createStreamOrUpdateSubjects(NatsConnection nc, String stream, String... subjects) throws IOException, JetStreamApiException {
         return createStreamOrUpdateSubjects(nc.jetStreamManagement(), stream, StorageType.Memory, subjects);
     }
 
     // ----------------------------------------------------------------------------------------------------
     // PUBLISH
     // ----------------------------------------------------------------------------------------------------
-    public static void publish(Connection nc, String subject, int count) throws IOException, JetStreamApiException {
+    public static void publish(NatsConnection nc, String subject, int count) throws IOException, JetStreamApiException {
         publish(nc.jetStream(), subject, "data", count, -1, false);
     }
 
@@ -462,7 +463,7 @@ public class NatsJsUtils {
         return count;
     }
 
-    public static void createCleanMemStream(Connection nc, String stream, String... subs) throws IOException, JetStreamApiException {
+    public static void createCleanMemStream(NatsConnection nc, String stream, String... subs) throws IOException, JetStreamApiException {
         createCleanMemStream(nc.jetStreamManagement(), stream, subs);
     }
 

@@ -13,7 +13,11 @@
 
 package io.synadia.examples.service;
 
-import io.synadia.client.*;
+import io.synadia.client.ErrorListener;
+import io.synadia.client.Message;
+import io.synadia.client.Nats;
+import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.JsonSerializable;
 import io.synadia.client.support.JsonValue;
 import io.synadia.client.support.JsonValueUtils;
@@ -40,7 +44,7 @@ public class ServiceExample {
             .errorListener(new ErrorListener() {})
             .build();
 
-        try (Connection nc = Nats.connect(options)) {
+        try (NatsConnection nc = Nats.connect(options)) {
             // endpoints can be created ahead of time
             // or created directly by the ServiceEndpoint builder.
             Endpoint epEcho = Endpoint.builder()
@@ -195,7 +199,7 @@ public class ServiceExample {
             .toJsonValue();
     }
 
-    private static void handlerSortDescending(Connection nc, ServiceMessage smsg, String handlerId) {
+    private static void handlerSortDescending(NatsConnection nc, ServiceMessage smsg, String handlerId) {
         byte[] data = smsg.getData();
         Arrays.sort(data);
         int len = data.length;
@@ -206,13 +210,13 @@ public class ServiceExample {
         smsg.respond(nc, replyBody("sort_descending", descending, handlerId));
     }
 
-    private static void handleSortAscending(Connection nc, ServiceMessage smsg, String handlerId) {
+    private static void handleSortAscending(NatsConnection nc, ServiceMessage smsg, String handlerId) {
         byte[] ascending = smsg.getData();
         Arrays.sort(ascending);
         smsg.respond(nc, replyBody("sort_ascending", ascending, handlerId));
     }
 
-    private static void handleEchoMessage(Connection nc, ServiceMessage smsg, String handlerId) {
+    private static void handleEchoMessage(NatsConnection nc, ServiceMessage smsg, String handlerId) {
         smsg.respond(nc, replyBody("echo", smsg.getData(), handlerId));
     }
 

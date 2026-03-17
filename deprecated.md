@@ -1,6 +1,6 @@
 # Deprecated Items to Remove
 
-Total: ~75 deprecated items across 28 files.
+Total: ~103 deprecated items across 34 files.
 
 ## `io.nats.client.Options`
 | Line | Item | Type |

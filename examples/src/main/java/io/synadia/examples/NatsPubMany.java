@@ -13,8 +13,8 @@
 
 package io.synadia.examples;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Nats;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
 
 import java.nio.charset.StandardCharsets;
@@ -48,7 +48,7 @@ public class NatsPubMany {
                 .defaultMsgCount(10)
                 .build();
 
-        try (Connection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, false))) {
+        try (NatsConnection nc = Nats.connect(ExampleUtils.createExampleOptions(exArgs.server, false))) {
 
             String hdrNote = exArgs.hasHeaders() ? " with " + exArgs.headers.size() + " header(s)" : "";
             System.out.printf("\nPublishing %d x '%s' to '%s'%s, server is %s\n\n", exArgs.msgCount, exArgs.message, exArgs.subject, hdrNote, exArgs.server);

@@ -1,6 +1,7 @@
 package io.synadia.client.support;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 import org.junit.jupiter.api.Assertions;
 
 import java.time.format.DateTimeFormatter;
@@ -26,8 +27,8 @@ public class Listener implements ErrorListener, ConnectionListener {
 
     private final List<ListenerFuture> futures;
     private final List<Message> discardedMessages;
-    private final Map<ConnectionListener.Events, Integer> connectionEventCounts;
-    private Connection lastConnectionEventConnection;
+    private final Map<ConnectionEvents, Integer> connectionEventCounts;
+    private NatsConnection lastConnectionEventConnection;
     private int exceptionCount;
     private int heartbeatAlarmCount;
     private int flowControlCount;
@@ -146,11 +147,11 @@ public class Listener implements ErrorListener, ConnectionListener {
         futures.add(f);
     }
 
-    public void queueConnectionEvent(Events type) {
+    public void queueConnectionEvent(ConnectionEvents type) {
         queue("Event", new ListenerFuture(type, DEFAULT_VALIDATE_TIMEOUT));
     }
 
-    public void queueConnectionEvent(Events type, int validateTimeout) {
+    public void queueConnectionEvent(ConnectionEvents type, int validateTimeout) {
         queue("Event", new ListenerFuture(type, validateTimeout));
     }
 
@@ -217,11 +218,11 @@ public class Listener implements ErrorListener, ConnectionListener {
         return discardedMessages;
     }
 
-    public int getConnectionEventCount(ConnectionListener.Events event) {
+    public int getConnectionEventCount(ConnectionEvents event) {
         return connectionEventCounts.getOrDefault(event, 0);
     }
 
-    public Connection getLastConnectionEventConnection() {
+    public NatsConnection getLastConnectionEventConnection() {
         return lastConnectionEventConnection;
     }
 
@@ -244,15 +245,15 @@ public class Listener implements ErrorListener, ConnectionListener {
     public int getSocketWriteTimeoutCount() { return socketWriteTimeoutCount; }
 
     // ----------------------------------------------------------------------------------------------------
-    // Connection Listener
+    // NatsConnection Listener
     // ----------------------------------------------------------------------------------------------------
     @Override
-    public void connectionEvent(Connection conn, Events event) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents event) {
         connectionEvent(conn, event, 0L, null);
     }
 
     @Override
-    public void connectionEvent(Connection conn, Events event, Long time, String uriDetails) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents event, Long time, String uriDetails) {
         if (verbose) {
             report("connectionEvent", event);
         }
@@ -265,7 +266,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     // Error Listener
     // ----------------------------------------------------------------------------------------------------
     @Override
-    public void errorOccurred(Connection conn, String error) {
+    public void errorOccurred(NatsConnection conn, String error) {
         if (verbose) {
             report("errorOccurred", error);
         }
@@ -273,7 +274,7 @@ public class Listener implements ErrorListener, ConnectionListener {
      }
 
     @Override
-    public void exceptionOccurred(Connection conn, Exception exp) {
+    public void exceptionOccurred(NatsConnection conn, Exception exp) {
         exceptionCount++;
         if (printExceptions) {
             System.err.print("exceptionOccurred:");
@@ -299,17 +300,17 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void slowConsumerDetected(Connection conn, Consumer consumer) {
+    public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
         // see SlowConsumerTests.SlowConsumerListener
     }
 
     @Override
-    public void messageDiscarded(Connection conn, Message msg) {
+    public void messageDiscarded(NatsConnection conn, Message msg) {
         discardedMessages.add(msg);
     }
 
     @Override
-    public void heartbeatAlarm(Connection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
+    public void heartbeatAlarm(NatsConnection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
         if (verbose) {
             report("Heartbeat Alarm", lastStreamSequence + " " + lastConsumerSequence);
         }
@@ -325,23 +326,23 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void unhandledStatus(Connection conn, JetStreamSubscription sub, Status status) {
+    public void unhandledStatus(NatsConnection conn, JetStreamSubscription sub, Status status) {
         statusReceived(ListenerStatusType.Unhandled, status);
     }
 
     @Override
-    public void pullStatusWarning(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {
         statusReceived(ListenerStatusType.PullWarning, status);
         pullStatusWarningsCount++;
     }
 
     @Override
-    public void pullStatusError(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {
         statusReceived(ListenerStatusType.PullError, status);
     }
 
     @Override
-    public void flowControlProcessed(Connection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {
+    public void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {
         if (verbose) {
             report("flowControlProcessed", subject + " " + source);
         }
@@ -350,7 +351,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void socketWriteTimeout(Connection conn) {
+    public void socketWriteTimeout(NatsConnection conn) {
         if (verbose) {
             report("Socket Write Timeout");
         }

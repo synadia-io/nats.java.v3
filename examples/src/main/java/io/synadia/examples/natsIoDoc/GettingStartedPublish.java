@@ -1,7 +1,7 @@
 package io.synadia.examples.natsIoDoc;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Nats;
+import io.synadia.client.impl.NatsConnection;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 public class GettingStartedPublish {
     // NATS-DOC-START
     public static void main(String[] args) {
-        try (Connection nc = Nats.connect("nats://localhost:4222")) {
+        try (NatsConnection nc = Nats.connect("nats://localhost:4222")) {
             // Publish a message to the subject "hello"
             byte[] data = "Hello NATS!".getBytes(StandardCharsets.UTF_8);
             nc.publish("hello", data);

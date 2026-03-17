@@ -380,8 +380,8 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             Options optionsTar = optionsBuilder(ts)
                 .userInfo("tar".toCharArray(), "tpass".toCharArray()).build();
 
-            try (Connection ncSrc = ConnectionUtils.managedConnect(optionsSrc);
-                 Connection ncTar = ConnectionUtils.managedConnect(optionsTar)
+            try (NatsConnection ncSrc = ConnectionUtils.managedConnect(optionsSrc);
+                 NatsConnection ncTar = ConnectionUtils.managedConnect(optionsTar)
             ) {
                 // Setup JetStreamOptions. SOURCE does not need prefix
                 JetStreamOptions jsoSrc = JetStreamOptions.builder().build();
@@ -423,7 +423,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
         });
     }
 
-    private void readPrefixMessages(Connection nc, JetStream js, String subject, String dest) throws InterruptedException, IOException, JetStreamApiException, TimeoutException {
+    private void readPrefixMessages(NatsConnection nc, JetStream js, String subject, String dest) throws InterruptedException, IOException, JetStreamApiException, TimeoutException {
         JetStreamSubscription sub = js.subscribe(subject);
         nc.flush(Duration.ofSeconds(1));
         List<Message> msgs = readMessagesAck(sub);
@@ -1086,7 +1086,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
     public void testRequestNoResponder() throws Exception {
         runInSharedCustom((ncCancel, ctx) -> {
             Options optReport = optionsBuilder(ncCancel).reportNoResponders().build();
-            try (Connection ncReport = ConnectionUtils.managedConnect(optReport)) {
+            try (NatsConnection ncReport = ConnectionUtils.managedConnect(optReport)) {
                 assertThrows(CancellationException.class, () -> ncCancel.request(random(), null).get());
                 ExecutionException ee = assertThrows(ExecutionException.class, () -> ncReport.request(random(), null).get());
                 assertInstanceOf(JetStreamStatusException.class, ee.getCause());

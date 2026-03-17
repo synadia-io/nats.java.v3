@@ -1,6 +1,7 @@
 package io.synadia.client.support;
 
 import io.synadia.client.*;
+import io.synadia.client.impl.NatsConnection;
 
 public class DebugListener implements ErrorListener, ConnectionListener, ReadListener {
     DebugErrorListener el;
@@ -44,64 +45,64 @@ public class DebugListener implements ErrorListener, ConnectionListener, ReadLis
     }
 
     @Override
-    public void connectionEvent(Connection conn, Events type) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
         cl.connectionEvent(conn, type);
     }
 
     @Override
-    public void connectionEvent(Connection conn, Events type, Long time, String uriDetails) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails) {
         cl.connectionEvent(conn, type, time, uriDetails);
     }
 
     @Override
-    public void errorOccurred(final Connection conn, final String error) {
+    public void errorOccurred(final NatsConnection conn, final String error) {
         el.errorOccurred(conn, error);
     }
 
     @Override
-    public void exceptionOccurred(final Connection conn, final Exception exp) {
+    public void exceptionOccurred(final NatsConnection conn, final Exception exp) {
         el.exceptionOccurred(conn, exp);
     }
 
     @Override
-    public void slowConsumerDetected(final Connection conn, final Consumer consumer) {
+    public void slowConsumerDetected(final NatsConnection conn, final Consumer consumer) {
         el.slowConsumerDetected(conn, consumer);
     }
 
     @Override
-    public void messageDiscarded(final Connection conn, final Message msg) {
+    public void messageDiscarded(final NatsConnection conn, final Message msg) {
         el.messageDiscarded(conn, msg);
     }
 
     @Override
-    public void heartbeatAlarm(final Connection conn, final JetStreamSubscription sub,
+    public void heartbeatAlarm(final NatsConnection conn, final JetStreamSubscription sub,
                                final long lastStreamSequence, final long lastConsumerSequence)
     {
         el.heartbeatAlarm(conn, sub, lastStreamSequence, lastConsumerSequence);
     }
 
     @Override
-    public void unhandledStatus(final Connection conn, final JetStreamSubscription sub, final Status status) {
+    public void unhandledStatus(final NatsConnection conn, final JetStreamSubscription sub, final Status status) {
         el.unhandledStatus(conn, sub, status);
     }
 
     @Override
-    public void pullStatusWarning(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {
         el.pullStatusWarning(conn, sub, status);
     }
 
     @Override
-    public void pullStatusError(Connection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {
         el.pullStatusError(conn, sub, status);
     }
 
     @Override
-    public void flowControlProcessed(Connection conn, JetStreamSubscription sub, String id, FlowControlSource source) {
+    public void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String id, FlowControlSource source) {
         el.flowControlProcessed(conn, sub, id, source);
     }
 
     @Override
-    public void socketWriteTimeout(Connection conn) {
+    public void socketWriteTimeout(NatsConnection conn) {
         el.socketWriteTimeout(conn);
     }
 }

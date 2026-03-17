@@ -13,8 +13,8 @@
 
 package io.synadia.examples.autobench;
 
-import io.synadia.client.Connection;
 import io.synadia.client.Options;
+import io.synadia.client.impl.NatsConnection;
 
 import java.text.NumberFormat;
 import java.time.Duration;
@@ -95,7 +95,7 @@ public abstract class AutoBenchmark {
         this.exception = null;
     }
 
-    public void defaultFlush(Connection nc) {
+    public void defaultFlush(NatsConnection nc) {
         try {
             nc.flush(Duration.ofSeconds(5));
         }

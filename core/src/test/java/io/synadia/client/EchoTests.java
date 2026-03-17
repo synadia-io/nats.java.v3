@@ -1,6 +1,7 @@
 package io.synadia.client;
 
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SharedServer;
 import io.synadia.client.utils.ConnectionUtils;
 import io.synadia.client.utils.TestBase;
@@ -34,7 +35,7 @@ public class EchoTests extends TestBase {
     @Test
     public void testWithEcho() throws Exception {
         runInShared(nc1 -> {
-            try (Connection nc2 = ConnectionUtils.managedConnect(options(nc1))) {
+            try (NatsConnection nc2 = ConnectionUtils.managedConnect(options(nc1))) {
                 // Echo is on so both sub should get messages from both pub
                 String subject = random();
                 Subscription sub1 = nc1.subscribe(subject);
@@ -64,7 +65,7 @@ public class EchoTests extends TestBase {
     @Test
     public void testWithNoEcho() throws Exception {
         runInSharedOwnNc(optionsBuilder().noEcho().noReconnect(), nc1 -> {
-            Connection nc2 = SharedServer.sharedConnectionForSameServer(nc1);
+            NatsConnection nc2 = SharedServer.sharedConnectionForSameServer(nc1);
 
             String subject = random();
             Subscription sub1 = nc1.subscribe(subject);

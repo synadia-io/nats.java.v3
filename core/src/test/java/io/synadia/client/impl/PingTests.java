@@ -1,7 +1,6 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.ConnectionListener.Events;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
 import io.synadia.client.support.Listener;
 import io.synadia.client.utils.TestBase;
@@ -45,7 +44,7 @@ public class PingTests extends TestBase {
         };
 
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(pingPongCustomizer)) {
-            try (Connection nc = standardConnect(mockTs)) {
+            try (NatsConnection nc = standardConnect(mockTs)) {
                 assertTrue(gotPong.get(), "Got pong.");
             }
         }
@@ -88,7 +87,7 @@ public class PingTests extends TestBase {
                 .connectionListener(listener)
                 .errorListener(listener)
                 .build();
-            try (Connection nc = standardConnect(options)) {
+            try (NatsConnection nc = standardConnect(options)) {
                 // fake server so flush will time out
                 assertThrows(TimeoutException.class, () -> nc.flush(Duration.ofMillis(50)));
             }
@@ -100,9 +99,9 @@ public class PingTests extends TestBase {
         Listener listener = new Listener();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
-            try (Connection nc = managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
                 nc.flush(Duration.ofSeconds(2));
-                listener.queueConnectionEvent(Events.DISCONNECTED);
+                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
                 ts.close();
                 listener.validate();
                 assertThrows(TimeoutException.class, () -> nc.flush(Duration.ofSeconds(2)));
@@ -118,7 +117,7 @@ public class PingTests extends TestBase {
                     .pingInterval(Duration.ofMillis(500))
                     .maxPingsOut(100) // just don't want this to be what fails the test
                     .build();
-                try (Connection nc = managedConnect(options)) {
+                try (NatsConnection nc = managedConnect(options)) {
                     Statistics stats = nc.getStatistics();
                     sleep(1000);
                     long pings = stats.getPings();
