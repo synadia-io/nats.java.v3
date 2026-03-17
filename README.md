@@ -1,4 +1,4 @@
-![Synadia](src/main/javadoc/images/logo-black.png)
+![Synadia](core/src/main/javadoc/images/logo-black.png)
 
 # NATS - Java Client VERSION 3
 
