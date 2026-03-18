@@ -500,13 +500,13 @@ public class Headers {
 		for (Map.Entry<String, List<String>> entry : valuesMap.entrySet()) {
 			String key = entry.getKey();
 			for (String value : entry.getValue()) {
-                //TODO REMOVE noinspection deprecation
+                //noinspection deprecation
                 key.getBytes(0, key.length(), dest, destPosition);// key has only US_ASCII
 				destPosition += key.length();
 
 				dest[destPosition++] = COLON;
 
-				//TODO REMOVE noinspection deprecation
+				//noinspection deprecation
 				value.getBytes(0, value.length(), dest, destPosition);
 				destPosition += value.length();
 
