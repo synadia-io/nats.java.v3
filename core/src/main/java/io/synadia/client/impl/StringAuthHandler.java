@@ -1,7 +1,8 @@
 package io.synadia.client.impl;
 
+import io.nats.nkey.NKey;
+import io.nats.nkey.NKeyProvider;
 import io.synadia.client.AuthHandler;
-import io.synadia.client.NKey;
 
 class StringAuthHandler implements AuthHandler {
     private final char[] nkey;
@@ -21,7 +22,7 @@ class StringAuthHandler implements AuthHandler {
      */ 
     public byte[] sign(byte[] nonce) {
         try {
-            NKey nkey = NKey.fromSeed(this.nkey);
+            NKey nkey = NKeyProvider.getProvider().fromSeed(this.nkey);
             byte[] sig = nkey.sign(nonce);
             nkey.clear();
             return sig;
@@ -38,7 +39,7 @@ class StringAuthHandler implements AuthHandler {
      */
     public char[] getID() {
         try {
-            NKey nkey = NKey.fromSeed(this.nkey);
+            NKey nkey = NKeyProvider.getProvider().fromSeed(this.nkey);
             char[] pubKey = nkey.getPublicKey();
             nkey.clear();
             return pubKey;

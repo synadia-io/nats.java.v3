@@ -13,14 +13,13 @@
 
 package io.synadia.examples;
 
+import io.nats.nkey.NKey;
+import io.nats.nkey.NKeyProvider;
 import io.synadia.client.AuthHandler;
-import io.synadia.client.NKey;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Arrays;
 
 public class ExampleAuthHandler implements AuthHandler {
@@ -35,11 +34,11 @@ public class ExampleAuthHandler implements AuthHandler {
             if (numChars < numBytes) {
                 char[] seed = new char[numChars];
                 System.arraycopy(buffer, 0, seed, 0, numChars);
-                this.nkey = NKey.fromSeed(seed);
+                this.nkey = NKeyProvider.getProvider().fromSeed(seed);
                 Arrays.fill(seed, '\0'); // clear memory
             }
             else {
-                this.nkey = NKey.fromSeed(buffer);
+                this.nkey = NKeyProvider.getProvider().fromSeed(buffer);
             }
             Arrays.fill(buffer, '\0'); // clear memory
         }
@@ -52,7 +51,7 @@ public class ExampleAuthHandler implements AuthHandler {
     public char[] getID() {
         try {
             return this.nkey.getPublicKey();
-        } catch (GeneralSecurityException|IOException|NullPointerException ex) {
+        } catch (NullPointerException ex) {
             return null;
         }
     }
@@ -60,7 +59,7 @@ public class ExampleAuthHandler implements AuthHandler {
     public byte[] sign(byte[] nonce) {
         try {
             return this.nkey.sign(nonce);
-        } catch (GeneralSecurityException|IOException|NullPointerException ex) {
+        } catch (NullPointerException ex) {
             return null;
         }
     }

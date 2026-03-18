@@ -2,8 +2,10 @@ package io.synadia.client;
 
 import io.nats.NatsRunnerUtils;
 import io.nats.NatsServerRunner;
+import io.nats.jwt.JwtUtils;
+import io.nats.nkey.NKey;
+import io.nats.nkey.NKeyProvider;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.support.JwtUtils;
 import io.synadia.client.support.Listener;
 import io.synadia.client.support.ssl.SslTestingHelper;
 import io.synadia.client.utils.ResourceUtils;
@@ -406,7 +408,7 @@ public class AuthTests extends TestBase {
 
     @Test
     public void testNKeyAuth() throws Exception {
-        NKey theKey = NKey.createUser(null);
+        NKey theKey = NKeyProvider.getProvider().createUser();
         assertNotNull(theKey);
         String configFilePath = createNKeyConfigFile(theKey.getPublicKey());
 
@@ -655,9 +657,9 @@ public class AuthTests extends TestBase {
         String accountId = "ACPWDUYSZRRF7XAEZKUAGPUH6RPICWEHSTFELYKTOWUVZ4R2XMP4QJJX";
         String userSeed = "SUAJ44FQWKEWGRSIPRFCIGDTVYSMUMRRHB4CPFXXRG5GODO5XY7S2L45ZA";
 
-        NKey nKeyAccount = NKey.fromSeed(accountSeed.toCharArray());
+        NKey nKeyAccount = NKeyProvider.getProvider().fromSeed(accountSeed.toCharArray());
 
-        NKey nKeyUser = NKey.fromSeed(userSeed.toCharArray());
+        NKey nKeyUser = NKeyProvider.getProvider().fromSeed(userSeed.toCharArray());
         String publicUserKey = new String(nKeyUser.getPublicKey());
 
         long expires = 1000;

@@ -132,6 +132,7 @@ subprojects {
         int mpf = Math.max(1, (int)(Runtime.runtime.availableProcessors() * 3 / 4))
         maxParallelForks = Math.min(6, mpf)
         systemProperty 'junit.jupiter.execution.timeout.default', '3m'
+        systemProperty 'nkey.provider.class', 'io.nats.nkey.LtsNKeyProvider'
     }
 
     jacoco {
