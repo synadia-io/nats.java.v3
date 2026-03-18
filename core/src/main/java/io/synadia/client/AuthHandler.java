@@ -1,7 +1,7 @@
 package io.synadia.client;
 
 /**
- * NATS provides a challenge-response based authentication scheme based on {@link NKey NKeys}. Since 
+ * NATS provides a challenge-response based authentication scheme called NKeys. Since
  * NKeys depend on a private seed, we do not handle them directly in the client library. Instead, you can
  * work with them inside an AuthHandler that only makes the public key available to the library.
  * 
@@ -12,7 +12,7 @@ package io.synadia.client;
     
     public byte[] sign(byte[] nonce) {
         try {
-            NKey nkey =  NKey.fromSeed(this.nkey);
+            NKey nkey =  NKeyProvider.getProvider().fromSeed(this.nkey);
             byte[] sig = nkey.sign(nonce);
             nkey.clear();
             return sig;
@@ -23,7 +23,7 @@ package io.synadia.client;
 
     public char[] getID() {
         try {
-            NKey nkey =  NKey.fromSeed(this.nkey);
+            NKey nkey =  NKeyProvider.getProvider().fromSeed(this.nkey);
             char[] pubKey = nkey.getPublicKey();
             nkey.clear();
             return pubKey;

@@ -1,7 +1,8 @@
 package io.synadia.client.impl;
 
+import io.nats.nkey.NKey;
+import io.nats.nkey.NKeyProvider;
 import io.synadia.client.AuthHandler;
-import io.synadia.client.NKey;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -139,7 +140,7 @@ class FileAuthHandler implements AuthHandler {
     public byte[] sign(byte[] nonce) {
         try {
             char[] keyChars = this.readKeyChars();
-            NKey nkey =  NKey.fromSeed(keyChars);
+            NKey nkey =  NKeyProvider.getProvider().fromSeed(keyChars);
             byte[] sig = nkey.sign(nonce);
             nkey.clear();
             return sig;
@@ -157,7 +158,7 @@ class FileAuthHandler implements AuthHandler {
     public char[] getID() {
         try {
             char[] keyChars = this.readKeyChars();
-            NKey nkey =  NKey.fromSeed(keyChars);
+            NKey nkey =  NKeyProvider.getProvider().fromSeed(keyChars);
             char[] pubKey = nkey.getPublicKey();
             nkey.clear();
             return pubKey;

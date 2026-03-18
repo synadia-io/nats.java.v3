@@ -1,7 +1,8 @@
 package io.synadia.client.impl;
 
+import io.nats.nkey.NKey;
+import io.nats.nkey.NKeyProvider;
 import io.synadia.client.AuthHandler;
-import io.synadia.client.NKey;
 import io.synadia.client.Nats;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,7 @@ public class AuthHandlerTests {
     public void testCredsFile() throws Exception {
         AuthHandler auth = Nats.credentials(jwtResource("test.creds"));
         assertInstanceOf(FileAuthHandler.class, auth);
-        NKey key = NKey.fromSeed(SEED.toCharArray());
+        NKey key = NKeyProvider.getProvider().fromSeed(SEED.toCharArray());
         byte[] test = "hello world".getBytes(StandardCharsets.UTF_8);
 
         char[] pubKey = auth.getID();
@@ -36,7 +37,7 @@ public class AuthHandlerTests {
 
         AuthHandler auth = Nats.staticCredentials(creds.getBytes(StandardCharsets.UTF_8));
         assertInstanceOf(MemoryAuthHandler.class, auth);
-        NKey key = NKey.fromSeed(SEED.toCharArray());
+        NKey key = NKeyProvider.getProvider().fromSeed(SEED.toCharArray());
         byte[] test = "hello world".getBytes(StandardCharsets.UTF_8);
 
         char[] pubKey = auth.getID();
@@ -48,7 +49,7 @@ public class AuthHandlerTests {
     @Test
     public void testSeparateWrappedFiles() throws Exception {
         AuthHandler auth = Nats.credentials(jwtResource("test_wrapped.jwt"), jwtResource("test_wrapped.nk"));
-        NKey key = NKey.fromSeed(SEED.toCharArray());
+        NKey key = NKeyProvider.getProvider().fromSeed(SEED.toCharArray());
         byte[] test = "hello world again".getBytes(StandardCharsets.UTF_8);
 
         char[] pubKey = auth.getID();
@@ -60,7 +61,7 @@ public class AuthHandlerTests {
     @Test
     public void testSeparateNKeyWrappedFile() throws Exception {
         AuthHandler auth = Nats.credentials(null, jwtResource("test_wrapped.nk"));
-        NKey key = NKey.fromSeed(SEED.toCharArray());
+        NKey key = NKeyProvider.getProvider().fromSeed(SEED.toCharArray());
         byte[] test = "hello world again".getBytes(StandardCharsets.UTF_8);
 
         char[] pubKey = auth.getID();
@@ -72,7 +73,7 @@ public class AuthHandlerTests {
     @Test
     public void testSeparateBareFiles() throws Exception {
         AuthHandler auth = Nats.credentials(jwtResource("test.jwt"), jwtResource("test.nk"));
-        NKey key = NKey.fromSeed(SEED.toCharArray());
+        NKey key = NKeyProvider.getProvider().fromSeed(SEED.toCharArray());
         byte[] test = "hello world and again".getBytes(StandardCharsets.UTF_8);
 
         char[] pubKey = auth.getID();

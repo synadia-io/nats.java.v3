@@ -1,7 +1,7 @@
 package io.synadia.client;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
+import io.nats.nkey.NKey;
+import io.nats.nkey.NKeyProvider;
 
 public class AuthHandlerForTesting implements AuthHandler {
     private final NKey nkey;
@@ -18,7 +18,7 @@ public class AuthHandlerForTesting implements AuthHandler {
     }
 
     public AuthHandlerForTesting() throws Exception {
-        this.nkey = NKey.createUser(null);
+        this.nkey = NKeyProvider.getProvider().createUser();
         this.jwt = null;
     }
 
@@ -29,7 +29,7 @@ public class AuthHandlerForTesting implements AuthHandler {
     public char[] getID() {
         try {
             return this.nkey.getPublicKey();
-        } catch (GeneralSecurityException|IOException|NullPointerException ex) {
+        } catch (NullPointerException ex) {
             return null;
         }
     }
@@ -37,7 +37,7 @@ public class AuthHandlerForTesting implements AuthHandler {
     public byte[] sign(byte[] nonce) {
         try {
             return this.nkey.sign(nonce);
-        } catch (GeneralSecurityException|IOException|NullPointerException ex) {
+        } catch (NullPointerException ex) {
             return null;
         }
     }

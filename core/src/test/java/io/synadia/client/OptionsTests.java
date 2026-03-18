@@ -1,5 +1,7 @@
 package io.synadia.client;
 
+import io.nats.nkey.NKey;
+import io.nats.nkey.NKeyProvider;
 import io.synadia.client.impl.*;
 import io.synadia.client.support.HttpRequest;
 import io.synadia.client.support.Listener;
@@ -887,7 +889,7 @@ public class OptionsTests {
         String jwt = "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIiLCJpYXQiOjIwMDAwMDAwMDAsImlzcyI6IiIsIm5hbWUiOiJ1c2VyX2p3"
                 + "dCIsInN1YiI6IiIsIm5hdHMiOnsicHViIjp7ImRlbnkiOlsiPiJdfSwic3ViIjp7ImRlbnkiOlsiPiJdfSwic3VicyI6LTEsImRh"
                 + "dGEiOi0xLCJwYXlsb2FkIjotMSwidHlwZSI6InVzZXIiLCJ2ZXJzaW9uIjoyfX0";
-        NKey nkey = NKey.createUser(null);
+        NKey nkey = NKeyProvider.getProvider().createUser();
         String username = "username";
         String password = "password";
         AuthHandlerForTesting th = new AuthHandlerForTesting(nkey, jwt.toCharArray());
