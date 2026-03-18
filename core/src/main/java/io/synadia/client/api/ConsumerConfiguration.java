@@ -121,7 +121,7 @@ public class ConsumerConfiguration implements JsonSerializable {
     protected final Integer maxAckPending;
     protected final Integer maxPullWaiting;
     protected final Integer maxBatch;
-    protected final Integer maxBytes;
+    protected final Long maxBytes;
     protected final Integer numReplicas;
     protected final ZonedDateTime pauseUntil;
     protected final Boolean flowControl;
@@ -758,7 +758,7 @@ public class ConsumerConfiguration implements JsonSerializable {
         private Integer maxAckPending;
         private Integer maxPullWaiting;
         private Integer maxBatch;
-        private Integer maxBytes;
+        private Long maxBytes;
         private Integer numReplicas;
         private ZonedDateTime pauseUntil;
 
@@ -1328,7 +1328,7 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder maxBytes(Long maxBytes) {
-            this.maxBytes = normalize(maxBytes, STANDARD_MIN);
+            this.maxBytes = normalizeLong(maxBytes);
             return this;
         }
 
@@ -1338,7 +1338,7 @@ public class ConsumerConfiguration implements JsonSerializable {
          * @return Builder
          */
         public Builder maxBytes(long maxBytes) {
-            this.maxBytes = normalize(maxBytes, STANDARD_MIN);
+            this.maxBytes = normalizeLong(maxBytes);
             return this;
         }
 
@@ -1578,6 +1578,11 @@ public class ConsumerConfiguration implements JsonSerializable {
         return val == null ? INTEGER_UNSET : val;
     }
 
+    protected static long getOrUnset(Long val)
+    {
+        return val == null ? LONG_UNSET : val;
+    }
+
     protected static long getOrUnsetUlong(Long val)
     {
         return val == null || val < 0 ? ULONG_UNSET : val;
@@ -1602,6 +1607,10 @@ public class ConsumerConfiguration implements JsonSerializable {
         }
 
         return l.intValue();
+    }
+
+    protected static Long normalizeLong(Long l) {
+        return l == null ? null : l <= LONG_UNSET ? LONG_UNSET : l;
     }
 
     protected static Long normalizeUlong(Long u)
