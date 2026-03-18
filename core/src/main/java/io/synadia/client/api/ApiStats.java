@@ -53,24 +53,4 @@ public class ApiStats {
     public long getInFlight() {
         return inFlight;
     }
-
-    /**
-     * @deprecated Deprecated, replaced with getTotalApiRequests
-     * Total number of API requests received for this account
-     * @return the total requests
-     */
-    @Deprecated
-    public int getTotal() {
-        return (int)total;
-    }
-
-    /**
-     * @deprecated Deprecated, replaced with getErrorErroredRequests
-     * API requests that resulted in an error response
-     * @return the error count
-     */
-    @Deprecated
-    public int getErrors() {
-        return (int)errors;
-    }
 }

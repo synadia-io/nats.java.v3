@@ -45,11 +45,6 @@ public class DebugListener implements ErrorListener, ConnectionListener, ReadLis
     }
 
     @Override
-    public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
-        cl.connectionEvent(conn, type);
-    }
-
-    @Override
     public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails) {
         cl.connectionEvent(conn, type, time, uriDetails);
     }

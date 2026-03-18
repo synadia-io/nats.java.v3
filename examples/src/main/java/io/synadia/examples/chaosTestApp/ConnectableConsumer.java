@@ -79,7 +79,7 @@ public abstract class ConnectableConsumer implements ConnectionListener {
     public abstract void refreshInfo();
 
     @Override
-    public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails) {
         Output.controlMessage(label, "Connection: " + conn.getServerInfo().getPort() + " " + type.name().toLowerCase());
         refreshInfo();
     }

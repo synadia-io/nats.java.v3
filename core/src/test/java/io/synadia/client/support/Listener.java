@@ -248,11 +248,6 @@ public class Listener implements ErrorListener, ConnectionListener {
     // NatsConnection Listener
     // ----------------------------------------------------------------------------------------------------
     @Override
-    public void connectionEvent(NatsConnection conn, ConnectionEvents event) {
-        connectionEvent(conn, event, 0L, null);
-    }
-
-    @Override
     public void connectionEvent(NatsConnection conn, ConnectionEvents event, Long time, String uriDetails) {
         if (verbose) {
             report("connectionEvent", event);

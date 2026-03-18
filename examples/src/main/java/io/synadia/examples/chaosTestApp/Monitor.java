@@ -53,9 +53,9 @@ public class Monitor implements Runnable, java.util.function.Consumer<String> {
     public void run() {
         Options options = new Options.Builder()
             .servers(cmd.servers)
-            .connectionListener((c, t) -> {
+            .connectionListener((c, e, t, d) -> {
                 reportFull.set(true);
-                String s = "Connection: " + c.getServerInfo().getPort() + " " + t;
+                String s = "Connection: " + c.getServerInfo().getPort() + " " + e;
                 Output.controlMessage(MONITOR_LABEL, s);
             })
             .errorListener(new OutputErrorListener(MONITOR_LABEL, this) {})

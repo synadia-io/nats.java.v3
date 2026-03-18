@@ -1,6 +1,5 @@
 package io.synadia.client.support;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -354,54 +353,6 @@ public abstract class Encoding {
      * @return tje decoded string
      */
     public static String uriDecode(String source) {
-        try {
-            return URLDecoder.decode(source.replace("+", "%2B"), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            return source;
-        }
-    }
-
-    /**
-     * @deprecated Use {@link #base64UrlEncode(byte[])} instead.
-     * base64 url encode a byte array to a byte array
-     * @param input the input byte array to encode
-     * @return the encoded byte array
-     */
-    @Deprecated
-    public static byte[] base64Encode(byte[] input) {
-        return base64UrlEncode(input);
-    }
-
-    /**
-     * @deprecated Use {@link #base64UrlEncodeToString(byte[])} instead.
-     * base64 url encode a byte array to a string
-     * @param input the input byte array to encode
-     * @return the encoded string
-     */
-    @Deprecated
-    public static String toBase64Url(byte[] input) {
-        return base64UrlEncodeToString(input);
-    }
-
-    /**
-     * @deprecated Use {@link #base64UrlEncodeToString(String)} instead.
-     * base64 url encode a string to a string
-     * @param input the input string to encode
-     * @return the encoded string
-     */
-    @Deprecated
-    public static String toBase64Url(String input) {
-        return base64UrlEncodeToString(input);
-    }
-
-    /**
-     * @deprecated Use {@link #base64UrlDecodeToString(String)} instead.
-     * get a string from a base64 url encoded byte array
-     * @param input the input string to decode
-     * @return the decoded string
-     */
-    @Deprecated
-    public static String fromBase64Url(String input) {
-        return base64UrlDecodeToString(input);
+        return URLDecoder.decode(source.replace("+", "%2B"), StandardCharsets.UTF_8);
     }
 }

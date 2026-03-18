@@ -99,21 +99,16 @@ public class NatsBench2 {
         builder.maxReconnects(-1);
         builder.connectionName("NatsBench");
         builder.servers(servers);
-        builder.connectionListener(new ConnectionListener() {
-
-            @Override
-            public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
-                System.out.println("Connection Event:" + type);
-                if (type == ConnectionEvents.DISCOVERED_SERVERS)
-                {
-                    conn.getServers().forEach(System.out::println);
-                }
-                if (type == ConnectionEvents.RECONNECTED)
-                {
-                    System.out.println("Reconnected to:" + conn.getConnectedUrl());
-                }
+        builder.connectionListener((conn, type, time, uriDetails) -> {
+            System.out.println("Connection Event:" + type);
+            if (type == ConnectionEvents.DISCOVERED_SERVERS)
+            {
+                conn.getServers().forEach(System.out::println);
             }
-
+            if (type == ConnectionEvents.RECONNECTED)
+            {
+                System.out.println("Reconnected to:" + conn.getConnectedUrl());
+            }
         });
         builder.errorListener(new ErrorListener() {
             @Override

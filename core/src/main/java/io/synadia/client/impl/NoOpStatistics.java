@@ -16,10 +16,6 @@ public class NoOpStatistics implements StatisticsCollector {
     @Override public void incrementOrphanRepliesReceived() {}
     @Override public void incrementIn(long bytes) {}
     @Override public void incrementOut(long bytes) {}
-    @Override public void incrementInMsgs() {}
-    @Override public void incrementOutMsgs() {}
-    @Override public void incrementInBytes(long bytes) {}
-    @Override public void incrementOutBytes(long bytes) {}
     @Override public void incrementFlushCounter() {}
     @Override public void incrementOutstandingRequests() {}
     @Override public void decrementOutstandingRequests() {}

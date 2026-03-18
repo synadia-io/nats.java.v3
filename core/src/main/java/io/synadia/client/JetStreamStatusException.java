@@ -50,15 +50,6 @@ public class JetStreamStatusException extends IllegalStateException {
     }
 
     /**
-     * Get the description
-     * @return the description
-     */
-    @Deprecated
-    public String getDescription() {
-        return getMessage();
-    }
-
-    /**
      * Get the full status object
      *
      * @return the status

@@ -1623,10 +1623,4 @@ public class ConsumerConfiguration implements JsonSerializable {
     protected static AckPolicy GetOrDefault(AckPolicy p) { return p == null ? DEFAULT_ACK_POLICY : p; }
     protected static ReplayPolicy GetOrDefault(ReplayPolicy p) { return p == null ? DEFAULT_REPLAY_POLICY : p; }
     protected static PriorityPolicy GetOrDefault(PriorityPolicy p) { return p == null ? DEFAULT_PRIORITY_POLICY : p; }
-
-    /**
-     * Not used
-     */
-    @Deprecated
-    public static final Duration DURATION_MIN = Duration.ofNanos(1);
 }

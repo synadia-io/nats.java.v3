@@ -14,8 +14,6 @@ public class PublishOptionsTests extends TestBase {
     public void testBuilder() {
         PublishOptions.Builder builder = PublishOptions.builder();
         PublishOptions po = builder.build();
-        //noinspection deprecation
-        assertNull(po.getStream());
         assertEquals(PublishOptions.DEFAULT_TIMEOUT, po.getStreamTimeout());
         assertNull(po.getExpectedStream());
         assertNull(po.getExpectedLastMsgId());
@@ -25,8 +23,6 @@ public class PublishOptionsTests extends TestBase {
         assertNull(po.getMessageTtl());
 
         Duration streamTimeout = Duration.ofSeconds(99);
-        //noinspection deprecation
-        builder.stream("pubAckStream"); // DEPRECATED SO JUST COVERAGE
 
         po = builder
             .streamTimeout(streamTimeout)
@@ -39,8 +35,6 @@ public class PublishOptionsTests extends TestBase {
             .messageTtlCustom("custom")
             .build();
 
-        //noinspection deprecation
-        assertEquals("pubAckStream", po.getStream()); // DEPRECATED / COVERAGE
         assertEquals(streamTimeout, po.getStreamTimeout());
         assertEquals("expectedStream", po.getExpectedStream());
         assertEquals("1", po.getExpectedLastMsgId());
@@ -64,39 +58,17 @@ public class PublishOptionsTests extends TestBase {
         assertEquals(PublishOptions.UNSET_LAST_SEQUENCE, po.getExpectedLastSubjectSequence());
         assertNull(po.getExpectedLastSubjectSequenceSubject());
         assertNull(po.getMessageId());
-
-        //noinspection deprecation
-        po = builder.stream(null).streamTimeout(null).build();
-        //noinspection deprecation
-        assertNull(po.getStream());
-        assertEquals(PublishOptions.DEFAULT_TIMEOUT, po.getStreamTimeout());
-
-        //noinspection deprecation
-        po = builder.stream("pubAckStream").build();
-        //noinspection deprecation
-        assertEquals("pubAckStream", po.getStream());
-
-        //noinspection deprecation
-        po = builder.stream("").build();
-        //noinspection deprecation
-        assertNull(po.getStream());
     }
 
     @Test
     public void testProperties() {
-        String stream = random();
         Properties p = new Properties();
         p.setProperty(PublishOptions.PROP_PUBLISH_TIMEOUT, "PT20M");
-        p.setProperty(PublishOptions.PROP_STREAM_NAME, stream);
         PublishOptions po = new PublishOptions.Builder(p).build();
-        //noinspection deprecation
-        assertEquals(stream, po.getStream(), "stream foo");
         assertEquals(Duration.ofMinutes(20), po.getStreamTimeout(), "20M timeout");
 
         p = new Properties();
         po = new PublishOptions.Builder(p).build();
-        //noinspection deprecation
-        assertNull(po.getStream());
         assertEquals(PublishOptions.DEFAULT_TIMEOUT, po.getStreamTimeout());
     }
 

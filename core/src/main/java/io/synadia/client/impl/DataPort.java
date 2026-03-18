@@ -12,9 +12,6 @@ import java.io.IOException;
  * the core communication code.
  */
 public interface DataPort {
-    @Deprecated
-    void connect(@NonNull String serverURI, @NonNull NatsConnection conn, long timeoutNanos) throws IOException;
-
     /**
      * Execute the connect
      * @param conn the NatsConnection object
@@ -22,9 +19,7 @@ public interface DataPort {
      * @param timeoutNanos the timeout
      * @throws IOException if the data port is unable to connect.
      */
-    default void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException {
-        connect(uri.toString(), conn, timeoutNanos);
-    }
+    void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException;
 
     default void afterConstruct(@NonNull Options options) {}
 

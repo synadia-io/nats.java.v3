@@ -48,7 +48,7 @@ public class Publisher implements Runnable {
     public void run() {
         Options options = new Options.Builder()
             .servers(cmd.servers)
-            .connectionListener((c, t) -> Output.controlMessage(LABEL, "Connection: " + c.getServerInfo().getPort() + " " + t))
+            .connectionListener((c, e, t, d) -> Output.controlMessage(LABEL, "Connection: " + c.getServerInfo().getPort() + " " + e))
             .errorListener(new OutputErrorListener(LABEL) {})
             .maxReconnects(-1)
             .build();

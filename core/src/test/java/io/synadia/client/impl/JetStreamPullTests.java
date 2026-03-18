@@ -749,8 +749,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                         JetStreamStatusException jsse = assertThrows(JetStreamStatusException.class, () -> sub.nextMessage(NEXT_MESSAGE_TIMEOUT));
                         assertEquals(statusCode, jsse.getStatus().getCode());
                         assertEquals(sub.hashCode(), jsse.getSubscription().hashCode());
-                        //noinspection deprecation
-                        assertTrue(jsse.getDescription().contains(statusText)); // coverage
+                        assertTrue(jsse.getMessage().contains(statusText)); // coverage
                     }
                     else {
                         sub.nextMessage(NEXT_MESSAGE_TIMEOUT);

@@ -45,7 +45,7 @@ public class OrderedMessageConsumerExample {
     public static void main(String[] args) {
         Options options = Options.builder()
             .server(SERVER)
-            .connectionListener((c, e) -> System.out.println(e.name()))
+            .connectionListener((c, e, t, d) -> System.out.println(e.name()))
             .errorListener(new ErrorListenerConsoleImpl())
             .build();
         try (NatsConnection nc = Nats.connect(options)) {

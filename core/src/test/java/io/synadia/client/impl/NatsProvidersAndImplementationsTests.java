@@ -99,7 +99,7 @@ public class NatsProvidersAndImplementationsTests {
         AtomicBoolean forceCloseCallsClose = new AtomicBoolean();
 
         @Override
-        public void connect(@NonNull String serverURI, @NonNull NatsConnection conn, long timeoutNanos) throws IOException {
+        public void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException {
             connectCallsDefaultConnect.set(true);
         }
 

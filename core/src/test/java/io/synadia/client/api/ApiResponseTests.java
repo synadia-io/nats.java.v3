@@ -62,14 +62,6 @@ public class ApiResponseTests {
         assertEquals("the description", jsApiResp.getDescription());
         assertNotNull(jsApiResp.getError());
         assertEquals("the description (500)", jsApiResp.getError());
-        //noinspection deprecation
-        JetStreamApiException jsApiEx = new JetStreamApiException(jsApiResp); // COVERAGE FOR DEPRECATED
-        assertEquals(500, jsApiEx.getErrorCode());
-        assertEquals("the description", jsApiEx.getErrorDescription());
-        assertNotNull(jsApiResp.getErrorObject());
-        jsApiEx = new JetStreamApiException(jsApiResp.getErrorObject());
-        assertEquals(500, jsApiEx.getErrorCode());
-        assertEquals("the description", jsApiEx.getErrorDescription());
 
         jsApiResp = new TestApiResponse(jsons[1]);
         assertTrue(jsApiResp.hasError());
@@ -79,7 +71,7 @@ public class ApiResponseTests {
         assertEquals("the description (0)", jsApiResp.getError());
         assertNotNull(jsApiResp.getErrorObject());
         assertNotNull(jsApiResp.getErrorObject().toJson()); // COVERAGE
-        jsApiEx = new JetStreamApiException(jsApiResp.getErrorObject());
+        JetStreamApiException jsApiEx = new JetStreamApiException(jsApiResp.getErrorObject());
         assertEquals(0, jsApiEx.getErrorCode());
         assertEquals("the description", jsApiEx.getErrorDescription());
 
@@ -128,8 +120,6 @@ public class ApiResponseTests {
         assertEquals("not_error_response", notErrorResponse.getType());
         assertNotNull(jsApiResp.getErrorObject());
         assertEquals("Unknown JetStream Error", jsApiResp.getDescription());
-        //noinspection deprecation,ThrowableNotThrown
-        assertThrows(NullPointerException.class, () -> new JetStreamApiException(notErrorResponse)); // COVERAGE FOR DEPRECATED
 
         jsApiResp = new TestApiResponse(jsons[6]);
         assertTrue(jsApiResp.hasError());

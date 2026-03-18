@@ -41,7 +41,7 @@ public class ResilientPublisher implements Runnable {
     public static void main(String[] args) {
         Options options = Options.builder()
             .socketWriteTimeout(20_000)
-            .connectionListener((conn, type) -> System.out.println(type))
+            .connectionListener((conn, event, time, details) -> System.out.println(event))
             .errorListener(new ErrorListenerConsoleImpl())
             .build();
         try (NatsConnection nc = Nats.connect(options)) {

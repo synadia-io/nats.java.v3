@@ -586,7 +586,7 @@ public class TLSConnectTests extends TestBase {
         }
 
         @Override
-        public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
+        public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails) {
             if (type == ConnectionEvents.CONNECTED) {
                 latch.countDown();
             }

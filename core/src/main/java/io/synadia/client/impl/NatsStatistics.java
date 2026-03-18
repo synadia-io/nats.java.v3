@@ -126,26 +126,6 @@ public class NatsStatistics implements StatisticsCollector {
     }
 
     @Override
-    public void incrementInMsgs() {
-        this.inMsgs.incrementAndGet();
-    }
-
-    @Override
-    public void incrementOutMsgs() {
-        this.outMsgs.incrementAndGet();
-    }
-
-    @Override
-    public void incrementInBytes(long bytes) {
-        this.inBytes.addAndGet(bytes);
-    }
-
-    @Override
-    public void incrementOutBytes(long bytes) {
-        this.outBytes.addAndGet(bytes);
-    }
-
-    @Override
     public void incrementFlushCounter() {
         this.flushCounter.incrementAndGet();
     }

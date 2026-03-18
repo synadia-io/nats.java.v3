@@ -106,14 +106,7 @@ public class MessageInfoTest {
         assertEquals("json-stream", jsonMessageInfo.getStream());
         assertTrue(jsonMessageInfo.isMessage());
 
-        // Test 6: Deprecated constructor for COVERAGE
-        @SuppressWarnings("deprecation")
-        MessageInfo deprecatedMessageInfo = new MessageInfo(directMessage);
-        assertTrue(deprecatedMessageInfo.hasError());
-        assertFalse(deprecatedMessageInfo.isMessage());
-        assertNull(deprecatedMessageInfo.getStatus());
-
-        // Test 7: Test toString() method for different types
+        // Test 6: Test toString() method for different types
         String statusString = statusMessageInfo.toString();
         assertTrue(statusString.contains("MessageInfo"));
         assertTrue(statusString.contains("status_code"));
@@ -123,7 +116,7 @@ public class MessageInfoTest {
         assertTrue(messageString.contains("seq"));
         assertTrue(messageString.contains("subject"));
 
-        // Test 8: Edge cases with invalid sequence numbers
+        // Test 7: Edge cases with invalid sequence numbers
         Headers invalidHeaders = new Headers();
         invalidHeaders.put(NATS_SEQUENCE, "invalid");
         invalidHeaders.put(NATS_LAST_SEQUENCE, "invalid");
@@ -136,7 +129,7 @@ public class MessageInfoTest {
         assertEquals(-1, mi.getNumPending());
         assertEquals(DEFAULT_TIME, mi.getTime());
 
-        // Test 9: Test with error message
+        // Test 8: Test with error message
         String errorJson = "{\"error\":{\"code\":400,\"description\":\"Bad Request\"}}";
         Message errorMessage = new NatsMessage("error.subject", null, null, errorJson.getBytes());
         MessageInfo errorMessageInfo = new MessageInfo(errorMessage, streamName, false);
@@ -144,7 +137,7 @@ public class MessageInfoTest {
         assertFalse(errorMessageInfo.isMessage());
         assertTrue(errorMessageInfo.hasError());
 
-        // Test 10: Verify all method combinations work correctly
+        // Test 9: Verify all method combinations work correctly
         assertNotNull(testInfo.getSubject());
         assertTrue(testInfo.getSeq() > 0);
         assertNotNull(testInfo.getData());

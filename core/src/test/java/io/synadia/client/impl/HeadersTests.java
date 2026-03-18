@@ -1,6 +1,9 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.*;
+import io.synadia.client.support.IncomingHeadersProcessor;
+import io.synadia.client.support.Status;
+import io.synadia.client.support.Token;
+import io.synadia.client.support.TokenType;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -954,22 +957,6 @@ public class HeadersTests {
         Headers ro = new Headers(h, true);
         assertThrows(UnsupportedOperationException.class, () -> ro.add("foo", "bar"));
         assertThrows(UnsupportedOperationException.class, () -> ro.put("foo", "bar"));
-
-        ByteArrayBuilder bab = new ByteArrayBuilder();
-        //noinspection deprecation
-        s = ro.appendSerialized(bab).toString();
-        assertFalse(s.contains("NullListAdd"));
-        assertFalse(s.contains("EmptyListAdd"));
-        assertTrue(s.contains("EmptyAdd:\r\n"));
-        assertTrue(s.contains("HasAdd1:h1-1\r\n"));
-        assertTrue(s.contains("HasAdd2:h2-1\r\n"));
-        assertTrue(s.contains("HasAdd2:h2-2\r\n"));
-        assertFalse(s.contains("NullListPut"));
-        assertFalse(s.contains("EmptyListPut"));
-        assertTrue(s.contains("EmptyPut:\r\n"));
-        assertTrue(s.contains("HasPut1:h1-1\r\n"));
-        assertTrue(s.contains("HasPut2:h2-1\r\n"));
-        assertTrue(s.contains("HasPut2:h2-2\r\n"));
 
         h = new Headers(h, false, new String[]{null,
             "EmptyAdd", "HasAdd1", "HasAdd2",

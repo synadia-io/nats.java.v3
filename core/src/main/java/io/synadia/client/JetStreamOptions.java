@@ -14,13 +14,6 @@ import static io.synadia.client.support.Validator.validatePrefixOrDomain;
 public class JetStreamOptions {
 
     /**
-     * @deprecated
-     * Not used anymore
-     */
-    @Deprecated
-    public static final Duration DEFAULT_TIMEOUT = Options.DEFAULT_CONNECTION_TIMEOUT;
-
-    /**
      * An instance of default options
      */
     public static final JetStreamOptions DEFAULT_JS_OPTIONS = new Builder().build();

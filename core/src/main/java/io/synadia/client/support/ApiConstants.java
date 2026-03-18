@@ -221,10 +221,4 @@ public interface ApiConstants {
     /** up_to_time */                String UP_TO_TIME                    = "up_to_time";
     /** val */                       String VAL                           = "val";
     /** version */                   String VERSION                       = "version";
-
-    /**
-     * Use TLS_REQUIRED instead
-     */
-    @Deprecated
-    String TLS = "tls_required";
 }

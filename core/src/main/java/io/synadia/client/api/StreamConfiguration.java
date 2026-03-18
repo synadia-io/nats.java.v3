@@ -314,16 +314,6 @@ public class StreamConfiguration implements JsonSerializable {
 
     /**
      * Gets the maximum message size for this stream configuration.
-     * @deprecated the server value is a 32-bit signed value. Use {@link #getMaximumMessageSize()} instead.
-     * @return the maximum message size for this stream.
-     */
-    @Deprecated
-    public long getMaxMsgSize() {
-        return maxMsgSize;
-    }
-
-    /**
-     * Gets the maximum message size for this stream configuration.
      * @return the maximum message size for this stream.
      */
     public int getMaximumMessageSize() {
@@ -501,16 +491,6 @@ public class StreamConfiguration implements JsonSerializable {
      */
     public long getFirstSequence() {
         return firstSequence;
-    }
-
-    /**
-     * @deprecated Prefer getAllowMessageTtl
-     * Whether Allow Message TTL is set
-     * @return the flag
-     */
-    @Deprecated
-    public boolean isAllowMessageTtl() {
-        return allowMessageTtl;
     }
 
     /**
@@ -831,18 +811,6 @@ public class StreamConfiguration implements JsonSerializable {
          */
         public Builder maxAge(long maxAgeMillis) {
             this.maxAge = validateDurationNotRequiredGtOrEqZero(maxAgeMillis);
-            return this;
-        }
-
-        /**
-         * Sets the maximum message size in the StreamConfiguration.
-         * @deprecated the server value is a 32-bit signed value. Use {@link #maximumMessageSize(int)} instead.
-         * @param maxMsgSize the maximum message size
-         * @return The Builder
-         */
-        @Deprecated
-        public Builder maxMsgSize(long maxMsgSize) {
-            this.maxMsgSize = (int)validateMaxMessageSize(maxMsgSize);
             return this;
         }
 

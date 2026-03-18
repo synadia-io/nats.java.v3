@@ -1,6 +1,5 @@
 package io.synadia.client;
 
-import io.synadia.client.api.ApiResponse;
 import io.synadia.client.api.Error;
 import org.jspecify.annotations.NonNull;
 
@@ -13,18 +12,6 @@ public class JetStreamApiException extends Exception {
      * The error that this exception represents if there is one
      */
     private final Error error;
-
-    /**
-     * @deprecated Prefer to construct with JetStreamApiException(@NonNull Error)
-     * Construct an exception with the response from the server.
-     * @param apiResponse the response from the server.
-     */
-    @Deprecated
-    public JetStreamApiException(ApiResponse<?> apiResponse) {
-        // deprecated because of getErrorObject() is marked as @Nullable
-        //noinspection DataFlowIssue
-        this(apiResponse.getErrorObject());
-    }
 
     /**
      * Construct an exception with an Error

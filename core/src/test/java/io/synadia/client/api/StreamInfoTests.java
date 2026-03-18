@@ -51,9 +51,6 @@ public class StreamInfoTests {
         assertEquals(4, sc.getMaximumMessageSize());
         assertEquals(5, sc.getReplicas());
 
-        //noinspection deprecation
-        assertEquals(4, sc.getMaxMsgSize());
-
         assertEquals(Duration.ofSeconds(100), sc.getMaxAge());
         assertEquals(Duration.ofSeconds(120), sc.getDuplicateWindow());
 

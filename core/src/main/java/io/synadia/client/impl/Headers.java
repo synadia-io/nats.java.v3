@@ -1,6 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.ByteArrayBuilder;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -483,28 +482,6 @@ public class Headers {
 			serializeToArray(0, serialized);
 		}
 		return serialized;
-	}
-
-	/**
-	 * @deprecated
-	 * Used for unit testing.
-     * Appends the serialized bytes to the builder. 
-	 * @param bab the ByteArrayBuilder to append
-	 * @return the builder
-	 */
-	@Deprecated
-	public ByteArrayBuilder appendSerialized(ByteArrayBuilder bab) {
-		bab.append(HEADER_VERSION_BYTES_PLUS_CRLF);
-		for (Map.Entry<String, List<String>> entry : valuesMap.entrySet()) {
-			for (String value : entry.getValue()) {
-				bab.append(entry.getKey());
-				bab.append(COLON_BYTES);
-				bab.append(value);
-				bab.append(CRLF_BYTES);
-			}
-		}
-		bab.append(CRLF_BYTES);
-		return bab;
 	}
 
 	/**

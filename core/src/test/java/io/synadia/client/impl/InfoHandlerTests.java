@@ -127,8 +127,8 @@ public class InfoHandlerTests {
 
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(infoCustomizer, customInfo)) {
 
-            ConnectionListener cl = (conn, type) -> {
-                if (type.equals(ConnectionEvents.LAME_DUCK)) connectLDM.complete(type);
+            ConnectionListener cl = (conn, event, time, details) -> {
+                if (event.equals(ConnectionEvents.LAME_DUCK)) connectLDM.complete(event);
             };
 
             Options options = optionsBuilder(mockTs).connectionListener(cl).build();

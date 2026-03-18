@@ -803,10 +803,8 @@ public class ServiceTests extends JetStreamTestBase {
             .build();
         assertEquals(ServiceBuilder.DEFAULT_DRAIN_TIMEOUT, service.getDrainTimeout());
 
-        //noinspection deprecation
         service = Service.builder().connection(conn).name(name).version("1.0.0").addServiceEndpoint(se)
             .drainTimeout(1000)
-            .schemaDispatcher(null) // COVERAGE for deprecated
             .build();
         assertEquals(Duration.ofSeconds(1), service.getDrainTimeout());
 

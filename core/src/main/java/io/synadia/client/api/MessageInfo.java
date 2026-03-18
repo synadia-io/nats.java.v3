@@ -29,16 +29,6 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
 
     /**
      * Create a Message Info
-     * @deprecated This signature was public for unit testing but is no longer used.
-     * @param msg the message
-     */
-    @Deprecated
-    public MessageInfo(Message msg) {
-        this(msg, null, null, false);
-    }
-
-    /**
-     * Create a Message Info
      * @param msg the message
      * @param streamName the stream name if known
      * @param parseDirect true if the object is being created from a direct api call instead of get message

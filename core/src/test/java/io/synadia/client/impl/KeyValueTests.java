@@ -123,8 +123,6 @@ public class KeyValueTests extends JetStreamTestBase {
             // let's check the bucket info
             status = ctx.kvm.getStatus(bucket);
             assertState(status, 3, 3);
-            status = ctx.kvm.getBucketInfo(bucket);
-            assertState(status, 3, 3);
 
             // delete a key. Its entry will still exist, but its value is null
             kv.delete(byteKey);
@@ -317,10 +315,6 @@ public class KeyValueTests extends JetStreamTestBase {
         assertEquals(3, kvc.getMaxHistoryPerKey());
         assertEquals(-1, status.getMaxBucketSize());
         assertEquals(-1, kvc.getMaxBucketSize());
-        //noinspection deprecation
-        assertEquals(-1, status.getMaxValueSize()); // COVERAGE for deprecated
-        //noinspection deprecation
-        assertEquals(-1, kvc.getMaxValueSize());
         assertEquals(-1, status.getMaximumValueSize());
         assertEquals(-1, kvc.getMaximumValueSize());
         assertEquals(Duration.ZERO, status.getTtl());
@@ -537,8 +531,6 @@ public class KeyValueTests extends JetStreamTestBase {
             assertEquals(desc, kvs.getDescription());
             assertEquals(3, kvs.getMaxHistoryPerKey());
             assertEquals(10_000, kvs.getMaxBucketSize());
-            //noinspection deprecation
-            assertEquals(100, kvs.getMaxValueSize()); // COVERAGE for deprecated
             assertEquals(100, kvs.getMaximumValueSize());
             assertEquals(Duration.ofHours(1), kvs.getTtl());
             assertEquals(StorageType.Memory, kvs.getStorageType());

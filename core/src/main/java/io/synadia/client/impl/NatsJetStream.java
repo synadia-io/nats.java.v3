@@ -169,16 +169,7 @@ public class NatsJetStream extends NatsJetStreamImpl implements JetStream {
         if (resp.isStatusMessage()) {
             throw new IOException("Error Publishing: " + resp.getStatus().getMessageWithCode());
         }
-
-        PublishAck ack = new PublishAck(resp);
-        String ackStream = ack.getStream();
-        //noinspection deprecation options.getStream() is deprecated since checking after the publish is not useful, but the functionality can't be removed
-        String optAckStream = options == null ? null : options.getStream();
-        // stream specified in options but different from ack should not happen but...
-        if (optAckStream != null && !optAckStream.equals(ackStream)) {
-            throw new IOException("Expected ack from stream " + optAckStream + ", received from: " + ackStream);
-        }
-        return ack;
+        return new PublishAck(resp);
     }
 
     private Headers mergePublishOptions(Headers headers, PublishOptions opts) {

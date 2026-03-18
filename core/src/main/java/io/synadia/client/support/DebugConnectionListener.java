@@ -20,13 +20,6 @@ public class DebugConnectionListener implements ConnectionListener {
     }
 
     @Override
-    public void connectionEvent(NatsConnection conn, ConnectionEvents type) {
-        if (label != null) {
-            Debug.info(label, "%s/%s/%s", Integer.toHexString(conn.hashCode()), conn.getStatus(), type.getEvent());
-        }
-    }
-
-    @Override
     public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails) {
         if (label != null) {
             Debug.info(label, "%s@%s", Integer.toHexString(conn.hashCode()).toUpperCase(), time, "%s(%s)", type.getEvent(), conn.getStatus(), uriDetails);

@@ -94,16 +94,6 @@ public class KeyValueStatus {
 
     /**
      * Gets the maximum size for an individual value in the bucket.
-     * @deprecated the server value is a 32-bit signed value. Use {@link #getMaximumValueSize()} instead.
-     * @return the maximum size a value.
-     */
-    @Deprecated
-    public long getMaxValueSize() {
-        return config.getMaximumValueSize();
-    }
-
-    /**
-     * Gets the maximum size for an individual value in the bucket.
      * @return the maximum size a value.
      */
     public int getMaximumValueSize() {
