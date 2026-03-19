@@ -453,6 +453,15 @@ public class Headers {
 	}
 
 	/**
+	 * Returns a read-only view of the underlying map.
+	 * @return an unmodifiable map of header keys to their list of values
+	 */
+	@NonNull
+	public Map<String, List<String>> toMap() {
+		return Collections.unmodifiableMap(valuesMap);
+	}
+
+	/**
 	 * Returns if the headers are dirty, which means the serialization
 	 * has not been done so also don't know the byte length
 	 * @return true if dirty
@@ -531,9 +540,8 @@ public class Headers {
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
-		if (!(o instanceof Headers)) return false;
-		Headers headers = (Headers) o;
-		return Objects.equals(valuesMap, headers.valuesMap);
+		if (!(o instanceof Headers headers)) return false;
+        return Objects.equals(valuesMap, headers.valuesMap);
 	}
 
 	@Override

@@ -1,11 +1,11 @@
 package io.synadia.client;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
+import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
 import static io.synadia.client.support.Validator.validateGtZero;
 
@@ -43,18 +43,18 @@ public class PullRequestOptions implements JsonSerializable {
     @Override
     @NonNull
     public String toJson() {
-        StringBuilder sb = JsonUtils.beginJson();
-        JsonUtils.addField(sb, BATCH, batchSize);
-        JsonUtils.addField(sb, MAX_BYTES, maxBytes);
-        JsonUtils.addFldWhenTrue(sb, NO_WAIT, noWait);
-        JsonUtils.addFieldAsNanos(sb, EXPIRES, expiresIn);
-        JsonUtils.addFieldAsNanos(sb, IDLE_HEARTBEAT, idleHeartbeat);
-        JsonUtils.addField(sb, GROUP, group);
-        JsonUtils.addFieldWhenGtZero(sb, PRIORITY, priority);
-        JsonUtils.addField(sb, ID, getPinId());
-        JsonUtils.addField(sb, MIN_PENDING, minPending);
-        JsonUtils.addField(sb, MIN_ACK_PENDING, minAckPending);
-        return JsonUtils.endJson(sb).toString();
+        StringBuilder sb = beginJson();
+        addField(sb, BATCH, batchSize);
+        addField(sb, MAX_BYTES, maxBytes);
+        addField(sb, NO_WAIT, noWait);
+        addFieldAsNanos(sb, EXPIRES, expiresIn);
+        addFieldAsNanos(sb, IDLE_HEARTBEAT, idleHeartbeat);
+        addField(sb, GROUP, group);
+        addFieldWhenGtZero(sb, PRIORITY, priority);
+        addField(sb, ID, getPinId());
+        addField(sb, MIN_PENDING, minPending);
+        addField(sb, MIN_ACK_PENDING, minAckPending);
+        return endJson(sb).toString();
     }
 
     protected String getPinId() {

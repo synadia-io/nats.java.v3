@@ -1,11 +1,11 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
+import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.NO_ERASE;
 import static io.synadia.client.support.ApiConstants.SEQ;
-import static io.synadia.client.support.JsonUtils.*;
 
 /**
  * Object used to make a request for message delete requests.
@@ -36,7 +36,7 @@ public class MessageDeleteRequest implements JsonSerializable {
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, SEQ, sequence);
-        addFldWhenTrue(sb, NO_ERASE, isNoErase());
+        addField(sb, NO_ERASE, isNoErase());
         return endJson(sb).toString();
     }
 

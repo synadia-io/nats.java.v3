@@ -1,10 +1,10 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 
+import static io.nats.json.JsonValueUtils.readBoolean;
+import static io.nats.json.JsonValueUtils.readLong;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.readBoolean;
-import static io.synadia.client.support.JsonValueUtils.readLong;
 
 /**
  * Represents the JetStream Account Limits
@@ -28,7 +28,7 @@ public class AccountLimits {
         this.maxAckPending = readLong(vAccountLimits, MAX_ACK_PENDING, 0);
         this.memoryMaxStreamBytes = readLong(vAccountLimits, MEMORY_MAX_STREAM_BYTES, 0);
         this.storageMaxStreamBytes = readLong(vAccountLimits, STORAGE_MAX_STREAM_BYTES, 0);
-        this.maxBytesRequired = readBoolean(vAccountLimits, MAX_BYTES_REQUIRED);
+        this.maxBytesRequired = readBoolean(vAccountLimits, MAX_BYTES_REQUIRED, false);
     }
 
     /**

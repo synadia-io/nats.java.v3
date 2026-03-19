@@ -1,8 +1,7 @@
 package io.synadia.service;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 
@@ -10,10 +9,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static io.nats.json.JsonValueUtils.readString;
+import static io.nats.json.JsonValueUtils.readStringMapOrNull;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.readString;
-import static io.synadia.client.support.JsonValueUtils.readStringStringMap;
 import static io.synadia.client.support.Validator.validateIsRestrictedTerm;
 
 /**
@@ -106,7 +105,7 @@ public class Endpoint implements JsonSerializable {
         name = readString(vEndpoint, NAME);
         subject = readString(vEndpoint, SUBJECT);
         queueGroup = readString(vEndpoint, QUEUE_GROUP);
-        metadata = readStringStringMap(vEndpoint, METADATA);
+        metadata = readStringMapOrNull(vEndpoint, METADATA);
     }
 
     Endpoint(Builder b) {
@@ -116,17 +115,17 @@ public class Endpoint implements JsonSerializable {
     @Override
     @NonNull
     public String toJson() {
-        StringBuilder sb = JsonUtils.beginJson();
-        JsonUtils.addField(sb, NAME, name);
-        JsonUtils.addField(sb, SUBJECT, subject);
-        JsonUtils.addField(sb, QUEUE_GROUP, queueGroup);
-        JsonUtils.addField(sb, METADATA, metadata);
+        StringBuilder sb = beginJson();
+        addField(sb, NAME, name);
+        addField(sb, SUBJECT, subject);
+        addField(sb, QUEUE_GROUP, queueGroup);
+        addField(sb, METADATA, metadata);
         return endJson(sb).toString();
     }
 
     @Override
     public String toString() {
-        return JsonUtils.toKey(getClass()) + toJson();
+        return toKey(getClass()) + toJson();
     }
 
     /**

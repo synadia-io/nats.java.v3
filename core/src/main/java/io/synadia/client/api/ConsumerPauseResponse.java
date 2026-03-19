@@ -6,8 +6,8 @@ import org.jspecify.annotations.Nullable;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * The response for a ConsumerPauseRequest
@@ -24,9 +24,9 @@ public class ConsumerPauseResponse extends ApiResponse<ConsumerPauseResponse> {
      */
     public ConsumerPauseResponse(Message msg) {
         super(msg);
-        paused = readBoolean(jv, PAUSED);
+        paused = readBoolean(jv, PAUSED, false);
         pauseUntil = readDate(jv, PAUSE_UNTIL);
-        pauseRemaining = readNanos(jv, PAUSE_REMAINING);
+        pauseRemaining = readNanosAsDuration(jv, PAUSE_REMAINING);
     }
 
     /**

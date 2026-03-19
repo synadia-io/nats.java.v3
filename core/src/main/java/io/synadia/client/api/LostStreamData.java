@@ -1,15 +1,15 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.readLong;
+import static io.nats.json.JsonValueUtils.readLongListOrNull;
 import static io.synadia.client.support.ApiConstants.BYTES;
 import static io.synadia.client.support.ApiConstants.MSGS;
-import static io.synadia.client.support.JsonValueUtils.readLong;
-import static io.synadia.client.support.JsonValueUtils.readLongList;
 
 /**
  * Information about lost stream data
@@ -24,7 +24,7 @@ public class LostStreamData {
 
 
     LostStreamData(JsonValue vLost) {
-        messages = readLongList(vLost, MSGS);
+        messages = readLongListOrNull(vLost, MSGS);
         bytes = readLong(vLost, BYTES);
     }
 

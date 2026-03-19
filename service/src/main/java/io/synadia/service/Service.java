@@ -4,7 +4,6 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.NUID;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.support.DateTimeUtils;
-import io.synadia.client.support.JsonUtils;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -16,8 +15,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.endJson;
 import static io.synadia.client.support.Validator.nullOrEmpty;
 
 /**
@@ -435,12 +434,12 @@ public class Service {
 
     @Override
     public String toString() {
-        StringBuilder sb = JsonUtils.beginJsonPrefixed("\"Service\":");
-        JsonUtils.addField(sb, ID, infoResponse.getId());
-        JsonUtils.addField(sb, NAME, infoResponse.getName());
-        JsonUtils.addField(sb, VERSION, infoResponse.getVersion());
-        JsonUtils.addField(sb, DESCRIPTION, infoResponse.getDescription());
-        JsonUtils.addField(sb, STARTED, startTimeRef.get());
+        StringBuilder sb = beginJsonPrefixed("\"Service\":");
+        addField(sb, ID, infoResponse.getId());
+        addField(sb, NAME, infoResponse.getName());
+        addField(sb, VERSION, infoResponse.getVersion());
+        addField(sb, DESCRIPTION, infoResponse.getDescription());
+        addField(sb, STARTED, startTimeRef.get());
         return endJson(sb).toString();
     }
 }

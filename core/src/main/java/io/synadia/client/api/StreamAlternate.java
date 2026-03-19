@@ -1,14 +1,14 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.listOfOrNull;
+import static io.nats.json.JsonValueUtils.readString;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.readString;
 
 /**
  * The Stream Alternate
@@ -19,7 +19,7 @@ public class StreamAlternate {
     private final String cluster;
 
     static List<StreamAlternate> optionalListOf(JsonValue vSourceInfos) {
-        return JsonValueUtils.optionalListOf(vSourceInfos, StreamAlternate::new);
+        return listOfOrNull(vSourceInfos, StreamAlternate::new);
     }
 
     StreamAlternate(JsonValue vLost) {

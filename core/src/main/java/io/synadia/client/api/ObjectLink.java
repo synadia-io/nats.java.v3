@@ -1,17 +1,15 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.nats.json.JsonValueUtils.readString;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.BUCKET;
 import static io.synadia.client.support.ApiConstants.NAME;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.readString;
 
 /**
  * The ObjectLink is used to embed links to other objects.
@@ -39,8 +37,8 @@ public class ObjectLink implements JsonSerializable {
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addField(sb, BUCKET, bucket);
-        JsonUtils.addField(sb, NAME, objectName);
+        addField(sb, BUCKET, bucket);
+        addField(sb, NAME, objectName);
         return endJson(sb).toString();
     }
 

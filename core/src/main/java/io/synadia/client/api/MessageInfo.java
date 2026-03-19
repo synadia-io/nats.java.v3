@@ -1,15 +1,18 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.Message;
 import io.synadia.client.impl.Headers;
-import io.synadia.client.support.*;
+import io.synadia.client.support.DateTimeUtils;
+import io.synadia.client.support.IncomingHeadersProcessor;
+import io.synadia.client.support.Status;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.addRawJson;
-import static io.synadia.client.support.JsonValueUtils.*;
 import static io.synadia.client.support.NatsJetStreamConstants.*;
 
 /**
@@ -74,15 +77,15 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
                 _stream = msgHeaders.getLast(NATS_STREAM);
                 String temp = msgHeaders.getLast(NATS_SEQUENCE);
                 if (temp != null) {
-                    _seq = JsonUtils.safeParseLong(temp, -1);
+                    _seq = safeParseLong(temp, -1);
                 }
                 temp = msgHeaders.getLast(NATS_LAST_SEQUENCE);
                 if (temp != null) {
-                    _lastSeq = JsonUtils.safeParseLong(temp, -1);
+                    _lastSeq = safeParseLong(temp, -1);
                 }
                 temp = msgHeaders.getLast(NATS_NUM_PENDING);
                 if (temp != null) {
-                    _numPending = JsonUtils.safeParseLong(temp, 0) - 1;
+                    _numPending = safeParseLong(temp, 0) - 1;
                 }
                 temp = msgHeaders.getLast(NATS_TIMESTAMP);
                 if (temp != null) {
@@ -96,10 +99,10 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
         else if (!hasError()){
             JsonValue mjv = readValue(jv, MESSAGE);
             _subject = readString(mjv, SUBJECT);
-            _data = readBase64(mjv, DATA);
+            _data = readBase64Basic(mjv, DATA);
             _seq = readLong(mjv, SEQ, 0);
             _time = readDate(mjv, TIME);
-            byte[] hdrBytes = readBase64(mjv, HDRS);
+            byte[] hdrBytes = readBase64Basic(mjv, HDRS);
             _headers = hdrBytes == null ? null : new IncomingHeadersProcessor(hdrBytes).getHeaders();
         }
 
@@ -225,29 +228,29 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
 
     @Override
     public String toString() {
-        StringBuilder sb = JsonUtils.beginJsonPrefixed("\"MessageInfo\":");
+        StringBuilder sb = beginJsonPrefixed("\"MessageInfo\":");
         if (status != null) {
-            JsonUtils.addField(sb, "status_code", status.getCode());
-            JsonUtils.addField(sb, "status_message", status.getMessage());
+            addField(sb, "status_code", status.getCode());
+            addField(sb, "status_message", status.getMessage());
         }
         else if (hasError()) {
-            JsonUtils.addField(sb, ERROR, getError());
+            addField(sb, ERROR, getError());
         }
         else {
-            JsonUtils.addField(sb, SEQ, seq);
-            JsonUtils.addField(sb, LAST_SEQ, lastSeq);
-            JsonUtils.addFieldWhenGteMinusOne(sb, NUM_PENDING, numPending);
-            JsonUtils.addField(sb, STREAM, stream);
-            JsonUtils.addField(sb, SUBJECT, subject);
-            JsonUtils.addField(sb, TIME, time);
+            addField(sb, SEQ, seq);
+            addField(sb, LAST_SEQ, lastSeq);
+            addFieldWhenGteMinusOne(sb, NUM_PENDING, numPending);
+            addField(sb, STREAM, stream);
+            addField(sb, SUBJECT, subject);
+            addField(sb, TIME, time);
             if (data == null) {
                 addRawJson(sb, DATA, "null");
             }
             else {
-                JsonUtils.addField(sb, "data_length", data.length);
+                addField(sb, "data_length", data.length);
             }
-            JsonUtils.addField(sb, HDRS, headers);
+            if (headers != null && headers.size() > 0) { addField(sb, HDRS, headers.toMap()); }
         }
-        return JsonUtils.endJson(sb).toString();
+        return endJson(sb).toString();
     }
 }

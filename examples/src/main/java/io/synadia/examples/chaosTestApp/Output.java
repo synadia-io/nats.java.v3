@@ -13,8 +13,8 @@
 
 package io.synadia.examples.chaosTestApp;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.examples.chaosTestApp.support.CommandLine;
 
 import javax.swing.*;

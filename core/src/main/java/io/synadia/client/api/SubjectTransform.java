@@ -1,18 +1,18 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 import java.util.Objects;
 
+import static io.nats.json.JsonValueUtils.listOfOrNull;
+import static io.nats.json.JsonValueUtils.readString;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.DEST;
 import static io.synadia.client.support.ApiConstants.SRC;
-import static io.synadia.client.support.JsonUtils.*;
-import static io.synadia.client.support.JsonValueUtils.readString;
 
 /**
  * SubjectTransform
@@ -26,7 +26,7 @@ public class SubjectTransform implements JsonSerializable {
     }
 
     static List<SubjectTransform> optionalListOf(JsonValue vSubjectTransforms) {
-        return JsonValueUtils.optionalListOf(vSubjectTransforms, SubjectTransform::new);
+        return listOfOrNull(vSubjectTransforms, SubjectTransform::new);
     }
 
     SubjectTransform(JsonValue vSubjectTransform) {

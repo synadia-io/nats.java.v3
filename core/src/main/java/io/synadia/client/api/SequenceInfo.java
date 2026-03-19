@@ -1,12 +1,12 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 
+import static io.nats.json.JsonValueUtils.readDate;
 import static io.synadia.client.support.ApiConstants.LAST_ACTIVE;
-import static io.synadia.client.support.JsonValueUtils.readDate;
 
 /**
  * This class holds the sequence numbers for a consumer and

@@ -1,6 +1,6 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.MapBuilder;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -181,7 +181,7 @@ public class KeyValueStatus {
 
     @Override
     public String toString() {
-        JsonValueUtils.MapBuilder mb = new JsonValueUtils.MapBuilder();
+        MapBuilder mb = new MapBuilder();
         mb.put("entryCount", getEntryCount());
         mb.put("byteCount", getByteCount());
         mb.put("config", config);

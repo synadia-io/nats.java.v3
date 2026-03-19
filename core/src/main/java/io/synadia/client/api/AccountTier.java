@@ -1,10 +1,10 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * Represents the JetStream Account Tier
@@ -26,7 +26,7 @@ public class AccountTier {
         reservedStorage = readLong(vAccountTier, RESERVED_STORAGE, 0);
         streams = readInteger(vAccountTier, STREAMS, 0);
         consumers = readInteger(vAccountTier, CONSUMERS, 0);
-        limits = new AccountLimits(readObject(vAccountTier, LIMITS));
+        limits = new AccountLimits(readMapObjectOrEmpty(vAccountTier, LIMITS));
     }
 
     /**

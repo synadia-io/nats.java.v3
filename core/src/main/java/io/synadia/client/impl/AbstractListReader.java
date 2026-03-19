@@ -1,12 +1,12 @@
 package io.synadia.client.impl;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.Message;
-import io.synadia.client.support.JsonValue;
 
 import java.util.List;
 
-import static io.synadia.client.support.JsonValueUtils.readArray;
+import static io.nats.json.JsonValueUtils.readArrayOrEmpty;
 
 abstract class AbstractListReader {
 
@@ -16,7 +16,7 @@ abstract class AbstractListReader {
 
     void process(Message msg) throws JetStreamApiException {
         engine = new ListRequestEngine(msg);
-        processItems(readArray(engine.getJv(), objectName));
+        processItems(readArrayOrEmpty(engine.getJv(), objectName));
     }
 
     abstract void processItems(List<JsonValue> items);

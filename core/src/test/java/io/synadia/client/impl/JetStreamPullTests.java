@@ -4,7 +4,6 @@ import io.synadia.client.*;
 import io.synadia.client.api.AckPolicy;
 import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.PriorityPolicy;
-import io.synadia.client.support.JsonUtils;
 import io.synadia.client.support.Listener;
 import io.synadia.client.support.ListenerStatusType;
 import io.synadia.client.utils.ConnectionUtils;
@@ -27,6 +26,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.api.ConsumerConfiguration.builder;
 import static io.synadia.client.support.ApiConstants.*;
 import static io.synadia.client.support.ListenerStatusType.PullError;
@@ -1012,11 +1012,11 @@ public class JetStreamPullTests extends JetStreamTestBase {
         @Override
         @NonNull
         public String toJson() {
-            StringBuilder sb = JsonUtils.beginJson();
-            JsonUtils.addField(sb, BATCH, 1);
-            JsonUtils.addFldWhenTrue(sb, NO_WAIT, true);
-            JsonUtils.addFieldAsNanos(sb, IDLE_HEARTBEAT, Duration.ofMillis(1));
-            return JsonUtils.endJson(sb).toString();
+            StringBuilder sb = beginJson();
+            addField(sb, BATCH, 1);
+            addField(sb, NO_WAIT, true);
+            addFieldAsNanos(sb, IDLE_HEARTBEAT, Duration.ofMillis(1));
+            return endJson(sb).toString();
         }
     }
 

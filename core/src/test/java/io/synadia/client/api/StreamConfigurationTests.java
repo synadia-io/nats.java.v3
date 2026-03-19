@@ -1,10 +1,10 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonValue;
 import io.synadia.client.impl.JetStreamTestBase;
 import io.synadia.client.support.DateTimeUtils;
-import io.synadia.client.support.JsonParseException;
-import io.synadia.client.support.JsonParser;
-import io.synadia.client.support.JsonValue;
 import io.synadia.client.utils.ResourceUtils;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;

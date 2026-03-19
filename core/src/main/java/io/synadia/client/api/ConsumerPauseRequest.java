@@ -1,12 +1,12 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
+import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 
 import java.time.ZonedDateTime;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.PAUSE_UNTIL;
-import static io.synadia.client.support.JsonUtils.*;
 
 /**
  * Object used to make a request to pause a consumer. Used Internally

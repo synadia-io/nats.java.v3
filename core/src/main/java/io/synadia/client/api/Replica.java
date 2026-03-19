@@ -1,9 +1,10 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonValue;
 
 import java.util.List;
+
+import static io.nats.json.JsonValueUtils.listOfOrNull;
 
 /**
  * Replica Peer Info
@@ -11,7 +12,7 @@ import java.util.List;
 public class Replica extends PeerInfo {
 
     static List<Replica> optionalListOf(JsonValue vReplicas) {
-        return JsonValueUtils.optionalListOf(vReplicas, Replica::new);
+        return listOfOrNull(vReplicas, Replica::new);
     }
 
     Replica(JsonValue vReplica) {

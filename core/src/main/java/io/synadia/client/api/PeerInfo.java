@@ -1,12 +1,12 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * Server peer information
@@ -21,9 +21,9 @@ public class PeerInfo {
 
     PeerInfo(JsonValue vPeerInfo) {
         name = readString(vPeerInfo, NAME);
-        current = readBoolean(vPeerInfo, CURRENT);
-        offline = readBoolean(vPeerInfo, OFFLINE);
-        active = readNanos(vPeerInfo, ACTIVE, Duration.ZERO);
+        current = readBoolean(vPeerInfo, CURRENT, false);
+        offline = readBoolean(vPeerInfo, OFFLINE, false);
+        active = readNanosAsDuration(vPeerInfo, ACTIVE, Duration.ZERO);
         lag = readLong(vPeerInfo, LAG, 0);
     }
 

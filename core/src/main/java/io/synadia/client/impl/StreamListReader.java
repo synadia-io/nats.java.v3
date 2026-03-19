@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.api.StreamInfo;
-import io.synadia.client.support.JsonValue;
 
 import java.util.ArrayList;
 import java.util.List;

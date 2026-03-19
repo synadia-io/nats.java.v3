@@ -1,11 +1,10 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
+import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.*;
 
 /**
  * Object used to make a request to create a consumer. Used Internally
@@ -60,8 +59,8 @@ public class ConsumerCreateRequest implements JsonSerializable {
         StringBuilder sb = beginJson();
 
         addField(sb, STREAM_NAME, streamName);
-        JsonUtils.addField(sb, ACTION, action.actionText);
-        JsonUtils.addField(sb, CONFIG, config);
+        addField(sb, ACTION, action.actionText);
+        addField(sb, CONFIG, config);
 
         return endJson(sb).toString();
     }

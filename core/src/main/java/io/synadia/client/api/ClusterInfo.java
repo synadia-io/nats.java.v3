@@ -1,13 +1,13 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * Information about the cluster a stream is part of.
@@ -31,7 +31,7 @@ public class ClusterInfo {
         raftGroup = readString(v, RAFT_GROUP);
         leader = readString(v, LEADER);
         leaderSince = readDate(v, LEADER_SINCE);
-        systemAccount = readBoolean(v, SYSTEM_ACCOUNT);
+        systemAccount = readBoolean(v, SYSTEM_ACCOUNT, false);
         trafficAccount = readString(v, TRAFFIC_ACCOUNT);
         replicas = Replica.optionalListOf(readValue(v, REPLICAS));
     }

@@ -25,7 +25,7 @@ import io.synadia.examples.ExampleUtils;
 import java.time.Duration;
 import java.util.List;
 
-import static io.synadia.client.support.JsonUtils.printFormatted;
+import static io.nats.json.JsonWriteUtils.printFormatted;
 import static io.synadia.examples.jetstream.NatsJsUtils.publish;
 
 /**

@@ -1,16 +1,16 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.Message;
-import io.synadia.client.support.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nats.json.JsonValueUtils.readMapObjectOrEmpty;
+import static io.nats.json.JsonValueUtils.readString;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.readObject;
-import static io.synadia.client.support.JsonValueUtils.readString;
 
 /**
  * The JetStream Account Statistics
@@ -30,8 +30,8 @@ public class AccountStatistics extends ApiResponse<AccountStatistics> {
         super(msg);
         rollupTier = new AccountTier(jv);
         domain = readString(jv, DOMAIN);
-        api = new ApiStats(readObject(jv, API));
-        JsonValue vTiers = readObject(jv, TIERS);
+        api = new ApiStats(readMapObjectOrEmpty(jv, API));
+        JsonValue vTiers = readMapObjectOrEmpty(jv, TIERS);
         tiers = new HashMap<>();
         if (vTiers.map != null) {
             for (String key : vTiers.map.keySet()) {

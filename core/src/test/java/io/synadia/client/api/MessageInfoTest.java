@@ -3,12 +3,12 @@ package io.synadia.client.api;
 import io.synadia.client.Message;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.NatsMessage;
-import io.synadia.client.support.JsonUtils;
 import io.synadia.client.support.Status;
 import org.junit.jupiter.api.Test;
 
 import java.util.Base64;
 
+import static io.nats.json.JsonWriteUtils.beginJson;
 import static io.synadia.client.support.DateTimeUtils.DEFAULT_TIME;
 import static io.synadia.client.support.NatsJetStreamConstants.*;
 import static io.synadia.client.support.Status.EOB;
@@ -87,7 +87,7 @@ public class MessageInfoTest {
         assertTrue(noHeaderMessageInfo.isMessage());
 
         // Test 5: Constructor with JSON parsing (simulated with valid JSON message)
-        String jsonPayload = JsonUtils.beginJson()
+        String jsonPayload = beginJson()
             .append("\"message\":{")
             .append("\"subject\":\"json.subject\",")
             .append("\"seq\":54321,")

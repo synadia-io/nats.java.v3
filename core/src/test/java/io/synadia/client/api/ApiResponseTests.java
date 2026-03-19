@@ -1,8 +1,8 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonParser;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.Message;
-import io.synadia.client.support.JsonParser;
 import io.synadia.client.support.Status;
 import org.junit.jupiter.api.Test;
 

@@ -1,12 +1,12 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.synadia.client.support.JsonValueUtils.getLong;
+import static io.nats.json.JsonValueUtils.getLong;
 
 /**
  * An object representing a stream's subject and the count of it's messages

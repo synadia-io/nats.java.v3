@@ -1,7 +1,6 @@
 package io.synadia.service;
 
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
@@ -9,10 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.addField;
+import static io.nats.json.JsonWriteUtils.addJsons;
 import static io.synadia.client.support.ApiConstants.DESCRIPTION;
 import static io.synadia.client.support.ApiConstants.ENDPOINTS;
-import static io.synadia.client.support.JsonUtils.listEquals;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * Info response class forms the info json payload, for example:
@@ -50,14 +50,14 @@ public class InfoResponse extends ServiceResponse {
     private InfoResponse(JsonValue jv) {
         super(TYPE, jv);
         description = readString(jv, DESCRIPTION);
-        endpoints = read(jv, ENDPOINTS, v -> listOf(v, Endpoint::new));
+        endpoints = listOfOrEmpty(readValue(jv, ENDPOINTS), Endpoint::new);
 
     }
 
     @Override
     protected void subToJson(StringBuilder sb) {
-        JsonUtils.addField(sb, DESCRIPTION, description);
-        JsonUtils.addJsons(sb, ENDPOINTS, endpoints, true);
+        addField(sb, DESCRIPTION, description);
+        addJsons(sb, ENDPOINTS, endpoints);
     }
 
     /**
@@ -85,7 +85,7 @@ public class InfoResponse extends ServiceResponse {
         InfoResponse that = (InfoResponse) o;
 
         if (!Objects.equals(description, that.description)) return false;
-        return listEquals(endpoints, that.endpoints);
+        return Objects.equals(endpoints, that.endpoints);
     }
 
     @Override

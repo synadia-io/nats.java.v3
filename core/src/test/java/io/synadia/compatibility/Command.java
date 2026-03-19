@@ -1,10 +1,11 @@
 package io.synadia.compatibility;
 
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonValue;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.support.JsonParseException;
-import io.synadia.client.support.JsonParser;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+
+import static io.nats.json.JsonValueUtils.readMapObjectOrEmpty;
 
 public abstract class Command extends TestMessage {
     public final NatsConnection nc;
@@ -23,7 +24,7 @@ public abstract class Command extends TestMessage {
             try {
                 tempDataValue = JsonParser.parse(payload);
                 Log.info("CMD", subject, tempDataValue .toJson());
-                tempConfig = JsonValueUtils.readObject(tempDataValue, "config");
+                tempConfig = readMapObjectOrEmpty(tempDataValue, "config");
             }
             catch (JsonParseException e) {
                 handleException(e);

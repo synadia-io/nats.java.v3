@@ -1,19 +1,16 @@
 package io.synadia.service;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * Endpoints stats contains various stats and custom data for an endpoint.
@@ -70,7 +67,7 @@ public class EndpointStats implements JsonSerializable {
     private final ZonedDateTime started;
 
     static List<EndpointStats> listOf(JsonValue vEndpointStats) {
-        return JsonValueUtils.listOf(vEndpointStats, EndpointStats::new);
+        return listOfOrEmpty(vEndpointStats, EndpointStats::new);
     }
 
     EndpointStats(String name, String subject, String queueGroup, long numRequests, long numErrors, long processingTime, String lastError, JsonValue data, ZonedDateTime started) {
@@ -103,16 +100,16 @@ public class EndpointStats implements JsonSerializable {
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addField(sb, NAME, name);
-        JsonUtils.addField(sb, SUBJECT, subject);
-        JsonUtils.addField(sb, QUEUE_GROUP, queueGroup);
-        JsonUtils.addFieldWhenGtZero(sb, NUM_REQUESTS, numRequests);
-        JsonUtils.addFieldWhenGtZero(sb, NUM_ERRORS, numErrors);
-        JsonUtils.addFieldWhenGtZero(sb, PROCESSING_TIME, processingTime);
-        JsonUtils.addFieldWhenGtZero(sb, AVERAGE_PROCESSING_TIME, averageProcessingTime);
-        JsonUtils.addField(sb, LAST_ERROR, lastError);
-        JsonUtils.addField(sb, DATA, data);
-        JsonUtils.addField(sb, STARTED, started);
+        addField(sb, NAME, name);
+        addField(sb, SUBJECT, subject);
+        addField(sb, QUEUE_GROUP, queueGroup);
+        addFieldWhenGtZero(sb, NUM_REQUESTS, numRequests);
+        addFieldWhenGtZero(sb, NUM_ERRORS, numErrors);
+        addFieldWhenGtZero(sb, PROCESSING_TIME, processingTime);
+        addFieldWhenGtZero(sb, AVERAGE_PROCESSING_TIME, averageProcessingTime);
+        addField(sb, LAST_ERROR, lastError);
+        addField(sb, DATA, data);
+        addField(sb, STARTED, started);
         return endJson(sb).toString();
     }
 
@@ -206,7 +203,7 @@ public class EndpointStats implements JsonSerializable {
 
     @Override
     public String toString() {
-        return JsonUtils.toKey(getClass()) + toJson();
+        return toKey(getClass()) + toJson();
     }
 
     @Override

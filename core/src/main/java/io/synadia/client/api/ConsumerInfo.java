@@ -1,8 +1,8 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.Message;
 import io.synadia.client.support.DateTimeUtils;
-import io.synadia.client.support.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -10,8 +10,8 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.*;
 import static io.synadia.client.support.NatsConstants.UNDEFINED;
 
 /**
@@ -76,22 +76,22 @@ public class ConsumerInfo extends ApiResponse<ConsumerInfo> {
             name = nullStringIsError(this.jv, NAME);
             created = nullDateIsError(this.jv, CREATED);
 
-            delivered = new SequenceInfo(readObject(this.jv, DELIVERED));
-            ackFloor = new SequenceInfo(readObject(this.jv, ACK_FLOOR));
+            delivered = new SequenceInfo(readMapObjectOrEmpty(this.jv, DELIVERED));
+            ackFloor = new SequenceInfo(readMapObjectOrEmpty(this.jv, ACK_FLOOR));
 
             numAckPending = readLong(this.jv, NUM_ACK_PENDING, 0);
             numRedelivered = readLong(this.jv, NUM_REDELIVERED, 0);
             numPending = readLong(this.jv, NUM_PENDING, 0);
             numWaiting = readLong(this.jv, NUM_WAITING, 0);
             paused = readBoolean(this.jv, PAUSED, false);
-            pauseRemaining = readNanos(this.jv, PAUSE_REMAINING);
+            pauseRemaining = readNanosAsDuration(this.jv, PAUSE_REMAINING);
 
             clusterInfo = ClusterInfo.optionalInstance(readValue(this.jv, CLUSTER));
-            pushBound = readBoolean(this.jv, PUSH_BOUND);
+            pushBound = readBoolean(this.jv, PUSH_BOUND, false);
 
             timestamp = readDate(this.jv, TIMESTAMP);
 
-            priorityGroupStates = PriorityGroupState.optionalListOf(readObject(this.jv, PRIORITY_GROUPS));
+            priorityGroupStates = PriorityGroupState.optionalListOf(readMapObjectOrEmpty(this.jv, PRIORITY_GROUPS));
         }
     }
 

@@ -1,7 +1,7 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.readString;
+import static io.nats.json.JsonValueUtils.readStringListOrNull;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.CLUSTER;
 import static io.synadia.client.support.ApiConstants.TAGS;
-import static io.synadia.client.support.JsonUtils.*;
-import static io.synadia.client.support.JsonValueUtils.readOptionalStringList;
-import static io.synadia.client.support.JsonValueUtils.readStringEmptyAsNull;
 import static io.synadia.client.support.Validator.nullOrEmpty;
 
 /**
@@ -28,8 +28,9 @@ public class Placement implements JsonSerializable {
     }
 
     Placement(JsonValue vPlacement) {
-        this.cluster = readStringEmptyAsNull(vPlacement, CLUSTER);
-        this.tags = readOptionalStringList(vPlacement, TAGS);
+        String c = readString(vPlacement, CLUSTER);
+        this.cluster = c == null || c.isEmpty() ? null : c;
+        this.tags = readStringListOrNull(vPlacement, TAGS);
     }
 
     /**

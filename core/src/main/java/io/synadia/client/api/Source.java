@@ -1,9 +1,10 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonValue;
 
 import java.util.List;
+
+import static io.nats.json.JsonValueUtils.listOfOrNull;
 
 /**
  * Source Information
@@ -11,7 +12,7 @@ import java.util.List;
 public class Source extends SourceBase {
 
     static List<Source> optionalListOf(JsonValue vSources) {
-        return JsonValueUtils.optionalListOf(vSources, Source::new);
+        return listOfOrNull(vSources, Source::new);
     }
 
     Source(JsonValue vSource) {
