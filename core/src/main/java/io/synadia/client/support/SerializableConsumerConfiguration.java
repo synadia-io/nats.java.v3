@@ -3,9 +3,11 @@ package io.synadia.client.support;
 import io.synadia.client.api.ConsumerConfiguration;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class SerializableConsumerConfiguration implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private transient ConsumerConfiguration cc;
@@ -30,11 +32,13 @@ public class SerializableConsumerConfiguration implements Serializable {
         return cc;
     }
 
+    @Serial
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
         out.writeUTF(cc.toJson());
     }
 
+    @Serial
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         cc = ConsumerConfiguration.builder().json(in.readUTF()).build();
