@@ -91,7 +91,7 @@ public class ConsumerInfo extends ApiResponse<ConsumerInfo> {
 
             timestamp = readDate(this.jv, TIMESTAMP);
 
-            priorityGroupStates = PriorityGroupState.optionalListOf(readMapObjectOrEmpty(this.jv, PRIORITY_GROUPS));
+            priorityGroupStates = PriorityGroupState.optionalListOf(readValue(this.jv, PRIORITY_GROUPS));
         }
     }
 

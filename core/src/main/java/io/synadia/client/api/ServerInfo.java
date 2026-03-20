@@ -46,8 +46,8 @@ public class ServerInfo {
     private final String cluster;
 
     /**
-     * Construct a ServerInfo instance from json
-     * @param json the json
+     * Construct a ServerInfo instance from JSON
+     * @param json the JSON
      */
     public ServerInfo(String json) {
         // INFO<sp>{ INFO<\t>{ or {
@@ -81,7 +81,7 @@ public class ServerInfo {
         clientId = readInteger(jv, CLIENT_ID, 0);
         clientIp = readString(jv, CLIENT_IP, "0.0.0.0");
         cluster = readString(jv, CLUSTER);
-        connectURLs = readStringListOrEmpty(jv, CONNECT_URLS);
+        connectURLs = readStringListOrEmpty(jv, CONNECT_URLS, true);
     }
 
     /**
