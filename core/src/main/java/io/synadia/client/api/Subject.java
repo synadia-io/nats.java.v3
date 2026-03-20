@@ -1,7 +1,8 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonValue;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,11 +12,13 @@ import static io.nats.json.JsonValueUtils.getLong;
 /**
  * An object representing a stream's subject and the count of it's messages
  */
+@NullMarked
 public class Subject implements Comparable<Subject> {
     private final String name;
     private final long count;
 
-    static List<Subject> listOf(JsonValue vSubjects) {
+    @Nullable
+    static List<Subject> optionalListOf(@Nullable JsonValue vSubjects) {
         List<Subject> list = new ArrayList<>();
         if (vSubjects != null && vSubjects.map != null) {
             for (String subject : vSubjects.map.keySet()) {
@@ -25,7 +28,7 @@ public class Subject implements Comparable<Subject> {
                 }
             }
         }
-        return list;
+        return list.size() == 0 ? null : list;
     }
 
     /**
@@ -42,7 +45,6 @@ public class Subject implements Comparable<Subject> {
      * Get the subject name
      * @return the subject
      */
-    @NonNull
     public String getName() {
         return name;
     }

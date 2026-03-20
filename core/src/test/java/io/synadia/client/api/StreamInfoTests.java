@@ -224,16 +224,17 @@ public class StreamInfoTests {
 
     @Test
     public void testSubjectGetList() {
-        List<Subject> list = Subject.listOf(null);
-        assertTrue(list.isEmpty());
+        List<Subject> list = Subject.optionalListOf(null);
+        assertNull(list);
 
-        list = Subject.listOf(JsonValue.NULL);
-        assertTrue(list.isEmpty());
+        list = Subject.optionalListOf(JsonValue.NULL);
+        assertNull(list);
 
-        list = Subject.listOf(JsonValue.EMPTY_MAP);
-        assertTrue(list.isEmpty());
+        list = Subject.optionalListOf(JsonValue.EMPTY_MAP);
+        assertNull(list);
 
-        list = Subject.listOf(JsonParser.parseUnchecked("{\"sub0\": 1, \"sub1\": 2,\"x.foo\": 3}"));
+        list = Subject.optionalListOf(JsonParser.parseUnchecked("{\"sub0\": 1, \"sub1\": 2,\"x.foo\": 3}"));
+        assertNotNull(list);
         assertEquals(3, list.size());
         assertNotNull(list.get(0).toString()); // coverage
         Collections.sort(list);
