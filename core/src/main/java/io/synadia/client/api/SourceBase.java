@@ -2,7 +2,6 @@ package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
-import io.nats.json.JsonValueUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -12,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import static io.nats.json.JsonValueUtils.readValue;
+import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.JetStreamOptions.convertDomainToPrefix;
 import static io.synadia.client.support.ApiConstants.*;
@@ -31,10 +30,10 @@ public abstract class SourceBase implements JsonSerializable {
     private final List<SubjectTransform> subjectTransforms;
 
     SourceBase(JsonValue jv) {
-        name = JsonValueUtils.readString(jv, NAME);
-        startSeq = JsonValueUtils.readLong(jv, OPT_START_SEQ, 0);
-        startTime = JsonValueUtils.readDate(jv, OPT_START_TIME);
-        filterSubject = JsonValueUtils.readString(jv, FILTER_SUBJECT);
+        name = readString(jv, NAME);
+        startSeq = readLong(jv, OPT_START_SEQ, 0);
+        startTime = readDate(jv, OPT_START_TIME);
+        filterSubject = readString(jv, FILTER_SUBJECT);
         external = External.optionalInstance(readValue(jv, EXTERNAL));
         subjectTransforms = SubjectTransform.optionalListOf(readValue(jv, SUBJECT_TRANSFORMS));
     }

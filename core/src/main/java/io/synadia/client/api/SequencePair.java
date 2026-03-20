@@ -1,8 +1,8 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonValue;
-import io.nats.json.JsonValueUtils;
 
+import static io.nats.json.JsonValueUtils.readLong;
 import static io.synadia.client.support.ApiConstants.CONSUMER_SEQ;
 import static io.synadia.client.support.ApiConstants.STREAM_SEQ;
 
@@ -15,8 +15,8 @@ public class SequencePair {
     protected final long streamSeq;
 
     SequencePair(JsonValue vSequencePair) {
-        consumerSeq = JsonValueUtils.readLong(vSequencePair, CONSUMER_SEQ, 0);
-        streamSeq = JsonValueUtils.readLong(vSequencePair, STREAM_SEQ, 0);
+        consumerSeq = readLong(vSequencePair, CONSUMER_SEQ, 0);
+        streamSeq = readLong(vSequencePair, STREAM_SEQ, 0);
     }
 
     /**

@@ -2,10 +2,10 @@ package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
-import io.nats.json.JsonValueUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.API;
 import static io.synadia.client.support.ApiConstants.DELIVER;
@@ -22,8 +22,8 @@ public class External implements JsonSerializable {
     }
 
     External(JsonValue vExternal) {
-        api = JsonValueUtils.readString(vExternal, API);
-        deliver = JsonValueUtils.readString(vExternal, DELIVER);
+        api = readString(vExternal, API);
+        deliver = readString(vExternal, DELIVER);
     }
 
     /**

@@ -1,15 +1,13 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonValue;
-import io.nats.json.JsonValueUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import static io.nats.json.JsonValueUtils.listOfOrNull;
-import static io.nats.json.JsonValueUtils.readDate;
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
 
 /**
@@ -25,8 +23,8 @@ public class PriorityGroupState {
     }
 
     PriorityGroupState(JsonValue vpgState) {
-        group = JsonValueUtils.readString(vpgState, GROUP);
-        pinnedClientId = JsonValueUtils.readString(vpgState, PINNED_CLIENT_ID);
+        group = readString(vpgState, GROUP);
+        pinnedClientId = readString(vpgState, PINNED_CLIENT_ID);
         pinnedTime = readDate(vpgState, PINNED_TS);
     }
 
