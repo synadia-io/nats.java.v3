@@ -198,11 +198,12 @@ public class ErrorListenerTests extends TestBase {
     @Test
     public void testDiscardedMessageServerClosed() throws Exception {
         String subject = random();
-        int maxMessages = 10;
+        int maxMessagesInOutgoingQueue = 10;
+        int publishNoMoreThan = 1000;
         Listener listener = new Listener();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts)
-                .maxMessagesInOutgoingQueue(maxMessages)
+                .maxMessagesInOutgoingQueue(maxMessagesInOutgoingQueue)
                 .discardMessagesWhenOutgoingQueueFull()
                 .connectionListener(listener)
                 .errorListener(listener)
@@ -215,9 +216,12 @@ public class ErrorListenerTests extends TestBase {
                 listener.validate();
                 ts.close();
                 listener.validate();
-
-                for (int i = 0; i < maxMessages + 1; i++) {
+                for (int i = 0; i < publishNoMoreThan; i++) {
                     nc.publish(subject + i, ("message" + i).getBytes());
+                    // don't check every time
+                    if (i % maxMessagesInOutgoingQueue == 0 && !listener.getDiscardedMessages().isEmpty()) {
+                        break;
+                    }
                 }
             }
         }
