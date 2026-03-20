@@ -1,9 +1,10 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonValue;
-import io.nats.json.JsonValueUtils;
 
 import java.util.List;
+
+import static io.nats.json.JsonValueUtils.listOfOrNull;
 
 /**
  * Information about a stream being sourced
@@ -11,7 +12,7 @@ import java.util.List;
 public class SourceInfo extends SourceInfoBase {
 
     static List<SourceInfo> optionalListOf(JsonValue vSourceInfos) {
-        return JsonValueUtils.listOfOrNull(vSourceInfos, SourceInfo::new);
+        return listOfOrNull(vSourceInfos, SourceInfo::new);
     }
 
     SourceInfo(JsonValue vSourceInfo) {
