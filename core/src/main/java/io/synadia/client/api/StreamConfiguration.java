@@ -1,20 +1,18 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.*;
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.*;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.*;
-import static io.synadia.client.support.JsonValueUtils.*;
-import static io.synadia.client.support.JsonValueUtils.readBoolean;
-import static io.synadia.client.support.JsonValueUtils.readInteger;
-import static io.synadia.client.support.JsonValueUtils.readLong;
-import static io.synadia.client.support.JsonValueUtils.readNanos;
-import static io.synadia.client.support.JsonValueUtils.readString;
 import static io.synadia.client.support.Validator.*;
 
 /**
@@ -75,33 +73,33 @@ public class StreamConfiguration implements JsonSerializable {
             .maxMessages(readLong(v, MAX_MSGS, -1))
             .maxMessagesPerSubject(readLong(v, MAX_MSGS_PER_SUB, -1))
             .maxBytes(readLong(v, MAX_BYTES, -1))
-            .maxAge(readNanos(v, MAX_AGE))
+            .maxAge(readNanosAsDuration(v, MAX_AGE))
             .maximumMessageSize(readInteger(v, MAX_MSG_SIZE, -1))
             .replicas(readInteger(v, NUM_REPLICAS, 1))
-            .noAck(readBoolean(v, NO_ACK))
+            .noAck(readBoolean(v, NO_ACK, false))
             .templateOwner(readString(v, TEMPLATE_OWNER))
-            .duplicateWindow(readNanos(v, DUPLICATE_WINDOW))
-            .subjects(readStringList(v, SUBJECTS))
+            .duplicateWindow(readNanosAsDuration(v, DUPLICATE_WINDOW))
+            .subjects(readStringListOrEmpty(v, SUBJECTS))
             .placement(Placement.optionalInstance(readValue(v, PLACEMENT)))
             .republish(Republish.optionalInstance(readValue(v, REPUBLISH)))
             .subjectTransform(SubjectTransform.optionalInstance(readValue(v, SUBJECT_TRANSFORM)))
             .consumerLimits(ConsumerLimits.optionalInstance(readValue(v, CONSUMER_LIMITS)))
             .mirror(Mirror.optionalInstance(readValue(v, MIRROR)))
             .sources(Source.optionalListOf(readValue(v, SOURCES)))
-            .sealed(readBoolean(v, SEALED))
-            .allowRollup(readBoolean(v, ALLOW_ROLLUP_HDRS))
-            .allowDirect(readBoolean(v, ALLOW_DIRECT))
-            .mirrorDirect(readBoolean(v, MIRROR_DIRECT))
-            .denyDelete(readBoolean(v, DENY_DELETE))
-            .denyPurge(readBoolean(v, DENY_PURGE))
-            .discardNewPerSubject(readBoolean(v, DISCARD_NEW_PER_SUBJECT))
-            .metadata(readStringStringMap(v, METADATA))
+            .sealed(readBoolean(v, SEALED, false))
+            .allowRollup(readBoolean(v, ALLOW_ROLLUP_HDRS, false))
+            .allowDirect(readBoolean(v, ALLOW_DIRECT, false))
+            .mirrorDirect(readBoolean(v, MIRROR_DIRECT, false))
+            .denyDelete(readBoolean(v, DENY_DELETE, false))
+            .denyPurge(readBoolean(v, DENY_PURGE, false))
+            .discardNewPerSubject(readBoolean(v, DISCARD_NEW_PER_SUBJECT, false))
+            .metadata(readStringMapOrNull(v, METADATA))
             .firstSequence(readLong(v, FIRST_SEQ, 1))
-            .subjectDeleteMarkerTtl(readNanos(v, SUBJECT_DELETE_MARKER_TTL))
-            .allowMessageTtl(readBoolean(v, ALLOW_MSG_TTL))
-            .allowMessageSchedules(readBoolean(v, ALLOW_MSG_SCHEDULES))
-            .allowMessageCounter(readBoolean(v, ALLOW_MSG_COUNTER))
-            .allowAtomicPublish(readBoolean(v, ALLOW_ATOMIC))
+            .subjectDeleteMarkerTtl(readNanosAsDuration(v, SUBJECT_DELETE_MARKER_TTL))
+            .allowMessageTtl(readBoolean(v, ALLOW_MSG_TTL, false))
+            .allowMessageSchedules(readBoolean(v, ALLOW_MSG_SCHEDULES, false))
+            .allowMessageCounter(readBoolean(v, ALLOW_MSG_COUNTER, false))
+            .allowAtomicPublish(readBoolean(v, ALLOW_ATOMIC, false))
             .persistMode(PersistMode.get(readString(v, PERSIST_MODE)))
             .build();
     }
@@ -172,7 +170,7 @@ public class StreamConfiguration implements JsonSerializable {
         StringBuilder sb = beginJson();
 
         addField(sb, NAME, name);
-        JsonUtils.addField(sb, DESCRIPTION, description);
+        addField(sb, DESCRIPTION, description);
         addStrings(sb, SUBJECTS, subjects);
         addField(sb, RETENTION, retentionPolicy.toString());
         addEnumWhenNot(sb, COMPRESSION, compressionOption, CompressionOption.None);
@@ -184,7 +182,7 @@ public class StreamConfiguration implements JsonSerializable {
         addField(sb, MAX_MSG_SIZE, maxMsgSize);
         addField(sb, STORAGE, storageType.toString());
         addField(sb, NUM_REPLICAS, replicas);
-        addFldWhenTrue(sb, NO_ACK, noAck);
+        addField(sb, NO_ACK, noAck);
         addField(sb, TEMPLATE_OWNER, templateOwner);
         addField(sb, DISCARD, discardPolicy.toString());
         addFieldAsNanos(sb, DUPLICATE_WINDOW, duplicateWindow);
@@ -196,20 +194,20 @@ public class StreamConfiguration implements JsonSerializable {
         addField(sb, CONSUMER_LIMITS, consumerLimits);
         addField(sb, MIRROR, mirror);
         addJsons(sb, SOURCES, sources);
-        addFldWhenTrue(sb, SEALED, sealed);
-        addFldWhenTrue(sb, ALLOW_ROLLUP_HDRS, allowRollup);
-        addFldWhenTrue(sb, ALLOW_DIRECT, allowDirect);
-        addFldWhenTrue(sb, MIRROR_DIRECT, mirrorDirect);
-        addFldWhenTrue(sb, DENY_DELETE, denyDelete);
-        addFldWhenTrue(sb, DENY_PURGE, denyPurge);
-        addFldWhenTrue(sb, DISCARD_NEW_PER_SUBJECT, discardNewPerSubject);
+        addField(sb, SEALED, sealed);
+        addField(sb, ALLOW_ROLLUP_HDRS, allowRollup);
+        addField(sb, ALLOW_DIRECT, allowDirect);
+        addField(sb, MIRROR_DIRECT, mirrorDirect);
+        addField(sb, DENY_DELETE, denyDelete);
+        addField(sb, DENY_PURGE, denyPurge);
+        addField(sb, DISCARD_NEW_PER_SUBJECT, discardNewPerSubject);
         addField(sb, METADATA, metadata);
         addFieldWhenGreaterThan(sb, FIRST_SEQ, firstSequence, 1);
         addFieldAsNanos(sb, SUBJECT_DELETE_MARKER_TTL, subjectDeleteMarkerTtl);
-        addFldWhenTrue(sb, ALLOW_MSG_TTL, allowMessageTtl);
-        addFldWhenTrue(sb, ALLOW_MSG_SCHEDULES, allowMsgSchedules);
-        addFldWhenTrue(sb, ALLOW_MSG_COUNTER, allowMessageCounter);
-        addFldWhenTrue(sb, ALLOW_ATOMIC, allowAtomicPublish);
+        addField(sb, ALLOW_MSG_TTL, allowMessageTtl);
+        addField(sb, ALLOW_MSG_SCHEDULES, allowMsgSchedules);
+        addField(sb, ALLOW_MSG_COUNTER, allowMessageCounter);
+        addField(sb, ALLOW_ATOMIC, allowAtomicPublish);
         if (persistMode != null) {
             addField(sb, PERSIST_MODE, persistMode.toString());
         }

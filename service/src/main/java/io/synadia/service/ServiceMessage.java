@@ -1,10 +1,10 @@
 package io.synadia.service;
 
+import io.nats.json.JsonSerializable;
 import io.synadia.client.Message;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
-import io.synadia.client.support.JsonSerializable;
 
 import java.nio.charset.StandardCharsets;
 

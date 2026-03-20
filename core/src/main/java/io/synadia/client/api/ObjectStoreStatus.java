@@ -1,6 +1,6 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.MapBuilder;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -149,7 +149,7 @@ public class ObjectStoreStatus {
 
     @Override
     public String toString() {
-        JsonValueUtils.MapBuilder mb = new JsonValueUtils.MapBuilder();
+        MapBuilder mb = new MapBuilder();
         mb.put("size", getSize());
         mb.put("isSealed", isSealed());
         mb.put("config", config);

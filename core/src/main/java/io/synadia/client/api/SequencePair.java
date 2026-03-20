@@ -1,7 +1,7 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonValue;
+import io.nats.json.JsonValueUtils;
 
 import static io.synadia.client.support.ApiConstants.CONSUMER_SEQ;
 import static io.synadia.client.support.ApiConstants.STREAM_SEQ;

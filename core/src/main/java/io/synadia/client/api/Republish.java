@@ -1,14 +1,14 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 
+import static io.nats.json.JsonValueUtils.readBoolean;
+import static io.nats.json.JsonValueUtils.readString;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.*;
-import static io.synadia.client.support.JsonValueUtils.readBoolean;
-import static io.synadia.client.support.JsonValueUtils.readString;
 
 /**
  * Republish Configuration
@@ -25,7 +25,7 @@ public class Republish implements JsonSerializable {
     Republish(JsonValue vRepublish) {
         source = readString(vRepublish, SRC);
         destination = readString(vRepublish, DEST);
-        headersOnly = readBoolean(vRepublish, HEADERS_ONLY);
+        headersOnly = readBoolean(vRepublish, HEADERS_ONLY, false);
     }
 
     /**
@@ -74,7 +74,7 @@ public class Republish implements JsonSerializable {
         StringBuilder sb = beginJson();
         addField(sb, SRC, source);
         addField(sb, DEST, destination);
-        addFldWhenTrue(sb, HEADERS_ONLY, headersOnly);
+        addField(sb, HEADERS_ONLY, headersOnly);
         return endJson(sb).toString();
     }
 

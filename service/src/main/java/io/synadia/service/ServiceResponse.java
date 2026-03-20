@@ -1,6 +1,10 @@
 package io.synadia.service;
 
-import io.synadia.client.support.*;
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
+import io.synadia.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 
 import java.nio.charset.StandardCharsets;
@@ -9,10 +13,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.nats.json.JsonValueUtils.readString;
+import static io.nats.json.JsonValueUtils.readStringMapOrNull;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.readString;
-import static io.synadia.client.support.JsonValueUtils.readStringStringMap;
 
 /**
  * Base class for service responses Info, Ping and Stats
@@ -50,7 +54,7 @@ public abstract class ServiceResponse implements JsonSerializable {
         id = Validator.required(readString(jv, ID), "Id");
         name = Validator.required(readString(jv, NAME), "Name");
         version = Validator.required(readString(jv, VERSION), "Version");
-        metadata = readStringStringMap(jv, METADATA);
+        metadata = readStringMapOrNull(jv, METADATA);
         serialized = new AtomicReference<>();
     }
 
@@ -117,19 +121,19 @@ public abstract class ServiceResponse implements JsonSerializable {
     @Override
     @NonNull
     public String toJson() {
-        StringBuilder sb = JsonUtils.beginJson();
-        JsonUtils.addField(sb, ID, id);
-        JsonUtils.addField(sb, NAME, name);
-        JsonUtils.addField(sb, VERSION, version);
+        StringBuilder sb = beginJson();
+        addField(sb, ID, id);
+        addField(sb, NAME, name);
+        addField(sb, VERSION, version);
         subToJson(sb);
-        JsonUtils.addField(sb, TYPE, type);
-        JsonUtils.addField(sb, METADATA, metadata);
+        addField(sb, TYPE, type);
+        addField(sb, METADATA, metadata);
         return endJson(sb).toString();
     }
 
     @Override
     public String toString() {
-        return JsonUtils.toKey(getClass()) + toJson();
+        return toKey(getClass()) + toJson();
     }
 
     @Override
@@ -143,7 +147,7 @@ public abstract class ServiceResponse implements JsonSerializable {
         if (!Objects.equals(name, that.name)) return false;
         if (!Objects.equals(id, that.id)) return false;
         if (!Objects.equals(version, that.version)) return false;
-        return JsonUtils.mapEquals(metadata, that.metadata);
+        return Objects.equals(metadata, that.metadata);
     }
 
     @Override

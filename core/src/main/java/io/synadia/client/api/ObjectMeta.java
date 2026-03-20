@@ -1,22 +1,17 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.impl.Headers;
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
 import io.synadia.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * The ObjectMeta is Object Meta is high level information about an object
@@ -41,14 +36,18 @@ public class ObjectMeta implements JsonSerializable {
         objectName = readString(vObjectMeta, NAME);
         description = readString(vObjectMeta, DESCRIPTION);
         Headers h = new Headers();
-        JsonValue hJv = readObject(vObjectMeta, HEADERS);
-        for (String key : hJv.map.keySet()) {
-            h.put(key, readStringList(hJv, key));
+        JsonValue hJv = readMapObjectOrNull(vObjectMeta, HEADERS);
+        if (hJv != null && hJv.map != null) {
+            for (String key : hJv.map.keySet()) {
+                List<String> values = readStringListOrNull(hJv, key);
+                if (values != null && values.size() > 0) {
+                    h.put(key, values);
+                }
+            }
         }
         headers = new Headers(h, true);
-        Map<String, String> meta = readStringStringMap(vObjectMeta, METADATA);
-        metadata = meta == null ? Collections.unmodifiableMap(new HashMap<>()) : Collections.unmodifiableMap(meta);
-        objectMetaOptions = new ObjectMetaOptions(readObject(vObjectMeta, OPTIONS));
+        metadata = Collections.unmodifiableMap(readStringMapOrEmpty(vObjectMeta, METADATA));
+        objectMetaOptions = new ObjectMetaOptions(readMapObjectOrEmpty(vObjectMeta, OPTIONS));
     }
 
     @Override
@@ -60,15 +59,15 @@ public class ObjectMeta implements JsonSerializable {
     }
 
     void embedJson(StringBuilder sb) {
-        JsonUtils.addField(sb, NAME, objectName);
-        JsonUtils.addField(sb, DESCRIPTION, description);
-        JsonUtils.addField(sb, HEADERS, headers);
-        JsonUtils.addField(sb, METADATA, metadata);
+        addField(sb, NAME, objectName);
+        addField(sb, DESCRIPTION, description);
+        if (headers != null && headers.size() > 0) { addField(sb, HEADERS, headers.toMap()); }
+        addField(sb, METADATA, metadata);
 
-        // avoid adding an empty child to the json because JsonUtils.addField
+        // avoid adding an empty child to the json because addField
         // only checks versus the object being null, which it is never
         if (objectMetaOptions.hasData()) {
-            JsonUtils.addField(sb, OPTIONS, objectMetaOptions);
+            addField(sb, OPTIONS, objectMetaOptions);
         }
     }
 

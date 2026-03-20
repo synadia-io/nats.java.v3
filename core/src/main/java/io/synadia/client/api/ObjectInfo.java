@@ -1,17 +1,21 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonParser;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.Message;
 import io.synadia.client.impl.Headers;
-import io.synadia.client.support.*;
+import io.synadia.client.support.DateTimeUtils;
+import io.synadia.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.Map;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
 
 /**
  * The ObjectInfo is Object Meta Information plus instance information
@@ -56,13 +60,13 @@ public class ObjectInfo implements JsonSerializable {
     ObjectInfo(byte[] jsonBytes, ZonedDateTime messageTime) {
         JsonValue jv = JsonParser.parseUnchecked(jsonBytes);
         objectMeta = new ObjectMeta(jv);
-        bucket = JsonValueUtils.readString(jv, BUCKET);
-        nuid = JsonValueUtils.readString(jv, NUID);
-        size = JsonValueUtils.readLong(jv, SIZE, 0);
+        bucket = readString(jv, BUCKET);
+        nuid = readString(jv, NUID);
+        size = readLong(jv, SIZE, 0);
         modified = DateTimeUtils.toGmt(messageTime);
-        chunks = JsonValueUtils.readLong(jv, CHUNKS, 0);
-        digest = JsonValueUtils.readString(jv, DIGEST);
-        deleted = JsonValueUtils.readBoolean(jv, DELETED);
+        chunks = readLong(jv, CHUNKS, 0);
+        digest = readString(jv, DIGEST);
+        deleted = readBoolean(jv, DELETED, false);
     }
 
     @Override
@@ -71,12 +75,12 @@ public class ObjectInfo implements JsonSerializable {
         // never write MTIME (modified)
         StringBuilder sb = beginJson();
         objectMeta.embedJson(sb); // the go code embeds the objectMeta's fields instead of as a child object.
-        JsonUtils.addField(sb, BUCKET, bucket);
-        JsonUtils.addField(sb, NUID, nuid);
-        JsonUtils.addField(sb, SIZE, size);
-        JsonUtils.addField(sb, CHUNKS, chunks);
-        JsonUtils.addField(sb, DIGEST, digest);
-        JsonUtils.addField(sb, DELETED, deleted);
+        addField(sb, BUCKET, bucket);
+        addField(sb, NUID, nuid);
+        addField(sb, SIZE, size);
+        addField(sb, CHUNKS, chunks);
+        addField(sb, DIGEST, digest);
+        addField(sb, DELETED, deleted);
         return endJson(sb).toString();
     }
 

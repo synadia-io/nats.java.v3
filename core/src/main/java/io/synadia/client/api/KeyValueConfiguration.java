@@ -1,7 +1,7 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonValue;
+import io.nats.json.MapBuilder;
 import io.synadia.client.support.NatsKeyValueUtil;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -81,7 +81,8 @@ public class KeyValueConfiguration extends FeatureConfiguration {
     @Override
     @NonNull
     public JsonValue toJsonValue() {
-        JsonValueUtils.MapBuilder mb = new JsonValueUtils.MapBuilder(super.toJsonValue());
+        MapBuilder mb = new MapBuilder();
+        mb.putEntries(super.toJsonValue().map);
         mb.jv.mapOrder.remove("metaData");
         mb.put("maxHistoryPerKey", getMaxHistoryPerKey());
         mb.put("maxValueSize", getMaximumValueSize());

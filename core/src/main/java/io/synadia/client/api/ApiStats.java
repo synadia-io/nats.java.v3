@@ -1,8 +1,9 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonValue;
 
+import static io.nats.json.JsonValueUtils.readInteger;
+import static io.nats.json.JsonValueUtils.readLong;
 import static io.synadia.client.support.ApiConstants.*;
 
 /**
@@ -16,10 +17,10 @@ public class ApiStats {
     private final long inFlight;
 
     ApiStats(JsonValue vApiStats) {
-        this.level = JsonValueUtils.readInteger(vApiStats, LEVEL, 0);
-        this.total = JsonValueUtils.readLong(vApiStats, TOTAL, 0);
-        this.errors = JsonValueUtils.readLong(vApiStats, ERRORS, 0);
-        this.inFlight = JsonValueUtils.readLong(vApiStats, INFLIGHT, 0);
+        this.level = readInteger(vApiStats, LEVEL, 0);
+        this.total = readLong(vApiStats, TOTAL, 0);
+        this.errors = readLong(vApiStats, ERRORS, 0);
+        this.inFlight = readLong(vApiStats, INFLIGHT, 0);
     }
 
     /**

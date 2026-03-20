@@ -1,13 +1,13 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
+import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.*;
 
 /**
  * Object used to make a request for message get requests.

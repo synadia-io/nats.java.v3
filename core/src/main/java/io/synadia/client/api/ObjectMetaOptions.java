@@ -1,17 +1,15 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.nats.json.JsonValueUtils.readInteger;
+import static io.nats.json.JsonValueUtils.readValue;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.LINK;
 import static io.synadia.client.support.ApiConstants.MAX_CHUNK_SIZE;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.readInteger;
-import static io.synadia.client.support.JsonValueUtils.readValue;
 
 /**
  * The ObjectMetaOptions are additional options describing the object
@@ -35,8 +33,8 @@ public class ObjectMetaOptions implements JsonSerializable {
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addField(sb, LINK, link);
-        JsonUtils.addField(sb, MAX_CHUNK_SIZE, chunkSize);
+        addField(sb, LINK, link);
+        addField(sb, MAX_CHUNK_SIZE, chunkSize);
         return endJson(sb).toString();
     }
 

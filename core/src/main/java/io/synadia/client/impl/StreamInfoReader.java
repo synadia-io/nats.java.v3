@@ -7,9 +7,9 @@ import io.synadia.client.api.StreamInfoOptions;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.DELETED_DETAILS;
 import static io.synadia.client.support.ApiConstants.SUBJECTS_FILTER;
-import static io.synadia.client.support.JsonUtils.*;
 
 class StreamInfoReader {
 
@@ -40,7 +40,7 @@ class StreamInfoReader {
         addField(sb, "offset", engine.nextOffset());
         if (options != null) {
             addField(sb, SUBJECTS_FILTER, options.getSubjectsFilter());
-            addFldWhenTrue(sb, DELETED_DETAILS, options.isDeletedDetails());
+            addField(sb, DELETED_DETAILS, options.isDeletedDetails());
         }
         return endJson(sb).toString().getBytes();
     }

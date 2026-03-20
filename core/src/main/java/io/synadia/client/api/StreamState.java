@@ -1,7 +1,6 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import org.jspecify.annotations.NonNull;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
@@ -10,8 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * Object representing the state of a stream
@@ -41,20 +40,28 @@ public class StreamState {
         lastTime = readDate(vStreamState, LAST_TS);
         subjectCount = readLong(vStreamState, NUM_SUBJECTS, 0);
         deletedCount = readLong(vStreamState, NUM_DELETED, 0);
-        deletedStreamSequences = readLongList(vStreamState, DELETED);
+        deletedStreamSequences = readLongListOrNull(vStreamState, DELETED);
         lostStreamData = LostStreamData.optionalInstance(readValue(vStreamState, LOST));
 
-        subjects = new ArrayList<>();
-        subjectMap = new HashMap<>();
+        List<Subject> _subjects = new ArrayList<>();
+        Map<String, Long> _subjectMap = new HashMap<>();
         JsonValue vSubjects = readValue(vStreamState, SUBJECTS);
         if (vSubjects != null && vSubjects.map != null) {
             for (String subject : vSubjects.map.keySet()) {
                 Long count = getLong(vSubjects.map.get(subject));
                 if (count != null) {
-                    subjects.add(new Subject(subject, count));
-                    subjectMap.put(subject, count);
+                    _subjects.add(new Subject(subject, count));
+                    _subjectMap.put(subject, count);
                 }
             }
+        }
+        if (_subjects.size() == 0) {
+            subjects = null;
+            subjectMap = null;
+        }
+        else {
+            subjects = _subjects;
+            subjectMap = _subjectMap;
         }
     }
 
@@ -136,7 +143,7 @@ public class StreamState {
      * if the Stream Info request did not ask for subjects or if there are no subjects.
      * @return the list of subjects
      */
-    @NonNull
+    @Nullable
     public List<Subject> getSubjects() {
         return subjects;
     }
@@ -145,7 +152,7 @@ public class StreamState {
      * Get a map of subjects instead of a list of Subject objects. May be empty.
      * @return the map
      */
-    @NonNull
+    @Nullable
     public Map<String, Long> getSubjectMap() {
         return subjectMap;
     }
@@ -164,7 +171,7 @@ public class StreamState {
      * or if there are no subjects.
      * @return the list of subjects
      */
-    @NonNull
+    @Nullable
     public List<Long> getDeleted() {
         return deletedStreamSequences;
     }

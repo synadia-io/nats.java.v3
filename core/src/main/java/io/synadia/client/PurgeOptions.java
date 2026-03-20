@@ -1,12 +1,10 @@
 package io.synadia.client;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
+import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
 import static io.synadia.client.support.Validator.validateSubjectStrict;
 
 /**
@@ -28,9 +26,9 @@ public class PurgeOptions implements JsonSerializable {
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addField(sb, FILTER, subject);
-        JsonUtils.addField(sb, SEQ, seq);
-        JsonUtils.addField(sb, KEEP, keep);
+        addField(sb, FILTER, subject);
+        addField(sb, SEQ, seq);
+        addField(sb, KEEP, keep);
         return endJson(sb).toString();
     }
 

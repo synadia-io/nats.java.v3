@@ -1,6 +1,6 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 
 /**
  * Information about an upstream stream source in a mirror

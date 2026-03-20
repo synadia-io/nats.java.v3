@@ -1,20 +1,18 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 
+import static io.nats.json.JsonValueUtils.readInteger;
+import static io.nats.json.JsonValueUtils.readNanosAsDuration;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.api.ConsumerConfiguration.*;
 import static io.synadia.client.support.ApiConstants.INACTIVE_THRESHOLD;
 import static io.synadia.client.support.ApiConstants.MAX_ACK_PENDING;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.readInteger;
-import static io.synadia.client.support.JsonValueUtils.readNanos;
 
 /**
  * ConsumerLimits
@@ -28,7 +26,7 @@ public class ConsumerLimits implements JsonSerializable {
     }
 
     ConsumerLimits(JsonValue vConsumerLimits) {
-        inactiveThreshold = readNanos(vConsumerLimits, INACTIVE_THRESHOLD);
+        inactiveThreshold = readNanosAsDuration(vConsumerLimits, INACTIVE_THRESHOLD);
         maxAckPending = readInteger(vConsumerLimits, MAX_ACK_PENDING);
     }
 
@@ -58,8 +56,8 @@ public class ConsumerLimits implements JsonSerializable {
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addFieldAsNanos(sb, INACTIVE_THRESHOLD, inactiveThreshold);
-        JsonUtils.addField(sb, MAX_ACK_PENDING, maxAckPending);
+        addFieldAsNanos(sb, INACTIVE_THRESHOLD, inactiveThreshold);
+        addField(sb, MAX_ACK_PENDING, maxAckPending);
         return endJson(sb).toString();
     }
 

@@ -1,13 +1,13 @@
 package io.synadia.client;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.api.ConsumerConfiguration;
-import io.synadia.client.support.JsonValue;
 
+import static io.nats.json.JsonValueUtils.readBoolean;
+import static io.nats.json.JsonValueUtils.readLong;
+import static io.nats.json.JsonWriteUtils.addField;
 import static io.synadia.client.support.ApiConstants.EXPIRES_IN;
 import static io.synadia.client.support.ApiConstants.NO_WAIT;
-import static io.synadia.client.support.JsonUtils.addFldWhenTrue;
-import static io.synadia.client.support.JsonValueUtils.readBoolean;
-import static io.synadia.client.support.JsonValueUtils.readLong;
 
 /**
  * Fetch Consume Options are provided to customize the fetch operation.
@@ -27,7 +27,7 @@ public class FetchConsumeOptions extends BaseConsumeOptions {
 
     @Override
     protected void subclassSpecificToJson(StringBuilder sb) {
-        addFldWhenTrue(sb, NO_WAIT, noWait);
+        addField(sb, NO_WAIT, noWait);
     }
 
     /**

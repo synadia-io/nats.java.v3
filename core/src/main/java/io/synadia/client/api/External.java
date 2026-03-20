@@ -1,14 +1,14 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
+import io.nats.json.JsonValueUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.API;
 import static io.synadia.client.support.ApiConstants.DELIVER;
-import static io.synadia.client.support.JsonUtils.*;
 
 /**
  * External configuration referencing a stream source in another account

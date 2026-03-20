@@ -1,6 +1,9 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.*;
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -10,10 +13,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.*;
 import static io.synadia.client.support.NatsConstants.GREATER_THAN;
 import static io.synadia.client.support.Validator.emptyAsNull;
 import static io.synadia.client.support.Validator.nullOrEmpty;
@@ -62,12 +64,12 @@ public class OrderedConsumerConfiguration implements JsonSerializable {
      */
     public OrderedConsumerConfiguration(@NonNull JsonValue jv) throws JsonParseException {
         this();
-        filterSubjects(readStringList(jv, FILTER_SUBJECTS)); // readStringList won't return null but can return empty
+        filterSubjects(readStringListOrNull(jv, FILTER_SUBJECTS)); // readStringList won't return null but can return empty
         deliverPolicy(DeliverPolicy.get(readString(jv, DELIVER_POLICY)));
         startSequence(readLong(jv, OPT_START_SEQ, ConsumerConfiguration.LONG_UNSET));
         startTime(readDate(jv, OPT_START_TIME));
         replayPolicy(ReplayPolicy.get(readString(jv, REPLAY_POLICY)));
-        headersOnly(readBoolean(jv, HEADERS_ONLY, null));
+        headersOnly(readBoolean(jv, HEADERS_ONLY));
     }
 
     /**
@@ -78,16 +80,16 @@ public class OrderedConsumerConfiguration implements JsonSerializable {
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addStrings(sb, FILTER_SUBJECTS, filterSubjects); // filter will always have at least a GREATER_THAN
+        addStrings(sb, FILTER_SUBJECTS, filterSubjects); // filter will always have at least a GREATER_THAN
         if (deliverPolicy != null) {
-            JsonUtils.addField(sb, DELIVER_POLICY, deliverPolicy.toString());
+            addField(sb, DELIVER_POLICY, deliverPolicy.toString());
         }
-        JsonUtils.addFieldWhenGtZero(sb, OPT_START_SEQ, startSequence);
-        JsonUtils.addField(sb, OPT_START_TIME, startTime);
+        addFieldWhenGtZero(sb, OPT_START_SEQ, startSequence);
+        addField(sb, OPT_START_TIME, startTime);
         if (replayPolicy != null) {
-            JsonUtils.addField(sb, REPLAY_POLICY, replayPolicy.toString());
+            addField(sb, REPLAY_POLICY, replayPolicy.toString());
         }
-        JsonUtils.addFldWhenTrue(sb, HEADERS_ONLY, headersOnly);
+        addField(sb, HEADERS_ONLY, headersOnly);
         return endJson(sb).toString();
     }
 

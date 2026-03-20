@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 
 import java.util.ArrayList;
 import java.util.List;

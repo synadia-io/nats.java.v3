@@ -1,9 +1,8 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
+import io.nats.json.JsonValueUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -13,11 +12,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import static io.nats.json.JsonValueUtils.readValue;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.JetStreamOptions.convertDomainToPrefix;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.readValue;
 import static io.synadia.client.support.Validator.listsAreEquivalent;
 import static io.synadia.client.support.Validator.nullOrEmpty;
 
@@ -58,12 +56,12 @@ public abstract class SourceBase implements JsonSerializable {
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addField(sb, NAME, name);
-        JsonUtils.addFieldWhenGreaterThan(sb, OPT_START_SEQ, startSeq, 0);
-        JsonUtils.addField(sb, OPT_START_TIME, startTime);
-        JsonUtils.addField(sb, FILTER_SUBJECT, filterSubject);
-        JsonUtils.addField(sb, EXTERNAL, external);
-        JsonUtils.addJsons(sb, SUBJECT_TRANSFORMS, subjectTransforms);
+        addField(sb, NAME, name);
+        addFieldWhenGreaterThan(sb, OPT_START_SEQ, startSeq, 0);
+        addField(sb, OPT_START_TIME, startTime);
+        addField(sb, FILTER_SUBJECT, filterSubject);
+        addField(sb, EXTERNAL, external);
+        addJsons(sb, SUBJECT_TRANSFORMS, subjectTransforms);
         return endJson(sb).toString();
     }
 
@@ -131,7 +129,7 @@ public abstract class SourceBase implements JsonSerializable {
 
     @Override
     public String toString() {
-        return JsonUtils.toKey(getClass()) + toJson();
+        return toKey(getClass()) + toJson();
     }
 
     /**

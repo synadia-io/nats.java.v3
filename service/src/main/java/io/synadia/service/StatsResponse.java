@@ -1,16 +1,17 @@
 package io.synadia.service;
 
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
 
+import static io.nats.json.JsonValueUtils.readDate;
+import static io.nats.json.JsonValueUtils.readValue;
+import static io.nats.json.JsonWriteUtils.addField;
+import static io.nats.json.JsonWriteUtils.addJsons;
 import static io.synadia.client.support.ApiConstants.ENDPOINTS;
 import static io.synadia.client.support.ApiConstants.STARTED;
-import static io.synadia.client.support.JsonValueUtils.readDate;
-import static io.synadia.client.support.JsonValueUtils.readValue;
 
 /**
  * Stats response class forms the stats json payload, for example:
@@ -77,8 +78,8 @@ public class StatsResponse extends ServiceResponse {
 
     @Override
     protected void subToJson(StringBuilder sb) {
-        JsonUtils.addJsons(sb, ENDPOINTS, endpointStatsList, true);
-        JsonUtils.addField(sb, STARTED, started);
+        addJsons(sb, ENDPOINTS, endpointStatsList);
+        addField(sb, STARTED, started);
     }
 
     /**

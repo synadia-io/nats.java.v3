@@ -10,7 +10,7 @@ import java.util.List;
 
 import static io.synadia.client.utils.OptionsUtils.options;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamManagementWithConfTests extends JetStreamTestBase {
 
@@ -99,8 +99,14 @@ public class JetStreamManagementWithConfTests extends JetStreamTestBase {
     }
 
     private void validateStreamInfo(StreamState streamState, long subjectsList, long filteredCount, long subjectCount) {
-        assertEquals(subjectsList, streamState.getSubjects().size());
-        assertEquals(filteredCount, streamState.getSubjects().size());
+        if (subjectsList == 0) {
+            assertNull(streamState.getSubjects());
+        }
+        else {
+            assertNotNull(streamState.getSubjects());
+            assertEquals(subjectsList, streamState.getSubjects().size());
+            assertEquals(filteredCount, streamState.getSubjects().size());
+        }
         assertEquals(subjectCount, streamState.getSubjectCount());
     }
 

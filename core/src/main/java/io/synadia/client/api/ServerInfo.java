@@ -1,8 +1,8 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonParseException;
-import io.synadia.client.support.JsonParser;
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonValue;
 import io.synadia.client.support.ServerVersion;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -10,8 +10,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.*;
 import static io.synadia.client.support.NatsConstants.UNDEFINED;
 
 /**
@@ -46,8 +46,8 @@ public class ServerInfo {
     private final String cluster;
 
     /**
-     * Construct a ServerInfo instance from json
-     * @param json the json
+     * Construct a ServerInfo instance from JSON
+     * @param json the JSON
      */
     public ServerInfo(String json) {
         // INFO<sp>{ INFO<\t>{ or {
@@ -68,20 +68,20 @@ public class ServerInfo {
         version = readString(jv, VERSION, "0.0.0");
         go = readString(jv, GO, "0.0.0");
         host = readString(jv, HOST, UNDEFINED);
-        headersSupported = readBoolean(jv, HEADERS);
-        authRequired = readBoolean(jv, AUTH_REQUIRED);
+        headersSupported = readBoolean(jv, HEADERS, false);
+        authRequired = readBoolean(jv, AUTH_REQUIRED, false);
         nonce = readBytes(jv, NONCE);
-        tlsRequired = readBoolean(jv, TLS_REQUIRED);
-        tlsAvailable = readBoolean(jv, TLS_AVAILABLE);
-        lameDuckMode = readBoolean(jv, LAME_DUCK_MODE);
-        jetStream = readBoolean(jv, JETSTREAM);
+        tlsRequired = readBoolean(jv, TLS_REQUIRED, false);
+        tlsAvailable = readBoolean(jv, TLS_AVAILABLE, false);
+        lameDuckMode = readBoolean(jv, LAME_DUCK_MODE, false);
+        jetStream = readBoolean(jv, JETSTREAM, false);
         port = readInteger(jv, PORT, 0);
         protocolVersion = readInteger(jv, PROTO, 0);
         maxPayload = readLong(jv, MAX_PAYLOAD, 0);
         clientId = readInteger(jv, CLIENT_ID, 0);
         clientIp = readString(jv, CLIENT_IP, "0.0.0.0");
         cluster = readString(jv, CLUSTER);
-        connectURLs = readStringListIgnoreEmpty(jv, CONNECT_URLS);
+        connectURLs = readStringListOrEmpty(jv, CONNECT_URLS, true);
     }
 
     /**

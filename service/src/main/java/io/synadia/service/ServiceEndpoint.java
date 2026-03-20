@@ -1,7 +1,7 @@
 package io.synadia.service;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.Dispatcher;
-import io.synadia.client.support.JsonValue;
 import io.synadia.client.support.Validator;
 
 import java.util.Map;

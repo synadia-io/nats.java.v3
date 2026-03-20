@@ -1,18 +1,18 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonValue;
 import io.synadia.client.Message;
 import io.synadia.client.support.DateTimeUtils;
-import io.synadia.client.support.JsonValue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 
+import static io.nats.json.JsonParser.parseUnchecked;
+import static io.nats.json.JsonValueUtils.readDate;
+import static io.nats.json.JsonValueUtils.readValue;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonParser.parseUnchecked;
-import static io.synadia.client.support.JsonValueUtils.readDate;
-import static io.synadia.client.support.JsonValueUtils.readValue;
 import static io.synadia.client.support.NatsConstants.UNDEFINED;
 
 /**

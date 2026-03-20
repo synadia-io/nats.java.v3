@@ -2,12 +2,12 @@ package io.synadia.client.api;
 
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.Message;
-import io.synadia.client.support.JsonValueUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 
+import static io.nats.json.JsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
 
 /**
@@ -33,19 +33,19 @@ public class PublishAck extends ApiResponse<PublishAck> {
     public PublishAck(Message msg) throws IOException, JetStreamApiException {
         super(msg);
         throwOnHasError();
-        stream = JsonValueUtils.readString(jv, STREAM);
+        stream = readString(jv, STREAM);
         if (stream == null) {
             throw new IOException("Invalid JetStream ack.");
         }
-        seq = JsonValueUtils.readLong(jv, SEQ, -1);
+        seq = readLong(jv, SEQ, -1);
         if (seq < 0) {
             throw new IOException("Invalid JetStream ack.");
         }
-        domain = JsonValueUtils.readString(jv, DOMAIN);
-        duplicate = JsonValueUtils.readBoolean(jv, DUPLICATE);
-        val = JsonValueUtils.readString(jv, VAL);
-        batchId = JsonValueUtils.readString(jv, BATCH);
-        batchSize = JsonValueUtils.readInteger(jv, COUNT, -1);
+        domain = readString(jv, DOMAIN);
+        duplicate = readBoolean(jv, DUPLICATE, false);
+        val = readString(jv, VAL);
+        batchId = readString(jv, BATCH);
+        batchSize = readInteger(jv, COUNT, -1);
     }
 
     /**

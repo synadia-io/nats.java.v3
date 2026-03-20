@@ -13,14 +13,14 @@
 
 package io.synadia.examples.service;
 
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
+import io.nats.json.MapBuilder;
 import io.synadia.client.ErrorListener;
 import io.synadia.client.Message;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
 import io.synadia.service.*;
 import org.jspecify.annotations.NonNull;
 
@@ -193,7 +193,7 @@ public class ServiceExample {
     }
 
     private static JsonValue replyBody(String label, byte[] data, String handlerId) {
-        return JsonValueUtils.mapBuilder()
+        return MapBuilder.instance()
             .put(label, new String(data))
             .put("hid", handlerId)
             .toJsonValue();

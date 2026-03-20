@@ -1,6 +1,6 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
+import io.nats.json.JsonValue;
 
 /**
  * Mirror Information. Maintains a 1:1 mirror of another stream with name matching this property.

@@ -1,9 +1,13 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.PullSubscribeOptions;
 import io.synadia.client.PushSubscribeOptions;
-import io.synadia.client.support.*;
+import io.synadia.client.support.ApiConstants;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -11,10 +15,9 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.beginJson;
-import static io.synadia.client.support.JsonUtils.endJson;
-import static io.synadia.client.support.JsonValueUtils.*;
 import static io.synadia.client.support.NatsJetStreamClientError.JsConsumerNameDurableMismatch;
 import static io.synadia.client.support.Validator.*;
 
@@ -219,47 +222,47 @@ public class ConsumerConfiguration implements JsonSerializable {
     @NonNull
 	public String toJson() {
         StringBuilder sb = beginJson();
-        JsonUtils.addField(sb, DESCRIPTION, description);
-        JsonUtils.addField(sb, DURABLE_NAME, durable);
-        JsonUtils.addField(sb, NAME, name);
-        JsonUtils.addField(sb, DELIVER_SUBJECT, deliverSubject);
-        JsonUtils.addField(sb, DELIVER_GROUP, deliverGroup);
-        JsonUtils.addField(sb, DELIVER_POLICY, GetOrDefault(deliverPolicy).toString());
-        JsonUtils.addFieldWhenGtZero(sb, OPT_START_SEQ, startSeq);
-        JsonUtils.addField(sb, OPT_START_TIME, startTime);
-        JsonUtils.addField(sb, ACK_POLICY, GetOrDefault(ackPolicy).toString());
-        JsonUtils.addFieldAsNanos(sb, ACK_WAIT, ackWait);
-        JsonUtils.addFieldWhenGtZero(sb, MAX_DELIVER, maxDeliver);
-        JsonUtils.addField(sb, MAX_ACK_PENDING, maxAckPending);
-        JsonUtils.addField(sb, REPLAY_POLICY, GetOrDefault(replayPolicy).toString());
-        JsonUtils.addField(sb, SAMPLE_FREQ, sampleFrequency);
-        JsonUtils.addFieldWhenGtZero(sb, RATE_LIMIT_BPS, rateLimit);
-        JsonUtils.addFieldAsNanos(sb, IDLE_HEARTBEAT, idleHeartbeat);
-        JsonUtils.addFldWhenTrue(sb, FLOW_CONTROL, flowControl);
-        JsonUtils.addField(sb, ApiConstants.MAX_WAITING, maxPullWaiting);
-        JsonUtils.addFldWhenTrue(sb, HEADERS_ONLY, headersOnly);
-        JsonUtils.addField(sb, MAX_BATCH, maxBatch);
-        JsonUtils.addField(sb, MAX_BYTES, maxBytes);
-        JsonUtils.addFieldAsNanos(sb, MAX_EXPIRES, maxExpires);
-        JsonUtils.addFieldAsNanos(sb, INACTIVE_THRESHOLD, inactiveThreshold);
-        JsonUtils.addDurations(sb, BACKOFF, backoff);
-        JsonUtils.addField(sb, NUM_REPLICAS, numReplicas);
-        JsonUtils.addField(sb, PAUSE_UNTIL, pauseUntil);
-        JsonUtils.addField(sb, MEM_STORAGE, memStorage);
-        JsonUtils.addField(sb, METADATA, metadata);
+        addField(sb, DESCRIPTION, description);
+        addField(sb, DURABLE_NAME, durable);
+        addField(sb, NAME, name);
+        addField(sb, DELIVER_SUBJECT, deliverSubject);
+        addField(sb, DELIVER_GROUP, deliverGroup);
+        addField(sb, DELIVER_POLICY, GetOrDefault(deliverPolicy).toString());
+        addFieldWhenGtZero(sb, OPT_START_SEQ, startSeq);
+        addField(sb, OPT_START_TIME, startTime);
+        addField(sb, ACK_POLICY, GetOrDefault(ackPolicy).toString());
+        addFieldAsNanos(sb, ACK_WAIT, ackWait);
+        addFieldWhenGtZero(sb, MAX_DELIVER, maxDeliver);
+        addField(sb, MAX_ACK_PENDING, maxAckPending);
+        addField(sb, REPLAY_POLICY, GetOrDefault(replayPolicy).toString());
+        addField(sb, SAMPLE_FREQ, sampleFrequency);
+        addFieldWhenGtZero(sb, RATE_LIMIT_BPS, rateLimit);
+        addFieldAsNanos(sb, IDLE_HEARTBEAT, idleHeartbeat);
+        addField(sb, FLOW_CONTROL, flowControl);
+        addField(sb, ApiConstants.MAX_WAITING, maxPullWaiting);
+        addField(sb, HEADERS_ONLY, headersOnly);
+        addField(sb, MAX_BATCH, maxBatch);
+        addField(sb, MAX_BYTES, maxBytes);
+        addFieldAsNanos(sb, MAX_EXPIRES, maxExpires);
+        addFieldAsNanos(sb, INACTIVE_THRESHOLD, inactiveThreshold);
+        addDurations(sb, BACKOFF, backoff);
+        addField(sb, NUM_REPLICAS, numReplicas);
+        addField(sb, PAUSE_UNTIL, pauseUntil);
+        addField(sb, MEM_STORAGE, memStorage);
+        addField(sb, METADATA, metadata);
         if (filterSubjects != null) {
             if (filterSubjects.size() > 1) {
-                JsonUtils.addStrings(sb, FILTER_SUBJECTS, filterSubjects);
+                addStrings(sb, FILTER_SUBJECTS, filterSubjects);
             }
             else if (filterSubjects.size() == 1) {
-                JsonUtils.addField(sb, FILTER_SUBJECT, filterSubjects.get(0));
+                addField(sb, FILTER_SUBJECT, filterSubjects.get(0));
             }
         }
-        JsonUtils.addStrings(sb, PRIORITY_GROUPS, priorityGroups);
+        addStrings(sb, PRIORITY_GROUPS, priorityGroups);
         if (priorityPolicy != null && priorityPolicy != DEFAULT_PRIORITY_POLICY) {
-            JsonUtils.addField(sb, PRIORITY_POLICY, priorityPolicy.toString());
+            addField(sb, PRIORITY_POLICY, priorityPolicy.toString());
         }
-        JsonUtils.addFieldAsNanos(sb, PRIORITY_TIMEOUT, priorityTimeout);
+        addFieldAsNanos(sb, PRIORITY_TIMEOUT, priorityTimeout);
 
         return endJson(sb).toString();
     }
@@ -862,9 +865,9 @@ public class ConsumerConfiguration implements JsonSerializable {
             deliverGroup(readString(jsonValue, DELIVER_GROUP));
             sampleFrequency(readString(jsonValue, SAMPLE_FREQ));
             startTime(readDate(jsonValue, OPT_START_TIME));
-            ackWait(readNanos(jsonValue, ACK_WAIT));
-            maxExpires(readNanos(jsonValue, MAX_EXPIRES));
-            inactiveThreshold(readNanos(jsonValue, INACTIVE_THRESHOLD));
+            ackWait(readNanosAsDuration(jsonValue, ACK_WAIT));
+            maxExpires(readNanosAsDuration(jsonValue, MAX_EXPIRES));
+            inactiveThreshold(readNanosAsDuration(jsonValue, INACTIVE_THRESHOLD));
 
             startSequence(readLong(jsonValue, OPT_START_SEQ));
             maxDeliver(readLong(jsonValue, MAX_DELIVER, INTEGER_UNSET));
@@ -886,7 +889,7 @@ public class ConsumerConfiguration implements JsonSerializable {
 
             pauseUntil(readDate(jsonValue, PAUSE_UNTIL));
 
-            Duration idleHeartbeat = readNanos(jsonValue, IDLE_HEARTBEAT);
+            Duration idleHeartbeat = readNanosAsDuration(jsonValue, IDLE_HEARTBEAT);
             if (idleHeartbeat != null) {
                 if (readBoolean(jsonValue, FLOW_CONTROL, false)) {
                     flowControl(idleHeartbeat);
@@ -896,25 +899,25 @@ public class ConsumerConfiguration implements JsonSerializable {
                 }
             }
 
-            headersOnly(readBoolean(jsonValue, HEADERS_ONLY, null));
-            memStorage(readBoolean(jsonValue, MEM_STORAGE, null));
+            headersOnly(readBoolean(jsonValue, HEADERS_ONLY));
+            memStorage(readBoolean(jsonValue, MEM_STORAGE));
 
-            //noinspection DataFlowIssue readNanosList with false ensures not null;
-            backoff(readNanosList(jsonValue, BACKOFF, false).toArray(new Duration[0]));
+            List<Duration> bo = readNanosAsDurationListOrNull(jsonValue, BACKOFF);
+            backoff(bo == null ? null : bo.toArray(new Duration[0]));
 
-            metadata(readStringStringMap(jsonValue, METADATA));
+            metadata(readStringMapOrNull(jsonValue, METADATA));
 
             String fs = emptyAsNull(readString(jsonValue, FILTER_SUBJECT));
             if (fs == null) {
-                filterSubjects(readOptionalStringList(jsonValue, FILTER_SUBJECTS));
+                filterSubjects(readStringListOrNull(jsonValue, FILTER_SUBJECTS));
             }
             else {
                 filterSubject(fs);
             }
 
-            priorityGroups(readOptionalStringList(jsonValue, PRIORITY_GROUPS));
+            priorityGroups(readStringListOrNull(jsonValue, PRIORITY_GROUPS));
             priorityPolicy(PriorityPolicy.get(readString(jsonValue, PRIORITY_POLICY)));
-            priorityTimeout(readNanos(jsonValue, PRIORITY_TIMEOUT));
+            priorityTimeout(readNanosAsDuration(jsonValue, PRIORITY_TIMEOUT));
 
             return this;
         }

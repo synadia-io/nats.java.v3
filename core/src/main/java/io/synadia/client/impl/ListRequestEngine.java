@@ -7,8 +7,8 @@ import io.synadia.client.api.Error;
 
 import java.nio.charset.StandardCharsets;
 
+import static io.nats.json.JsonValueUtils.readInteger;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.readInteger;
 
 class ListRequestEngine extends ApiResponse<ListRequestEngine> {
 

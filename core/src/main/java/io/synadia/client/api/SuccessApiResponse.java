@@ -2,8 +2,8 @@ package io.synadia.client.api;
 
 import io.synadia.client.Message;
 
+import static io.nats.json.JsonValueUtils.readBoolean;
 import static io.synadia.client.support.ApiConstants.SUCCESS;
-import static io.synadia.client.support.JsonValueUtils.readBoolean;
 
 /**
  * A response indicating a successful api call
@@ -17,13 +17,10 @@ public class SuccessApiResponse extends ApiResponse<SuccessApiResponse> {
      */
     public SuccessApiResponse(Message msg) {
         super(msg);
-        Boolean b = readBoolean(jv, SUCCESS, null);
-        if (b == null) {
-            success = !hasError();
-        }
-        else {
-            success = b;
-        }
+        // not all success responses work the same
+        // some just error, some actually return the flag.
+        Boolean b = readBoolean(jv, SUCCESS);
+        success = b == null ? !hasError() : b;
     }
 
     /**

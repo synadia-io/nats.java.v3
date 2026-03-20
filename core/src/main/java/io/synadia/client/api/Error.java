@@ -1,11 +1,13 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
+import io.nats.json.MapBuilder;
 import io.synadia.client.support.Status;
 import org.jspecify.annotations.NonNull;
 
+import static io.nats.json.JsonValueUtils.readInteger;
+import static io.nats.json.JsonValueUtils.readString;
 import static io.synadia.client.support.ApiConstants.*;
 
 /**
@@ -33,7 +35,7 @@ public class Error implements JsonSerializable {
     }
 
     Error(int code, int apiErrorCode, String desc) {
-        jv = JsonValueUtils.mapBuilder()
+        jv = new MapBuilder()
             .put(CODE, code)
             .put(ERR_CODE, apiErrorCode)
             .put(DESCRIPTION, desc)
@@ -57,7 +59,7 @@ public class Error implements JsonSerializable {
      * @return the code
      */
     public int getCode() {
-        return JsonValueUtils.readInteger(jv, CODE, NOT_SET);
+        return readInteger(jv, CODE, NOT_SET);
     }
 
     /**
@@ -65,7 +67,7 @@ public class Error implements JsonSerializable {
      * @return the code
      */
     public int getApiErrorCode() {
-        return JsonValueUtils.readInteger(jv, ERR_CODE, NOT_SET);
+        return readInteger(jv, ERR_CODE, NOT_SET);
     }
 
     /**
@@ -74,7 +76,8 @@ public class Error implements JsonSerializable {
      */
     @NonNull
     public String getDescription() {
-        return JsonValueUtils.readString(jv, DESCRIPTION, "Unknown JetStream Error");
+        String s = readString(jv, DESCRIPTION);
+        return s == null ? "Unknown JetStream Error" : s;
     }
 
     @Override
@@ -100,13 +103,11 @@ public class Error implements JsonSerializable {
      */
     @NonNull
     public static Error convert(Status status) {
-        switch (status.getCode()) {
-            case 404:
-                return JsNoMessageFoundErr;
-            case 408:
-                return JsBadRequestErr;
-        }
-        return new Error(status.getCode(), NOT_SET, status.getMessage());
+        return switch (status.getCode()) {
+            case 404 -> JsNoMessageFoundErr;
+            case 408 -> JsBadRequestErr;
+            default -> new Error(status.getCode(), NOT_SET, status.getMessage());
+        };
     }
 
     /**

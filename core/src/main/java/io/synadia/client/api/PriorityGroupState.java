@@ -1,15 +1,16 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonValue;
+import io.nats.json.JsonValueUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 
+import static io.nats.json.JsonValueUtils.listOfOrNull;
+import static io.nats.json.JsonValueUtils.readDate;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonValueUtils.readDate;
 
 /**
  * Status of a specific consumer priority group
@@ -20,7 +21,7 @@ public class PriorityGroupState {
     private final ZonedDateTime pinnedTime;
 
     static List<PriorityGroupState> optionalListOf(JsonValue vpgStates) {
-        return JsonValueUtils.optionalListOf(vpgStates, PriorityGroupState::new);
+        return listOfOrNull(vpgStates, PriorityGroupState::new);
     }
 
     PriorityGroupState(JsonValue vpgState) {

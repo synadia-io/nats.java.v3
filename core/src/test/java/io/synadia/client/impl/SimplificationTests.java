@@ -1,5 +1,6 @@
 package io.synadia.client.impl;
 
+import io.nats.json.JsonParser;
 import io.synadia.client.*;
 import io.synadia.client.api.*;
 import io.synadia.client.support.*;

@@ -1,8 +1,8 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
-import io.synadia.client.support.JsonValueUtils;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
+import io.nats.json.MapBuilder;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -31,7 +31,7 @@ public abstract class FeatureConfiguration implements JsonSerializable {
     @Override
     @NonNull
     public JsonValue toJsonValue() {
-        JsonValueUtils.MapBuilder mb = new JsonValueUtils.MapBuilder();
+        MapBuilder mb = new MapBuilder();
         mb.put("name", bucketName);
         mb.put("description", getDescription());
         mb.put("maxBucketSize", getMaxBucketSize());

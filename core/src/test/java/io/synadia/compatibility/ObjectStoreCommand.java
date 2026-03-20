@@ -1,12 +1,12 @@
 package io.synadia.compatibility;
 
+import io.nats.json.JsonValueUtils;
 import io.synadia.client.ObjectStore;
 import io.synadia.client.ObjectStoreManagement;
 import io.synadia.client.api.*;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsObjectStoreWatchSubscription;
 import io.synadia.client.support.ApiConstants;
-import io.synadia.client.support.JsonValueUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static io.nats.json.JsonValueUtils.readNanosAsDuration;
 import static io.synadia.client.support.Encoding.base64UrlDecode;
 
 public class ObjectStoreCommand extends Command {
@@ -246,7 +247,7 @@ public class ObjectStoreCommand extends Command {
             if (l != null) {
                 builder.maxBucketSize(l);
             }
-            Duration d = JsonValueUtils.readNanos(config, ApiConstants.MAX_AGE);
+            Duration d = readNanosAsDuration(config, ApiConstants.MAX_AGE);
             if (d != null) {
                 builder.ttl(d);
             }

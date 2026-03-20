@@ -1,15 +1,20 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonValue;
+import io.nats.json.MapBuilder;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.Message;
-import io.synadia.client.support.*;
+import io.synadia.client.support.DateTimeUtils;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.toKey;
 import static io.synadia.client.support.ApiConstants.ERROR;
 import static io.synadia.client.support.ApiConstants.TYPE;
-import static io.synadia.client.support.JsonValueUtils.*;
 
 /**
  * ApiResponse is the base class for all api responses from the server
@@ -56,7 +61,7 @@ public abstract class ApiResponse<T> {
             return JsonParser.parse(msg.getData());
         }
         catch (JsonParseException e) {
-            return JsonValueUtils.mapBuilder()
+            return new MapBuilder()
                 .put(ERROR, new Error(500, "Error parsing: " + e.getMessage()))
                 .put(TYPE, PARSE_ERROR_TYPE)
                 .toJsonValue();
@@ -242,7 +247,7 @@ public abstract class ApiResponse<T> {
     @Override
     public String toString() {
         return jv == null
-            ? JsonUtils.toKey(getClass()) + "\":null"
+            ? toKey(getClass()) + "\":null"
             : jv.toString(getClass());
     }
 }

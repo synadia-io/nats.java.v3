@@ -2,10 +2,10 @@ package io.synadia.client.api;
 
 import io.synadia.client.Message;
 
+import static io.nats.json.JsonValueUtils.readBoolean;
+import static io.nats.json.JsonValueUtils.readLong;
 import static io.synadia.client.support.ApiConstants.PURGED;
 import static io.synadia.client.support.ApiConstants.SUCCESS;
-import static io.synadia.client.support.JsonValueUtils.readBoolean;
-import static io.synadia.client.support.JsonValueUtils.readLong;
 
 /**
  * The response to a request to Purge a stream
@@ -21,7 +21,7 @@ public class PurgeResponse extends ApiResponse<PurgeResponse> {
      */
     public PurgeResponse(Message msg) {
         super(msg);
-        success = readBoolean(jv, SUCCESS);
+        success = readBoolean(jv, SUCCESS, false);
         purged = readLong(jv, PURGED, 0);
     }
 

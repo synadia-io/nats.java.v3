@@ -1,18 +1,15 @@
 package io.synadia.client;
 
+import io.nats.json.JsonParseException;
+import io.nats.json.JsonParser;
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.api.PriorityPolicy;
-import io.synadia.client.support.JsonParseException;
-import io.synadia.client.support.JsonParser;
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonValue;
 import org.jspecify.annotations.NonNull;
 
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.JsonUtils.*;
-import static io.synadia.client.support.JsonValueUtils.*;
-import static io.synadia.client.support.JsonValueUtils.readBoolean;
-import static io.synadia.client.support.JsonValueUtils.readInteger;
-import static io.synadia.client.support.JsonValueUtils.readLong;
 
 /**
  * Base Consume Options are provided to customize the way the consume and
@@ -82,7 +79,7 @@ public class BaseConsumeOptions implements JsonSerializable {
         addField(sb, PRIORITY, priority);
         addField(sb, MIN_PENDING, minPending);
         addField(sb, MIN_ACK_PENDING, minAckPending);
-        addFldWhenTrue(sb, RAISE_STATUS_WARNINGS, raiseStatusWarnings);
+        addField(sb, RAISE_STATUS_WARNINGS, raiseStatusWarnings);
         subclassSpecificToJson(sb);
         return endJson(sb).toString();
     }
@@ -190,7 +187,8 @@ public class BaseConsumeOptions implements JsonSerializable {
             expiresIn(readLong(jsonValue, EXPIRES_IN, DEFAULT_EXPIRES_IN_MILLIS));
             thresholdPercent(readInteger(jsonValue, THRESHOLD_PERCENT, -1));
             raiseStatusWarnings(readBoolean(jsonValue, RAISE_STATUS_WARNINGS, false));
-            group(readStringEmptyAsNull(jsonValue, GROUP));
+            String g = readString(jsonValue, GROUP);
+            group(g == null || g.isEmpty() ? null : g);
             priority(readInteger(jsonValue, PRIORITY, 0));
             minPending(readLong(jsonValue, MIN_PENDING, -1));
             minAckPending(readLong(jsonValue, MIN_ACK_PENDING, -1));

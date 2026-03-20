@@ -107,8 +107,9 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             sc = si.getConfiguration();
             assertEquals(ctx.stream, sc.getName());
 
+            assertNotNull(sc.getSubjects());
             assertEquals(1, sc.getSubjects().size());
-            assertEquals(ctx.stream, sc.getSubjects().get(0));
+            assertEquals(ctx.stream, sc.getSubjects().getFirst());
 
             assertEquals(RetentionPolicy.Limits, sc.getRetentionPolicy());
             assertEquals(DiscardPolicy.Old, sc.getDiscardPolicy());
@@ -255,7 +256,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertThrows(JetStreamApiException.class, () -> ctx.jsm.updateStream(sc));
 
             // add the stream
-            StreamInfo si = ctx.createOrReplaceStream(sc);
+            ctx.createOrReplaceStream(sc);
 
             // cannot change storage type
             StreamConfiguration scMemToFile = ctx.scBuilder(2)
@@ -301,10 +302,10 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             StreamInfo si = ctx.jsm.getStreamInfo(ctx.stream);
             assertEquals(ctx.stream, si.getConfiguration().getName());
             assertEquals(0, si.getStreamState().getSubjectCount());
-            assertEquals(0, si.getStreamState().getSubjects().size());
+            assertNull(si.getStreamState().getSubjects());
             assertEquals(0, si.getStreamState().getDeletedCount());
-            assertEquals(0, si.getStreamState().getDeleted().size());
-            assertTrue(si.getStreamState().getSubjectMap().isEmpty());
+            assertNull(si.getStreamState().getDeleted());
+            assertNull(si.getStreamState().getSubjectMap());
 
             if (nc.getServerInfo().isOlderThanVersion("2.10")) {
                 assertNull(si.getTimestamp());
@@ -326,10 +327,10 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             si = ctx.jsm.getStreamInfo(ctx.stream);
             assertEquals(ctx.stream, si.getConfiguration().getName());
             assertEquals(6, si.getStreamState().getSubjectCount());
-            assertEquals(0, si.getStreamState().getSubjects().size());
+            assertNull(si.getStreamState().getSubjects());
             assertEquals(5, si.getStreamState().getDeletedCount());
-            assertEquals(0, si.getStreamState().getDeleted().size());
-            assertTrue(si.getStreamState().getSubjectMap().isEmpty());
+            assertNull(si.getStreamState().getDeleted());
+            assertNull(si.getStreamState().getSubjectMap());
 
             si = ctx.jsm.getStreamInfo(ctx.stream, StreamInfoOptions.builder().allSubjects().deletedDetails().build());
             assertEquals(ctx.stream, si.getConfiguration().getName());
@@ -337,6 +338,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             List<Subject> list = si.getStreamState().getSubjects();
             assertNotNull(list);
             assertEquals(5, si.getStreamState().getDeletedCount());
+            assertNotNull(si.getStreamState().getDeleted());
             assertEquals(5, si.getStreamState().getDeleted().size());
             assertEquals(6, list.size());
             Map<String, Subject> map = new HashMap<>();
@@ -351,6 +353,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             Subject sf = map.get(subjectIx5 + ".bar");
             assertNotNull(sf);
             assertEquals(6, sf.getCount());
+            assertNotNull(si.getStreamState().getSubjectMap());
             assertEquals(6, si.getStreamState().getSubjectMap().size());
 
             for (PublishAck pa : packs) {

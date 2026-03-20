@@ -1,5 +1,6 @@
 package io.synadia.client.support;
 
+import io.nats.json.JsonSerializable;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.JetStreamManagement;
 import io.synadia.client.Message;
@@ -16,8 +17,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import static io.nats.json.JsonWriteUtils.getFormatted;
 import static io.synadia.client.support.DateTimeUtils.toRfc3339;
-import static io.synadia.client.support.JsonUtils.getFormatted;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 // MODIFIED 2/8/2026

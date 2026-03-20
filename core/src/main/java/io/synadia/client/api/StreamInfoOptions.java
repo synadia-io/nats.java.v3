@@ -1,12 +1,12 @@
 package io.synadia.client.api;
 
-import io.synadia.client.support.JsonSerializable;
+import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.support.ApiConstants.DELETED_DETAILS;
 import static io.synadia.client.support.ApiConstants.SUBJECTS_FILTER;
-import static io.synadia.client.support.JsonUtils.*;
 import static io.synadia.client.support.NatsConstants.GREATER_THAN;
 import static io.synadia.client.support.Validator.emptyAsNull;
 
@@ -77,7 +77,7 @@ public class StreamInfoOptions implements JsonSerializable {
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, SUBJECTS_FILTER, subjectsFilter);
-        addFldWhenTrue(sb, DELETED_DETAILS, deletedDetails);
+        addField(sb, DELETED_DETAILS, deletedDetails);
         return endJson(sb).toString();
     }
 

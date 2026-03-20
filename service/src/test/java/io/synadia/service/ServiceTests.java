@@ -1,13 +1,12 @@
 package io.synadia.service;
 
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.Options;
 import io.synadia.client.impl.*;
 import io.synadia.client.support.DateTimeUtils;
-import io.synadia.client.support.JsonSerializable;
-import io.synadia.client.support.JsonUtils;
-import io.synadia.client.support.JsonValue;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
@@ -24,10 +23,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.nats.json.JsonValueUtils.readInteger;
+import static io.nats.json.JsonValueUtils.readString;
+import static io.nats.json.JsonWriteUtils.toKey;
 import static io.synadia.client.impl.NatsPackageScopeWorkarounds.getDispatchers;
-import static io.synadia.client.support.JsonUtils.toKey;
-import static io.synadia.client.support.JsonValueUtils.readInteger;
-import static io.synadia.client.support.JsonValueUtils.readString;
 import static io.synadia.client.support.NatsConstants.DOT;
 import static io.synadia.client.support.NatsConstants.EMPTY;
 import static io.synadia.client.utils.OptionsUtils.options;
@@ -1085,14 +1084,14 @@ public class ServiceTests extends JetStreamTestBase {
 
         e = new Endpoint(name, subject, metadata);
         assertEpNameSubQ(e, name, subject);
-        assertTrue(JsonUtils.mapEquals(metadata, e.getMetadata()));
+        assertTrue(Objects.equals(metadata, e.getMetadata()));
 
         e = Endpoint.builder()
             .name(name).subject(subject)
             .metadata(metadata)
             .build();
         assertEpNameSubQ(e, name, subject);
-        assertTrue(JsonUtils.mapEquals(metadata, e.getMetadata()));
+        assertTrue(Objects.equals(metadata, e.getMetadata()));
 
         // internal allows null queue group
         e = new Endpoint(name, subject, null, metadata, false);
@@ -1107,7 +1106,7 @@ public class ServiceTests extends JetStreamTestBase {
         // coverage
         e = new Endpoint(name, subject, metadata);
         assertEpNameSubQ(e, name, subject);
-        assertTrue(JsonUtils.mapEquals(metadata, e.getMetadata()));
+        assertTrue(Objects.equals(metadata, e.getMetadata()));
         assertThrows(IllegalArgumentException.class, () -> Endpoint.builder().build());
 
         // many names are bad and is required
@@ -1325,7 +1324,7 @@ public class ServiceTests extends JetStreamTestBase {
             .endpointMetadata(metadata)
             .handler(smh)
             .build();
-        assertTrue(JsonUtils.mapEquals(metadata, se.getMetadata()));
+        assertTrue(Objects.equals(metadata, se.getMetadata()));
 
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
             () -> ServiceEndpoint.builder().build());
@@ -1533,7 +1532,7 @@ public class ServiceTests extends JetStreamTestBase {
         @Override
         @NonNull
         public String toJson() {
-            return JsonUtils.toKey(getClass()) + toJsonValue().toJson();
+            return toKey(getClass()) + toJsonValue().toJson();
         }
 
         @Override
