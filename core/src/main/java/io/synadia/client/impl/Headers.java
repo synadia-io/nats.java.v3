@@ -496,7 +496,6 @@ public class Headers {
 	/**
 	 * Write the header to the byte array. Assumes that the caller has
 	 * already validated that the destination array is large enough by using {@link #serializedLength()}.
-	 * <p>deprecated {@link String#getBytes(int, int, byte[], int)} is used, because it still exists in JDK 25
 	 * and is 10–30 times faster than {@code getBytes(ISO_8859_1/US_ASCII)}/
 	 * @param destPosition the position index in destination byte array to start
 	 * @param dest the byte array to write to
@@ -509,15 +508,15 @@ public class Headers {
 		for (Map.Entry<String, List<String>> entry : valuesMap.entrySet()) {
 			String key = entry.getKey();
 			for (String value : entry.getValue()) {
-                //noinspection deprecation
-                key.getBytes(0, key.length(), dest, destPosition);// key has only US_ASCII
-				destPosition += key.length();
+				for (int i = 0; i < key.length(); i++) {
+					dest[destPosition++] = (byte) key.charAt(i); // only US_ASCII in key
+				}
 
 				dest[destPosition++] = COLON;
 
-				//noinspection deprecation
-				value.getBytes(0, value.length(), dest, destPosition);
-				destPosition += value.length();
+				for (int i = 0; i < value.length(); i++) {
+					dest[destPosition++] = (byte) value.charAt(i); // only US_ASCII in value
+				}
 
 				dest[destPosition++] = CR;
 				dest[destPosition++] = LF;
