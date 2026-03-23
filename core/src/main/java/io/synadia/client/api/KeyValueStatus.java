@@ -96,8 +96,8 @@ public class KeyValueStatus {
      * Gets the maximum size for an individual value in the bucket.
      * @return the maximum size a value.
      */
-    public int getMaximumValueSize() {
-        return config.getMaximumValueSize();
+    public int getMaxValueSize() {
+        return config.getMaxValueSize();
     }
 
     /**

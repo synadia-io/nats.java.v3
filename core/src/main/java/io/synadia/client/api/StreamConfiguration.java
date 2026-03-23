@@ -74,7 +74,7 @@ public class StreamConfiguration implements JsonSerializable {
             .maxMessagesPerSubject(readLong(v, MAX_MSGS_PER_SUB, -1))
             .maxBytes(readLong(v, MAX_BYTES, -1))
             .maxAge(readNanosAsDuration(v, MAX_AGE))
-            .maximumMessageSize(readInteger(v, MAX_MSG_SIZE, -1))
+            .maxMsgSize(readInteger(v, MAX_MSG_SIZE, -1))
             .replicas(readInteger(v, NUM_REPLICAS, 1))
             .noAck(readBoolean(v, NO_ACK, false))
             .templateOwner(readString(v, TEMPLATE_OWNER))
@@ -314,7 +314,7 @@ public class StreamConfiguration implements JsonSerializable {
      * Gets the maximum message size for this stream configuration.
      * @return the maximum message size for this stream.
      */
-    public int getMaximumMessageSize() {
+    public int getMaxMsgSize() {
         return maxMsgSize;
     }
 
@@ -817,8 +817,8 @@ public class StreamConfiguration implements JsonSerializable {
          * @param maxMsgSize the maximum message size
          * @return The Builder
          */
-        public Builder maximumMessageSize(int maxMsgSize) {
-            this.maxMsgSize = (int)validateMaxMessageSize(maxMsgSize);
+        public Builder maxMsgSize(int maxMsgSize) {
+            this.maxMsgSize = validateMaxMessageSize(maxMsgSize);
             return this;
         }
 

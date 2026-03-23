@@ -51,7 +51,7 @@ public class KeyValueConfigurationTests extends JetStreamTestBase {
         assertEquals("bucketDesc", kvc.getDescription());
         assertEquals(44, kvc.getMaxHistoryPerKey());
         assertEquals(555, kvc.getMaxBucketSize());
-        assertEquals(666, kvc.getMaximumValueSize());
+        assertEquals(666, kvc.getMaxValueSize());
         assertEquals(Duration.ofMillis(777), kvc.getTtl());
         assertEquals(StorageType.Memory, kvc.getStorageType());
         assertEquals(2, kvc.getReplicas());

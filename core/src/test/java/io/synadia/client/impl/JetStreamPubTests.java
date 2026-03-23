@@ -440,7 +440,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
     public void testMaxPayloadJs() throws Exception {
         runInSharedCustom(optionsBuilder().noReconnect(), (nc, ctx) -> {
             long expectedSeq = 0;
-            StreamConfiguration.Builder builder = ctx.scBuilder().maximumMessageSize(1000);
+            StreamConfiguration.Builder builder = ctx.scBuilder().maxMsgSize(1000);
             ctx.createOrReplaceStream(builder);
             String subject0 = ctx.subject(0);
 

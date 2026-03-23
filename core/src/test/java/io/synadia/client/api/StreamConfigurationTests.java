@@ -161,7 +161,7 @@ public class StreamConfigurationTests extends JetStreamTestBase {
             .maxMessagesPerSubject(testSc.getMaxMsgsPerSubject())
             .maxBytes(testSc.getMaxBytes())
             .maxAge(testSc.getMaxAge())
-            .maximumMessageSize(testSc.getMaximumMessageSize())
+            .maxMsgSize(testSc.getMaxMsgSize())
             .storageType(testSc.getStorageType())
             .replicas(testSc.getReplicas())
             .noAck(testSc.getNoAck())
@@ -325,8 +325,8 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxBytes(-2));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxAge(Duration.ofNanos(-1)));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxAge(-1));
-        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maximumMessageSize(0));
-        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maximumMessageSize(-2));
+        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxMsgSize(0));
+        assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().maxMsgSize(-2));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().replicas(0));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().replicas(6));
         assertThrows(IllegalArgumentException.class, () -> StreamConfiguration.builder().duplicateWindow(Duration.ofNanos(-1)));
@@ -575,7 +575,7 @@ public class StreamConfigurationTests extends JetStreamTestBase {
         assertEquals(732, sc.getMaxBytes());
         assertEquals(Duration.ofNanos(43000000000L), sc.getMaxAge());
         assertEquals(Duration.ofNanos(42000000000L), sc.getDuplicateWindow());
-        assertEquals(734, sc.getMaximumMessageSize());
+        assertEquals(734, sc.getMaxMsgSize());
         assertEquals(StorageType.Memory, sc.getStorageType());
         assertSame(DiscardPolicy.New, sc.getDiscardPolicy());
 

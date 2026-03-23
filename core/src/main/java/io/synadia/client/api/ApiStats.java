@@ -35,7 +35,7 @@ public class ApiStats {
      * Total number of API requests received for this account
      * @return the total requests
      */
-    public long getTotalApiRequests() {
+    public long getTotal() {
         return total;
     }
 
@@ -43,7 +43,7 @@ public class ApiStats {
      * API requests that resulted in an error response
      * @return the error count
      */
-    public long getErrorCount() {
+    public long getErrors() {
         return errors;
     }
 

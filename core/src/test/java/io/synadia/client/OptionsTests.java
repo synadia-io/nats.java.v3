@@ -72,9 +72,9 @@ public class OptionsTests {
         assertEquals(Options.DEFAULT_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL, o.isDiscardMessagesWhenOutgoingQueueFull(),
             "default discard messages when outgoing queue full");
 
-        assertNull(o.getUsernameChars(), "default username");
-        assertNull(o.getPasswordChars(), "default password");
-        assertNull(o.getTokenChars(), "default token");
+        assertNull(o.getUsername(), "default username");
+        assertNull(o.getPassword(), "default password");
+        assertNull(o.getToken(), "default token");
         assertNull(o.getConnectionName(), "default connection name");
 
         assertNull(o.getSslContext(), "default ssl context");
@@ -118,7 +118,7 @@ public class OptionsTests {
     }
 
     private static void _testChainedBooleanOptions(Options o) {
-        assertNull(o.getUsernameChars(), "default username");
+        assertNull(o.getUsername(), "default username");
         assertTrue(o.isVerbose(), "chained verbose");
         assertTrue(o.isPedantic(), "chained pedantic");
         assertTrue(o.isNoRandomize(), "chained norandomize");
@@ -138,8 +138,8 @@ public class OptionsTests {
 
     private static void _testChainedStringOptions(Options o) {
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertArrayEquals("hello".toCharArray(), o.getUsernameChars(), "chained username");
-        assertArrayEquals("world".toCharArray(), o.getPasswordChars(), "chained password");
+        assertArrayEquals("hello".toCharArray(), o.getUsername(), "chained username");
+        assertArrayEquals("world".toCharArray(), o.getPassword(), "chained password");
         assertEquals("name", o.getConnectionName(), "chained connection name");
     }
 
@@ -387,7 +387,7 @@ public class OptionsTests {
     }
 
     private static void _testPropertiesBooleanBuilder(Options o) {
-        assertNull(o.getUsernameChars(), "default username chars");
+        assertNull(o.getUsername(), "default username chars");
         assertTrue(o.isVerbose(), "property verbose");
         assertTrue(o.isPedantic(), "property pedantic");
         assertTrue(o.isNoRandomize(), "property norandomize");
@@ -418,8 +418,8 @@ public class OptionsTests {
 
     private static void _testPropertiesStringOptions(Options o) {
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertArrayEquals("hello".toCharArray(), o.getUsernameChars(), "property username");
-        assertArrayEquals("world".toCharArray(), o.getPasswordChars(), "property password");
+        assertArrayEquals("hello".toCharArray(), o.getUsername(), "property username");
+        assertArrayEquals("world".toCharArray(), o.getPassword(), "property password");
         assertEquals("name", o.getConnectionName(), "property connection name");
     }
 
@@ -563,8 +563,8 @@ public class OptionsTests {
 
     private static void _testProperties(Options o) {
         assertEquals("name", o.getConnectionName());
-        assertNotNull(o.getUsernameChars());
-        assertEquals("user", new String(o.getUsernameChars()));
+        assertNotNull(o.getUsername());
+        assertEquals("user", new String(o.getUsername()));
         assertEquals(10, o.getMaxReconnect());
         assertEquals(11, o.getMaxMessagesInOutgoingQueue());
         assertEquals(2999999999L, o.getReconnectBufferSize());
@@ -818,7 +818,7 @@ public class OptionsTests {
 
         Options o = new Options.Builder(props).connectionName("newname").build();
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertArrayEquals("token".toCharArray(), o.getTokenChars(), "property token");
+        assertArrayEquals("token".toCharArray(), o.getToken(), "property token");
         assertEquals("newname", o.getConnectionName(), "property connection name");
     }
 
@@ -881,7 +881,7 @@ public class OptionsTests {
 
     // Test for auth handler from nkey, option JWT and user info
     @Test
-    public void testNKeyJWTAndUserInfoOptions() throws Exception {
+    public void testNKeyJWTAndUserInfoOptions() {
         // "jwt" is encoded from:
         // Header:    {"alg":"HS256"}
         // Payload:   {"jti":"","iat":2000000000,"iss":"","name":"user_jwt","sub":"","nats":{"pub":{"deny":[">"]},

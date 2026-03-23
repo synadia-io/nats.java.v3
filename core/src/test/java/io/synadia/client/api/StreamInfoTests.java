@@ -48,7 +48,7 @@ public class StreamInfoTests {
         assertEquals(1, sc.getMaxConsumers());
         assertEquals(2, sc.getMaxMsgs());
         assertEquals(3, sc.getMaxBytes());
-        assertEquals(4, sc.getMaximumMessageSize());
+        assertEquals(4, sc.getMaxMsgSize());
         assertEquals(5, sc.getReplicas());
 
         assertEquals(Duration.ofSeconds(100), sc.getMaxAge());
