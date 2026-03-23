@@ -25,8 +25,8 @@ public class AccountStatisticsTests extends JetStreamTestBase {
         assertEquals("ngs", as.getDomain());
 
         ApiStats api = as.getApi();
-        assertEquals(301, api.getTotalApiRequests());
-        assertEquals(302, api.getErrorCount());
+        assertEquals(301, api.getTotal());
+        assertEquals(302, api.getErrors());
         assertEquals(303, api.getLevel());
         assertEquals(304, api.getInFlight());
 
@@ -54,8 +54,8 @@ public class AccountStatisticsTests extends JetStreamTestBase {
 
         api = as.getApi();
         assertNotNull(api);
-        assertEquals(0, api.getTotalApiRequests());
-        assertEquals(0, api.getErrorCount());
+        assertEquals(0, api.getTotal());
+        assertEquals(0, api.getErrors());
         assertEquals(0, api.getLevel());
         assertEquals(0, api.getInFlight());
     }

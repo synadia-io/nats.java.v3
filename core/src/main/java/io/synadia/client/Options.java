@@ -2964,7 +2964,7 @@ public class Options {
      * the username to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
      * @return the username
      */
-    public char[] getUsernameChars() {
+    public char[] getUsername() {
         return username;
     }
 
@@ -2972,7 +2972,7 @@ public class Options {
      * the password to use for basic authentication, see {@link Builder#userInfo(String, String) userInfo()} in the builder doc
      * @return the password
      */
-    public char[] getPasswordChars() {
+    public char[] getPassword() {
         return password;
     }
 
@@ -2981,7 +2981,7 @@ public class Options {
      * generated from the token supplier if the user supplied one.
      * @return the token
      */
-    public char[] getTokenChars() {
+    public char[] getToken() {
         return tokenSupplier.get();
     }
 

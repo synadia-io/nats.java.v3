@@ -315,8 +315,8 @@ public class KeyValueTests extends JetStreamTestBase {
         assertEquals(3, kvc.getMaxHistoryPerKey());
         assertEquals(-1, status.getMaxBucketSize());
         assertEquals(-1, kvc.getMaxBucketSize());
-        assertEquals(-1, status.getMaximumValueSize());
-        assertEquals(-1, kvc.getMaximumValueSize());
+        assertEquals(-1, status.getMaxValueSize());
+        assertEquals(-1, kvc.getMaxValueSize());
         assertEquals(Duration.ZERO, status.getTtl());
         assertEquals(Duration.ZERO, kvc.getTtl());
         assertEquals(StorageType.Memory, status.getStorageType());
@@ -498,7 +498,7 @@ public class KeyValueTests extends JetStreamTestBase {
             assertNull(kvs.getDescription());
             assertEquals(1, kvs.getMaxHistoryPerKey());
             assertEquals(-1, kvs.getMaxBucketSize());
-            assertEquals(-1, kvs.getMaximumValueSize());
+            assertEquals(-1, kvs.getMaxValueSize());
             assertEquals(Duration.ZERO, kvs.getTtl());
             assertEquals(StorageType.Memory, kvs.getStorageType());
             assertEquals(1, kvs.getReplicas());
@@ -531,7 +531,7 @@ public class KeyValueTests extends JetStreamTestBase {
             assertEquals(desc, kvs.getDescription());
             assertEquals(3, kvs.getMaxHistoryPerKey());
             assertEquals(10_000, kvs.getMaxBucketSize());
-            assertEquals(100, kvs.getMaximumValueSize());
+            assertEquals(100, kvs.getMaxValueSize());
             assertEquals(Duration.ofHours(1), kvs.getTtl());
             assertEquals(StorageType.Memory, kvs.getStorageType());
             assertEquals(1, kvs.getReplicas());

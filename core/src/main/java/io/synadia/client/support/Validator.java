@@ -317,20 +317,12 @@ public abstract class Validator {
         return validateGtZeroOrMinus1(max, "Max Bucket Bytes"); // max bucket bytes is a kv alias to max bytes
     }
 
-    private static long validateMaxMessageSize(long max, String label) {
-        long l = validateGtZeroOrMinus1(max, label);
-        if (l > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException(label + " cannot be larger than " + Integer.MAX_VALUE);
-        }
-        return l;
+    public static int validateMaxMessageSize(int max) {
+        return validateGtZeroOrMinus1(max, "Max Message Size");
     }
 
-    public static long validateMaxMessageSize(long max) {
-        return validateMaxMessageSize(max, "Max Message Size");
-    }
-
-    public static long validateMaxValueSize(long max) {
-        return validateMaxMessageSize(max, "Max Value Size"); // max value size is a kv alias to max message size
+    public static int validateMaxValueSize(int max) {
+        return validateGtZeroOrMinus1(max, "Max Value Size"); // max value size is a kv alias to max message size
     }
 
     public static int validateNumberOfReplicas(int replicas) {
@@ -408,6 +400,13 @@ public abstract class Validator {
             throw new IllegalArgumentException(label + " must be greater than zero or -1 for unlimited");
         }
         return l;
+    }
+
+    public static int validateGtZeroOrMinus1(int i, String label) {
+        if (zeroOrLtMinus1(i)) {
+            throw new IllegalArgumentException(label + " must be greater than zero or -1 for unlimited");
+        }
+        return i;
     }
 
     public static long validateGtEqMinus1(long l, String label) {

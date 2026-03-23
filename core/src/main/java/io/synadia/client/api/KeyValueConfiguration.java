@@ -33,8 +33,8 @@ public class KeyValueConfiguration extends FeatureConfiguration {
      * Gets the maximum size for an individual value in the bucket.
      * @return the maximum size for a value.
      */
-    public int getMaximumValueSize() {
-        return sc.getMaximumMessageSize();
+    public int getMaxValueSize() {
+        return sc.getMaxMsgSize();
     }
 
     /**
@@ -85,7 +85,7 @@ public class KeyValueConfiguration extends FeatureConfiguration {
         mb.putEntries(super.toJsonValue().map);
         mb.jv.mapOrder.remove("metaData");
         mb.put("maxHistoryPerKey", getMaxHistoryPerKey());
-        mb.put("maxValueSize", getMaximumValueSize());
+        mb.put("maxValueSize", getMaxValueSize());
         mb.put("republish", getRepublish());
         mb.put("mirror", getMirror());
         mb.put("sources", getSources());
@@ -217,7 +217,7 @@ public class KeyValueConfiguration extends FeatureConfiguration {
          * @return Builder
          */
         public Builder maximumValueSize(int maxValueSize) {
-            scBuilder.maximumMessageSize((int)validateMaxValueSize(maxValueSize));
+            scBuilder.maxMsgSize(validateMaxValueSize(maxValueSize));
             return this;
         }
 
