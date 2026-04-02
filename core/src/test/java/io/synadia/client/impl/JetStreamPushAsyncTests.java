@@ -1,7 +1,11 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
+import io.synadia.client.Dispatcher;
+import io.synadia.client.JetStreamSubscription;
+import io.synadia.client.Message;
+import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 import io.synadia.client.support.Listener;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +15,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.support.NatsJetStreamConstants.*;
+import static io.synadia.client.support.JetStreamConstants.*;
 import static io.synadia.client.support.NatsKeyValueUtil.KV_OPERATION_HEADER_KEY;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;

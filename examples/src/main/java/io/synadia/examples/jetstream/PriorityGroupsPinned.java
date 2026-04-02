@@ -1,16 +1,16 @@
 package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.PriorityPolicy;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.support.NatsJetStreamConstants.NATS_PIN_ID_HDR;
+import static io.synadia.client.support.JetStreamConstants.NATS_PIN_ID_HDR;
 import static io.synadia.examples.jetstream.NatsJsUtils.createOrReplaceStream;
 
 /**

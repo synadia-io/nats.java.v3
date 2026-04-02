@@ -1,6 +1,11 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.api.*;
+import io.synadia.client.api.AckPolicy;
+import io.synadia.client.api.DeliverPolicy;
+import io.synadia.client.api.PriorityPolicy;
+import io.synadia.client.api.ReplayPolicy;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.js.consumer.ConsumerCreator;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -8,7 +13,6 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import static io.synadia.client.api.ConsumerConfiguration.*;
 import static io.synadia.client.support.NatsConstants.EMPTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,7 +33,7 @@ public class ConsumerConfigurationComparerTests extends TestBase {
         }
     }
 
-    private Builder builder(ConsumerConfiguration orig) {
+    private ConsumerCreator builder(ConsumerConfiguration orig) {
         return ConsumerConfiguration.builder(orig);
     }
 
@@ -99,19 +103,19 @@ public class ConsumerConfigurationComparerTests extends TestBase {
         assertNotChange(builder(orig).rateLimit(null).build(), orig);
         assertChange(builder(orig).rateLimit(1).build(), orig, "rateLimit");
 
-        assertNotChange(builder(orig).maxAckPending(LONG_UNSET).build(), orig);
+        assertNotChange(builder(orig).maxAckPending(UNSET).build(), orig);
         assertNotChange(builder(orig).maxAckPending(null).build(), orig);
         assertChange(builder(orig).maxAckPending(1).build(), orig, "maxAckPending");
 
-        assertNotChange(builder(orig).maxPullWaiting(LONG_UNSET).build(), orig);
+        assertNotChange(builder(orig).maxPullWaiting(UNSET).build(), orig);
         assertNotChange(builder(orig).maxPullWaiting(null).build(), orig);
         assertChange(builder(orig).maxPullWaiting(1).build(), orig, "maxPullWaiting");
 
-        assertNotChange(builder(orig).maxBatch(LONG_UNSET).build(), orig);
+        assertNotChange(builder(orig).maxBatch(UNSET).build(), orig);
         assertNotChange(builder(orig).maxBatch(null).build(), orig);
         assertChange(builder(orig).maxBatch(1).build(), orig, "maxBatch");
 
-        assertNotChange(builder(orig).maxBytes(LONG_UNSET).build(), orig);
+        assertNotChange(builder(orig).maxBytes(UNSET).build(), orig);
         assertNotChange(builder(orig).maxBytes(null).build(), orig);
         assertChange(builder(orig).maxBytes(1).build(), orig, "maxBytes");
 

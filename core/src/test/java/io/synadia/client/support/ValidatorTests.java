@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.*;
 
+import static io.synadia.client.support.JetStreamConstants.NATS_META_KEY_PREFIX;
 import static io.synadia.client.support.NatsConstants.EMPTY;
-import static io.synadia.client.support.NatsJetStreamConstants.NATS_META_KEY_PREFIX;
 import static io.synadia.client.support.Validator.*;
 import static io.synadia.client.utils.ResourceUtils.dataAsLines;
 import static io.synadia.client.utils.TestBase.*;

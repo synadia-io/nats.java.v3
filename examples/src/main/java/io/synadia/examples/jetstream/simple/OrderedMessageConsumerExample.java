@@ -14,10 +14,10 @@
 package io.synadia.examples.jetstream.simple;
 
 import io.synadia.client.*;
-import io.synadia.client.api.OrderedConsumerConfiguration;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.impl.ErrorListenerConsoleImpl;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.PullOrderedConsumerCreator;
 import io.synadia.examples.jetstream.ResilientPublisher;
 
 import java.io.IOException;
@@ -61,7 +61,7 @@ public class OrderedMessageConsumerExample {
             StreamContext streamContext;
             OrderedConsumerContext orderedConsumerContext;
             try {
-                OrderedConsumerConfiguration ocConfig = new OrderedConsumerConfiguration()
+                PullOrderedConsumerCreator ocConfig = new PullOrderedConsumerCreator()
                     .consumerNamePrefix(CONSUMER_PREFIX)
                     .filterSubjects(SUBJECT);
                 streamContext = nc.getStreamContext(STREAM);

@@ -2,6 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.api.*;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 import io.synadia.client.support.NatsKeyValueUtil;
 import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
@@ -20,8 +21,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.synadia.client.JetStreamOptions.DEFAULT_JS_OPTIONS;
 import static io.synadia.client.api.KeyValuePurgeOptions.DEFAULT_THRESHOLD_MILLIS;
 import static io.synadia.client.api.KeyValueWatchOption.*;
+import static io.synadia.client.support.JetStreamConstants.SERVER_DEFAULT_DUPLICATE_WINDOW_MS;
 import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.support.NatsJetStreamConstants.SERVER_DEFAULT_DUPLICATE_WINDOW_MS;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;

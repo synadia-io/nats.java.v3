@@ -14,7 +14,7 @@
 package io.synadia.examples.chaosTestApp;
 
 import io.synadia.client.*;
-import io.synadia.client.api.OrderedConsumerConfiguration;
+import io.synadia.client.js.consumer.PullOrderedConsumerCreator;
 import io.synadia.examples.chaosTestApp.support.CommandLine;
 import io.synadia.examples.chaosTestApp.support.ConsumerKind;
 
@@ -37,7 +37,7 @@ public class SimpleConsumer extends ConnectableConsumer {
             .build();
 
         if (consumerKind == ConsumerKind.Ordered) {
-            OrderedConsumerConfiguration ocConfig = new OrderedConsumerConfiguration().filterSubjects(cmd.subject);
+            PullOrderedConsumerCreator ocConfig = new PullOrderedConsumerCreator().filterSubjects(cmd.subject);
             cc = null;
             occ = sc.createOrderedConsumer(ocConfig);
             mc = occ.consume(co, handler);

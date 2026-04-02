@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-import static io.synadia.client.support.NatsJetStreamConstants.MSG_TTL_HDR;
-import static io.synadia.client.support.NatsJetStreamConstants.NATS_MARKER_REASON_HDR;
+import static io.synadia.client.support.JetStreamConstants.MSG_TTL_HDR;
+import static io.synadia.client.support.JetStreamConstants.NATS_MARKER_REASON_HDR;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static io.synadia.client.utils.VersionUtils.atLeast2_12;

@@ -2,6 +2,8 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.api.*;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.js.consumer.ConsumerCreator;
 import io.synadia.client.support.DateTimeUtils;
 import io.synadia.client.support.Listener;
 import io.synadia.client.utils.VersionUtils;
@@ -18,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.synadia.client.support.DateTimeUtils.DEFAULT_TIME;
 import static io.synadia.client.support.DateTimeUtils.ZONE_ID_GMT;
-import static io.synadia.client.support.NatsJetStreamConstants.*;
+import static io.synadia.client.support.JetStreamConstants.*;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -842,7 +844,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             String subject = ctx.subject();
 
             // plain subject
-            ConsumerConfiguration.Builder builder = ConsumerConfiguration.builder().durable(random());
+            ConsumerCreator builder = ConsumerConfiguration.builder().durable(random());
             ctx.jsm.addOrUpdateConsumer(ctx.stream, builder.filterSubject(subject).build());
             List<ConsumerInfo> cis = ctx.jsm.getConsumers(ctx.stream);
             assertEquals(subject, cis.get(0).getConsumerConfiguration().getFilterSubject());

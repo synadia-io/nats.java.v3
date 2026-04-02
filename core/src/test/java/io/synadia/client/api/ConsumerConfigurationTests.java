@@ -3,6 +3,8 @@ package io.synadia.client.api;
 import io.nats.json.JsonParseException;
 import io.nats.json.JsonParser;
 import io.nats.json.JsonValue;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.js.consumer.ConsumerCreator;
 import io.synadia.client.support.DateTimeUtils;
 import io.synadia.client.support.SerializableConsumerConfiguration;
 import io.synadia.client.utils.TestBase;
@@ -18,7 +20,6 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.synadia.client.api.ConsumerConfiguration.*;
 import static io.synadia.client.support.ApiConstants.FILTER_SUBJECT;
 import static io.synadia.client.support.ApiConstants.FILTER_SUBJECTS;
 import static io.synadia.client.support.NatsJetStreamClientError.JsConsumerNameDurableMismatch;
@@ -34,7 +35,7 @@ public class ConsumerConfigurationTests extends TestBase {
         Map<String, String> metadata = new HashMap<>();
         metadata.put(META_KEY, META_VALUE);
 
-        ConsumerConfiguration.Builder builder = ConsumerConfiguration.builder()
+        ConsumerCreator builder = ConsumerConfiguration.builder()
             .ackPolicy(AckPolicy.Explicit)
             .ackWait(Duration.ofSeconds(99)) // duration
             .deliverPolicy(DeliverPolicy.ByStartSequence)
@@ -123,7 +124,7 @@ public class ConsumerConfigurationTests extends TestBase {
         ConsumerConfiguration ccTest = ConsumerConfiguration.builder(null).build();
         validateDefault(ccTest);
 
-        ccTest = new ConsumerConfiguration.Builder(null).build();
+        ccTest = new ConsumerCreator(null).build();
         validateDefault(ccTest);
 
         ccTest = ConsumerConfiguration.builder(original).build();
@@ -421,7 +422,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertNull(ConsumerConfiguration.normalize(null, STANDARD_MIN));
         assertEquals(0, ConsumerConfiguration.normalize(0L, STANDARD_MIN));
         assertEquals(1, ConsumerConfiguration.normalize(1L, STANDARD_MIN));
-        assertEquals(INTEGER_UNSET, ConsumerConfiguration.normalize(LONG_UNSET, STANDARD_MIN));
+        assertEquals(INTEGER_UNSET, ConsumerConfiguration.normalize(UNSET, STANDARD_MIN));
         assertEquals(INTEGER_UNSET, ConsumerConfiguration.normalize(Long.MIN_VALUE, STANDARD_MIN));
         assertEquals(Integer.MAX_VALUE, ConsumerConfiguration.normalize(Long.MAX_VALUE, STANDARD_MIN));
 

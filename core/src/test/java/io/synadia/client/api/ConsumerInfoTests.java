@@ -2,6 +2,7 @@ package io.synadia.client.api;
 
 import io.nats.json.JsonParser;
 import io.nats.json.JsonValue;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 import io.synadia.client.support.DateTimeUtils;
 import org.junit.jupiter.api.Test;
 

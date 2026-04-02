@@ -15,7 +15,6 @@ import java.util.*;
 
 import static io.synadia.client.api.CompressionOption.None;
 import static io.synadia.client.api.CompressionOption.S2;
-import static io.synadia.client.api.ConsumerConfiguration.*;
 import static io.synadia.client.support.ApiConstants.*;
 import static io.synadia.client.utils.VersionUtils.atLeast2_10;
 import static org.junit.jupiter.api.Assertions.*;

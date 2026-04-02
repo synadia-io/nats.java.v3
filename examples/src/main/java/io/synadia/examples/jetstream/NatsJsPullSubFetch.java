@@ -14,8 +14,8 @@
 package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 

@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static io.synadia.client.support.NatsJetStreamConstants.*;
+import static io.synadia.client.support.JetStreamConstants.*;
 import static io.synadia.client.support.Status.*;
 import static org.junit.jupiter.api.Assertions.*;
 

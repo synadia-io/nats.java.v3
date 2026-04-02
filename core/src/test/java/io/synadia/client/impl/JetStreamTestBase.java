@@ -225,7 +225,7 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public static void assertSubscription(JetStreamSubscription sub, String stream, String consumer, String deliver, boolean isPullMode) {
-        NatsJetStreamSubscription njssub = (NatsJetStreamSubscription)sub;
+        JetStreamSubscription njssub = (JetStreamSubscription)sub;
         assertEquals(stream, njssub.getStreamName());
         if (consumer == null) {
             assertNotNull(njssub.getConsumerName());

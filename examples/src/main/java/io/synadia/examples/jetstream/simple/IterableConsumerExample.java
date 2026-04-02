@@ -14,8 +14,8 @@
 package io.synadia.examples.jetstream.simple;
 
 import io.synadia.client.*;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 import io.synadia.examples.jetstream.ResilientPublisher;
 
 import java.io.IOException;

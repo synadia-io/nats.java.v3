@@ -15,9 +15,9 @@ package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
 import io.synadia.client.api.AckPolicy;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 import io.synadia.examples.ExampleArgs;
 import io.synadia.examples.ExampleUtils;
 
@@ -86,7 +86,7 @@ public class NatsJsPullSubMultipleWorkers {
             System.out.println();
 
             // Setup the subscribers
-            // - the PullSubscribeOptions can be re-used since all the subscribers are the same
+            // - the NatsJetStreamSubscribeOptions can be re-used since all the subscribers are the same
             // - use a concurrent integer to track all the messages received
             // - have a list of subscribers and threads so I can track them
             PullSubscribeOptions pso = PullSubscribeOptions.fastBind(exArgs.stream, exArgs.durable);

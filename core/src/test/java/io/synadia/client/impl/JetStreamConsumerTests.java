@@ -1,7 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.api.ConsumerConfiguration;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.js.subscribe.PushSubscribeOptions;
 import io.synadia.client.support.Listener;
 import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
@@ -23,8 +24,8 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
     // This allows me to intercept messages before it gets to the connection queue,
     // which is before the messages are available for "nextMessage",
     // or before it gets dispatched to a handler.
-    static class OrderedTestDropSimulator extends OrderedMessageManager {
-        public OrderedTestDropSimulator(NatsConnection conn, NatsJetStream js, String stream, SubscribeOptions so, ConsumerConfiguration serverCC, boolean queueMode, boolean syncMode) {
+    static class PushOrderedTestDropSimulator extends PushOrderedMessageManager {
+        public PushOrderedTestDropSimulator(NatsConnection conn, NatsJetStream js, String stream, PushSubscribeOptions so, ConsumerConfiguration serverCC, boolean queueMode, boolean syncMode) {
             super(conn, js, stream, so, serverCC, queueMode, syncMode);
         }
 
@@ -49,7 +50,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
     public void testOrderedConsumerSync() throws Exception {
         runInShared((nc, ctx) -> {
             // Get this in place before any subscriptions are made
-            ctx.js._pushOrderedMessageManagerFactory = OrderedTestDropSimulator::new;
+            ctx.js._pushOrderedMessageManagerFactory = PushOrderedTestDropSimulator::new;
 
             // Test queue exception
             IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
@@ -67,7 +68,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         JetStreamSubscription sub = ctx.js.subscribe(ctx.subject(), pso);
         String firstConsumerName = validateOrderedConsumerNamePrefix(sub, consumerNamePrefix);
 
-        // Published messages will be intercepted by the OrderedTestDropSimulator
+        // Published messages will be intercepted by the PushOrderedTestDropSimulator
         jsPublish(ctx.js, ctx.subject(), 101, 6);
 
         // Loop through the messages to make sure I get stream sequence 1 to 6
@@ -122,7 +123,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
 
     private static void _testOrderedConsumerAsync(NatsConnection nc, JetStreamTestingContext ctx, String consumerNamePrefix, PushSubscribeOptions pso) throws JetStreamApiException, IOException, InterruptedException {
         // Get this in place before any subscriptions are made
-        ctx.js._pushOrderedMessageManagerFactory = OrderedTestDropSimulator::new;
+        ctx.js._pushOrderedMessageManagerFactory = PushOrderedTestDropSimulator::new;
 
         // We'll need a dispatcher
         Dispatcher d = nc.createDispatcher();
@@ -172,7 +173,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
     static class HeartbeatErrorSimulator extends PushMessageManager {
         final SimulatorState state;
 
-        public HeartbeatErrorSimulator(NatsConnection conn, NatsJetStream js, String stream, SubscribeOptions so, ConsumerConfiguration serverCC, boolean queueMode, boolean syncMode,
+        public HeartbeatErrorSimulator(NatsConnection conn, NatsJetStream js, String stream, PushSubscribeOptions so, ConsumerConfiguration serverCC, boolean queueMode, boolean syncMode,
                                        SimulatorState state) {
             super(conn, js, stream, so, serverCC, queueMode, syncMode);
             this.state = state;
@@ -193,11 +194,11 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         }
     }
 
-    static class OrderedHeartbeatErrorSimulator extends OrderedMessageManager {
+    static class PushOrderedHeartbeatErrorSimulator extends PushOrderedMessageManager {
         final SimulatorState state;
 
-        public OrderedHeartbeatErrorSimulator(NatsConnection conn, NatsJetStream js, String stream, SubscribeOptions so, ConsumerConfiguration serverCC, boolean queueMode, boolean syncMode,
-                                              SimulatorState state) {
+        public PushOrderedHeartbeatErrorSimulator(NatsConnection conn, NatsJetStream js, String stream, PushSubscribeOptions so, ConsumerConfiguration serverCC, boolean queueMode, boolean syncMode,
+                                                  SimulatorState state) {
             super(conn, js, stream, so, serverCC, queueMode, syncMode);
             this.state = state;
         }
@@ -308,7 +309,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         SimulatorState state = new SimulatorState();
         ((NatsJetStream)js)._pushOrderedMessageManagerFactory =
             (conn, lJs, stream, so, serverCC, qmode, dispatcher) ->
-                new OrderedHeartbeatErrorSimulator(conn, lJs, stream, so, serverCC, qmode, dispatcher, state);
+                new PushOrderedHeartbeatErrorSimulator(conn, lJs, stream, so, serverCC, qmode, dispatcher, state);
         return state;
     }
 

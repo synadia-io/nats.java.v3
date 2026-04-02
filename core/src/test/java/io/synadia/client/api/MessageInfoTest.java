@@ -10,7 +10,7 @@ import java.util.Base64;
 
 import static io.nats.json.JsonWriteUtils.beginJson;
 import static io.synadia.client.support.DateTimeUtils.DEFAULT_TIME;
-import static io.synadia.client.support.NatsJetStreamConstants.*;
+import static io.synadia.client.support.JetStreamConstants.*;
 import static io.synadia.client.support.Status.EOB;
 import static org.junit.jupiter.api.Assertions.*;
 

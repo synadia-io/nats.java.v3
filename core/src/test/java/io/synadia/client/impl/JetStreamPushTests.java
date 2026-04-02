@@ -1,11 +1,11 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.DeliverPolicy;
 import io.synadia.client.api.PublishAck;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.support.JetStreamConstants;
 import io.synadia.client.support.Listener;
-import io.synadia.client.support.NatsJetStreamConstants;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -306,7 +306,7 @@ public class JetStreamPushTests extends JetStreamTestBase {
             assertEquals(5, messages.size());
             assertEquals(0, messages.get(0).getData().length);
             assertNotNull(messages.get(0).getHeaders());
-            assertEquals("6", messages.get(0).getHeaders().getFirst(NatsJetStreamConstants.MSG_SIZE_HDR));
+            assertEquals("6", messages.get(0).getHeaders().getFirst(JetStreamConstants.MSG_SIZE_HDR));
         });
     }
 

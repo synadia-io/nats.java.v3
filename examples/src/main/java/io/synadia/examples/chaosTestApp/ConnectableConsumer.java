@@ -14,9 +14,10 @@
 package io.synadia.examples.chaosTestApp;
 
 import io.synadia.client.*;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.DeliverPolicy;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.js.consumer.ConsumerCreator;
 import io.synadia.examples.chaosTestApp.support.CommandLine;
 import io.synadia.examples.chaosTestApp.support.ConsumerKind;
 
@@ -97,11 +98,11 @@ public abstract class ConnectableConsumer implements ConnectionListener {
         return lastReceivedSequence.get();
     }
 
-    protected ConsumerConfiguration.Builder newCreateConsumer() {
+    protected ConsumerCreator newCreateConsumer() {
         return recreateConsumer(0);
     }
 
-    private ConsumerConfiguration.Builder recreateConsumer(long last) {
+    private ConsumerCreator recreateConsumer(long last) {
         return ConsumerConfiguration.builder()
             .name(consumerKind == ConsumerKind.Ordered ? null : name)
             .durable(durableName)

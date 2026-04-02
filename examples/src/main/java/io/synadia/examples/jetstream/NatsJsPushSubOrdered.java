@@ -14,10 +14,10 @@
 package io.synadia.examples.jetstream;
 
 import io.synadia.client.*;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.impl.ErrorListenerConsoleImpl;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 
 import java.io.IOException;
 import java.time.Duration;

@@ -3,6 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.Message;
 import io.synadia.client.api.*;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 import io.synadia.client.support.DateTimeUtils;
 import org.junit.jupiter.api.Test;
 

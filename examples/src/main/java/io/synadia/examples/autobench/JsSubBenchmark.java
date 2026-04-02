@@ -15,8 +15,8 @@ package io.synadia.examples.autobench;
 
 import io.synadia.client.*;
 import io.synadia.client.api.AckPolicy;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
 
 import java.io.IOException;
 import java.time.Duration;

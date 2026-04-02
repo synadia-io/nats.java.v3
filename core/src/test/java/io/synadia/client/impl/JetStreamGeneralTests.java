@@ -2,7 +2,9 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.api.*;
-import io.synadia.client.support.NatsJetStreamUtil;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.js.consumer.ConsumerCreator;
+import io.synadia.client.support.ApiUtils;
 import io.synadia.client.utils.ConnectionUtils;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +18,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import static io.synadia.client.api.ConsumerConfiguration.*;
 import static io.synadia.client.support.NatsConstants.EMPTY;
 import static io.synadia.client.support.NatsJetStreamClientError.*;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
@@ -822,9 +823,9 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             changeOkPush(ctx.js, subject, pushDurableBuilder(subject, uname, deliver).rateLimit(-1));
 
             // unset fail b/c the server does set a value that is not equal to the unset or the minimum
-            changeExPush(ctx.js, subject, pushDurableBuilder(subject, uname, deliver).maxAckPending(LONG_UNSET), "maxAckPending");
+            changeExPush(ctx.js, subject, pushDurableBuilder(subject, uname, deliver).maxAckPending(UNSET), "maxAckPending");
             changeExPush(ctx.js, subject, pushDurableBuilder(subject, uname, deliver).maxAckPending(0), "maxAckPending");
-            changeExPush(ctx.js, subject, pushDurableBuilder(subject, uname, deliver).ackWait(LONG_UNSET), "ackWait");
+            changeExPush(ctx.js, subject, pushDurableBuilder(subject, uname, deliver).ackWait(UNSET), "ackWait");
             changeExPush(ctx.js, subject, pushDurableBuilder(subject, uname, deliver).ackWait(0), "ackWait");
 
             // pull
@@ -867,21 +868,21 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
         });
     }
 
-    private void changeOkPush(JetStream js, String subject, Builder builder) throws IOException, JetStreamApiException {
+    private void changeOkPush(JetStream js, String subject, ConsumerCreator builder) throws IOException, JetStreamApiException {
         unsubscribeEnsureNotBound(js.subscribe(subject, builder.buildPushSubscribeOptions()));
     }
 
-    private void changeOkPull(JetStream js, String subject, Builder builder) throws IOException, JetStreamApiException {
+    private void changeOkPull(JetStream js, String subject, ConsumerCreator builder) throws IOException, JetStreamApiException {
         unsubscribeEnsureNotBound(js.subscribe(subject, builder.buildPullSubscribeOptions()));
     }
 
-    private void changeExPush(JetStream js, String subject, Builder builder, String changedField) {
+    private void changeExPush(JetStream js, String subject, ConsumerCreator builder, String changedField) {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
             () -> js.subscribe(subject, PushSubscribeOptions.builder().configuration(builder.build()).build()));
         _changeEx(iae, changedField);
     }
 
-    private void changeExPull(JetStream js, String subject, Builder builder, String changedField) {
+    private void changeExPull(JetStream js, String subject, ConsumerCreator builder, String changedField) {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
             () -> js.subscribe(subject, PullSubscribeOptions.builder().configuration(builder.build()).build()));
         _changeEx(iae, changedField);
@@ -893,11 +894,11 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
         assertTrue(iaeMessage.contains(changedField));
     }
 
-    private Builder pushDurableBuilder(String subject, String durable, String deliver) {
+    private ConsumerCreator pushDurableBuilder(String subject, String durable, String deliver) {
         return builder().durable(durable).deliverSubject(deliver).filterSubject(subject);
     }
 
-    private Builder pullDurableBuilder(String subject, String durable) {
+    private ConsumerCreator pullDurableBuilder(String subject, String durable) {
         return builder().durable(durable).filterSubject(subject);
     }
 
@@ -918,9 +919,9 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             // - consumer not found
             // - stream does not exist
             ctx.js.subscribe(ctx.subject());
-            assertNull(ctx.js.lookupConsumerInfo(ctx.stream, random()));
+            assertNull(ctx.js.lenientGetConsumerInfo(ctx.stream, random()));
             assertThrows(JetStreamApiException.class,
-                    () -> ctx.js.lookupConsumerInfo(random(), random()));
+                    () -> ctx.js.lenientGetConsumerInfo(random(), random()));
         });
     }
 
@@ -1076,8 +1077,9 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
 
     @Test
     public void testNatsJetStreamUtil() {
-        assertNotNull(NatsJetStreamUtil.generateConsumerName());
-        String gen = NatsJetStreamUtil.generateConsumerName("prefix");
+        assertNotNull(ApiUtils.generateConsumerName());
+        assertNotNull(ApiUtils.generateConsumerName(null));
+        String gen = ApiUtils.generateConsumerName("prefix");
         assertNotNull(gen);
         assertTrue(gen.startsWith("prefix-"));
     }

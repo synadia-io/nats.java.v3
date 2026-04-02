@@ -2,8 +2,9 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.api.AckPolicy;
-import io.synadia.client.api.ConsumerConfiguration;
 import io.synadia.client.api.PriorityPolicy;
+import io.synadia.client.js.consumer.ConsumerConfiguration;
+import io.synadia.client.js.consumer.ConsumerCreator;
 import io.synadia.client.support.Listener;
 import io.synadia.client.support.ListenerStatusType;
 import io.synadia.client.utils.ConnectionUtils;
@@ -27,11 +28,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.api.ConsumerConfiguration.builder;
+import static io.synadia.client.js.consumer.ConsumerConfiguration.builder;
 import static io.synadia.client.support.ApiConstants.*;
+import static io.synadia.client.support.JetStreamConstants.NATS_PIN_ID_HDR;
 import static io.synadia.client.support.ListenerStatusType.PullError;
 import static io.synadia.client.support.ListenerStatusType.PullWarning;
-import static io.synadia.client.support.NatsJetStreamConstants.NATS_PIN_ID_HDR;
 import static io.synadia.client.support.Status.*;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
@@ -720,7 +721,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
     }
 
     interface BuilderCustomizer {
-        ConsumerConfiguration.Builder customize(ConsumerConfiguration.Builder b);
+        ConsumerCreator customize(ConsumerCreator b);
     }
 
     private PullSubscribeOptions makePso(BuilderCustomizer c) {

@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
+import static io.synadia.client.support.JetStreamConstants.*;
 import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.support.NatsJetStreamConstants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamOptionsTests extends TestBase {
