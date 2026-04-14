@@ -1,16 +1,17 @@
 package io.synadia.client.jsapi;
 
-import io.nats.json.*;
+import io.nats.json.LazyJsonParser;
+import io.nats.json.LazyJsonValue;
+import io.synadia.client.support.ApiUtils;
 import io.synadia.client.support.ServerVersion;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static io.nats.json.JsonValueUtils.readBytes;
-import static io.nats.json.JsonValueUtils.readStringListOrEmpty;
+import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.ApiUtils.*;
 import static io.synadia.client.support.NatsConstants.UNDEFINED;
 
 /**
@@ -25,63 +26,23 @@ public class ServerInfo {
      */
     public static final ServerInfo EMPTY_INFO = new ServerInfo("INFO {}");
 
-    private final String serverId;
-    private final String serverName;
-    private final String version;
-    private final String go;
-    private final String host;
-    private final int port;
-    private final boolean headersSupported;
-    private final boolean authRequired;
-    private final boolean tlsRequired;
-    private final boolean tlsAvailable;
-    private final long maxPayload;
-    private final List<String> connectURLs;
-    private final int protocolVersion;
-    private final byte @Nullable [] nonce;
-    private final boolean lameDuckMode;
-    private final boolean jetStream;
-    private final int clientId;
-    private final String clientIp;
-    private final @Nullable String cluster;
+    private final LazyJsonValue ljv;
+    private @Nullable String _version;
 
     /**
      * Construct a ServerInfo instance from JSON
      * @param json the JSON
      */
     public ServerInfo(@Nullable String json) {
-        // INFO<sp>{ INFO<\t>{ or {
         if (json == null || json.length() < 6 || ('{' != json.charAt(0) && '{' != json.charAt(5))) {
             throw new IllegalArgumentException("Invalid Server Info");
         }
-
-        JsonValue jv;
         try {
-            jv = JsonParser.parse(json, json.indexOf("{"));
+            ljv = LazyJsonParser.parse(json, json.indexOf("{"));
         }
-        catch (JsonParseException e) {
+        catch (Exception e) {
             throw new IllegalArgumentException("Invalid Server Info Json");
         }
-
-        serverId = readString(jv, SERVER_ID, UNDEFINED);
-        serverName = readString(jv, SERVER_NAME, UNDEFINED);
-        version = readString(jv, VERSION, "0.0.0");
-        go = readString(jv, GO, "0.0.0");
-        host = readString(jv, HOST, UNDEFINED);
-        headersSupported = readBoolean(jv, HEADERS, false);
-        authRequired = readBoolean(jv, AUTH_REQUIRED, false);
-        nonce = readBytes(jv, NONCE);
-        tlsRequired = readBoolean(jv, TLS_REQUIRED, false);
-        tlsAvailable = readBoolean(jv, TLS_AVAILABLE, false);
-        lameDuckMode = readBoolean(jv, LAME_DUCK_MODE, false);
-        jetStream = readBoolean(jv, JETSTREAM, false);
-        port = readInteger(jv, PORT, 0);
-        protocolVersion = readInteger(jv, PROTO, 0);
-        maxPayload = readLong(jv, MAX_PAYLOAD, 0);
-        clientId = readInteger(jv, CLIENT_ID, 0);
-        clientIp = readString(jv, CLIENT_IP, "0.0.0.0");
-        cluster = JsonValueUtils.readString(jv, CLUSTER);
-        connectURLs = readStringListOrEmpty(jv, CONNECT_URLS, true);
     }
 
     /**
@@ -89,7 +50,7 @@ public class ServerInfo {
      * @return true if server is in lame duck mode
      */
     public boolean isLameDuckMode() {
-        return lameDuckMode;
+        return readBoolean(ljv, LAME_DUCK_MODE, false);
     }
 
     /**
@@ -97,7 +58,7 @@ public class ServerInfo {
      * @return the server id
      */
     public String getServerId() {
-        return this.serverId;
+        return ApiUtils.readString(ljv, SERVER_ID, UNDEFINED);
     }
 
     /**
@@ -105,7 +66,7 @@ public class ServerInfo {
      * @return the server name
      */
     public String getServerName() {
-        return serverName;
+        return ApiUtils.readString(ljv, SERVER_NAME, UNDEFINED);
     }
 
     /**
@@ -113,7 +74,10 @@ public class ServerInfo {
      * @return the server version
      */
     public String getVersion() {
-        return this.version;
+        if (_version == null) {
+            _version = ApiUtils.readString(ljv, VERSION, "0.0.0");
+        }
+        return _version;
     }
 
     /**
@@ -121,7 +85,7 @@ public class ServerInfo {
      * @return the go version the server is built with
      */
     public String getGoVersion() {
-        return this.go;
+        return ApiUtils.readString(ljv, GO, "0.0.0");
     }
 
     /**
@@ -129,7 +93,7 @@ public class ServerInfo {
      * @return the server host
      */
     public String getHost() {
-        return this.host;
+        return ApiUtils.readString(ljv, HOST, UNDEFINED);
     }
 
     /**
@@ -137,7 +101,7 @@ public class ServerInfo {
      * @return the server port
      */
     public int getPort() {
-        return this.port;
+        return readInteger(ljv, PORT, 0);
     }
 
     /**
@@ -145,21 +109,23 @@ public class ServerInfo {
      * @return the server protocol version
      */
     public int getProtocolVersion() {
-        return this.protocolVersion;
+        return readInteger(ljv, PROTO, 0);
     }
 
     /**
      * true if headers are supported by the server
      * @return true if headers are supported by the server
      */
-    public boolean isHeadersSupported() { return this.headersSupported; }
+    public boolean isHeadersSupported() {
+        return readBoolean(ljv, HEADERS, false);
+    }
 
     /**
      * true if authorization is required by the server
      * @return true if authorization is required by the server
      */
     public boolean isAuthRequired() {
-        return this.authRequired;
+        return readBoolean(ljv, AUTH_REQUIRED, false);
     }
 
     /**
@@ -167,7 +133,7 @@ public class ServerInfo {
      * @return true if TLS is required by the server
      */
     public boolean isTLSRequired() {
-        return this.tlsRequired;
+        return readBoolean(ljv, TLS_REQUIRED, false);
     }
 
     /**
@@ -175,7 +141,7 @@ public class ServerInfo {
      * @return true if TLS is available on the server
      */
     public boolean isTLSAvailable() {
-        return tlsAvailable;
+        return readBoolean(ljv, TLS_AVAILABLE, false);
     }
 
     /**
@@ -183,7 +149,7 @@ public class ServerInfo {
      * @return the max payload
      */
     public long getMaxPayload() {
-        return this.maxPayload;
+        return readLong(ljv, MAX_PAYLOAD, 0);
     }
 
     /**
@@ -191,7 +157,7 @@ public class ServerInfo {
      * @return the connectable urls
      */
     public List<String> getConnectURLs() {
-        return this.connectURLs;
+        return readStringListOrEmpty(ljv, CONNECT_URLS, true);
     }
 
     /**
@@ -199,7 +165,8 @@ public class ServerInfo {
      * @return the nonce
      */
     public byte @Nullable [] getNonce() {
-        return this.nonce;
+        String s = readString(ljv, NONCE);
+        return s == null ? null : s.getBytes(StandardCharsets.UTF_8);
     }
 
     /**
@@ -207,7 +174,7 @@ public class ServerInfo {
      * @return true if the server supports JetStream
      */
     public boolean isJetStreamAvailable() {
-        return this.jetStream;
+        return readBoolean(ljv, JETSTREAM, false);
     }
 
     /**
@@ -215,7 +182,7 @@ public class ServerInfo {
      * @return the client id
      */
     public int getClientId() {
-        return clientId;
+        return readInteger(ljv, CLIENT_ID, 0);
     }
 
     /**
@@ -223,7 +190,7 @@ public class ServerInfo {
      * @return the client ip
      */
     public String getClientIp() {
-        return clientIp;
+        return ApiUtils.readString(ljv, CLIENT_IP, "0.0.0.0");
     }
 
     /**
@@ -232,7 +199,7 @@ public class ServerInfo {
      */
     @Nullable
     public String getCluster() {
-        return cluster;
+        return readString(ljv, CLUSTER);
     }
 
     /**
@@ -241,7 +208,7 @@ public class ServerInfo {
      * @return true if the server version is newer than the input
      */
     public boolean isNewerVersionThan(String vTarget) {
-        return ServerVersion.isNewer(version, vTarget);
+        return ServerVersion.isNewer(getVersion(), vTarget);
     }
 
     /**
@@ -250,7 +217,7 @@ public class ServerInfo {
      * @return true if the server version is same as the input
      */
     public boolean isSameVersion(String vTarget) {
-        return ServerVersion.isSame(version, vTarget);
+        return ServerVersion.isSame(getVersion(), vTarget);
     }
 
     /**
@@ -259,7 +226,7 @@ public class ServerInfo {
      * @return true if the server version is older than the input
      */
     public boolean isOlderThanVersion(String vTarget) {
-        return ServerVersion.isOlder(version, vTarget);
+        return ServerVersion.isOlder(getVersion(), vTarget);
     }
 
     /**
@@ -268,7 +235,7 @@ public class ServerInfo {
      * @return true if the server version is the same or older than the input
      */
     public boolean isSameOrOlderThanVersion(String vTarget) {
-        return ServerVersion.isSameOrOlder(version, vTarget);
+        return ServerVersion.isSameOrOlder(getVersion(), vTarget);
     }
 
     /**
@@ -277,30 +244,11 @@ public class ServerInfo {
      * @return true if the server version is same or newer than the input
      */
     public boolean isSameOrNewerThanVersion(String vTarget) {
-        return ServerVersion.isSameOrNewer(version, vTarget);
+        return ServerVersion.isSameOrNewer(getVersion(), vTarget);
     }
 
     @Override
     public String toString() {
-        return "ServerInfo " + new MapBuilder()
-            .put(SERVER_ID, serverId)
-            .put(SERVER_NAME, serverName)
-            .put(VERSION, version)
-            .put(GO, go)
-            .put(HOST, host)
-            .put(PORT, port)
-            .put(HEADERS, headersSupported)
-            .put(AUTH_REQUIRED, authRequired)
-            .put(TLS_REQUIRED, tlsRequired)
-            .put(TLS_AVAILABLE, tlsAvailable)
-            .put(MAX_PAYLOAD, maxPayload)
-            .put(PROTO, protocolVersion)
-            .put(LAME_DUCK_MODE, lameDuckMode)
-            .put(JETSTREAM, jetStream)
-            .put(CLIENT_ID, clientId)
-            .put(CLIENT_IP, clientIp)
-            .put(CLUSTER, cluster)
-            .toJson();
+        return "ServerInfo " + ljv.toJson();
     }
 }
-

@@ -15,10 +15,10 @@ import static io.synadia.client.support.Validator.emptyAsNull;
  */
 @NullMarked
 public class StreamInfoOptions implements JsonSerializable {
-    private final String subjectsFilter;
+    private final @Nullable String subjectsFilter;
     private final boolean deletedDetails;
 
-    private StreamInfoOptions(String subjectsFilter, boolean deletedDetails) {
+    private StreamInfoOptions(@Nullable String subjectsFilter, boolean deletedDetails) {
         this.subjectsFilter = subjectsFilter;
         this.deletedDetails = deletedDetails;
     }
@@ -89,7 +89,7 @@ public class StreamInfoOptions implements JsonSerializable {
      *
      */
     public static class Builder {
-        private String subjectsFilter;
+        private @Nullable String subjectsFilter;
         private boolean deletedDetails;
 
         /**
@@ -104,7 +104,7 @@ public class StreamInfoOptions implements JsonSerializable {
          * @param subjectsFilter the
          * @return the builder
          */
-        public Builder filterSubjects(String subjectsFilter) {
+        public Builder filterSubjects(@Nullable String subjectsFilter) {
             this.subjectsFilter = emptyAsNull(subjectsFilter);
             return this;
         }

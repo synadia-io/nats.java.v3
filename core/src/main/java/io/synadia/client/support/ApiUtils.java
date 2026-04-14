@@ -1,9 +1,6 @@
 package io.synadia.client.support;
 
-import io.nats.json.JsonValue;
-import io.nats.json.JsonValueUtils;
-import io.nats.json.LazyJsonValue;
-import io.nats.json.MapBuilder;
+import io.nats.json.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -108,6 +105,12 @@ public abstract class ApiUtils {
     @NonNull
     public static String readString(@NonNull JsonValue jv, @NonNull String key, @NonNull String dflt) {
         String s = JsonValueUtils.readString(jv, key);
+        return s == null ? dflt : s;
+    }
+
+    @NonNull
+    public static String readString(@NonNull LazyJsonValue jv, @NonNull String key, @NonNull String dflt) {
+        String s = LazyJsonValueUtils.readString(jv, key);
         return s == null ? dflt : s;
     }
 
