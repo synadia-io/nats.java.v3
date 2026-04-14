@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static io.synadia.client.impl.MarkerMessage.END_RECONNECT;
-import static io.synadia.client.support.BuilderBase.bufferAllocSize;
+import static io.synadia.client.support.ByteArrayBuilder.bufferAllocSize;
 import static io.synadia.client.support.NatsConstants.CR;
 import static io.synadia.client.support.NatsConstants.LF;
 

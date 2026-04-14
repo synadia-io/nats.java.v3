@@ -8,11 +8,43 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
  * A class that wraps a ByteBuffer that can automatically grow
  */
-public class ByteArrayBuilder extends BuilderBase {
+public class ByteArrayBuilder {
+
+    /**
+     * Allocation boundary
+     */
+    public static final int ALLOCATION_BOUNDARY = 32;
+
+    /**
+     * Default allocation for ASCII or ISO_8859_1 charset
+     */
+    public static final int DEFAULT_ASCII_ALLOCATION = 32;
+
+    /**
+     * Default allocation for other charsets
+     */
+    public static final int DEFAULT_OTHER_ALLOCATION = 64;
+
+    /**
+     * a byte array representing the word "null"
+     */
+    public static final byte[] NULL = "null".getBytes(ISO_8859_1);
+
+    /**
+     * The default character set
+     */
+    private final Charset defaultCharset;
+
+    /**
+     * The allocation size
+     */
+    protected int allocationSize;
+
     private ByteBuffer buffer;
 
     /**
@@ -23,7 +55,8 @@ public class ByteArrayBuilder extends BuilderBase {
      * @param defaultCharset the default character set
      */
     public ByteArrayBuilder(int initialSize, int allocationSizeSuggestion, Charset defaultCharset) {
-        super(defaultCharset, allocationSizeSuggestion);
+        this.defaultCharset = defaultCharset;
+        _setAllocationSize(allocationSizeSuggestion);
         this.buffer = ByteBuffer.allocate(bufferAllocSize(initialSize, allocationSize));
     }
 
@@ -77,7 +110,8 @@ public class ByteArrayBuilder extends BuilderBase {
      * @param bytes the bytes
      */
     public ByteArrayBuilder(byte[] bytes) {
-        this(bytes, bytes.length);
+        this(bytes.length, DEFAULT_ASCII_ALLOCATION, ISO_8859_1);
+        buffer.put(bytes, 0, bytes.length);
     }
 
     /**
@@ -88,16 +122,14 @@ public class ByteArrayBuilder extends BuilderBase {
      * @param len the number of bytes to copy
      */
     public ByteArrayBuilder(byte[] bytes, int len) {
-        super(ISO_8859_1, DEFAULT_ASCII_ALLOCATION);
-        this.buffer = ByteBuffer.allocate(bufferAllocSize(len, allocationSize));
-        buffer.put(bytes, 0, bytes.length);
+        this(len, DEFAULT_ASCII_ALLOCATION, ISO_8859_1);
+        buffer.put(bytes, 0, len);
     }
 
     /**
      * Get the length of the data in the buffer
      * @return the length of the data
      */
-    @Override
     public int length() {
         return buffer.position();
     }
@@ -106,7 +138,6 @@ public class ByteArrayBuilder extends BuilderBase {
      * Get the number of bytes currently allocated (available) without resizing
      * @return the number of bytes
      */
-    @Override
     public int capacity() {
         return buffer.capacity();
     }
@@ -116,7 +147,6 @@ public class ByteArrayBuilder extends BuilderBase {
      * @param bytes the bytes
      * @return true if the supplied value equals what is in the builder
      */
-    @Override
     public boolean equals(byte[] bytes) {
         if (bytes == null || buffer.position() != bytes.length) {
             return false;
@@ -158,18 +188,15 @@ public class ByteArrayBuilder extends BuilderBase {
      * Copy the value in the buffer to a new byte array
      * @return the copy of the bytes
      */
-    @Override
     public byte[] toByteArray() {
         return Arrays.copyOf(buffer.array(), buffer.position());
     }
 
     /**
      * Access the internal byte array of this buffer. Intended for read only
-     * with knowledge of {@link #length}
-     *
+     * with knowledge of {@link #length()}
      * @return a direct handle to the internal byte array
      */
-    @Override
     public byte[] internalArray() {
         return buffer.array();
     }
@@ -334,34 +361,77 @@ public class ByteArrayBuilder extends BuilderBase {
     }
 
     /**
-     * {@inheritDoc}
+     * Append a single byte without checking that the builder has the capacity
+     * @param b the byte
+     * @return the number of bytes appended, always 1
      */
-    @Override
     public int appendUnchecked(byte b) {
         buffer.put(b);
         return 1;
     }
 
     /**
-     * {@inheritDoc}
+     * Append the entire byte array without checking that the builder has the capacity
+     * @param src the source byte array
+     * @return the number of bytes appended
      */
-    @Override
     public int appendUnchecked(byte[] src) {
         buffer.put(src, 0, src.length);
         return src.length;
     }
 
     /**
-     * {@inheritDoc}
+     * Append the entire byte array without checking that the builder has the capacity
+     * @param src the source byte array
+     * @param srcPos starting position in the source array.
+     * @param len the number of array elements to be copied.
+     * @return the number of bytes appended
      */
-    @Override
     public int appendUnchecked(byte[] src, int srcPos, int len) {
         buffer.put(src, srcPos, len);
         return len;
     }
 
+    /**
+     * Get the current allocation size
+     * @return the allocation size
+     */
+    public int getAllocationSize() {
+        return allocationSize;
+    }
+
     @Override
     public String toString() {
         return new String(buffer.array(), 0, buffer.position(), defaultCharset);
+    }
+
+    private int _defaultCharsetAllocationSize() {
+        return defaultCharset == US_ASCII || defaultCharset == ISO_8859_1 ? DEFAULT_ASCII_ALLOCATION : DEFAULT_OTHER_ALLOCATION;
+    }
+
+    /**
+     * Internal delegate method to set the allocationSizeSuggestion
+     * @param allocationSizeSuggestion the suggestion
+     */
+    private void _setAllocationSize(int allocationSizeSuggestion) {
+        int dcas = _defaultCharsetAllocationSize();
+        if (allocationSizeSuggestion <= dcas) {
+            allocationSize = dcas;
+        }
+        else {
+            allocationSize = bufferAllocSize(allocationSizeSuggestion, ALLOCATION_BOUNDARY);
+        }
+    }
+
+    /**
+     * calculate a buffer allocation size
+     * @param atLeast the allocation must be at least
+     * @param blockSize the blocksize
+     * @return the allocation size
+     */
+    public static int bufferAllocSize(int atLeast, int blockSize) {
+        return atLeast < blockSize
+            ? blockSize
+            : ((atLeast + blockSize) / blockSize) * blockSize;
     }
 }
