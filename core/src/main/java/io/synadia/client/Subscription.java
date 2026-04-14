@@ -44,6 +44,12 @@ public interface Subscription extends Consumer {
     Dispatcher getDispatcher();
 
     /**
+     * Get the subscription unique id
+     * @return the id
+     */
+    String getSID();
+
+    /**
      * Read the next message for a subscription, or block until one is available.
      * While useful in some situations, i.e. tests and simple examples, using a
      * Dispatcher is generally easier and likely preferred for application code.

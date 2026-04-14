@@ -2,7 +2,7 @@ package io.synadia.client.impl;
 
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
-import io.synadia.client.api.ServerInfo;
+import io.synadia.client.jsapi.ServerInfo;
 import io.synadia.client.support.Listener;
 import io.synadia.client.support.ssl.SslTestingHelper;
 import io.synadia.client.utils.ConnectionUtils;
@@ -78,7 +78,7 @@ public class ReconnectTests {
             d.subscribe(dispatchSubject);
             flushConnection(nc);
 
-            Future<Message> inc = nc.request(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
+            Future<Message> inc = nc.requestAsync(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
             Message msg = inc.get();
             assertNotNull(msg);
 
@@ -104,7 +104,7 @@ public class ReconnectTests {
             assertTrue(1_000_000 * (end-start) > 1000, "reconnect wait");
 
             // Make sure dispatcher and subscription are still there
-            Future<Message> inc = nc.request(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
+            Future<Message> inc = nc.requestAsync(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
             Message msg = inc.get(500, TimeUnit.MILLISECONDS);
             assertNotNull(msg);
 
@@ -155,7 +155,7 @@ public class ReconnectTests {
             listener.validate();
 
             // Make sure the dispatcher and subscription are still there
-            Future<Message> inc = nc.request(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
+            Future<Message> inc = nc.requestAsync(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
             Message msg = inc.get();
             assertNotNull(msg);
 
@@ -198,7 +198,7 @@ public class ReconnectTests {
             d.subscribe(dispatchSubject);
             nc.flush(Duration.ofMillis(1000));
 
-            Future<Message> inc = nc.request(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
+            Future<Message> inc = nc.requestAsync(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
             Message msg = inc.get();
             assertNotNull(msg);
 
@@ -215,7 +215,7 @@ public class ReconnectTests {
 
         // Send a message to the dispatcher and one to the subscriber
         // These should be sent on reconnect
-        Future<Message> inc = nc.request(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
+        Future<Message> inc = nc.requestAsync(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
         nc.publish(subsubject, null);
         nc.publish(subsubject, null);
 

@@ -1,6 +1,6 @@
 package io.synadia.client;
 
-import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.jsapi.ConsumerInfo;
 
 import java.io.IOException;
 

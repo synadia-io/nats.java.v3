@@ -1,13 +1,13 @@
 package io.synadia.client;
 
 import io.nats.json.JsonValue;
-import io.synadia.client.api.ConsumerConfiguration;
 
 import static io.nats.json.JsonValueUtils.readBoolean;
 import static io.nats.json.JsonValueUtils.readLong;
 import static io.nats.json.JsonWriteUtils.addField;
 import static io.synadia.client.support.ApiConstants.EXPIRES_IN;
 import static io.synadia.client.support.ApiConstants.NO_WAIT;
+import static io.synadia.client.support.JetStreamApiUtils.UNSET;
 
 /**
  * Fetch Consume Options are provided to customize the fetch operation.
@@ -81,7 +81,7 @@ public class FetchConsumeOptions extends BaseConsumeOptions {
         public Builder jsonValue(JsonValue jsonValue) {
             super.jsonValue(jsonValue);
             if (readBoolean(jsonValue, NO_WAIT, false)) {
-                noWaitExpiresIn(readLong(jsonValue, EXPIRES_IN, ConsumerConfiguration.LONG_UNSET));
+                noWaitExpiresIn(readLong(jsonValue, EXPIRES_IN, UNSET));
             }
             return this;
         }
@@ -133,7 +133,7 @@ public class FetchConsumeOptions extends BaseConsumeOptions {
         @Override
         public Builder expiresIn(long expiresInMillis) {
             if (noWait && expiresInMillis < 1) {
-                expiresIn = ConsumerConfiguration.LONG_UNSET;
+                expiresIn = UNSET;
                 return this;
             }
             return super.expiresIn(expiresInMillis);
@@ -146,7 +146,7 @@ public class FetchConsumeOptions extends BaseConsumeOptions {
          */
         public Builder noWait() {
             this.noWait = true;
-            expiresIn = ConsumerConfiguration.LONG_UNSET;
+            expiresIn = UNSET;
             return this;
         }
 

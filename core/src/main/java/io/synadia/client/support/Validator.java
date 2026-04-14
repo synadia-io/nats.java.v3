@@ -8,9 +8,9 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import static io.synadia.client.support.JetStreamConstants.MAX_HISTORY_PER_KEY;
+import static io.synadia.client.support.JetStreamConstants.NATS_META_KEY_PREFIX;
 import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.support.NatsJetStreamConstants.MAX_HISTORY_PER_KEY;
-import static io.synadia.client.support.NatsJetStreamConstants.NATS_META_KEY_PREFIX;
 
 @SuppressWarnings("UnusedReturnValue")
 public abstract class Validator {
@@ -149,13 +149,13 @@ public abstract class Validator {
         return validateNonWildcardKvKey(s, "Key", true);
     }
 
-    public static void validateNotSupplied(String s, NatsJetStreamClientError err) {
+    public static void validateNotSupplied(String s, JetStreamClientError err) {
         if (!nullOrEmpty(s)) {
             throw err.instance();
         }
     }
 
-    public static String validateMustMatchIfBothSupplied(String s1, String s2, NatsJetStreamClientError err) {
+    public static String validateMustMatchIfBothSupplied(String s1, String s2, JetStreamClientError err) {
         // s1   | s2   || result
         // ---- | ---- || --------------
         // null | null || valid, null s2

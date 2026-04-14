@@ -3,11 +3,11 @@ package io.synadia.client.impl;
 import io.synadia.client.support.ByteArrayBuilder;
 
 public class IncomingMessage extends NatsMessage {
-    IncomingMessage() {
+    protected IncomingMessage() {
         super((byte[])null);
     }
 
-    IncomingMessage(byte[] data) {
+    protected IncomingMessage(byte[] data) {
         super(data);
     }
 

@@ -155,7 +155,7 @@ public class ServiceBuilder {
      * @return the Service instance
      */
     public Service build() {
-        required(conn, "Connection");
+        required(conn, "NatsConnection");
         required(name, "Name");
         required(version, "Version");
         return new Service(this);

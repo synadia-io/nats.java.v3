@@ -3,8 +3,8 @@ package io.synadia.client.support;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.synadia.client.support.JetStreamConstants.*;
 import static io.synadia.client.support.NatsConstants.*;
-import static io.synadia.client.support.NatsJetStreamConstants.*;
 import static io.synadia.client.support.Status.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -95,7 +95,7 @@ public class Token {
 
     @NonNull
     public String getValue() {
-        return hasValue ? valueAsString() : EMPTY;
+        return hasValue ? valueAsString() : "";
     }
 
     @Nullable
@@ -110,7 +110,7 @@ public class Token {
     @NonNull
     public String getValueCheckKnownKeys() {
         if (valueLength == 0) {
-            return EMPTY;
+            return "";
         }
         // all known keys are at least 5 characters Nats-<...> and KV-Operation
         if (valueLength > 5) {

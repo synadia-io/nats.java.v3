@@ -28,7 +28,6 @@ import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonWriteUtils.toKey;
 import static io.synadia.client.impl.NatsPackageScopeWorkarounds.getDispatchers;
 import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.support.NatsConstants.EMPTY;
 import static io.synadia.client.utils.OptionsUtils.options;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static io.synadia.service.Service.SRV_PING;
@@ -351,7 +350,7 @@ public class ServiceTests extends JetStreamTestBase {
         try {
             String request = Long.toHexString(System.currentTimeMillis()) + Long.toHexString(System.nanoTime()); // just some random text
             String subject = group == null ? serviceSubject : group.getSubject() + DOT + serviceSubject;
-            CompletableFuture<Message> future = nc.request(subject, request.getBytes());
+            CompletableFuture<Message> future = nc.requestAsync(subject, request.getBytes());
             Message m = future.get();
             String response = new String(m.getData());
             String which = verifyMap.get(endpointName);
@@ -765,7 +764,7 @@ public class ServiceTests extends JetStreamTestBase {
     @Test
     public void testServiceBuilderConstruction() {
         Options options = options(); // server not needed, a connection is never made
-        NatsConnection conn = new MockNatsConnection(options);
+        NatsConnection conn = new MockNatsNatsConnection(options);
         ServiceEndpoint se = ServiceEndpoint.builder()
             .endpoint(new Endpoint(random()))
             .handler(m -> {})
@@ -808,7 +807,7 @@ public class ServiceTests extends JetStreamTestBase {
         assertEquals(Duration.ofSeconds(1), service.getDrainTimeout());
 
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(null));
-        assertThrows(IllegalArgumentException.class, () -> Service.builder().name(EMPTY));
+        assertThrows(IllegalArgumentException.class, () -> Service.builder().name(""));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_SPACE));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_PRINTABLE));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_DOT));
@@ -823,12 +822,12 @@ public class ServiceTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_TIC));
 
         assertThrows(IllegalArgumentException.class, () -> Service.builder().version(null));
-        assertThrows(IllegalArgumentException.class, () -> Service.builder().version(EMPTY));
+        assertThrows(IllegalArgumentException.class, () -> Service.builder().version(""));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().version("not-semver"));
 
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
             () -> Service.builder().name(name).version("1.0.0").addServiceEndpoint(se).build());
-        assertTrue(iae.getMessage().contains("Connection cannot be null"));
+        assertTrue(iae.getMessage().contains("NatsConnection cannot be null"));
 
         iae = assertThrows(IllegalArgumentException.class,
             () -> Service.builder().connection(conn).version("1.0.0").addServiceEndpoint(se).build());
@@ -845,7 +844,7 @@ public class ServiceTests extends JetStreamTestBase {
     @Test
     public void testAddingEndpointAfterServiceBuilderConstruction() {
         Options options = options(); // server not needed, a connection is never made
-        NatsConnection conn = new MockNatsConnection(options);
+        NatsConnection conn = new MockNatsNatsConnection(options);
         ServiceEndpoint se = ServiceEndpoint.builder()
                 .endpoint(new Endpoint(random()))
                 .handler(m -> {
@@ -872,7 +871,7 @@ public class ServiceTests extends JetStreamTestBase {
         assertEquals(Duration.ofSeconds(1), service.getDrainTimeout());
 
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(null));
-        assertThrows(IllegalArgumentException.class, () -> Service.builder().name(EMPTY));
+        assertThrows(IllegalArgumentException.class, () -> Service.builder().name(""));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_SPACE));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_PRINTABLE));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_DOT));
@@ -887,12 +886,12 @@ public class ServiceTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(HAS_TIC));
 
         assertThrows(IllegalArgumentException.class, () -> Service.builder().version(null));
-        assertThrows(IllegalArgumentException.class, () -> Service.builder().version(EMPTY));
+        assertThrows(IllegalArgumentException.class, () -> Service.builder().version(""));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().version("not-semver"));
 
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
                 () -> Service.builder().name(name).version("1.0.0").addServiceEndpoint(se).build());
-        assertTrue(iae.getMessage().contains("Connection cannot be null"));
+        assertTrue(iae.getMessage().contains("NatsConnection cannot be null"));
 
         iae = assertThrows(IllegalArgumentException.class,
                 () -> Service.builder().connection(conn).version("1.0.0").addServiceEndpoint(se).build());
@@ -925,7 +924,7 @@ public class ServiceTests extends JetStreamTestBase {
                 .build();
             exService.startService();
 
-            CompletableFuture<Message> future = nc.request("exSubject", null);
+            CompletableFuture<Message> future = nc.requestAsync("exSubject", null);
             Message m = future.get();
             assertEquals("java.lang.RuntimeException: handler-problem", m.getHeaders().getFirst(NATS_SERVICE_ERROR));
             assertEquals("500", m.getHeaders().getFirst(NATS_SERVICE_ERROR_CODE));
@@ -986,17 +985,17 @@ public class ServiceTests extends JetStreamTestBase {
                 .build();
             service.startService();
 
-            CompletableFuture<Message> future = nc.request("testServiceMessage", null);
+            CompletableFuture<Message> future = nc.requestAsync("testServiceMessage", null);
             Message m = future.get();
             assertEquals("1", new String(m.getData()));
             assertFalse(m.hasHeaders());
 
-            future = nc.request("testServiceMessage", null);
+            future = nc.requestAsync("testServiceMessage", null);
             m = future.get();
             assertEquals("2", new String(m.getData()));
             assertFalse(m.hasHeaders());
 
-            future = nc.request("testServiceMessage", null);
+            future = nc.requestAsync("testServiceMessage", null);
             m = future.get();
             assertEquals("\"3\"", new String(m.getData()));
             assertFalse(m.hasHeaders());
@@ -1022,7 +1021,7 @@ public class ServiceTests extends JetStreamTestBase {
             assertTrue(m.hasHeaders());
             assertEquals("6", m.getHeaders().getFirst("h"));
 
-            future = nc.request("testServiceMessage", null);
+            future = nc.requestAsync("testServiceMessage", null);
             m = future.get();
             assertEquals(0, m.getData().length);
             assertTrue(m.hasHeaders());
@@ -1084,14 +1083,14 @@ public class ServiceTests extends JetStreamTestBase {
 
         e = new Endpoint(name, subject, metadata);
         assertEpNameSubQ(e, name, subject);
-        assertTrue(Objects.equals(metadata, e.getMetadata()));
+        assertEquals(metadata, e.getMetadata());
 
         e = Endpoint.builder()
             .name(name).subject(subject)
             .metadata(metadata)
             .build();
         assertEpNameSubQ(e, name, subject);
-        assertTrue(Objects.equals(metadata, e.getMetadata()));
+        assertEquals(metadata, e.getMetadata());
 
         // internal allows null queue group
         e = new Endpoint(name, subject, null, metadata, false);
@@ -1106,12 +1105,12 @@ public class ServiceTests extends JetStreamTestBase {
         // coverage
         e = new Endpoint(name, subject, metadata);
         assertEpNameSubQ(e, name, subject);
-        assertTrue(Objects.equals(metadata, e.getMetadata()));
+        assertEquals(metadata, e.getMetadata());
         assertThrows(IllegalArgumentException.class, () -> Endpoint.builder().build());
 
         // many names are bad and is required
         assertThrows(IllegalArgumentException.class, () -> new Endpoint((String) null));
-        assertThrows(IllegalArgumentException.class, () -> new Endpoint(EMPTY));
+        assertThrows(IllegalArgumentException.class, () -> new Endpoint(""));
         assertThrows(IllegalArgumentException.class, () -> new Endpoint(HAS_SPACE));
         assertThrows(IllegalArgumentException.class, () -> new Endpoint(HAS_PRINTABLE));
         assertThrows(IllegalArgumentException.class, () -> new Endpoint(HAS_DOT));
@@ -1227,7 +1226,7 @@ public class ServiceTests extends JetStreamTestBase {
         assertEquals("foo.*", g1.getName());
 
         assertThrows(IllegalArgumentException.class, () -> new Group(null));
-        assertThrows(IllegalArgumentException.class, () -> new Group(EMPTY));
+        assertThrows(IllegalArgumentException.class, () -> new Group(""));
         assertThrows(IllegalArgumentException.class, () -> new Group(HAS_SPACE));
         assertThrows(IllegalArgumentException.class, () -> new Group(STAR_NOT_SEGMENT)); // invalid in the middle
         assertThrows(IllegalArgumentException.class, () -> new Group("foo.>")); // GT invalid everywhere

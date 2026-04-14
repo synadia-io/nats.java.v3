@@ -1,6 +1,7 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.JetStreamSubscription;
 import io.synadia.client.support.Status;
 
 /**

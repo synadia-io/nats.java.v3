@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.synadia.client.support.Validator.required;
 import static io.synadia.client.support.Validator.validateQueueName;
 
-class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
+public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
 
     protected final ConsumerMessageQueue incoming;
     protected final MessageHandler defaultHandler;
@@ -263,7 +263,7 @@ class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
         return _subscribeImplHandlerProvided(subject, queueName, handler, null);
     }
 
-    NatsSubscription subscribeImplJetStream(String subject, String queueName, MessageHandler handler, NatsSubscriptionFactory nsf) {
+    public NatsSubscription subscribeImplJetStream(String subject, String queueName, MessageHandler handler, NatsSubscriptionFactory nsf) {
         checkBeforeSubImpl();
         return _subscribeImplHandlerProvided(subject, queueName, handler, nsf);
     }

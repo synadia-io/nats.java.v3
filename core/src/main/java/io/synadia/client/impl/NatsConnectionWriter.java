@@ -35,7 +35,7 @@ import static io.synadia.client.support.BuilderBase.bufferAllocSize;
 import static io.synadia.client.support.NatsConstants.CR;
 import static io.synadia.client.support.NatsConstants.LF;
 
-class NatsConnectionWriter implements Runnable {
+public class NatsConnectionWriter implements Runnable {
     enum Mode {
         Normal, Reconnect, WaitingForEndReconnect
     }

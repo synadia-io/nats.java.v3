@@ -1,6 +1,6 @@
 package io.synadia.client;
 
-import io.synadia.client.api.*;
+import io.synadia.client.jsapi.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -82,14 +82,14 @@ public interface StreamContext {
     /**
      * Management function to create or update a consumer on this stream.
      * <p> Note that ConsumerContext expects a <b>pull consumer</b>.
-     * @param config the consumer configuration to use.
+     * @param creator the consumer configuration to use.
      * @return a ConsumerContext object
      * @throws IOException covers various communication issues with the NATS
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data.
      */
     @NonNull
-    ConsumerContext createOrUpdateConsumer(@NonNull ConsumerConfiguration config) throws IOException, JetStreamApiException;
+    ConsumerContext createOrUpdateConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
 
     /**
      * Create an ordered consumer context for the context's stream.
@@ -100,7 +100,7 @@ public interface StreamContext {
      * @throws JetStreamApiException the request had an error related to the data
      */
     @NonNull
-    OrderedConsumerContext createOrderedConsumer(@NonNull OrderedConsumerConfiguration config) throws IOException, JetStreamApiException;
+    OrderedConsumerContext createOrderedConsumer(@NonNull PullOrderedConsumerCreator config) throws IOException, JetStreamApiException;
 
     /**
      * Management function to deletes a consumer.

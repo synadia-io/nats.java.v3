@@ -4,7 +4,7 @@ import io.nats.json.JsonParseException;
 import io.nats.json.JsonParser;
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
-import io.synadia.client.api.PriorityPolicy;
+import io.synadia.client.jsapi.PriorityPolicy;
 import org.jspecify.annotations.NonNull;
 
 import static io.nats.json.JsonValueUtils.*;
@@ -167,10 +167,10 @@ public class BaseConsumeOptions implements JsonSerializable {
         protected abstract B getThis();
 
         /**
-         * Initialize values from the json string.
-         * @param json the json string to parse
+         * Initialize values from the JSON string.
+         * @param json the JSON string to parse
          * @return the builder
-         * @throws JsonParseException if there is a problem parsing the json
+         * @throws JsonParseException if there is a problem parsing the JSON
          */
         public B json(String json) throws JsonParseException {
             return jsonValue(JsonParser.parse(json));

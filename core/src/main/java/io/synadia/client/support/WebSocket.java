@@ -61,7 +61,7 @@ public class WebSocket extends Socket {
         request.getHeaders()
             .add("Host", host)
             .add("Upgrade", "websocket")
-            .add("Connection", "Upgrade")
+            .add("NatsConnection", "Upgrade")
             .add("Sec-WebSocket-Key", key)
             .add("Sec-WebSocket-Protocol", "nats")
             .add("Sec-WebSocket-Version", "13");
@@ -109,10 +109,10 @@ public class WebSocket extends Socket {
             throw new IllegalStateException(
                 "Expected HTTP `Upgrade: websocket` header");
         }
-        // 3. Expect `Connection: Upgrade`
+        // 3. Expect `NatsConnection: Upgrade`
         if (!"upgrade".equalsIgnoreCase(headers.get("connection"))) {
             throw new IllegalStateException(
-                "Expected HTTP `Connection: Upgrade` header");
+                "Expected HTTP `NatsConnection: Upgrade` header");
         }
         // 4. Sec-WebSocket-Accept: base64(sha1(key + "258EAF..."))
         MessageDigest sha1;

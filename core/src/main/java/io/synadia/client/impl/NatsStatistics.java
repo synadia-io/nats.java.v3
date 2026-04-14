@@ -259,7 +259,7 @@ public class NatsStatistics implements StatisticsCollector {
     public String toString() {
         StringBuilder builder = new StringBuilder();
 
-        builder.append("### Connection ###\n");
+        builder.append("### NatsConnection ###\n");
         appendNumberStat(builder, "Reconnects:                      ", this.reconnects.get());
         appendNumberStat(builder, "Requests Sent:                   ", this.requestsSent.get());
         appendNumberStat(builder, "Replies Received:                ", this.repliesReceived.get());

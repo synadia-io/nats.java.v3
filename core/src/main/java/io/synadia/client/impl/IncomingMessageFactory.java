@@ -1,9 +1,10 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.js.JetStreamMessage;
 import io.synadia.client.support.IncomingHeadersProcessor;
 import io.synadia.client.support.Status;
 
-import static io.synadia.client.support.NatsJetStreamConstants.JS_ACK_SUBJECT_PREFIX;
+import static io.synadia.client.support.JetStreamConstants.JS_ACK_SUBJECT_PREFIX;
 
 // ----------------------------------------------------------------------------------------------------
 // Incoming Message Factory - internal use only
@@ -13,7 +14,6 @@ class IncomingMessageFactory {
     private final String subject;
     private final String replyTo;
     private final int protocolLineLength;
-    private final boolean utf8mode;
 
     private byte[] data;
     private Headers headers;
@@ -22,12 +22,11 @@ class IncomingMessageFactory {
 
     // Create an incoming message for a subscriber
     // Doesn't check control line size, since the server sent us the message
-    IncomingMessageFactory(String sid, String subject, String replyTo, int protocolLength, boolean utf8mode) {
+    IncomingMessageFactory(String sid, String subject, String replyTo, int protocolLength) {
         this.sid = sid;
         this.subject = subject;
         this.replyTo = replyTo;
         this.protocolLineLength = protocolLength;
-        this.utf8mode = utf8mode;
     }
 
     void setHeaders(IncomingHeadersProcessor ihp) {
@@ -46,7 +45,7 @@ class IncomingMessageFactory {
             message = new StatusMessage(status);
         }
         else if (replyTo != null && replyTo.startsWith(JS_ACK_SUBJECT_PREFIX)) {
-            message = new NatsJetStreamMessage(data);
+            message = new JetStreamMessage(data);
         }
         else {
             message = new IncomingMessage(data);

@@ -175,7 +175,7 @@ public class SocketDataPortProxyHostnameTest extends TestBase {
             }
 
             Options options = optionsBuilder.build();
-            MockNatsConnection mockConnection = new MockNatsConnection(options);
+            MockNatsNatsConnection mockConnection = new MockNatsNatsConnection(options);
             SocketDataPort dataPort = new SocketDataPort();
             NatsUri nuri = new NatsUri("nats://localhost:4222");
 

@@ -2,6 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
+import io.synadia.client.js.JetStreamMetaData;
 import io.synadia.client.support.ByteArrayBuilder;
 import io.synadia.client.support.Status;
 
@@ -332,7 +333,7 @@ public class NatsMessage implements Message {
      * {@inheritDoc}
      */
     @Override
-    public NatsJetStreamMetaData metaData() {
+    public JetStreamMetaData metaData() {
         throw new IllegalStateException(NOT_A_JET_STREAM_MESSAGE);
     }
 

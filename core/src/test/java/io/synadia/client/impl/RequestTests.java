@@ -39,7 +39,7 @@ public class RequestTests extends TestBase {
             String subject = random();
             d.subscribe(subject);
 
-            Future<Message> incoming = nc.request(subject, null);
+            Future<Message> incoming = nc.requestAsync(subject, null);
             Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
             assertEquals(0, nc.getStatistics().getOutstandingRequests());
@@ -47,7 +47,7 @@ public class RequestTests extends TestBase {
             assertEquals(0, msg.getData().length);
             assertTrue(msg.getSubject().indexOf('.') < msg.getSubject().lastIndexOf('.'));
 
-            incoming = nc.request(subject, new Headers().put("foo", "bar"), null);
+            incoming = nc.requestAsync(subject, new Headers().put("foo", "bar"), null);
             msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
             assertEquals(0, nc.getStatistics().getOutstandingRequests());
@@ -73,7 +73,7 @@ public class RequestTests extends TestBase {
             String subject = random();
             d.subscribe(subject);
 
-            Future<Message> f = nc.request(subject, dataBytes(1));
+            Future<Message> f = nc.requestAsync(subject, dataBytes(1));
             Message msg = f.get(500, TimeUnit.MILLISECONDS);
             assertEquals(data(1), new String(msg.getData()));
 
@@ -122,7 +122,7 @@ public class RequestTests extends TestBase {
             String subject = random();
             d.subscribe(subject);
 
-            Future<Message> incoming = nc.request(subject, null);
+            Future<Message> incoming = nc.requestAsync(subject, null);
             Message msg = incoming.get(5000, TimeUnit.MILLISECONDS);
 
             assertEquals(0, nc.getStatistics().getOutstandingRequests());
@@ -163,7 +163,7 @@ public class RequestTests extends TestBase {
             d.subscribe(subject);
 
             for (int i=0; i<10; i++) {
-                Future<Message> incoming = nc.request(subject, new byte[11]);
+                Future<Message> incoming = nc.requestAsync(subject, new byte[11]);
                 Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
                 assertEquals(0, nc.getStatistics().getOutstandingRequests());
@@ -266,7 +266,7 @@ public class RequestTests extends TestBase {
             String subject = random();
             d.subscribe(subject);
 
-            Future<Message> incoming = nc.request(subject, null);
+            Future<Message> incoming = nc.requestAsync(subject, null);
             Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
             assertEquals(0, nc.getStatistics().getOutstandingRequests());
@@ -288,7 +288,7 @@ public class RequestTests extends TestBase {
                 assertConnected(nc);
 
                 assertThrows(TimeoutException.class,
-                        () -> nc.request(random(), null).get(100, TimeUnit.MILLISECONDS));
+                        () -> nc.requestAsync(random(), null).get(100, TimeUnit.MILLISECONDS));
 
                 assertEquals(1, nc.getStatistics().getOutstandingRequests());
             } finally {
@@ -312,7 +312,7 @@ public class RequestTests extends TestBase {
             try {
                 assertConnected(nc);
                 NatsMessage nm = NatsMessage.builder().subject(random()).data(dataBytes(2)).build();
-                CompletableFuture<Message> future = nc.requestWithTimeout(nm, Duration.ofMillis(cleanupInterval));
+                CompletableFuture<Message> future = nc.requestAsync(nm, Duration.ofMillis(cleanupInterval));
                 
                 Thread.sleep(2 * cleanupInterval + Options.DEFAULT_CONNECTION_TIMEOUT.toMillis());
 
@@ -350,7 +350,7 @@ public class RequestTests extends TestBase {
                 String subject = random();
                 d.subscribe(subject);
 
-                CompletableFuture<Message> incoming = nc.requestWithTimeout(subject, null, Duration.ofMillis(100));
+                CompletableFuture<Message> incoming = nc.requestAsync(subject, null, Duration.ofMillis(100));
 
                 Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
@@ -359,7 +359,7 @@ public class RequestTests extends TestBase {
                 assertEquals(0, msg.getData().length);
                 assertTrue(msg.getSubject().indexOf('.') < msg.getSubject().lastIndexOf('.'));
 
-                incoming = nc.requestWithTimeout(subject, new Headers().put("foo", "bar"), null, Duration.ofMillis(100));
+                incoming = nc.requestAsync(subject, new Headers().put("foo", "bar"), null, Duration.ofMillis(100));
 
                 msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
@@ -399,7 +399,7 @@ public class RequestTests extends TestBase {
                 String subject = random();
                 d.subscribe(subject);
 
-                CompletableFuture<Message> incoming = nc.requestWithTimeout(subject, null, Duration.ofMillis(cleanupInterval));
+                CompletableFuture<Message> incoming = nc.requestAsync(subject, null, Duration.ofMillis(cleanupInterval));
                 assertThrows(CancellationException.class, () -> incoming.get(delay, TimeUnit.MILLISECONDS));
 
             }
@@ -419,7 +419,7 @@ public class RequestTests extends TestBase {
             NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
-                assertThrows(CancellationException.class, () -> nc.request(random(), null).get(100, TimeUnit.MILLISECONDS));
+                assertThrows(CancellationException.class, () -> nc.requestAsync(random(), null).get(100, TimeUnit.MILLISECONDS));
 
                 assertEquals(0, nc.getStatistics().getOutstandingRequests());
             } finally {
@@ -439,7 +439,7 @@ public class RequestTests extends TestBase {
             NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
-                assertThrows(CancellationException.class, () -> nc.requestWithTimeout(random(), null, Duration.ofMillis(100)).get(100, TimeUnit.MILLISECONDS));
+                assertThrows(CancellationException.class, () -> nc.requestAsync(random(), null, Duration.ofMillis(100)).get(100, TimeUnit.MILLISECONDS));
                 assertEquals(0, nc.getStatistics().getOutstandingRequests());
             } finally {
                 nc.close();
@@ -461,7 +461,7 @@ public class RequestTests extends TestBase {
                 assertConnected(nc);
 
                 assertConnected(nc);
-                assertThrows(TimeoutException.class, () -> nc.requestWithTimeout(random(), null, Duration.ofMillis(100)).get(100, TimeUnit.MILLISECONDS));
+                assertThrows(TimeoutException.class, () -> nc.requestAsync(random(), null, Duration.ofMillis(100)).get(100, TimeUnit.MILLISECONDS));
                 assertEquals(1, nc.getStatistics().getOutstandingRequests());
 
             } finally {
@@ -478,7 +478,7 @@ public class RequestTests extends TestBase {
             NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
-                NatsRequestCompletableFuture incoming = (NatsRequestCompletableFuture)nc.request(random(), null);
+                NatsRequestCompletableFuture incoming = (NatsRequestCompletableFuture)nc.requestAsync(random(), null);
                 incoming.cancel(true);
                 NatsStatistics stats = (NatsStatistics)nc.getStatistics();
                 // sometimes if the machine is very fast, the request gets a reply (even if it's no responders)
@@ -502,11 +502,11 @@ public class RequestTests extends TestBase {
                 assertConnected(nc);
 
                 String subject = random();
-                Future<Message> incoming = nc.request(subject, null);
+                Future<Message> incoming = nc.requestAsync(subject, null);
                 incoming.cancel(true);
-                incoming = nc.request(subject, null);
+                incoming = nc.requestAsync(subject, null);
                 incoming.cancel(true);
-                incoming = nc.request(subject, null);
+                incoming = nc.requestAsync(subject, null);
                 incoming.cancel(true);
 
                 long sleep = 2 * cleanupInterval;
@@ -516,11 +516,11 @@ public class RequestTests extends TestBase {
                 assertTrueByTimeout(timeout, () -> nc.getStatistics().getOutstandingRequests() == 0);
 
                 // Make sure it is still running
-                incoming = nc.request(subject, null);
+                incoming = nc.requestAsync(subject, null);
                 incoming.cancel(true);
-                incoming = nc.request(subject, null);
+                incoming = nc.requestAsync(subject, null);
                 incoming.cancel(true);
-                incoming = nc.request(subject, null);
+                incoming = nc.requestAsync(subject, null);
                 incoming.cancel(true);
 
                 sleep(sleep);
@@ -548,7 +548,7 @@ public class RequestTests extends TestBase {
 
                 while ((end-start) <= 2 * cleanupInterval * 1_000_000) {
                     for (int i=0;i<msgCount;i++) {
-                        Future<Message> incoming = nc.request(subject, null);
+                        Future<Message> incoming = nc.requestAsync(subject, null);
                         Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
                         assertNotNull(msg);
                         assertEquals(0, msg.getData().length);
@@ -573,7 +573,7 @@ public class RequestTests extends TestBase {
                     d.subscribe(subject);
         
                     for (int i=0;i<msgCount;i++) {
-                        Future<Message> incoming = nc.request(subject, null);
+                        Future<Message> incoming = nc.requestAsync(subject, null);
                         messages.add(incoming);
                     }
                     nc.flush(Duration.ofMillis(1000));
@@ -600,7 +600,7 @@ public class RequestTests extends TestBase {
             });
             d.subscribe(subject);
 
-            Future<Message> incoming = nc.request(subject, null);
+            Future<Message> incoming = nc.requestAsync(subject, null);
             Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
             assertEquals(0, nc.getStatistics().getOutstandingRequests());
@@ -621,7 +621,7 @@ public class RequestTests extends TestBase {
                 String subject = random();
                 d.subscribe(subject);
 
-                Future<Message> incoming = nc.request(subject, new byte[messageSize]); // force the buffers to resize
+                Future<Message> incoming = nc.requestAsync(subject, new byte[messageSize]); // force the buffers to resize
                 Message msg = null;
 
                 try {
@@ -641,10 +641,10 @@ public class RequestTests extends TestBase {
     public void testRequestErrors() throws Exception {
         runInSharedOwnNc(nc -> {
             //noinspection DataFlowIssue
-            assertThrows(IllegalArgumentException.class, () -> nc.request((String)null, null)); // null subject bad
-            assertThrows(IllegalArgumentException.class, () -> nc.request("", null)); // empty subject bad
+            assertThrows(IllegalArgumentException.class, () -> nc.requestAsync((String)null, null)); // null subject bad
+            assertThrows(IllegalArgumentException.class, () -> nc.requestAsync("", null)); // empty subject bad
             nc.close();
-            assertThrows(IllegalStateException.class, () -> nc.request(random(), null)); // can't request after close
+            assertThrows(IllegalStateException.class, () -> nc.requestAsync(random(), null)); // can't request after close
         });
     }
 
@@ -654,12 +654,12 @@ public class RequestTests extends TestBase {
         NatsRequestCompletableFuture f = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofMillis(-1000), true);
         assertEquals(CancelAction.CANCEL, f.getCancelAction());
         assertTrue(f.hasExceededTimeout());
-        assertFalse(f.wasCancelledClosing());
-        assertFalse(f.wasCancelledTimedOut());
+        assertFalse(f.wasCanceledClosing());
+        assertFalse(f.wasCanceledTimedOut());
         f.cancelClosing(); // not real use, just testing flags
         f.cancelTimedOut(); // not real use, just testing flags
-        assertTrue(f.wasCancelledClosing());
-        assertTrue(f.wasCancelledTimedOut());
+        assertTrue(f.wasCanceledClosing());
+        assertTrue(f.wasCanceledTimedOut());
         assertTrue(f.useTimeoutException());
 
         f = new NatsRequestCompletableFuture(CancelAction.COMPLETE, Duration.ofNanos(0), true);
@@ -711,7 +711,7 @@ public class RequestTests extends TestBase {
     }
 
     @Test
-    public void testCancelledFutureMustNotErrorOnCleanResponses() throws Exception {
+    public void testCanceledFutureMustNotErrorOnCleanResponses() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = Options.builder()
                     .server(ts.getServerUri())
@@ -720,7 +720,7 @@ public class RequestTests extends TestBase {
                     .build();
             NatsConnection nc = (NatsConnection) Nats.connect(options);
 
-            NatsRequestCompletableFuture future = (NatsRequestCompletableFuture) nc.request("request", null);
+            NatsRequestCompletableFuture future = (NatsRequestCompletableFuture) nc.requestAsync("request", null);
             future.cancelClosing();
 
             // Future is already cancelled, collecting it shouldn't result in an exception being thrown.

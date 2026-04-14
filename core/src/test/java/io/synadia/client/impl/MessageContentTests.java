@@ -26,7 +26,7 @@ public class MessageContentTests extends TestBase {
 
             String body = "hello world";
             byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
-            Future<Message> incoming = nc.request(subject, bodyBytes);
+            Future<Message> incoming = nc.requestAsync(subject, bodyBytes);
             Message msg = incoming.get(50000, TimeUnit.MILLISECONDS);
 
             assertNotNull(msg);
@@ -44,7 +44,7 @@ public class MessageContentTests extends TestBase {
 
             String body = "??????";
             byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
-            Future<Message> incoming = nc.request(subject, bodyBytes);
+            Future<Message> incoming = nc.requestAsync(subject, bodyBytes);
             Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
             assertNotNull(msg);
@@ -64,7 +64,7 @@ public class MessageContentTests extends TestBase {
             for (int i=0;i<10;i++) {
 
                 byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
-                Future<Message> incoming = nc.request(subject, bodyBytes);
+                Future<Message> incoming = nc.requestAsync(subject, bodyBytes);
                 Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
                 assertNotNull(msg);
@@ -84,7 +84,7 @@ public class MessageContentTests extends TestBase {
             d.subscribe(subject);
 
             byte[] data = new byte[17];
-            Future<Message> incoming = nc.request(subject, data);
+            Future<Message> incoming = nc.requestAsync(subject, data);
             Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
             assertNotNull(msg);

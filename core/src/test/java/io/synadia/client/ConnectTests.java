@@ -1,9 +1,9 @@
 package io.synadia.client;
 
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
-import io.synadia.client.api.ServerInfo;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SimulateSocketDataPortException;
+import io.synadia.client.jsapi.ServerInfo;
 import io.synadia.client.support.Listener;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;

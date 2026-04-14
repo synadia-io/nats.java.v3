@@ -15,7 +15,7 @@ public abstract class FeatureOptions {
 
     /**
      * Gets the JetStream options
-     * @return the options
+     * @return this instance for chaining.
      */
     public JetStreamOptions getJetStreamOptions() {
         return jso;

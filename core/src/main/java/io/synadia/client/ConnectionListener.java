@@ -8,7 +8,7 @@ import io.synadia.client.impl.NatsConnection;
  */
 public interface ConnectionListener {
     /**
-     * Connection related events that occur asynchronously in the client code are
+     * NatsConnection related events that occur asynchronously in the client code are
      * sent to a ConnectionListener via a single method. The ConnectionListener can
      * use the event type to decide what to do about the problem.
      * @param conn the connection associated with the error

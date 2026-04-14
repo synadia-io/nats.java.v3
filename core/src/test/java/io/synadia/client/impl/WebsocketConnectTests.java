@@ -55,7 +55,7 @@ public class WebsocketConnectTests extends TestBase {
             dispatcher.subscribe(subject);
             for (int x = 0; x < 10; x++) {
                 String data = random() + x;
-                Message response = connection.request(subject, data.getBytes()).join();
+                Message response = connection.requestAsync(subject, data.getBytes()).join();
                 assertEquals(data + ":reply", new String(response.getData()));
             }
         }

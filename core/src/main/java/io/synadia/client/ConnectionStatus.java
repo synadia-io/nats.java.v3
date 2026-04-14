@@ -5,23 +5,23 @@ package io.synadia.client;
  */
 public enum ConnectionStatus {
     /**
-     * The {@code Connection} is not connected.
+     * The {@code NatsConnection} is not connected.
      */
     DISCONNECTED,
     /**
-     * The {@code Connection} is currently connected.
+     * The {@code NatsConnection} is currently connected.
      */
     CONNECTED,
     /**
-     * The {@code Connection} is currently closed.
+     * The {@code NatsConnection} is currently closed.
      */
     CLOSED,
     /**
-     * The {@code Connection} is currently attempting to reconnect to a server from its server list.
+     * The {@code NatsConnection} is currently attempting to reconnect to a server from its server list.
      */
     RECONNECTING,
     /**
-     * The {@code Connection} is currently connecting to a server for the first
+     * The {@code NatsConnection} is currently connecting to a server for the first
      * time.
      */
     CONNECTING;

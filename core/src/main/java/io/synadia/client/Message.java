@@ -3,7 +3,7 @@ package io.synadia.client;
 import io.synadia.client.impl.AckType;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.impl.NatsJetStreamMetaData;
+import io.synadia.client.js.JetStreamMetaData;
 import io.synadia.client.support.Status;
 
 import java.time.Duration;
@@ -91,7 +91,7 @@ public interface Message {
 	 * metadata or null if the message is not a JetStream message.
 	 * @return the metadata
 	 */
-	NatsJetStreamMetaData metaData();
+	JetStreamMetaData metaData();
 
 	/**
 	 * the last ack that was done with this message

@@ -16,7 +16,7 @@ public interface OrderedConsumerContext extends BaseConsumerContext {
      * 1. Any time next(...) is called
      * 2. Anytime a message is received out of order for instance because of a disconnection
      * </p>
-     * <p>If your OrderedConsumerConfiguration has a consumerNamePrefix,
+     * <p>If your PullOrderedConsumerCreator has a consumerNamePrefix,
      * the consumer name will always start with the prefix
      * </p>
      * @return the consumer name or null

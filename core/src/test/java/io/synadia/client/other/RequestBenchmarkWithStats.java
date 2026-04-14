@@ -67,7 +67,7 @@ public class RequestBenchmarkWithStats {
 
                     ArrayList<Future<Message>> msgs = new ArrayList<>();
                     for (int i = 0; i < msgsPerThread; i++) {
-                        Future<Message> msg = nc.request("req", body);
+                        Future<Message> msg = nc.requestAsync("req", body);
                         msgs.add(msg);
 
                         if (i!=0 && i%1_000==0) {

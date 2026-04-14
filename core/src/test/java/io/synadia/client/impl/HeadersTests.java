@@ -708,7 +708,7 @@ public class HeadersTests {
         if (msg != null) {
             assertEquals(msg, status.getMessage());
         }
-        IncomingMessageFactory imf = new IncomingMessageFactory("sid", "sub", "rt", 0, false);
+        IncomingMessageFactory imf = new IncomingMessageFactory("sid", "sub", "rt", 0);
         imf.setHeaders(ihp);
         status = imf.getMessage().getStatus();
         assertEquals(code, status.getCode());

@@ -1,7 +1,10 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
-import io.synadia.client.api.*;
+import io.synadia.client.Dispatcher;
+import io.synadia.client.JetStreamApiException;
+import io.synadia.client.Message;
+import io.synadia.client.js.*;
+import io.synadia.client.jsapi.*;
 import io.synadia.client.utils.TestBase;
 
 import java.io.IOException;
@@ -54,11 +57,11 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public NatsMessage getTestMessage(String replyTo) {
-        return new IncomingMessageFactory(mockSid(), "subj", replyTo, 0, false).getMessage();
+        return new IncomingMessageFactory(mockSid(), "subj", replyTo, 0).getMessage();
     }
 
     public NatsMessage getTestMessage(String replyTo, String sid) {
-        return new IncomingMessageFactory(sid, "subj", replyTo, 0, false).getMessage();
+        return new IncomingMessageFactory(sid, "subj", replyTo, 0).getMessage();
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -110,11 +113,11 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public static void jsPublish(NatsConnection nc, String subject, int count) throws IOException, JetStreamApiException {
-        jsPublish(nc.jetStream(), subject, 1, count);
+        jsPublish(new JetStream(nc), subject, 1, count);
     }
 
     public static void jsPublish(NatsConnection nc, String subject, int startId, int count) throws IOException, JetStreamApiException {
-        jsPublish(nc.jetStream(), subject, startId, count);
+        jsPublish(new JetStream(nc), subject, startId, count);
     }
 
     public static PublishAck jsPublish(JetStream js, String subject, String data) throws IOException, JetStreamApiException {
@@ -225,23 +228,23 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public static void assertSubscription(JetStreamSubscription sub, String stream, String consumer, String deliver, boolean isPullMode) {
-        JetStreamSubscription njssub = (JetStreamSubscription)sub;
-        assertEquals(stream, njssub.getStreamName());
+        assertEquals(stream, sub.getStreamName());
         if (consumer == null) {
-            assertNotNull(njssub.getConsumerName());
+            assertNotNull(sub.getConsumerName());
         }
         else {
-            assertEquals(consumer, njssub.getConsumerName());
+            assertEquals(consumer, sub.getConsumerName());
         }
         if (deliver != null) {
-            assertEquals(deliver, njssub.getSubject());
+            assertEquals(deliver, sub.getSubject());
         }
 
-        boolean pm = njssub.isPullMode();
-        assertEquals(isPullMode, pm);
-
-        // coverage
-        assertTrue(sub.toString().contains("isPullMode=" + pm));
+        if (isPullMode) {
+            assertInstanceOf(JetStreamPullSubscription.class, sub);
+        }
+        else {
+            assertInstanceOf(JetStreamPushSubscription.class, sub);
+        }
     }
 
     public static void assertSameMessages(List<Message> l1, List<Message> l2) {
@@ -294,7 +297,7 @@ public class JetStreamTestBase extends TestBase {
 
         StreamState ss = si.getStreamState();
         if (msgCount != null) {
-            assertEquals(msgCount, ss.getMsgCount());
+            assertEquals(msgCount, ss.getMessageCount());
         }
         if (firstSeq != null) {
             assertEquals(firstSeq, ss.getFirstSequence());

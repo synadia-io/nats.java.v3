@@ -36,7 +36,7 @@ public class Discovery {
 
     /**
      * Construct a Discovery instance with a connection and default maxTimeMillis / maxResults
-     * @param conn the NATS Connection
+     * @param conn the NATS NatsConnection
      */
     public Discovery(NatsConnection conn) {
         this(conn, 0, 0);
@@ -44,7 +44,7 @@ public class Discovery {
 
     /**
      * Construct a Discovery instance
-     * @param conn the NATS Connection
+     * @param conn the NATS NatsConnection
      * @param maxTimeMillis the maximum time to wait for discovery requests to complete or any number less than 1 to use the default
      * @param maxResults the maximum number of results to wait for or any number less than 1 to use the default
      */

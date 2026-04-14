@@ -2,7 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.Options.HostnameResolveMode;
-import io.synadia.client.api.ServerInfo;
+import io.synadia.client.jsapi.ServerInfo;
 import io.synadia.client.support.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -443,7 +443,7 @@ public class NatsConnection implements AutoCloseable {
         processConnectionEvent(ConnectionEvents.RESUBSCRIBED, uriDetail(currentServer));
     }
 
-    protected void reconnectImplConnect() throws InterruptedException {
+    protected void reconnectImplConnect() {
         int totalRounds = 0;
         NatsUri first = null;
         NatsUri cur;
@@ -1020,7 +1020,7 @@ public class NatsConnection implements AutoCloseable {
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     public void publish(@NonNull String subject, byte @Nullable [] body) {
-        publishInternal(subject, null, null, body, false);
+        publish(subject, null, null, body, false);
     }
 
     /**
@@ -1044,7 +1044,7 @@ public class NatsConnection implements AutoCloseable {
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     public void publish(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
-        publishInternal(subject, null, headers, body, false);
+        publish(subject, null, headers, body, false);
     }
 
     /**
@@ -1071,7 +1071,7 @@ public class NatsConnection implements AutoCloseable {
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     public void publish(@NonNull String subject, @Nullable String replyTo, byte @Nullable [] body) {
-        publishInternal(subject, replyTo, null, body, false);
+        publish(subject, replyTo, null, body, false);
     }
 
     /**
@@ -1100,7 +1100,7 @@ public class NatsConnection implements AutoCloseable {
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] body) {
-        publishInternal(subject, replyTo, headers, body, false);
+        publish(subject, replyTo, headers, body, false);
     }
 
     /**
@@ -1122,10 +1122,10 @@ public class NatsConnection implements AutoCloseable {
      */
     public void publish(@NonNull Message message) {
         Validator.validateNotNull(message, "Message");
-        publishInternal(message.getSubject(), message.getReplyTo(), message.getHeaders(), message.getData(), false);
+        publish(message.getSubject(), message.getReplyTo(), message.getHeaders(), message.getData(), false);
     }
 
-    protected void publishInternal(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data, boolean flushImmediatelyAfterPublish) {
+    public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data, boolean flushImmediatelyAfterPublish) {
         subject = subjectValidate(subject, true);
         replyTo = replyValidate(replyTo, false);
         NatsPublishableMessage npm = new NatsPublishableMessage(subject, replyTo, headers, data, flushImmediatelyAfterPublish);
@@ -1134,10 +1134,10 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if (isClosed()) {
-            throw new IllegalStateException("Connection is Closed");
+            throw new IllegalStateException("NatsConnection is Closed");
         }
         else if (blockPublishForDrain.get()) {
-            throw new IllegalStateException("Connection is Draining"); // Ok to publish while waiting on subs
+            throw new IllegalStateException("NatsConnection is Draining"); // Ok to publish while waiting on subs
         }
 
         if ((status == RECONNECTING || status == DISCONNECTED)
@@ -1207,7 +1207,7 @@ public class NatsConnection implements AutoCloseable {
 
     protected void unsubscribe(NatsSubscription sub, int after) {
         if (isClosed()) { // last chance, usually sub will catch this
-            throw new IllegalStateException("Connection is Closed");
+            throw new IllegalStateException("NatsConnection is Closed");
         }
 
         if (after <= 0) {
@@ -1239,15 +1239,15 @@ public class NatsConnection implements AutoCloseable {
 
     // Assumes the null/empty checks were handled elsewhere
     @NonNull
-    protected NatsSubscription createSubscription(@NonNull String subject,
+    public NatsSubscription createSubscription(@NonNull String subject,
                                         @Nullable String queueName,
                                         @Nullable NatsDispatcher dispatcher,
                                         @Nullable NatsSubscriptionFactory factory) {
         if (isClosed()) {
-            throw new IllegalStateException("Connection is Closed");
+            throw new IllegalStateException("NatsConnection is Closed");
         }
         else if (isDraining() && (dispatcher == null || dispatcher != this.inboxDispatcher.get())) {
-            throw new IllegalStateException("Connection is Draining");
+            throw new IllegalStateException("NatsConnection is Draining");
         }
 
         NatsSubscription sub;
@@ -1392,7 +1392,7 @@ public class NatsConnection implements AutoCloseable {
 
     /**
      * Send a request and returns the reply or null. This version of request is equivalent
-     * to calling get on the future returned from {@link #request(String, byte[]) request()} with
+     * to calling get on the future returned from {@link #requestAsync(String, byte[]) request()} with
      * the timeout and handling the ExecutionException and TimeoutException.
      *
      * @param subject the subject for the service that will handle the request
@@ -1403,12 +1403,12 @@ public class NatsConnection implements AutoCloseable {
      */
     @Nullable
     public Message request(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
-        return requestInternal(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
+        return request(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
     }
 
     /**
      * Send a request and returns the reply or null. This version of request is equivalent
-     * to calling get on the future returned from {@link #request(String, byte[]) request()} with
+     * to calling get on the future returned from {@link #requestAsync(String, byte[]) request()} with
      * the timeout and handling the ExecutionException and TimeoutException.
      *
      * @param subject the subject for the service that will handle the request
@@ -1420,12 +1420,12 @@ public class NatsConnection implements AutoCloseable {
      */
     @Nullable
     public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
-        return requestInternal(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
+        return request(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
     }
 
     /**
      * Send a request and returns the reply or null. This version of request is equivalent
-     * to calling get on the future returned from {@link #request(String, byte[]) request()} with
+     * to calling get on the future returned from {@link #requestAsync(String, byte[]) request()} with
      * the timeout and handling the ExecutionException and TimeoutException.
      *
      * <p>The Message object allows you to set a replyTo, but in requests,
@@ -1440,18 +1440,23 @@ public class NatsConnection implements AutoCloseable {
     @Nullable
     public Message request(@NonNull Message message, @Nullable Duration timeout) throws InterruptedException {
         Validator.validateNotNull(message, "Message");
-        return requestInternal(message.getSubject(), message.getHeaders(), message.getData(), timeout, cancelAction, forceFlushOnRequest);
+        return request(message.getSubject(), message.getHeaders(), message.getData(), timeout, cancelAction, forceFlushOnRequest);
     }
 
     @Nullable
-    protected Message requestInternal(@NonNull String subject,
-                            @Nullable Headers headers,
-                            byte @Nullable [] data,
-                            @Nullable Duration timeout,
-                            @NonNull CancelAction cancelAction,
-                            boolean flushImmediatelyAfterPublish) throws InterruptedException
+    public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, @Nullable Duration timeout, @NonNull CancelAction cancelAction) throws InterruptedException {
+        return request(subject, headers, data, timeout, cancelAction, forceFlushOnRequest);
+    }
+
+    @Nullable
+    public Message request(@NonNull String subject,
+                           @Nullable Headers headers,
+                           byte @Nullable [] data,
+                           @Nullable Duration timeout,
+                           @NonNull CancelAction cancelAction,
+                           boolean flushImmediatelyAfterPublish) throws InterruptedException
     {
-        CompletableFuture<Message> incoming = requestFutureInternal(subject, headers, data, timeout, cancelAction, flushImmediatelyAfterPublish);
+        CompletableFuture<Message> incoming = requestAsync(subject, headers, data, timeout, cancelAction, flushImmediatelyAfterPublish);
         try {
             if (timeout == null) {
                 timeout = getOptions().getConnectionTimeout();
@@ -1472,8 +1477,8 @@ public class NatsConnection implements AutoCloseable {
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> request(@NonNull String subject, byte @Nullable [] body) {
-        return requestFutureInternal(subject, null, body, null, cancelAction, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] body) {
+        return requestAsync(subject, null, body, null, cancelAction, forceFlushOnRequest);
     }
 
     /**
@@ -1486,8 +1491,8 @@ public class NatsConnection implements AutoCloseable {
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
-        return requestFutureInternal(subject, headers, body, null, cancelAction, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
+        return requestAsync(subject, headers, body, null, cancelAction, forceFlushOnRequest);
     }
 
     /**
@@ -1500,8 +1505,8 @@ public class NatsConnection implements AutoCloseable {
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestWithTimeout(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) {
-        return requestFutureInternal(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) {
+        return requestAsync(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
     }
 
     /**
@@ -1515,8 +1520,8 @@ public class NatsConnection implements AutoCloseable {
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestWithTimeout(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, Duration timeout) {
-        return requestFutureInternal(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, Duration timeout) {
+        return requestAsync(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
     }
 
     /**
@@ -1532,9 +1537,9 @@ public class NatsConnection implements AutoCloseable {
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestWithTimeout(@NonNull Message message, @Nullable Duration timeout) {
+    public CompletableFuture<Message> requestAsync(@NonNull Message message, @Nullable Duration timeout) {
         Validator.validateNotNull(message, "Message");
-        return requestFutureInternal(message.getSubject(), message.getHeaders(), message.getData(), timeout, cancelAction, forceFlushOnRequest);
+        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), timeout, cancelAction, forceFlushOnRequest);
     }
 
     /**
@@ -1551,21 +1556,30 @@ public class NatsConnection implements AutoCloseable {
     @NonNull
     public CompletableFuture<Message> request(@NonNull Message message) {
         Validator.validateNotNull(message, "Message");
-        return requestFutureInternal(message.getSubject(), message.getHeaders(), message.getData(), null, cancelAction, forceFlushOnRequest);
+        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), null, cancelAction, forceFlushOnRequest);
     }
 
     @NonNull
-    protected CompletableFuture<Message> requestFutureInternal(@NonNull String subject,
-                                                     @Nullable Headers headers,
-                                                     byte @Nullable [] body,
-                                                     @Nullable Duration futureTimeout,
-                                                     @NonNull CancelAction cancelAction,
-                                                     boolean flushImmediatelyAfterPublish) {
+    public CompletableFuture<Message> requestAsync(@NonNull String subject,
+                                                   @Nullable Headers headers,
+                                                   byte @Nullable [] body,
+                                                   @Nullable Duration futureTimeout,
+                                                   @NonNull CancelAction cancelAction) {
+        return requestAsync(subject, headers, body, futureTimeout, cancelAction, forceFlushOnRequest);
+    }
+
+    @NonNull
+    public CompletableFuture<Message> requestAsync(@NonNull String subject,
+                                                   @Nullable Headers headers,
+                                                   byte @Nullable [] body,
+                                                   @Nullable Duration futureTimeout,
+                                                   @NonNull CancelAction cancelAction,
+                                                   boolean flushImmediatelyAfterPublish) {
         if (isClosed()) {
-            throw new IllegalStateException("Connection is Closed");
+            throw new IllegalStateException("NatsConnection is Closed");
         }
         else if (isDraining()) {
-            throw new IllegalStateException("Connection is Draining");
+            throw new IllegalStateException("NatsConnection is Draining");
         }
 
         if (inboxDispatcher.get() == null) {
@@ -1612,7 +1626,7 @@ public class NatsConnection implements AutoCloseable {
             responsesAwaiting.put(sub.getSID(), future);
         }
 
-        publishInternal(subject, responseInbox, headers, body, flushImmediatelyAfterPublish);
+        publish(subject, responseInbox, headers, body, flushImmediatelyAfterPublish);
         statistics.incrementRequestsSent();
 
         return future;
@@ -1666,7 +1680,7 @@ public class NatsConnection implements AutoCloseable {
      * @return a new Dispatcher
      */
     @NonNull
-    public Dispatcher createDispatcher() {
+    public NatsDispatcher createDispatcher() {
         return createDispatcher(null);
     }
 
@@ -1688,12 +1702,12 @@ public class NatsConnection implements AutoCloseable {
      * @return a new Dispatcher
      */
     @NonNull
-    public Dispatcher createDispatcher(@Nullable MessageHandler handler) {
+    public NatsDispatcher createDispatcher(@Nullable MessageHandler handler) {
         if (isClosed()) {
-            throw new IllegalStateException("Connection is Closed");
+            throw new IllegalStateException("NatsConnection is Closed");
         }
         else if (isDraining()) {
-            throw new IllegalStateException("Connection is Draining");
+            throw new IllegalStateException("NatsConnection is Draining");
         }
 
         NatsDispatcher dispatcher = dispatcherFactory.createDispatcher(this, handler);
@@ -1712,10 +1726,10 @@ public class NatsConnection implements AutoCloseable {
      */
     public void closeDispatcher(@NonNull Dispatcher d) {
         if (isClosed()) {
-            throw new IllegalStateException("Connection is Closed");
+            throw new IllegalStateException("NatsConnection is Closed");
         }
         else if (!(d instanceof NatsDispatcher)) {
-            throw new IllegalArgumentException("Connection can only manage its own dispatchers");
+            throw new IllegalArgumentException("NatsConnection can only manage its own dispatchers");
         }
 
         NatsDispatcher nd = (NatsDispatcher) d;
@@ -1743,8 +1757,8 @@ public class NatsConnection implements AutoCloseable {
     /**
      * Attach another ConnectionListener.
      *
-     * <p>The ConnectionListener will only receive Connection events arriving after it has been attached.  When
-     * a Connection event is raised, the invocation order and parallelism of multiple ConnectionListeners is not
+     * <p>The ConnectionListener will only receive NatsConnection events arriving after it has been attached.  When
+     * a NatsConnection event is raised, the invocation order and parallelism of multiple ConnectionListeners is not
      * specified.
      *
      * @param connectionListener the ConnectionListener to attach. A null listener is a no-op
@@ -1754,7 +1768,7 @@ public class NatsConnection implements AutoCloseable {
     }
 
     /**
-     * Detach a ConnectionListioner. This will cease delivery of any further Connection events to this instance.
+     * Detach a ConnectionListioner. This will cease delivery of any further NatsConnection events to this instance.
      *
      * @param connectionListener the ConnectionListener to detach
      */
@@ -2103,16 +2117,16 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void processSlowConsumer(Consumer consumer) {
+    public void processSlowConsumer(Consumer consumer) {
         makeCallback(() -> options.getErrorListener().slowConsumerDetected(this, consumer));
     }
 
-    protected void processException(Exception exp) {
+    public void processException(Exception exp) {
         this.statistics.incrementExceptionCount();
         makeCallback(() -> options.getErrorListener().exceptionOccurred(this, exp));
     }
 
-    protected void processError(String errorText) {
+    public void processError(String errorText) {
         this.statistics.incrementErrCount();
 
         this.lastError.set(errorText);
@@ -2126,11 +2140,11 @@ public class NatsConnection implements AutoCloseable {
         makeCallback(() -> options.getErrorListener().errorOccurred(this, errorText));
     }
 
-    protected interface ErrorListenerCaller {
+    public interface ErrorListenerCaller {
         void call(NatsConnection conn, ErrorListener el);
     }
 
-    protected void notifyErrorListener(ErrorListenerCaller elc) {
+    public void notifyErrorListener(ErrorListenerCaller elc) {
         makeCallback(() -> elc.call(this, options.getErrorListener()));
     }
 
@@ -2657,7 +2671,7 @@ public class NatsConnection implements AutoCloseable {
      */
     public void flushBuffer() throws IOException {
         if (!isConnected()) {
-            throw new IllegalStateException("Connection is not active.");
+            throw new IllegalStateException("NatsConnection is not active.");
         }
         writer.flushBuffer();
     }
@@ -2702,233 +2716,7 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    /**
-     * Get a stream context for a specific stream.
-     *
-     * <p><b>Recommended:</b> See {@link #getStreamContext(String, JetStreamOptions) getStreamContext(String, JetStreamOptions)}
-     * @param streamName the stream for the context
-     * @return a StreamContext instance.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    @NonNull public StreamContext getStreamContext(@NonNull String streamName) throws IOException, JetStreamApiException {
-        Validator.validateStreamName(streamName, true);
-        ensureNotClosing();
-        return new NatsStreamContext(streamName, null, this, null);
-    }
-
-    /**
-     * Get a stream context for a specific stream
-     * <p><b>Recommended:</b> {@link StreamContext StreamContext} and {@link ConsumerContext ConsumerContext} are the preferred way to interact with existing streams and consume from streams.
-     * {@link JetStreamManagement JetStreamManagement} should be used to create streams and consumers. {@link ConsumerContext#consume ConsumerContext.consume()} supports both push and pull consumers transparently.
-     *
-     * <pre>
-     * nc = Nats.connect();
-     * StreamContext streamContext = nc.getStreamContext("my-stream");
-     * ConsumerContext consumerContext = streamContext.getConsumerContext("my-consumer");
-     * // Or directly:
-     * // ConsumerContext consumerContext = nc.getConsumerContext("my-stream", "my-consumer");
-     * consumerContext.consume(
-     *      	msg -&gt; {
-     *             System.out.println("   Received " + msg.getSubject());
-     *             msg.ack();
-     *           });
-     * </pre>
-     *
-     * @param streamName the stream for the context
-     * @param options JetStream options. If null, default / no options are used.
-     * @return a StreamContext instance.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    @NonNull
-    public StreamContext getStreamContext(@NonNull String streamName, @Nullable JetStreamOptions options) throws IOException, JetStreamApiException {
-        Validator.validateStreamName(streamName, true);
-        ensureNotClosing();
-        return new NatsStreamContext(streamName, null, this, options);
-    }
-
-    /**
-     * Get a consumer context for a specific named stream and specific named consumer.
-     * Verifies that the stream and consumer exist.
-     *
-     * <p><b>Recommended:</b> See {@link #getStreamContext(String, JetStreamOptions) getStreamContext(String, JetStreamOptions)}
-     *
-     * @param streamName the name of the stream
-     * @param consumerName the name of the consumer
-     * @return a ConsumerContext object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    @NonNull
-    public ConsumerContext getConsumerContext(@NonNull String streamName, @NonNull String consumerName) throws IOException, JetStreamApiException {
-        return getStreamContext(streamName).getConsumerContext(consumerName);
-    }
-
-    /**
-     * Get a consumer context for a specific named stream and specific named consumer.
-     * Verifies that the stream and consumer exist.
-     *
-     * <p><b>Recommended:</b> See {@link #getStreamContext(String, JetStreamOptions) getStreamContext(String, JetStreamOptions)}
-     *
-     * @param streamName the name of the stream
-     * @param consumerName the name of the consumer
-     * @param options JetStream options. If null, default / no options are used.
-     * @return a ConsumerContext object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    @NonNull
-    public ConsumerContext getConsumerContext(@NonNull String streamName, @NonNull String consumerName, @Nullable JetStreamOptions options) throws IOException, JetStreamApiException {
-        return getStreamContext(streamName, options).getConsumerContext(consumerName);
-    }
-
-    /**
-     * Gets a context for publishing and subscribing to subjects backed by Jetstream streams
-     * and consumers.
-     * @return a JetStream instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public JetStream jetStream() throws IOException {
-        return jetStream(null);
-    }
-
-    /**
-     * Gets a context for publishing and subscribing to subjects backed by Jetstream streams
-     * and consumers.
-     * @param options JetStream options. If null, default / no options are used.
-     * @return a JetStream instance.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     */
-    @NonNull
-    public JetStream jetStream(JetStreamOptions options) throws IOException {
-        ensureNotClosing();
-        return new NatsJetStream(this, options);
-    }
-
-    /**
-     * Gets a context for managing Jetstream streams
-     * and consumers.
-     * @return a JetStreamManagement instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public JetStreamManagement jetStreamManagement() throws IOException {
-        return jetStreamManagement(null);
-    }
-
-    /**
-     * Gets a context for managing Jetstream streams
-     * and consumers.
-     * @param options JetStream options. If null, default / no options are used.
-     * @return a JetStreamManagement instance.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     */
-    @NonNull
-    public JetStreamManagement jetStreamManagement(JetStreamOptions options) throws IOException {
-        ensureNotClosing();
-        return new NatsJetStreamManagement(this, options);
-    }
-
-    /**
-     * Gets a context for working with a Key Value bucket
-     * @param bucketName the bucket name
-     * @return a KeyValue instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public KeyValue keyValue(@NonNull String bucketName) throws IOException {
-        return keyValue(bucketName, null);
-    }
-
-    /**
-     * Gets a context for working with a Key Value bucket
-     * @param bucketName the bucket name
-     * @param options KeyValue options. If null, default / no options are used.
-     * @return a KeyValue instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public KeyValue keyValue(@NonNull String bucketName, @Nullable KeyValueOptions options) throws IOException {
-        Validator.validateBucketName(bucketName, true);
-        ensureNotClosing();
-        return new NatsKeyValue(bucketName, this, options, null);
-    }
-
-    /**
-     * Gets a context for managing Key Value buckets
-     * @return a KeyValueManagement instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public KeyValueManagement keyValueManagement() throws IOException {
-        return keyValueManagement(null);
-    }
-
-    /**
-     * Gets a context for managing Key Value buckets
-     * @param options KeyValue options. If null, default / no options are used.
-     * @return a KeyValueManagement instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public KeyValueManagement keyValueManagement(@Nullable KeyValueOptions options) throws IOException {
-        ensureNotClosing();
-        return new NatsKeyValueManagement(this, options, null);
-    }
-
-    /**
-     * Gets a context for working with an Object Store.
-     * @param bucketName the bucket name
-     * @return an ObjectStore instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public ObjectStore objectStore(@NonNull String bucketName) throws IOException {
-        return objectStore(bucketName, null);
-    }
-
-    /**
-     * Gets a context for working with an Object Store.
-     * @param bucketName the bucket name
-     * @param options ObjectStore options. If null, default / no options are used.
-     * @return an ObjectStore instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public ObjectStore objectStore(@NonNull String bucketName, @Nullable ObjectStoreOptions options) throws IOException {
-        Validator.validateBucketName(bucketName, true);
-        ensureNotClosing();
-        return new NatsObjectStore(bucketName, this, options, null);
-    }
-
-    /**
-     * Gets a context for managing Object Stores
-     * @return an ObjectStoreManagement instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public ObjectStoreManagement objectStoreManagement() throws IOException {
-        ensureNotClosing();
-        return new NatsObjectStoreManagement(this, null, null);
-    }
-
-    /**
-     * Gets a context for managing Object Stores
-     * @param options ObjectStore options. If null, default / no options are used.
-     * @return a ObjectStoreManagement instance.
-     * @throws IOException various IO exception such as timeout or interruption
-     */
-    @NonNull
-    public ObjectStoreManagement objectStoreManagement(@Nullable ObjectStoreOptions options) throws IOException {
-        ensureNotClosing();
-        return new NatsObjectStoreManagement(this, options, null);
+    public boolean isForceFlushOnRequest() {
+        return forceFlushOnRequest;
     }
 }

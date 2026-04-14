@@ -22,7 +22,6 @@ public interface NatsConstants {
     List<String> WEBSOCKET_PROTOCOLS = Arrays.asList(WEBSOCKET_PROTOCOL, SECURE_WEBSOCKET_PROTOCOL);
 
     String SPACE = " ";
-    String EMPTY = "";
     String CRLF = "\r\n";
     String DOT = ".";
     String GREATER_THAN = ">";

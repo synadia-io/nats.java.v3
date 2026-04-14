@@ -2,6 +2,7 @@ package io.synadia.client.support;
 
 import io.synadia.client.*;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.js.JetStreamSubscription;
 import org.junit.jupiter.api.Assertions;
 
 import java.time.format.DateTimeFormatter;

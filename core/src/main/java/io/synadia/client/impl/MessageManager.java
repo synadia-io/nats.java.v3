@@ -3,7 +3,10 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.NatsSystemClock;
 import io.synadia.client.PullRequestOptions;
-import io.synadia.client.SubscribeOptions;
+import io.synadia.client.js.JetStreamMetaData;
+import io.synadia.client.js.JetStreamSubscribeConfig;
+import io.synadia.client.js.JetStreamSubscription;
+import io.synadia.client.js.PullManagerObserver;
 import io.synadia.client.support.NatsConstants;
 import io.synadia.client.support.ScheduledTask;
 
@@ -14,17 +17,17 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-abstract class MessageManager {
+public abstract class MessageManager {
     public enum ManageResult {MESSAGE, STATUS_HANDLED, STATUS_TERMINUS, STATUS_ERROR}
 
     protected static final int THRESHOLD = 3;
 
     protected final ReentrantLock stateChangeLock;
     protected final NatsConnection conn;
-    protected final SubscribeOptions so;
+    protected final JetStreamSubscribeConfig subConf;
     protected final boolean syncMode;
 
-    protected NatsJetStreamSubscription sub; // not final it is not set until after construction
+    protected JetStreamSubscription sub; // not final it is not set until after construction
 
     protected long lastStreamSeq;
     protected long lastConsumerSeq;
@@ -36,12 +39,12 @@ abstract class MessageManager {
     protected final AtomicLong alarmPeriodSettingNanos;
     protected final AtomicReference<ScheduledTask> heartbeatTaskRef;
 
-    protected MessageManager(NatsConnection conn, SubscribeOptions so, boolean syncMode) {
-        stateChangeLock = new ReentrantLock();
-
+    protected MessageManager(NatsConnection conn, JetStreamSubscribeConfig subConf) {
+        this.stateChangeLock = new ReentrantLock();
         this.conn = conn;
-        this.so = so;
-        this.syncMode = syncMode;
+        this.subConf = subConf;
+        this.syncMode = subConf.getHandler() == null;
+
         lastStreamSeq = 0;
         lastConsumerSeq = 0;
 
@@ -52,23 +55,28 @@ abstract class MessageManager {
         heartbeatTaskRef = new AtomicReference<>();
     }
 
-    protected boolean isSyncMode()              { return syncMode; }
-    protected long getLastStreamSequence()      { return lastStreamSeq; }
-    protected long getLastConsumerSequence()    { return lastConsumerSeq; }
-    protected long getLastMsgReceivedNanoTime() { return lastMsgReceivedNanoTime.get(); }
-    protected boolean isHb()                    { return hb.get(); }
-    protected long getIdleHeartbeatSetting()    { return idleHeartbeatSettingMillis.get(); }
-    protected long getAlarmPeriodSettingNanos() { return alarmPeriodSettingNanos.get(); }
+    public JetStreamSubscribeConfig getSubConf() { return subConf; }
+    public boolean isSyncMode()              { return syncMode; }
+    public long getLastStreamSequence()      { return lastStreamSeq; }
+    public long getLastConsumerSequence()    { return lastConsumerSeq; }
+    public long getLastMsgReceivedNanoTime() { return lastMsgReceivedNanoTime.get(); }
+    public boolean isHb()                    { return hb.get(); }
+    public long getIdleHeartbeatSetting()    { return idleHeartbeatSettingMillis.get(); }
+    public long getAlarmPeriodSettingNanos() { return alarmPeriodSettingNanos.get(); }
 
-    protected void startup(NatsJetStreamSubscription sub) {
+    public String createInbox() {
+        return conn.createInbox();
+    }
+
+    public void startup(JetStreamSubscription sub) {
         this.sub = sub;
     }
 
-    protected void shutdown() {
+    public void shutdown() {
         shutdownHeartbeatTimer();
     }
 
-    protected void startPullRequest(String pullSubject, PullRequestOptions pullRequestOptions, boolean raiseStatusWarnings, PullManagerObserver pullManagerObserver) {
+    public void startPullRequest(String pullSubject, PullRequestOptions pullRequestOptions, boolean raiseStatusWarnings, PullManagerObserver pullManagerObserver) {
         // does nothing - only implemented for pulls, but in base class since instance is referenced as MessageManager, not subclass
     }
 
@@ -76,12 +84,12 @@ abstract class MessageManager {
         return true;
     }
 
-    abstract protected ManageResult manage(Message msg);
+    abstract public ManageResult manage(Message msg);
 
     protected void trackJsMessage(Message msg) {
         stateChangeLock.lock();
         try {
-            NatsJetStreamMetaData meta = msg.metaData();
+            JetStreamMetaData meta = msg.metaData();
             lastStreamSeq = meta.streamSequence();
             lastConsumerSeq++;
         }
@@ -120,11 +128,11 @@ abstract class MessageManager {
         }
     }
 
-    protected void updateLastMessageReceived() {
+    public void updateLastMessageReceived() {
         lastMsgReceivedNanoTime.set(NatsSystemClock.nanoTime());
     }
 
-    protected void initOrResetHeartbeatTimer() {
+    public void initOrResetHeartbeatTimer() {
         stateChangeLock.lock();
         try {
             ScheduledTask hbTask = heartbeatTaskRef.get();
@@ -153,7 +161,7 @@ abstract class MessageManager {
         }
     }
 
-    protected void shutdownHeartbeatTimer() {
+    public void shutdownHeartbeatTimer() {
         stateChangeLock.lock();
         try {
             ScheduledTask hbTask = heartbeatTaskRef.get();

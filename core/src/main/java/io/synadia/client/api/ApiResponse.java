@@ -1,18 +1,21 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonParseException;
-import io.nats.json.JsonParser;
 import io.nats.json.JsonValue;
-import io.nats.json.MapBuilder;
+import io.nats.json.LazyJsonValue;
 import io.synadia.client.JetStreamApiException;
 import io.synadia.client.Message;
 import io.synadia.client.support.DateTimeUtils;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
+import java.util.function.Function;
 
-import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.toKey;
+import static io.nats.json.LazyJsonParser.parse;
+import static io.nats.json.LazyJsonParser.parseUnchecked;
+import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.support.ApiConstants.ERROR;
 import static io.synadia.client.support.ApiConstants.TYPE;
 
@@ -20,6 +23,7 @@ import static io.synadia.client.support.ApiConstants.TYPE;
  * ApiResponse is the base class for all api responses from the server
  * @param <T> the success response class
  */
+@NullMarked
 public abstract class ApiResponse<T> {
 
     /**
@@ -30,124 +34,119 @@ public abstract class ApiResponse<T> {
     /**
      * a constant for a response that errors while parsing
      */
-    public static final String PARSE_ERROR_TYPE = "io.nats.client.api.parse_error";
+    public static final String PARSE_ERROR_ERROR_JSON = "{\"error\":{\"code\":500,\"err_code\":-1,\"description\":\"Error parsing Message\"},\"type\":\"io.nats.client.api.parse_error\"}";
 
     /**
-     * The json value made from creating the object from a message or that was used to directly construct the response
+     * The JSON value made from creating the object from a message or that was used to directly construct the response
      */
-    protected final JsonValue jv;
+    protected final LazyJsonValue ljv;
 
     private final String type;
-    private Error error;
+    private @Nullable Error error;
 
     /**
      * construct an ApiResponse from a message
+     *
      * @param msg the message
      */
-    public ApiResponse(Message msg) {
-        this(parseMessage(msg));
+    protected ApiResponse(@Nullable Message msg) {
+        this(msg == null ? null : parseMessage(msg));
     }
 
     /**
      * parse the response message
+     *
      * @param msg the message
-     * @return the JsonValue of the parsed JSON
+     * @return the LazyJsonValue of the parsed JSON
      */
-    protected static JsonValue parseMessage(Message msg) {
-        if (msg == null) {
-            return null;
-        }
+    protected static LazyJsonValue parseMessage(Message msg) {
         try {
-            return JsonParser.parse(msg.getData());
+            return parse(msg.getData());
         }
         catch (JsonParseException e) {
-            return new MapBuilder()
-                .put(ERROR, new Error(500, "Error parsing: " + e.getMessage()))
-                .put(TYPE, PARSE_ERROR_TYPE)
-                .toJsonValue();
+            return parseUnchecked(PARSE_ERROR_ERROR_JSON);
         }
     }
 
     /**
-     * called when the JSON is invalid
-     * @param retVal the fluent value to return
-     * @return the return value
-     * @param <R> the type of the return value
+     * Called when the JSON is invalid. Sets the error if it is not already set.
      */
-    protected <R> R invalidJson(R retVal) {
-        // only set the error if it's not already set.
-        // this can easily happen when the original response is a real error
-        // but the parsing continues
+    protected void invalidJson() {
         if (error == null) {
             error = new Error(500, "Invalid JSON for " + getClass().getSimpleName());
         }
-        return retVal;
+    }
+
+    /**
+     * set an error if the value in the key is null/not found
+     *
+     * @param key the key
+     * @return the value of the key or empty string if the value is null/not found
+     */
+    protected String stringRequired(String key) {
+        if (hasError()) {
+            return "";
+        }
+        String s = readString(ljv, key);
+        if (s == null) {
+            invalidJson();
+            return "";
+        }
+        return s;
     }
 
     /**
      * set an error if the value in the key is null
-     * @param jv the input
+     *
      * @param key the key
      * @return the value of the key
      */
-    protected String nullStringIsError(JsonValue jv, String key) {
-        String s = readString(jv, key);
-        return s == null ? invalidJson("") : s;
+    protected ZonedDateTime dateRequired(String key) {
+        if (hasError()) {
+            return DateTimeUtils.DEFAULT_TIME;
+        }
+        ZonedDateTime zdt = readDate(ljv, key);
+        if (zdt == null) {
+            invalidJson();
+            return DateTimeUtils.DEFAULT_TIME;
+        }
+        return zdt;
+    }
+    protected <R> R valueRequired(String key, Function<LazyJsonValue, R> maker, R errVal) {
+        if (hasError()) {
+            return errVal;
+        }
+        LazyJsonValue v = readValue(ljv, key);
+        if (v == null) {
+            invalidJson();
+            return errVal;
+        }
+        return maker.apply(v);
     }
 
     /**
-     * set an error if the value in the key is null
-     * @param jv the input
-     * @param key the key
-     * @return the value of the key
+     * Construct an ApiResponse from a LazyJsonValue
+     * @param lazyJsonValue the value
      */
-    @SuppressWarnings("SameParameterValue")
-    protected ZonedDateTime nullDateIsError(JsonValue jv, String key) {
-        ZonedDateTime zdt = readDate(jv, key);
-        return zdt == null ? invalidJson(DateTimeUtils.DEFAULT_TIME) : zdt;
-    }
-
-    /**
-     * set an error if the value in the key is null
-     * @param jv the input
-     * @param key the key
-     * @param errorValue the value in case of error
-     * @return the value of the key
-     */
-    @SuppressWarnings("SameParameterValue")
-    protected JsonValue nullValueIsError(JsonValue jv, String key, JsonValue errorValue) {
-        JsonValue v = readValue(jv, key);
-        return v == null ? invalidJson(errorValue) : v;
-    }
-
-    /**
-     * Construct an ApiResponse from a JsonValue
-     * @param jsonValue the value
-     */
-    public ApiResponse(JsonValue jsonValue) {
-        jv = jsonValue;
-        if (jv == null) {
+    protected ApiResponse(@Nullable LazyJsonValue lazyJsonValue) {
+        if (lazyJsonValue == null) {
+            ljv = LazyJsonValue.EMPTY_MAP;
             error = null;
-            type = null;
+            type = NO_TYPE;
         }
         else {
-            error = Error.optionalInstance(readValue(jv, ERROR));
-            String temp = readString(jv, TYPE);
-            if (temp == null) {
-                type = NO_TYPE;
-            }
-            else {
-                type = temp;
-                jv.map.remove(TYPE); // just so it's not in the toString, it's very long and the object name will be there
-            }
+            ljv = lazyJsonValue;
+            error = Error.optionalInstance(readValue(ljv, ERROR));
+            String temp = readString(ljv, TYPE);
+            type = temp == null ? NO_TYPE : temp;
         }
     }
 
     /**
      * Construct an empty ApiResponse
      */
-    public ApiResponse() {
-        jv = null;
+    protected ApiResponse() {
+        ljv = LazyJsonValue.EMPTY_MAP;
         error = null;
         type = NO_TYPE;
     }
@@ -156,8 +155,8 @@ public abstract class ApiResponse<T> {
      * Construct an ApiResponse from an error object
      * @param error the error object
      */
-    public ApiResponse(Error error) {
-        jv = null;
+    protected ApiResponse(Error error) {
+        ljv = LazyJsonValue.EMPTY_MAP;
         this.error = error;
         type = NO_TYPE;
     }
@@ -176,12 +175,12 @@ public abstract class ApiResponse<T> {
     }
 
     /**
-     * Get the JsonValue used to make this object
+     * Get the LazyJsonValue used to make this object
      * @return the value
      */
     @Nullable
-    public JsonValue getJv() {
-        return jv;
+    public LazyJsonValue getOriginalJsonValue() {
+        return ljv;
     }
 
     /**
@@ -246,8 +245,15 @@ public abstract class ApiResponse<T> {
 
     @Override
     public String toString() {
-        return jv == null
-            ? toKey(getClass()) + "\":null"
-            : jv.toString(getClass());
+        if (ljv == LazyJsonValue.EMPTY_MAP) {
+            return toKey(getClass()) + "\":null";
+        }
+
+        JsonValue jv = this.ljv.toJsonValue();
+        if (jv.map != null) {
+            jv.map.remove(TYPE); // just so it's not in the toString, it's very long and the object name will be there
+        }
+
+        return toKey(getClass()) + jv.toJson();
     }
 }

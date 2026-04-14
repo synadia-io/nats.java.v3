@@ -51,6 +51,7 @@ public interface ApiConstants {
     /** deny_purge */                String DENY_PURGE                    = "deny_purge";
     /** description */               String DESCRIPTION                   = "description";
     /** dest */                      String DEST                          = "dest";
+    /** did_create */                String DID_CREATE                    = "did_create";
     /** digest */                    String DIGEST                        = "digest";
     /** discard */                   String DISCARD                       = "discard";
     /** discard_new_per_subject */   String DISCARD_NEW_PER_SUBJECT       = "discard_new_per_subject";

@@ -3090,7 +3090,7 @@ public class Options {
      * @param serverURI the current server uri
      * @param includeAuth tells the options to build a connection string that includes auth information
      * @param nonce if the client is supposed to sign the nonce for authentication
-     * @return the options String, basically JSON
+     * @return this instance for chaining. String, basically JSON
      */
     public CharBuffer buildProtocolConnectOptionsString(String serverURI, boolean includeAuth, byte[] nonce) {
         CharBuffer connectString = CharBuffer.allocate(this.maxControlLine);

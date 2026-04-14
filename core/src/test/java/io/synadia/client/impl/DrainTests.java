@@ -355,7 +355,7 @@ public class DrainTests {
             Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
             assertNotNull(msg);
 
-            assertThrows(IllegalStateException.class, () -> subCon.request(reply, null));
+            assertThrows(IllegalStateException.class, () -> subCon.requestAsync(reply, null));
         });
     }
 
@@ -375,7 +375,7 @@ public class DrainTests {
             pubCon.publish(subject, null);
             pubCon.flush(Duration.ofSeconds(1));
 
-            CompletableFuture<Message> response = subCon.request(reply, null);
+            CompletableFuture<Message> response = subCon.requestAsync(reply, null);
             subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
             assertNotNull(response.get(1, TimeUnit.SECONDS));
 
@@ -384,7 +384,7 @@ public class DrainTests {
             Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
             assertNotNull(msg);
 
-            assertThrows(IllegalStateException.class, () -> subCon.request(reply, null));
+            assertThrows(IllegalStateException.class, () -> subCon.requestAsync(reply, null));
         });
     }
 

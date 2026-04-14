@@ -113,7 +113,7 @@ public class NatsMessageTests extends JetStreamTestBase {
         }
 
         runInSharedOwnNc(optionsBuilder().maxReconnects(0).maxControlLine(maxControlLine),
-            nc -> assertThrows(IllegalArgumentException.class, () -> nc.request(subject.toString(), body)));
+            nc -> assertThrows(IllegalArgumentException.class, () -> nc.requestAsync(subject.toString(), body)));
     }
 
     @Test
@@ -262,7 +262,7 @@ public class NatsMessageTests extends JetStreamTestBase {
         IncomingHeadersProcessor incomingHeadersProcessor =
                 new IncomingHeadersProcessor("NATS/1.0 503 No Responders\r\n".getBytes());
         IncomingMessageFactory factory =
-                new IncomingMessageFactory("sid", "subj", "replyTo", 0, false);
+                new IncomingMessageFactory("sid", "subj", "replyTo", 0);
         factory.setHeaders(incomingHeadersProcessor);
         factory.setData(null); // coverage
 

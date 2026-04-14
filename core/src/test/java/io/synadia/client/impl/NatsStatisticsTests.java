@@ -25,7 +25,7 @@ public class NatsStatisticsTests extends TestBase {
             d.subscribe(subject);
 
             nc.flush(Duration.ofMillis(500));
-            Future<Message> incoming = nc.request(subject, new byte[8]);
+            Future<Message> incoming = nc.requestAsync(subject, new byte[8]);
             nc.flush(Duration.ofMillis(500));
             Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
@@ -33,7 +33,7 @@ public class NatsStatisticsTests extends TestBase {
             assertNotNull(msg);
             assertNotNull(str);
             assertTrue(str.length() > 0);
-            assertTrue(str.contains("### Connection ###"));
+            assertTrue(str.contains("### NatsConnection ###"));
             assertTrue(str.contains("Socket Writes"));
         });
     }

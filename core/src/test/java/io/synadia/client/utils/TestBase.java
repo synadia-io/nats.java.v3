@@ -2,10 +2,15 @@ package io.synadia.client.utils;
 
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
-import io.synadia.client.api.StorageType;
-import io.synadia.client.api.StreamConfiguration;
-import io.synadia.client.impl.*;
-import io.synadia.client.support.NatsJetStreamClientError;
+import io.synadia.client.impl.JetStreamTestingContext;
+import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.impl.NatsMessage;
+import io.synadia.client.impl.SharedServer;
+import io.synadia.client.js.JetStream;
+import io.synadia.client.js.JetStreamManagement;
+import io.synadia.client.jsapi.StorageType;
+import io.synadia.client.jsapi.StreamCreator;
+import io.synadia.client.support.JetStreamClientError;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.function.Executable;
@@ -17,10 +22,9 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
+import static io.synadia.client.support.JetStreamClientError.KIND_ILLEGAL_ARGUMENT;
+import static io.synadia.client.support.JetStreamClientError.KIND_ILLEGAL_STATE;
 import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.support.NatsConstants.EMPTY;
-import static io.synadia.client.support.NatsJetStreamClientError.KIND_ILLEGAL_ARGUMENT;
-import static io.synadia.client.support.NatsJetStreamClientError.KIND_ILLEGAL_STATE;
 import static io.synadia.client.utils.ConnectionUtils.*;
 import static io.synadia.client.utils.OptionsUtils.options;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
@@ -69,7 +73,7 @@ public class TestBase {
     public static final String META_VALUE = "meta-test-value";
 
     public static String[] BAD_SUBJECTS_OR_QUEUES = new String[] {
-        HAS_SPACE, HAS_CR, HAS_LF, HAS_TAB, STARTS_SPACE, ENDS_SPACE, null, EMPTY
+        HAS_SPACE, HAS_CR, HAS_LF, HAS_TAB, STARTS_SPACE, ENDS_SPACE, null, ""
     };
 
     public static Set<String> SharedNamedServers = new HashSet<>();
@@ -213,8 +217,8 @@ public class TestBase {
             try (NatsConnection nc = managedConnect(options(ts))) {
                 initVersionServerInfo(nc);
                 if (vc == null || vc.runTest(VERSION_SERVER_INFO)) {
-                    NatsJetStreamManagement jsm = (NatsJetStreamManagement) nc.jetStreamManagement();
-                    NatsJetStream js = (NatsJetStream) nc.jetStream();
+                    JetStreamManagement jsm = new JetStreamManagement(nc);
+                    JetStream js = new JetStream(nc);
                     jsTest.test(nc, jsm, js);
                 }
             }
@@ -634,7 +638,7 @@ public class TestBase {
     // ----------------------------------------------------------------------------------------------------
     // Subscription or test macros
     // ----------------------------------------------------------------------------------------------------
-    public void assertClientError(NatsJetStreamClientError error, Executable executable) {
+    public void assertClientError(JetStreamClientError error, Executable executable) {
         Exception e = assertThrows(Exception.class, executable);
         assertTrue(e.getMessage().contains(error.id()));
         if (error.getKind() == KIND_ILLEGAL_ARGUMENT) {
@@ -669,10 +673,9 @@ public class TestBase {
             subjects = new String[]{random()};
         }
 
-        StreamConfiguration sc = StreamConfiguration.builder()
-            .name(streamName)
+        StreamCreator sc = new StreamCreator(streamName)
             .storageType(StorageType.Memory)
-            .subjects(subjects).build();
+            .subjects(subjects);
 
         jsm.addStream(sc);
     }

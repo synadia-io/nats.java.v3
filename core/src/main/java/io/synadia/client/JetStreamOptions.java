@@ -2,8 +2,8 @@ package io.synadia.client;
 
 import java.time.Duration;
 
+import static io.synadia.client.support.JetStreamConstants.*;
 import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.support.NatsJetStreamConstants.*;
 import static io.synadia.client.support.Validator.ensureEndsWithDot;
 import static io.synadia.client.support.Validator.validatePrefixOrDomain;
 

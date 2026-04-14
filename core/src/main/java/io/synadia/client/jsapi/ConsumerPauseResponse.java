@@ -1,0 +1,60 @@
+package io.synadia.client.jsapi;
+
+import io.synadia.client.Message;
+import io.synadia.client.api.ApiResponse;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import java.time.Duration;
+import java.time.ZonedDateTime;
+
+import static io.nats.json.LazyJsonValueUtils.*;
+import static io.synadia.client.support.ApiConstants.*;
+
+/**
+ * The response for a ConsumerPauseRequest
+ */
+@NullMarked
+public class ConsumerPauseResponse extends ApiResponse<ConsumerPauseResponse> {
+
+    private final boolean paused;
+    private final @Nullable ZonedDateTime pauseUntil;
+    private final @Nullable Duration pauseRemaining;
+
+    /**
+     * Construct a ConsumerPauseResponse instance from a message
+     * @param msg the message
+     */
+    public ConsumerPauseResponse(Message msg) {
+        super(msg);
+        paused = readBoolean(ljv, PAUSED, false);
+        pauseUntil = readDate(ljv, PAUSE_UNTIL);
+        pauseRemaining = readNanosAsDuration(ljv, PAUSE_REMAINING);
+    }
+
+    /**
+     * Returns true if the consumer was paused
+     * @return whether the consumer is paused
+     */
+    public boolean isPaused() {
+        return paused;
+    }
+
+    /**
+     * Returns the time until the consumer is paused
+     * @return pause until time
+     */
+    @Nullable
+    public ZonedDateTime getPauseUntil() {
+        return pauseUntil;
+    }
+
+    /**
+     * Returns how much time is remaining for this consumer to be paused
+     * @return remaining paused time
+     */
+    @Nullable
+    public Duration getPauseRemaining() {
+        return pauseRemaining;
+    }
+}

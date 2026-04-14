@@ -1,6 +1,6 @@
 package io.synadia.client;
 
-import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.jsapi.ConsumerInfo;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -21,7 +21,7 @@ public interface ConsumerContext extends BaseConsumerContext {
      * @throws JetStreamApiException the request had an error related to the data
      */
     @NonNull
-    ConsumerInfo getConsumerInfo() throws IOException, JetStreamApiException;
+    ConsumerInfo fetchConsumerInfo() throws IOException, JetStreamApiException;
 
     /**
      * Gets information about the consumer behind this subscription.

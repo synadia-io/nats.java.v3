@@ -1,6 +1,6 @@
 package io.synadia.client;
 
-import io.synadia.client.api.MessageInfo;
+import io.synadia.client.jsapi.MessageInfo;
 
 /**
  * Handler for {@link MessageInfo}.

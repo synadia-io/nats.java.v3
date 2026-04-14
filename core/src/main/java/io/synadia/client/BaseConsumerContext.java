@@ -1,5 +1,6 @@
 package io.synadia.client;
 
+import io.synadia.client.impl.NatsDispatcher;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -142,7 +143,7 @@ public interface BaseConsumerContext {
      * @throws JetStreamApiException the request had an error related to the data
      */
     @NonNull
-    MessageConsumer consume(@Nullable Dispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
+    MessageConsumer consume(@Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
 
     /**
      * Start a long-running MessageConsumer with custom ConsumeOptions. See {@link MessageConsumer} and  {@link ConsumeOptions}
@@ -168,7 +169,7 @@ public interface BaseConsumerContext {
      * @throws JetStreamApiException the request had an error related to the data
      */
     @NonNull
-    MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @Nullable Dispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
+    MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
 
     /**
      * Unpins this consumer

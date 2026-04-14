@@ -1,7 +1,11 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.JetStreamApiException;
-import io.synadia.client.api.*;
+import io.synadia.client.js.JetStream;
+import io.synadia.client.js.JetStreamManagement;
+import io.synadia.client.jsapi.StorageType;
+import io.synadia.client.jsapi.StreamCreator;
+import io.synadia.client.jsapi.StreamInfo;
 import io.synadia.client.utils.TestBase;
 
 import java.io.IOException;
@@ -11,10 +15,9 @@ import java.util.Map;
 import java.util.Set;
 
 public class JetStreamTestingContext implements AutoCloseable {
-    public final NatsJetStreamManagement jsm;
-    public final NatsJetStream js;
-    public final NatsKeyValueManagement kvm;
-    public final NatsObjectStoreManagement osm;
+    public final NatsConnection nc;
+    public final JetStreamManagement jsm;
+    public final JetStream js;
 
     private final String subjectBase;
     private final Map<Object, String> subjects;
@@ -22,16 +25,14 @@ public class JetStreamTestingContext implements AutoCloseable {
     private final Map<Object, String> consumerNames;
     public String stream;
     public StreamInfo si;
+    public NatsDispatcher dispatcher;
 
     private final Set<String> streams;
-    private final Set<String> kvBuckets;
-    private final Set<String> osBuckets;
 
     public JetStreamTestingContext(NatsConnection nc, int subjectCount) throws JetStreamApiException, IOException {
-        jsm = (NatsJetStreamManagement)nc.jetStreamManagement();
-        js = (NatsJetStream)jsm.jetStream();
-        kvm = (NatsKeyValueManagement)jsm.keyValueManagement();
-        osm = (NatsObjectStoreManagement)jsm.objectStoreManagement();
+        this.nc = nc;
+        jsm = new JetStreamManagement(nc);
+        js = jsm.jetStream();
 
         stream = TestBase.random();
         subjectBase = TestBase.random();
@@ -40,12 +41,17 @@ public class JetStreamTestingContext implements AutoCloseable {
         consumerNames = new HashMap<>();
 
         streams = new HashSet<>();
-        kvBuckets = new HashSet<>();
-        osBuckets = new HashSet<>();
 
         if (subjectCount > 0) {
             createOrReplaceStream(subjectCount);
         }
+    }
+
+    public NatsDispatcher getDispatcher() {
+        if (dispatcher == null) {
+            dispatcher = nc.createDispatcher();
+        }
+        return dispatcher;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -60,22 +66,18 @@ public class JetStreamTestingContext implements AutoCloseable {
     }
 
     public void createOrReplaceStream() throws JetStreamApiException, IOException {
-        createOrReplaceStream(scBuilder(subject(0)).build());
+        createOrReplaceStream(scBuilder(subject(0)));
     }
 
     public void createOrReplaceStream(int subjectCount) throws JetStreamApiException, IOException {
-        createOrReplaceStream(scBuilder(getSubjects(subjectCount)).build());
+        createOrReplaceStream(scBuilder(getSubjects(subjectCount)));
     }
 
     public void createOrReplaceStream(String... subjects) throws JetStreamApiException, IOException {
-        createOrReplaceStream(scBuilder(subjects).build());
+        createOrReplaceStream(scBuilder(subjects));
     }
 
-    public void createOrReplaceStream(StreamConfiguration.Builder builder) throws JetStreamApiException, IOException {
-        createOrReplaceStream(builder.build());
-    }
-
-    public StreamInfo createOrReplaceStream(StreamConfiguration sc) throws JetStreamApiException, IOException {
+    public StreamInfo createOrReplaceStream(StreamCreator sc) throws JetStreamApiException, IOException {
         String streamName = sc.getName();
         try { jsm.deleteStream(streamName); } catch (Exception ignore) {}
         streams.remove(streamName);
@@ -84,29 +86,27 @@ public class JetStreamTestingContext implements AutoCloseable {
         return si;
     }
 
-    public StreamInfo addStream(StreamConfiguration sc) throws JetStreamApiException, IOException {
+    public StreamInfo addStream(StreamCreator sc) throws JetStreamApiException, IOException {
         String streamName = sc.getName();
         si = jsm.addStream(sc);
         streams.add(streamName);
         return si;
     }
 
-    public StreamConfiguration.Builder scBuilder(int subjectCount) {
-        StreamConfiguration.Builder b = StreamConfiguration.builder()
-            .name(stream)
+    public StreamCreator scBuilder(int subjectCount) {
+        StreamCreator sc = new StreamCreator(stream)
             .storageType(StorageType.Memory);
         if (subjectCount > 0) {
-            b.subjects(getSubjects(subjectCount));
+            sc.subjects(getSubjects(subjectCount));
         }
-        return b;
+        return sc;
     }
 
-    public StreamConfiguration.Builder scBuilder(String... subjects) {
+    public StreamCreator scBuilder(String... subjects) {
         if (subjects.length == 0) {
             subjects = new String[]{subject(0)};
         }
-        return StreamConfiguration.builder()
-            .name(stream)
+        return new StreamCreator(stream)
             .storageType(StorageType.Memory)
             .subjects(subjects);
     }
@@ -135,62 +135,10 @@ public class JetStreamTestingContext implements AutoCloseable {
         return consumerNames.computeIfAbsent(variant, v -> consumerNameBase + "-" + v);
     }
 
-    // ----------------------------------------------------------------------------------------------------
-    // KeyValue
-    // ----------------------------------------------------------------------------------------------------
-    public KeyValueConfiguration.Builder kvBuilder(String bucketName) {
-        return KeyValueConfiguration.builder()
-            .name(bucketName)
-            .storageType(StorageType.Memory);
-    }
-
-    public KeyValueStatus kvCreate(String bucketName) throws JetStreamApiException, IOException {
-        return kvCreate(kvBuilder(bucketName).build());
-    }
-
-    public KeyValueStatus kvCreate(KeyValueConfiguration.Builder builder) throws JetStreamApiException, IOException {
-        return kvCreate(builder.build());
-    }
-
-    public KeyValueStatus kvCreate(KeyValueConfiguration kvc) throws JetStreamApiException, IOException {
-        kvBuckets.add(kvc.getBucketName());
-        return kvm.create(kvc);
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // ObjectStore
-    // ----------------------------------------------------------------------------------------------------
-    public ObjectStoreConfiguration.Builder osBuilder(String bucketName) {
-        return ObjectStoreConfiguration.builder()
-            .name(bucketName)
-            .storageType(StorageType.Memory);
-    }
-
-    public ObjectStoreStatus osCreate(String bucketName) throws JetStreamApiException, IOException {
-        return osCreate(osBuilder(bucketName).build());
-    }
-
-    public ObjectStoreStatus osCreate(ObjectStoreConfiguration.Builder builder) throws JetStreamApiException, IOException {
-        return osCreate(builder.build());
-    }
-
-    public ObjectStoreStatus osCreate(ObjectStoreConfiguration osc) throws JetStreamApiException, IOException {
-        osBuckets.add(osc.getBucketName());
-        return osm.create(osc);
-    }
-
     @Override
     public void close() throws Exception {
         for (String strm : streams) {
             try { jsm.deleteStream(strm); } catch (Exception ignore) {}
-        }
-
-        for (String bucket : kvBuckets) {
-            try { kvm.delete(bucket); } catch (Exception ignore) {}
-        }
-
-        for (String bucket : osBuckets) {
-            try { osm.delete(bucket); } catch (Exception ignore) {}
         }
     }
 }

@@ -29,8 +29,8 @@ public class NatsRequestCompletableFuture extends CompletableFuture<Message> {
 
     private final CancelAction cancelAction;
     private final long timeOutAfterNanoTime;
-    private boolean wasCancelledClosing;
-    private boolean wasCancelledTimedOut;
+    private boolean wasCanceledClosing;
+    private boolean wasCanceledTimedOut;
     private final boolean useTimeoutException;
 
     public NatsRequestCompletableFuture(@NonNull CancelAction cancelAction, @Nullable Duration timeout, boolean useTimeoutException) {
@@ -40,12 +40,12 @@ public class NatsRequestCompletableFuture extends CompletableFuture<Message> {
     }
 
     public void cancelClosing() {
-        wasCancelledClosing = true;
+        wasCanceledClosing = true;
         completeExceptionally(new CancellationException(CLOSING_MESSAGE));
     }
 
     public void cancelTimedOut() {
-        wasCancelledTimedOut = true;
+        wasCanceledTimedOut = true;
         completeExceptionally(
             useTimeoutException
                 ? new TimeoutException(CANCEL_MESSAGE)
@@ -65,11 +65,11 @@ public class NatsRequestCompletableFuture extends CompletableFuture<Message> {
         return NatsSystemClock.nanoTime() > timeOutAfterNanoTime;
     }
 
-    public boolean wasCancelledClosing() {
-        return wasCancelledClosing;
+    public boolean wasCanceledClosing() {
+        return wasCanceledClosing;
     }
 
-    public boolean wasCancelledTimedOut() {
-        return wasCancelledTimedOut;
+    public boolean wasCanceledTimedOut() {
+        return wasCanceledTimedOut;
     }
 }

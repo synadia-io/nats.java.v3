@@ -4,12 +4,13 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.Subscription;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-class NatsSubscription extends NatsConsumer implements Subscription {
+public class NatsSubscription extends NatsConsumer implements Subscription {
 
     private String subject;
     private final String queueName;
@@ -22,7 +23,7 @@ class NatsSubscription extends NatsConsumer implements Subscription {
 
     private Function<NatsMessage, Boolean> beforeQueueProcessor;
 
-    NatsSubscription(String sid, String subject, String queueName, NatsConnection connection, NatsDispatcher dispatcher) {
+    public NatsSubscription(String sid, String subject, String queueName, NatsConnection connection, NatsDispatcher dispatcher) {
         super(connection);
         this.subject = subject;
         this.queueName = queueName;
@@ -34,10 +35,10 @@ class NatsSubscription extends NatsConsumer implements Subscription {
             this.incoming = new ConsumerMessageQueue();
         }
 
-        setBeforeQueueProcessor(null);
+        setBeforeQueueProcessorFunction(null);
     }
 
-    void reSubscribe(String newDeliverSubject) {
+    public void reSubscribe(String newDeliverSubject) {
         connection.sendUnsub(this, 0);
         if (dispatcher == null) {
             connection.remove(this);
@@ -51,11 +52,14 @@ class NatsSubscription extends NatsConsumer implements Subscription {
         subject = newDeliverSubject;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isActive() {
         return (this.dispatcher != null || this.incoming != null);
     }
 
-    void setBeforeQueueProcessor(Function<NatsMessage, Boolean> beforeQueueProcessor) {
+    public void setBeforeQueueProcessorFunction(@Nullable Function<NatsMessage, Boolean> beforeQueueProcessor) {
         this.beforeQueueProcessor = beforeQueueProcessor == null ? m -> true : beforeQueueProcessor;
     }
 
@@ -63,7 +67,7 @@ class NatsSubscription extends NatsConsumer implements Subscription {
         return beforeQueueProcessor;
     }
 
-    void invalidate() {
+    protected void invalidate() {
         if (this.incoming != null) {
             this.incoming.pause();
         }
@@ -81,16 +85,10 @@ class NatsSubscription extends NatsConsumer implements Subscription {
         return (max > 0) && (max <= recv);
     }
 
-    String getSID() {
-        return this.sid;
-    }
-
-    NatsDispatcher getNatsDispatcher() {
+    public NatsDispatcher getNatsDispatcher() {
         return this.dispatcher;
     }
-    /**
-     * {@inheritDoc}
-     */
+
     @Override
     ConsumerMessageQueue getMessageQueue() {
         return this.incoming;
@@ -105,29 +103,32 @@ class NatsSubscription extends NatsConsumer implements Subscription {
     }
 
     /**
-     * {@inheritDoc}
+     * Get the subscription unique id
+     * @return the id
      */
+    public String getSID() {
+        return this.sid;
+    }
+
+    /** {@inheritDoc} */
     @Override
     public String getSubject() {
         return this.subject;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public String getQueueName() {
         return this.queueName;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Message nextMessage(long timeoutMillis) throws InterruptedException, IllegalStateException {
         return nextMessageInternal(Duration.ofMillis(timeoutMillis));
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public Message nextMessage(Duration timeout) throws InterruptedException, IllegalStateException {
         return nextMessageInternal(timeout);
@@ -158,9 +159,7 @@ class NatsSubscription extends NatsConsumer implements Subscription {
         return msg;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public void unsubscribe() {
         if (this.dispatcher != null) {
@@ -177,9 +176,7 @@ class NatsSubscription extends NatsConsumer implements Subscription {
         this.connection.unsubscribe(this, -1);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public Subscription unsubscribe(int after) {
         if (this.dispatcher != null) {
@@ -197,17 +194,13 @@ class NatsSubscription extends NatsConsumer implements Subscription {
         return this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     void sendUnsubForDrain() {
         this.connection.sendUnsub(this, -1);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     void cleanUpAfterDrain() {
         this.connection.invalidate(this);

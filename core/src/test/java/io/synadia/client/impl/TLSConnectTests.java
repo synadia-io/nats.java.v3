@@ -242,7 +242,7 @@ public class TLSConnectTests extends TestBase {
                 d.subscribe(subject);
 
                 for (int i = 0; i < msgCount; i++) {
-                    Future<Message> incoming = nc.request(subject, null);
+                    Future<Message> incoming = nc.requestAsync(subject, null);
                     Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
                     assertNotNull(msg);
                     assertEquals(16, msg.getData().length);

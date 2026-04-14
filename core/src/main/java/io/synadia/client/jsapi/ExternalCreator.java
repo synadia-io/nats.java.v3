@@ -1,0 +1,92 @@
+package io.synadia.client.jsapi;
+
+import io.nats.json.JsonSerializable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import static io.nats.json.JsonWriteUtils.*;
+import static io.synadia.client.support.ApiConstants.API;
+import static io.synadia.client.support.ApiConstants.DELIVER;
+
+/**
+ * ExternalCreator is used to create an External configuration referencing a stream source in another account.
+ */
+@NullMarked
+public class ExternalCreator implements JsonSerializable {
+    private @Nullable String api;
+    private @Nullable String deliver;
+
+    /**
+     * Construct an empty ExternalCreator
+     */
+    public ExternalCreator() {}
+
+    /**
+     * Construct an ExternalCreator with api and deliver
+     * @param api the api prefix
+     * @param deliver the delivery subject
+     */
+    public ExternalCreator(@Nullable String api, @Nullable String deliver) {
+        this.api = api;
+        this.deliver = deliver;
+    }
+
+    /**
+     * Construct an ExternalCreator from an External (server response)
+     * @param ext the external to copy from
+     */
+    ExternalCreator(External ext) {
+        this(ext.getApi(), ext.getDeliver());
+    }
+
+    /**
+     * Set the api string.
+     * @param api the api
+     * @return this instance for chaining
+     */
+    public ExternalCreator api(String api) {
+        this.api = api;
+        return this;
+    }
+
+    /**
+     * Set the deliver string.
+     * @param deliver the deliver
+     * @return this instance for chaining
+     */
+    public ExternalCreator deliver(String deliver) {
+        this.deliver = deliver;
+        return this;
+    }
+
+    /**
+     * The subject prefix that imports the other account <code>$JS.API.CONSUMER.&gt; subjects</code>
+     * @return the api prefix
+     */
+    @Nullable
+    public String getApi() {
+        return api;
+    }
+
+    /**
+     * The delivery subject to use for the push consumer.
+     * @return delivery subject
+     */
+    @Nullable
+    public String getDeliver() {
+        return deliver;
+    }
+
+    @Override
+    public String toJson() {
+        StringBuilder sb = beginJson();
+        addField(sb, API, api);
+        addField(sb, DELIVER, deliver);
+        return endJson(sb).toString();
+    }
+
+    @Override
+    public String toString() {
+        return "ExternalCreator" + toJson();
+    }
+}

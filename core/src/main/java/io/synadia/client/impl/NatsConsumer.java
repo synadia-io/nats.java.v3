@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 abstract class NatsConsumer implements Consumer {
 
-    NatsConnection connection;
+    protected NatsConnection connection;
     private final AtomicLong maxMessages;
     private final AtomicLong maxBytes;
     private final AtomicLong droppedMessages;

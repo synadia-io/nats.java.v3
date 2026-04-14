@@ -7,7 +7,6 @@ import java.time.Duration;
 import java.util.*;
 
 import static io.synadia.client.support.JetStreamConstants.NATS_META_KEY_PREFIX;
-import static io.synadia.client.support.NatsConstants.EMPTY;
 import static io.synadia.client.support.Validator.*;
 import static io.synadia.client.utils.ResourceUtils.dataAsLines;
 import static io.synadia.client.utils.TestBase.*;
@@ -29,13 +28,13 @@ public class ValidatorTests {
         allowedRequired(Validator::validateSubject, Arrays.asList(STAR_SEGMENT, GT_LAST_SEGMENT));
         allowedRequired(Validator::validateSubject, Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
         allowedRequired(Validator::validateSubject, Collections.singletonList(ENDS_WITH_DOT));
-        notAllowedRequired(Validator::validateSubject, Arrays.asList(null, EMPTY, HAS_SPACE, HAS_CR, HAS_LF));
+        notAllowedRequired(Validator::validateSubject, Arrays.asList(null, "", HAS_SPACE, HAS_CR, HAS_LF));
         notAllowedRequired(Validator::validateSubject, Arrays.asList(ENDS_WITH_CR, ENDS_WITH_LF, ENDS_WITH_TAB));
         notAllowedRequiredStrict(Arrays.asList(STARTS_WITH_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, EMPTY_SEGMENT, GT_NOT_LAST_SEGMENT));
         notAllowedRequiredStrict(Arrays.asList(ENDS_WITH_DOT, ENDS_WITH_DOT_SPACE, ENDS_WITH_CR, ENDS_WITH_LF, ENDS_WITH_TAB));
 
         // subject not required, null and empty both mean not supplied
-        allowedNotRequiredEmptyAsNull(Validator::validateSubject, Arrays.asList(null, EMPTY));
+        allowedNotRequiredEmptyAsNull(Validator::validateSubject, Arrays.asList(null, ""));
         allowedNotRequired(Validator::validateSubject, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOT, HAS_DOLLAR, HAS_LOW, HAS_127));
         allowedNotRequired(Validator::validateSubject, UTF_ONLY_STRINGS);
         allowedNotRequired(Validator::validateSubject, Arrays.asList(STAR_SEGMENT, GT_LAST_SEGMENT));
@@ -56,34 +55,34 @@ public class ValidatorTests {
     @Test
     public void testValidateReplyTo() {
         allowedRequired(Validator::validateReplyTo, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOT, HAS_DOLLAR));
-        notAllowedRequired(Validator::validateReplyTo, Arrays.asList(null, EMPTY, HAS_SPACE, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
+        notAllowedRequired(Validator::validateReplyTo, Arrays.asList(null, "", HAS_SPACE, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
         notAllowedRequired(Validator::validateReplyTo, UTF_ONLY_STRINGS);
-        allowedNotRequiredEmptyAsNull(Validator::validateReplyTo, Arrays.asList(null, EMPTY));
+        allowedNotRequiredEmptyAsNull(Validator::validateReplyTo, Arrays.asList(null, ""));
     }
 
     @Test
     public void testValidateQueueName() {
         // validateQueueName(String s, boolean required)
         allowedRequired(Validator::validateQueueName, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOLLAR, HAS_DOT, HAS_LOW, HAS_127));
-        notAllowedRequired(Validator::validateQueueName, Arrays.asList(null, EMPTY, HAS_SPACE, STAR_NOT_SEGMENT, GT_NOT_SEGMENT));
+        notAllowedRequired(Validator::validateQueueName, Arrays.asList(null, "", HAS_SPACE, STAR_NOT_SEGMENT, GT_NOT_SEGMENT));
         allowedRequired(Validator::validateQueueName, UTF_ONLY_STRINGS);
-        allowedNotRequiredEmptyAsNull(Validator::validateQueueName, Arrays.asList(null, EMPTY));
+        allowedNotRequiredEmptyAsNull(Validator::validateQueueName, Arrays.asList(null, ""));
     }
 
     @Test
     public void testValidateStreamName() {
         allowedRequired(Validator::validateStreamName, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOLLAR));
-        notAllowedRequired(Validator::validateStreamName, Arrays.asList(null, EMPTY, HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
+        notAllowedRequired(Validator::validateStreamName, Arrays.asList(null, "", HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
         notAllowedRequired(Validator::validateStreamName, UTF_ONLY_STRINGS);
-        allowedNotRequiredEmptyAsNull(Validator::validateStreamName, Arrays.asList(null, EMPTY));
+        allowedNotRequiredEmptyAsNull(Validator::validateStreamName, Arrays.asList(null, ""));
     }
 
     @Test
     public void testValidateDurable() {
         allowedRequired(Validator::validateDurable, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOLLAR));
-        notAllowedRequired(Validator::validateDurable, Arrays.asList(null, EMPTY, HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
+        notAllowedRequired(Validator::validateDurable, Arrays.asList(null, "", HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
         notAllowedRequired(Validator::validateDurable, UTF_ONLY_STRINGS);
-        allowedNotRequiredEmptyAsNull(Validator::validateDurable, Arrays.asList(null, EMPTY));
+        allowedNotRequiredEmptyAsNull(Validator::validateDurable, Arrays.asList(null, ""));
     }
 
     @Test
@@ -363,7 +362,7 @@ public class ValidatorTests {
 
     @Test
     public void testValidateMustMatchIfBothSupplied() {
-        NatsJetStreamClientError err = new NatsJetStreamClientError("TEST", 999999, "desc");
+        JetStreamClientError err = new JetStreamClientError("TEST", 999999, "desc");
         assertNull(validateMustMatchIfBothSupplied(null, null, err));
         assertEquals("y", validateMustMatchIfBothSupplied(null, "y", err));
         assertEquals("y", validateMustMatchIfBothSupplied("", "y", err));
@@ -382,7 +381,7 @@ public class ValidatorTests {
         required(Collections.singletonMap("key", "value"), "label");
 
         assertThrows(IllegalArgumentException.class, () -> required((String)null, "label"));
-        assertThrows(IllegalArgumentException.class, () -> required(EMPTY, "label"));
+        assertThrows(IllegalArgumentException.class, () -> required("", "label"));
         assertThrows(IllegalArgumentException.class, () -> required((Object)null, "label"));
         assertThrows(IllegalArgumentException.class, () -> required((List)null, "label"));
         assertThrows(IllegalArgumentException.class, () -> required(new ArrayList<>(), "label"));
@@ -549,7 +548,7 @@ public class ValidatorTests {
     @Test
     public void testNatsJetStreamClientError() {
         // coverage
-        NatsJetStreamClientError err = new NatsJetStreamClientError("TEST", 999999, "desc");
+        JetStreamClientError err = new JetStreamClientError("TEST", 999999, "desc");
         assertEquals("[TEST-999999] desc", err.message());
     }
 

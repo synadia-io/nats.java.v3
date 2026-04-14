@@ -1,15 +1,18 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
-import io.synadia.client.api.AckPolicy;
-import io.synadia.client.api.ConsumerConfiguration;
-import io.synadia.client.api.DeliverPolicy;
-import io.synadia.client.api.Watcher;
+import io.synadia.client.JetStreamApiException;
+import io.synadia.client.MessageHandler;
+import io.synadia.client.js.JetStream;
+import io.synadia.client.js.JetStreamSubscription;
+import io.synadia.client.jsapi.DeliverPolicy;
+import io.synadia.client.jsapi.PullOrderedConsumerCreator;
+import io.synadia.client.jsapi.SubscribeBehavior;
+import io.synadia.client.jsapi.Watcher;
 
 import java.io.IOException;
 import java.util.List;
 
-import static io.synadia.client.api.ConsumerConfiguration.ULONG_UNSET;
+import static io.synadia.client.support.JetStreamApiUtils.ULONG_UNSET;
 
 public class NatsWatchSubscription<T> implements AutoCloseable {
     private final JetStream js;
@@ -20,7 +23,7 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
         this.js = js;
     }
 
-    protected void finishInit(NatsFeatureBase fb,
+    protected void finishInit(AbstractBucketFeature fb,
                               List<String> subscribeSubjects,
                               DeliverPolicy deliverPolicy,
                               boolean headersOnly,
@@ -39,21 +42,15 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
             }
         }
 
-        PushSubscribeOptions pso = PushSubscribeOptions.builder()
-            .stream(fb.getStreamName())
-            .ordered(true)
-            .configuration(ConsumerConfiguration.builder()
-                .name(consumerNamePrefix)
-                .ackPolicy(AckPolicy.None)
+        PullOrderedConsumerCreator creator =
+            new PullOrderedConsumerCreator(fb.getStreamName())
+                .namePrefix(consumerNamePrefix)
                 .deliverPolicy(deliverPolicy)
                 .startSequence(fromRevision)
                 .headersOnly(headersOnly)
-                .filterSubjects(subscribeSubjects)
-                .build())
-            .build();
-
-        dispatcher = (NatsDispatcher) ((NatsJetStream) js).conn.createDispatcher();
-        sub = js.subscribe(null, dispatcher, handler, false, pso);
+                .filterSubjects(subscribeSubjects);
+        SubscribeBehavior sb = new SubscribeBehavior().handler(handler);
+        sub = js.pullSubscribe(creator, sb);
         if (!handler.endOfDataSent) {
             long pending = sub.getConsumerInfo().getCalculatedPending();
             if (pending == 0) {
@@ -64,7 +61,7 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
 
     protected static abstract class WatchMessageHandler<T> implements MessageHandler {
         private final Watcher<T> watcher;
-        boolean endOfDataSent;
+        protected boolean endOfDataSent;
 
         protected WatchMessageHandler(Watcher<T> watcher) {
             this.watcher = watcher;

@@ -2,8 +2,8 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Consumer;
 import io.synadia.client.ErrorListener;
-import io.synadia.client.JetStreamSubscription;
 import io.synadia.client.Message;
+import io.synadia.client.js.JetStreamSubscription;
 import io.synadia.client.support.Status;
 
 import java.util.logging.Logger;

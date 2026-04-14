@@ -1,7 +1,7 @@
 package io.synadia.client.utils;
 
-import io.synadia.client.api.ServerInfo;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.jsapi.ServerInfo;
 
 public abstract class VersionUtils {
     public static ServerInfo VERSION_SERVER_INFO;
