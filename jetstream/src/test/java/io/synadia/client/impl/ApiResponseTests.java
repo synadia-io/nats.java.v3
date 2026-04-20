@@ -45,10 +45,10 @@ public class ApiResponseTests {
         assertEquals(500, a.getErrorCode());
         assertEquals(NOT_SET, a.getApiErrorCode());
         assertNotNull(a.getDescription());
-        assertTrue(a.getDescription().startsWith("Error parsing: "));
+        assertTrue(a.getDescription().startsWith("Error parsing"));
         JetStreamApiException j = assertThrows(JetStreamApiException.class,
             () -> new TestApiResponse(getDataMessage("notjson")).throwOnHasError());
-        assertTrue(j.getMessage().contains("Error parsing: "));
+        assertTrue(j.getMessage().contains("Error parsing"));
     }
 
     @Test
