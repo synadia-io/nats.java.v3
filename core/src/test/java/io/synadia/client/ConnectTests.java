@@ -1,9 +1,9 @@
 package io.synadia.client;
 
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
+import io.synadia.client.api.ServerInfo;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SimulateSocketDataPortException;
-import io.synadia.client.jsapi.ServerInfo;
 import io.synadia.client.support.Listener;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -19,11 +19,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.synadia.client.utils.ConnectionUtils.*;
-import static io.synadia.client.utils.OptionsUtils.options;
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.utils.TestBase.*;
-import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.testutils.ConnectionUtils.*;
+import static io.synadia.client.testutils.OptionsUtils.options;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.TestBase.*;
+import static io.synadia.client.testutils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Isolated

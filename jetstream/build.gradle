@@ -27,3 +27,16 @@ javadoc {
     title = "SYNADIA.IO JetStream API"
     classpath = sourceSets.main.runtimeClasspath
 }
+
+tasks.register('testJar', Jar) {
+    archiveClassifier.set('tests')
+    from sourceSets.test.output
+}
+
+configurations {
+    testOutput
+}
+
+artifacts {
+    testOutput testJar
+}

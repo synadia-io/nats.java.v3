@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
  * if the application code doesn't call {@link Subscription#nextMessage(java.time.Duration) nextMessage()}
  * often enough on a Subscription.
  * 
- * <p>By default the library will allow a consumer to be a bit slow, at times, by caching messages for it in a queue.
+ * <p>By default, the library will allow a consumer to be a bit slow, at times, by caching messages for it in a queue.
  * The size of this queue is determined by {@link #setPendingLimits(long, long) setPendingLimits()}. When a consumer
  * maxes out its queue size, either by message count or bytes, the library will start to drop messages.
  */
@@ -98,7 +98,6 @@ public interface Consumer {
      * Drain tells the consumer to process in flight, or cached messages, but stop receiving new ones. The library will
      * flush the unsubscribe call(s) insuring that any publish calls made by this client are included. When all messages
      * are processed the consumer effectively becomes unsubscribed.
-     * 
      * A future is used to allow this call to be treated as synchronous or asynchronous as
      * needed by the application.
      * 

@@ -1,10 +1,10 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.*;
-import io.synadia.client.support.HttpRequest;
-import io.synadia.client.support.NatsConstants;
-import io.synadia.client.support.NatsUri;
-import io.synadia.client.support.SSLUtils;
+import io.synadia.client.testutils.HttpRequest;
+import io.synadia.client.testutils.NatsConstants;
+import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.testutils.SSLUtils;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLContext;
@@ -29,10 +29,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
-import static io.synadia.client.support.Encoding.*;
-import static io.synadia.client.support.NatsConstants.*;
-import static io.synadia.client.support.SSLUtils.DEFAULT_TLS_ALGORITHM;
-import static io.synadia.client.support.Validator.*;
+import static io.nats.json.Encoding.*;
+import static io.synadia.client.testutils.NatsConstants.*;
+import static io.synadia.client.testutils.SSLUtils.DEFAULT_TLS_ALGORITHM;
+import static io.synadia.client.testutils.Validator.*;
 
 /**
  * The Options class specifies the connection options for a new NATs connection, including the default options.
@@ -313,7 +313,7 @@ public class Options {
     // ----------------------------------------------------------------------------------------------------
     // ENVIRONMENT PROPERTIES
     // ----------------------------------------------------------------------------------------------------
-    static final String PFX = "io.nats.client.";
+    public static final String PFX = "io.nats.client.";
     static final int PFX_LEN = PFX.length();
 
     /**
@@ -2170,10 +2170,6 @@ public class Options {
 
             if (sendBufferSize < 1) {
                 sendBufferSize = -1;
-            }
-
-            if (errorListener == null) {
-                errorListener = new ErrorListenerLoggerImpl();
             }
 
             if (timeTraceLogger == null) {

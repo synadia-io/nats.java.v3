@@ -2,9 +2,9 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Options;
 import io.synadia.client.Options.HostnameResolveMode;
-import io.synadia.client.support.HappyEyeballsConnector;
-import io.synadia.client.support.NatsUri;
-import io.synadia.client.support.WebSocket;
+import io.synadia.client.testutils.HappyEyeballsConnector;
+import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.testutils.WebSocket;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.HandshakeCompletedListener;
@@ -21,7 +21,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static io.synadia.client.support.NatsConstants.SECURE_WEBSOCKET_PROTOCOL;
+import static io.synadia.client.testutils.NatsConstants.SECURE_WEBSOCKET_PROTOCOL;
 
 /**
  * This class is not thread-safe.  Caller must ensure thread safety.

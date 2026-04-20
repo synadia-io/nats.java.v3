@@ -1,7 +1,7 @@
 package io.synadia.client.support.ssl;
 
 import io.synadia.client.Options;
-import io.synadia.client.support.SSLUtils;
+import io.synadia.client.testutils.SSLUtils;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -15,7 +15,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Properties;
 
-import static io.synadia.client.utils.ResourceUtils.configResource;
+import static io.synadia.client.testutils.ResourceUtils.configResource;
 
 public class SslTestingHelper {
     public static String KEYSTORE_PATH = configResource("keystore.jks");

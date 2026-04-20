@@ -1,11 +1,13 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.js.JetStreamSubscription;
-import io.synadia.client.support.Status;
+import io.synadia.client.testutils.Status;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
- * This library groups problems into four categories:
+ * Generic base for error listeners, parameterized on the subscription type.
+ * <p>This library groups problems into four categories:
  * <dl>
  * <dt>Errors</dt>
  * <dd>The server sent an error message using the {@code -err} protocol operation.</dd>
@@ -19,17 +21,18 @@ import io.synadia.client.support.Status;
  * <p>All of these problems are reported to the application code using the ErrorListener. The
  * listener is configured in the {@link Options Options} at creation time.
  */
+@NullMarked
 public interface ErrorListener {
+
     /**
      * NATs related errors that occur asynchronously in the client library are sent
      * to an ErrorListener via errorOccurred. The ErrorListener can use the error text to decide what to do about the problem.
-     * <p>The text for an error is described in the protocol doc at `https://nats.io/documentation/internals/nats-protocol`.
      * <p>In some cases the server will close the clients connection after sending one of these errors. In that case, the
      * connections {@link ConnectionListener ConnectionListener} will be notified.
      * @param conn The connection associated with the error
      * @param error The text of error that has occurred, directly from the server
      */
-    default void errorOccurred(NatsConnection conn, String error) {};
+    default void errorOccurred(NatsConnection conn, String error) {}
 
     /**
      * Exceptions that occur in the "normal" course of operations are sent to the
@@ -41,7 +44,7 @@ public interface ErrorListener {
      * @param conn The connection associated with the error
      * @param exp The exception that has occurred, and was handled by the library
      */
-    default void exceptionOccurred(NatsConnection conn, Exception exp) {};
+    default void exceptionOccurred(NatsConnection conn, Exception exp) {}
 
     /**
      * Called by the connection when a &quot;slow&quot; consumer is detected. This call is only made once
@@ -55,9 +58,9 @@ public interface ErrorListener {
      * for retrieving the count of dropped messages, see {@link Consumer#getDroppedCount() Consumer.getDroppedCount}.
      *
      * @param conn The connection associated with the error
-     * @param consumer The consumer that is being marked slow
+     * @param slowConsumer The consumer that is being marked slow
      */
-    default void slowConsumerDetected(NatsConnection conn, Consumer consumer) {};
+    default void slowConsumerDetected(NatsConnection conn, Consumer slowConsumer) {}
 
     /**
      * Called by the connection when a message is discarded.
@@ -72,53 +75,48 @@ public interface ErrorListener {
      * The consumer must be configured with an idle heartbeat time.
      *
      * @param conn The connection that had the issue
-     * @param sub the JetStreamSubscription that this occurred on
+     * @param sub the Subscription that this occurred on
      * @param lastStreamSequence the last received stream sequence
      * @param lastConsumerSequence the last received consumer sequence
      */
-    default void heartbeatAlarm(NatsConnection conn, JetStreamSubscription sub,
+    default void heartbeatAlarm(NatsConnection conn, Subscription sub,
                                 long lastStreamSequence, long lastConsumerSequence) {}
 
     /**
      * Called when an unhandled status is received in a push subscription.
      * @param conn The connection that had the issue
-     * @param sub the JetStreamSubscription that this occurred on
+     * @param sub the Subscription that this occurred on
      * @param status the status
      */
-    default void unhandledStatus(NatsConnection conn, JetStreamSubscription sub, Status status) {}
+    default void unhandledStatus(NatsConnection conn, Subscription sub, Status status) {}
 
     /**
      * Called when a pull subscription receives a status message that indicates either
      * the subscription or pull might be problematic
      *
      * @param conn   The connection that had the issue
-     * @param sub    the JetStreamSubscription that this occurred on
+     * @param sub    the Subscription that this occurred on
      * @param status the status
      */
-    default void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {}
+    default void pullStatusWarning(NatsConnection conn, Subscription sub, Status status) {}
 
     /**
      * Called when a pull subscription receives a status message that indicates either
      * the subscription cannot continue or the pull request cannot be processed.
      *
      * @param conn   The connection that had the issue
-     * @param sub    the JetStreamSubscription that this occurred on
+     * @param sub    the Subscription that this occurred on
      * @param status the status
      */
-    default void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {}
+    default void pullStatusError(NatsConnection conn, Subscription sub, Status status) {}
 
     /**
      * Enum for the flow control source
      */
     enum FlowControlSource {
-        /**
-         * a flow control message
-         */
+        /** a flow control message */
         FLOW_CONTROL,
-
-        /**
-         * a heartbeat message
-         */
+        /** a heartbeat message */
         HEARTBEAT
     }
 
@@ -126,11 +124,11 @@ public interface ErrorListener {
      * Called by the connection when a flow control is processed.
      *
      * @param conn The connection that had the issue
-     * @param sub the JetStreamSubscription that this occurred on
+     * @param sub the Subscription that this occurred on
      * @param subject the flow control subject that was handled
      * @param source enum indicating flow control handling in response to which type of message
      */
-    default void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {}
+    default void flowControlProcessed(NatsConnection conn, Subscription sub, String subject, FlowControlSource source) {}
 
     /**
      * Called by the connection when a low level socket write timeout occurs.
@@ -143,25 +141,24 @@ public interface ErrorListener {
      * General message producing function which understands the possible parameters to listener calls.
      * @param label the label for the message
      * @param conn The connection that had the issue, if provided.
-     * @param consumer The consumer that is being marked slow, if applicable
-     * @param sub the JetStreamSubscription that this occurred on, if applicable
+     * @param slowConsumer The consumer that is being marked slow, if applicable
+     * @param sub the Subscription that this occurred on, if applicable
      * @param pairs custom string pairs. I.E. "foo: ", fooObject, "bar-", barObject will be appended
      *              to the message like ", foo: &lt;fooValue&gt;, bar-&lt;barValue&gt;".
      * @return the message
      */
-    default String supplyMessage(String label, NatsConnection conn, Consumer consumer, Subscription sub, Object... pairs) {
+    default String supplyMessage(@Nullable String label, @Nullable NatsConnection conn, @Nullable Consumer slowConsumer, @Nullable Subscription sub, @Nullable Object @Nullable ... pairs) {
         StringBuilder sb = new StringBuilder(label == null ? "" : label);
         if (conn != null) {
             sb.append(", NatsConnection: ").append(conn.getServerInfo().getClientId());
         }
-        if (consumer != null) {
-            sb.append(", Consumer: ").append(consumer.hashCode());
+        if (slowConsumer != null) {
+            sb.append(", Consumer: ").append(slowConsumer.hashCode());
         }
         if (sub != null) {
             sb.append(", Subscription: ").append(sub.hashCode());
-            if (sub instanceof JetStreamSubscription) {
-                JetStreamSubscription jssub = (JetStreamSubscription)sub;
-                sb.append(", Consumer Name: ").append(jssub.getConsumerName());
+            if (sub.getConsumerName() != null) {
+                sb.append(", Consumer Name: ").append(sub.getConsumerName());
             }
         }
         if (pairs != null && pairs.length % 2 == 0) {
@@ -171,5 +168,4 @@ public interface ErrorListener {
         }
         return sb.toString();
     }
-
 }

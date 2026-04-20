@@ -2,7 +2,7 @@ package io.synadia.client.support;
 
 import io.synadia.client.*;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.js.JetStreamSubscription;
+import io.synadia.client.testutils.Status;
 import org.junit.jupiter.api.Assertions;
 
 import java.time.format.DateTimeFormatter;
@@ -14,6 +14,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
+
+import static io.nats.json.DateTimeUtils.gmtNow;
 
 @SuppressWarnings({"CallToPrintStackTrace", "RedundantMethodOverride"})
 public class Listener implements ErrorListener, ConnectionListener {
@@ -296,7 +298,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
+    public void slowConsumerDetected(NatsConnection conn, Consumer slowConsumer) {
         // see SlowConsumerTests.SlowConsumerListener
     }
 
@@ -306,7 +308,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void heartbeatAlarm(NatsConnection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
+    public void heartbeatAlarm(NatsConnection conn, Subscription sub, long lastStreamSequence, long lastConsumerSequence) {
         if (verbose) {
             report("Heartbeat Alarm", lastStreamSequence + " " + lastConsumerSequence);
         }
@@ -322,23 +324,23 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void unhandledStatus(NatsConnection conn, JetStreamSubscription sub, Status status) {
+    public void unhandledStatus(NatsConnection conn, Subscription sub, Status status) {
         statusReceived(ListenerStatusType.Unhandled, status);
     }
 
     @Override
-    public void pullStatusWarning(NatsConnection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusWarning(NatsConnection conn, Subscription sub, Status status) {
         statusReceived(ListenerStatusType.PullWarning, status);
         pullStatusWarningsCount++;
     }
 
     @Override
-    public void pullStatusError(NatsConnection conn, JetStreamSubscription sub, Status status) {
+    public void pullStatusError(NatsConnection conn, Subscription sub, Status status) {
         statusReceived(ListenerStatusType.PullError, status);
     }
 
     @Override
-    public void flowControlProcessed(NatsConnection conn, JetStreamSubscription sub, String subject, FlowControlSource source) {
+    public void flowControlProcessed(NatsConnection conn, Subscription sub, String subject, FlowControlSource source) {
         if (verbose) {
             report("flowControlProcessed", subject + " " + source);
         }
@@ -369,7 +371,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     public static final DateTimeFormatter SIMPLE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     public static String simpleTime() {
-        return SIMPLE_TIME_FORMATTER.format(DateTimeUtils.gmtNow());
+        return SIMPLE_TIME_FORMATTER.format(gmtNow());
     }
 
     @SuppressWarnings("SameParameterValue")

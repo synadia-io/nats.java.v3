@@ -13,8 +13,7 @@ ext {
 // Subproject-specific dependencies
 // ---------------------------------------------------------------------------
 dependencies {
-//    api project(':jetstream')  // transitively pulls :jsm and :core
-    api project(':core')
+    api project(':jetstream')  // transitively pulls :core
     api project(':service')
 //    implementation project(':kv')
     testImplementation project(path: ':core', configuration: 'testOutput')

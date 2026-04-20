@@ -2,8 +2,10 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.Options.HostnameResolveMode;
-import io.synadia.client.jsapi.ServerInfo;
-import io.synadia.client.support.*;
+import io.synadia.client.api.ServerInfo;
+import io.synadia.client.global.NatsInetAddress;
+import io.synadia.client.global.NatsSystemClock;
+import io.synadia.client.testutils.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -24,8 +26,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import static io.synadia.client.ConnectionStatus.*;
-import static io.synadia.client.support.NatsConstants.*;
-import static io.synadia.client.support.NatsRequestCompletableFuture.CancelAction;
+import static io.synadia.client.testutils.NatsConstants.*;
+import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class NatsConnection implements AutoCloseable {
@@ -1649,7 +1651,7 @@ public class NatsConnection implements AutoCloseable {
                         f.complete(msg);
                         break;
                     case REPORT:
-                        f.completeExceptionally(new JetStreamStatusException(msg.getStatus()));
+                        f.completeExceptionally(new StatusException(msg.getStatus()));
                         break;
                     case CANCEL:
                     default:

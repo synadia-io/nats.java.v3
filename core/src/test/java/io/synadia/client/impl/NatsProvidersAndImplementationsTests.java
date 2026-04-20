@@ -1,11 +1,11 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.NatsSystemClock;
-import io.synadia.client.NatsSystemClockProvider;
 import io.synadia.client.Options;
-import io.synadia.client.support.NatsInetAddress;
-import io.synadia.client.support.NatsInetAddressProvider;
-import io.synadia.client.support.NatsUri;
+import io.synadia.client.global.NatsInetAddress;
+import io.synadia.client.global.NatsInetAddressProvider;
+import io.synadia.client.global.NatsSystemClock;
+import io.synadia.client.global.NatsSystemClockProvider;
+import io.synadia.client.testutils.NatsUri;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 

@@ -4,7 +4,7 @@ import io.nats.json.JsonParseException;
 import io.nats.json.JsonParser;
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
-import io.synadia.client.support.Validator;
+import io.synadia.client.testutils.Validator;
 import org.jspecify.annotations.NonNull;
 
 import java.nio.charset.StandardCharsets;
@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonValueUtils.readStringMapOrNull;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.support.ApiConstants.*;
+import static io.synadia.client.testutils.ApiConstants.*;
 
 /**
  * Base class for service responses Info, Ping and Stats

@@ -5,7 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
 
-import static io.synadia.client.support.Encoding.base64UrlEncodeToString;
+import static io.nats.json.Encoding.base64UrlEncodeToString;
 
 /**
  * Handles the begining of the connect sequence, all hard coded, but

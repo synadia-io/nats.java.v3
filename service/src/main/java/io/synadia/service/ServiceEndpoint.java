@@ -2,12 +2,12 @@ package io.synadia.service;
 
 import io.nats.json.JsonValue;
 import io.synadia.client.Dispatcher;
-import io.synadia.client.support.Validator;
+import io.synadia.client.testutils.Validator;
 
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static io.synadia.client.support.NatsConstants.DOT;
+import static io.synadia.client.testutils.NatsConstants.DOT;
 
 /**
  * The ServiceEndpoint represents the working {@link Endpoint}

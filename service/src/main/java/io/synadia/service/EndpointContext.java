@@ -1,10 +1,10 @@
 package io.synadia.service;
 
+import io.nats.json.DateTimeUtils;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
-import io.synadia.client.NatsSystemClock;
+import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.support.DateTimeUtils;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;

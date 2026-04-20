@@ -1,12 +1,12 @@
 package io.synadia.service;
 
-import io.synadia.client.support.Validator;
+import io.synadia.client.testutils.Validator;
 
 import java.util.Objects;
 
-import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.support.NatsConstants.GREATER_THAN;
-import static io.synadia.client.support.Validator.emptyAsNull;
+import static io.synadia.client.testutils.NatsConstants.DOT;
+import static io.synadia.client.testutils.NatsConstants.GREATER_THAN;
+import static io.synadia.client.testutils.Validator.emptyAsNull;
 
 /**
  * Group is way to organize endpoints by serving as a common prefix to all endpoints registered in it.

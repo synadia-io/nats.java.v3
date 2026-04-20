@@ -11,7 +11,7 @@ public class BadHandler implements ErrorListener, ConnectionListener {
         throw new IllegalStateException("Intentional");
     }
 
-    public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
+    public void slowConsumerDetected(NatsConnection conn, Consumer slowConsumer) {
         throw new IllegalStateException("Intentional");
     }
 

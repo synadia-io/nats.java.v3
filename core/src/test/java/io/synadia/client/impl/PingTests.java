@@ -3,16 +3,16 @@ package io.synadia.client.impl;
 import io.synadia.client.*;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
 import io.synadia.client.support.Listener;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
-import static io.synadia.client.utils.ConnectionUtils.*;
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.testutils.ConnectionUtils.*;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class PingTests extends TestBase {

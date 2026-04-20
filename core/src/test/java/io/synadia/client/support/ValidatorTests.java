@@ -1,15 +1,16 @@
 package io.synadia.client.support;
 
+import io.synadia.client.testutils.JetStreamClientError;
+import io.synadia.client.testutils.Validator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.*;
 
-import static io.synadia.client.support.JetStreamConstants.NATS_META_KEY_PREFIX;
-import static io.synadia.client.support.Validator.*;
-import static io.synadia.client.utils.ResourceUtils.dataAsLines;
-import static io.synadia.client.utils.TestBase.*;
+import static io.synadia.client.testutils.ResourceUtils.dataAsLines;
+import static io.synadia.client.testutils.TestBase.*;
+import static io.synadia.client.testutils.Validator.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ValidatorTests {
@@ -70,22 +71,6 @@ public class ValidatorTests {
     }
 
     @Test
-    public void testValidateStreamName() {
-        allowedRequired(Validator::validateStreamName, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOLLAR));
-        notAllowedRequired(Validator::validateStreamName, Arrays.asList(null, "", HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
-        notAllowedRequired(Validator::validateStreamName, UTF_ONLY_STRINGS);
-        allowedNotRequiredEmptyAsNull(Validator::validateStreamName, Arrays.asList(null, ""));
-    }
-
-    @Test
-    public void testValidateDurable() {
-        allowedRequired(Validator::validateDurable, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOLLAR));
-        notAllowedRequired(Validator::validateDurable, Arrays.asList(null, "", HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127));
-        notAllowedRequired(Validator::validateDurable, UTF_ONLY_STRINGS);
-        allowedNotRequiredEmptyAsNull(Validator::validateDurable, Arrays.asList(null, ""));
-    }
-
-    @Test
     public void testValidatePrintable() {
         validatePrintable(PLAIN, "label", true);
         validatePrintable(HAS_PRINTABLE, "label", true);
@@ -140,80 +125,6 @@ public class ValidatorTests {
     }
 
     @Test
-    public void testValidateMaxConsumers() {
-        assertEquals(1, validateMaxConsumers(1));
-        assertEquals(-1, validateMaxConsumers(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxConsumers(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessages(-2));
-    }
-
-    @Test
-    public void testValidateMaxMessages() {
-        assertEquals(1, validateMaxMessages(1));
-        assertEquals(-1, validateMaxMessages(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessages(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessages(-2));
-    }
-
-    @Test
-    public void testValidateMaxMessagesPerSubject() {
-        assertEquals(1, validateMaxMessagesPerSubject(1));
-        assertEquals(-1, validateMaxMessagesPerSubject(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessagesPerSubject(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessagesPerSubject(-2));
-    }
-
-    @Test
-    public void testValidateMaxHistory() {
-        assertEquals(1, validateMaxHistory(1));
-        assertEquals(64, validateMaxHistory(64));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxHistory(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxHistory(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxHistory(65));
-    }
-
-    @Test
-    public void testValidateMaxBytes() {
-        assertEquals(1, validateMaxBytes(1));
-        assertEquals(-1, validateMaxBytes(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxBytes(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessages(-2));
-    }
-
-    @Test
-    public void testValidateMaxBucketBytes() {
-        assertEquals(1, validateMaxBucketBytes(1));
-        assertEquals(-1, validateMaxBucketBytes(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxBucketBytes(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessages(-2));
-    }
-
-    @Test
-    public void testValidateMaxMessageSize() {
-        assertEquals(1, validateMaxMessageSize(1));
-        assertEquals(-1, validateMaxMessageSize(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessageSize(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessages(-2));
-    }
-
-    @Test
-    public void testValidateMaxValueBytes() {
-        assertEquals(1, validateMaxValueSize(1));
-        assertEquals(-1, validateMaxValueSize(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxValueSize(0));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxMessages(-2));
-    }
-
-    @Test
-    public void testValidateNumberOfReplicas() {
-        assertEquals(1, validateNumberOfReplicas(1));
-        assertEquals(5, validateNumberOfReplicas(5));
-        assertThrows(IllegalArgumentException.class, () -> validateNumberOfReplicas(-1));
-        assertThrows(IllegalArgumentException.class, () -> validateNumberOfReplicas(0));
-        assertThrows(IllegalArgumentException.class, () -> validateNumberOfReplicas(7));
-    }
-
-    @Test
     public void testValidateDurationRequired() {
         assertEquals(Duration.ofNanos(1), validateDurationRequired(Duration.ofNanos(1)));
         assertEquals(Duration.ofSeconds(1), validateDurationRequired(Duration.ofSeconds(1)));
@@ -222,31 +133,6 @@ public class ValidatorTests {
         assertThrows(IllegalArgumentException.class, () -> validateDurationRequired(Duration.ofSeconds(0)));
         assertThrows(IllegalArgumentException.class, () -> validateDurationRequired(Duration.ofNanos(-1)));
         assertThrows(IllegalArgumentException.class, () -> validateDurationRequired(Duration.ofSeconds(-1)));
-    }
-
-    @Test
-    public void testValidateDurationNotRequiredGtOrEqZero() {
-        Duration ifNull = Duration.ofMillis(999);
-        assertEquals(ifNull, validateDurationNotRequiredGtOrEqZero(null, ifNull));
-        assertEquals(Duration.ZERO, validateDurationNotRequiredGtOrEqZero(Duration.ZERO, ifNull));
-        assertEquals(Duration.ofNanos(1), validateDurationNotRequiredGtOrEqZero(Duration.ofNanos(1), ifNull));
-        assertThrows(IllegalArgumentException.class, () -> validateDurationNotRequiredGtOrEqZero(Duration.ofNanos(-1), ifNull));
-
-        assertEquals(Duration.ZERO, validateDurationNotRequiredGtOrEqZero(0));
-        assertEquals(Duration.ofMillis(1), validateDurationNotRequiredGtOrEqZero(1));
-        assertEquals(Duration.ofSeconds(1), validateDurationNotRequiredGtOrEqZero(1000));
-        assertThrows(IllegalArgumentException.class, () -> validateDurationNotRequiredGtOrEqZero(-1));
-    }
-
-    @Test
-    public void testValidateDurationGtOrEqSeconds() {
-        Duration ifNull = Duration.ofMillis(999);
-        assertEquals(ifNull, validateDurationNotRequiredGtOrEqSeconds(1, null, ifNull, ""));
-        assertEquals(Duration.ofSeconds(1), validateDurationNotRequiredGtOrEqSeconds(1, Duration.ofSeconds(1), ifNull, ""));
-        assertThrows(IllegalArgumentException.class, () -> validateDurationNotRequiredGtOrEqSeconds(1, Duration.ofMillis(999), ifNull, ""));
-
-        assertEquals(Duration.ofSeconds(1), validateDurationGtOrEqSeconds(1, 1000, ""));
-        assertThrows(IllegalArgumentException.class, () -> validateDurationGtOrEqSeconds(1, 999, ""));
     }
 
     @Test
@@ -272,106 +158,6 @@ public class ValidatorTests {
         assertEquals(Duration.ofMillis(100), ensureDurationNotLessThanMin(100, Duration.ofMillis(2), Duration.ofMillis(10)));
     }
 
-    @Test
-    public void testValidateBucketName() {
-        validateBucketName(PLAIN, true);
-        validateBucketName(PLAIN.toUpperCase(), true);
-        validateBucketName(HAS_DASH, true);
-        validateBucketName(HAS_UNDER, true);
-        validateBucketName("numbers9ok", true);
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(null, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_SPACE, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_DOT, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(STAR_NOT_SEGMENT, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(GT_NOT_SEGMENT, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_DOLLAR, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_LOW, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_127, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_FWD_SLASH, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_EQUALS, true));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_TIC, true));
-
-        validateBucketName(PLAIN, false);
-        validateBucketName(PLAIN.toUpperCase(), false);
-        validateBucketName(HAS_DASH, false);
-        validateBucketName(HAS_UNDER, false);
-        validateBucketName("numbers9ok", false);
-        validateBucketName(null, false);
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_SPACE, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_DOT, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(STAR_NOT_SEGMENT, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(GT_NOT_SEGMENT, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_DOLLAR, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_LOW, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_127, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_FWD_SLASH, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_EQUALS, false));
-        assertThrows(IllegalArgumentException.class, () -> validateBucketName(HAS_TIC, false));
-    }
-
-    @Test
-    public void testValidateKvKeyWildcardAllowedRequired() {
-        validateKvKeyWildcardAllowedRequired(PLAIN);
-        validateKvKeyWildcardAllowedRequired(PLAIN.toUpperCase());
-        validateKvKeyWildcardAllowedRequired(HAS_DASH);
-        validateKvKeyWildcardAllowedRequired(HAS_UNDER);
-        validateKvKeyWildcardAllowedRequired(HAS_FWD_SLASH);
-        validateKvKeyWildcardAllowedRequired(HAS_EQUALS);
-        validateKvKeyWildcardAllowedRequired(HAS_DOT);
-        validateKvKeyWildcardAllowedRequired(STAR_NOT_SEGMENT);
-        validateKvKeyWildcardAllowedRequired(GT_NOT_SEGMENT);
-        validateKvKeyWildcardAllowedRequired("numbers9ok");
-        String nullKey = null;
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(nullKey));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_SPACE));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_DOLLAR));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_LOW));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_127));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_TIC));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired("colon:isbetween9andA"));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(".starts.with.dot.not.allowed"));
-
-        List<String> nullList = null;
-        //noinspection ConstantValue
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeysWildcardAllowedRequired(nullList));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeysWildcardAllowedRequired(Collections.singletonList(null)));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeysWildcardAllowedRequired(Collections.singletonList(HAS_SPACE)));
-    }
-
-    @Test
-    public void testValidateNonWildcardKeyRequired() {
-        validateNonWildcardKvKeyRequired(PLAIN);
-        validateNonWildcardKvKeyRequired(PLAIN.toUpperCase());
-        validateNonWildcardKvKeyRequired(HAS_DASH);
-        validateNonWildcardKvKeyRequired(HAS_UNDER);
-        validateNonWildcardKvKeyRequired(HAS_FWD_SLASH);
-        validateNonWildcardKvKeyRequired(HAS_EQUALS);
-        validateNonWildcardKvKeyRequired(HAS_DOT);
-        validateNonWildcardKvKeyRequired("numbers9ok");
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(null));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_SPACE));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(STAR_NOT_SEGMENT));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(GT_NOT_SEGMENT));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_DOLLAR));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_LOW));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_127));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_TIC));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired("colon:isbetween9andA"));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(".starts.with.dot.not.allowed"));
-    }
-
-    @Test
-    public void testValidateMustMatchIfBothSupplied() {
-        JetStreamClientError err = new JetStreamClientError("TEST", 999999, "desc");
-        assertNull(validateMustMatchIfBothSupplied(null, null, err));
-        assertEquals("y", validateMustMatchIfBothSupplied(null, "y", err));
-        assertEquals("y", validateMustMatchIfBothSupplied("", "y", err));
-        assertEquals("x", validateMustMatchIfBothSupplied("x", null, err));
-        assertEquals("x", validateMustMatchIfBothSupplied("x", " ", err));
-        assertEquals("x", validateMustMatchIfBothSupplied("x", "x", err));
-        assertThrows(IllegalArgumentException.class, () -> validateMustMatchIfBothSupplied("x", "y", err));
-    }
-
     @SuppressWarnings({"ObviousNullCheck", "rawtypes"})
     @Test
     public void testValidateRequired() {
@@ -387,14 +173,6 @@ public class ValidatorTests {
         assertThrows(IllegalArgumentException.class, () -> required(new ArrayList<>(), "label"));
         assertThrows(IllegalArgumentException.class, () -> required((Map)null, "label"));
         assertThrows(IllegalArgumentException.class, () -> required(new HashMap<>(), "label"));
-    }
-
-    @Test
-    public void testValidateMaxLength() {
-        validateMaxLength("test", 5, true, "label");
-        validateMaxLength(null, 5, false, "label");
-        assertThrows(IllegalArgumentException.class, () -> validateMaxLength("test", 3, true, "label"));
-        assertThrows(IllegalArgumentException.class, () -> validateMaxLength(null, 5, true, "label"));
     }
 
     @Test
@@ -471,77 +249,77 @@ public class ValidatorTests {
     interface StringAndRequiredTest { String validate(String s, boolean required); }
     interface StringLabelRequiredCantEndWithGtTest { String validate(String s, String l, boolean required, boolean cantEndWithGt); }
 
-    private void allowedRequired(StringAndRequiredTest test, List<String> strings) {
+    protected void allowedRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertEquals(s, test.validate(s, true), allowedMessage(s));
         }
     }
 
-    private void allowedRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+    protected void allowedRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
         for (String s : strings) {
             assertEquals(s, test.validate(s, "allowedRequired", true, cantEndWithGt), allowedMessage(s));
         }
     }
 
-    private void notAllowedRequired(StringAndRequiredTest test, List<String> strings) {
+    protected void notAllowedRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> test.validate(s, true), notAllowedMessage(s));
         }
     }
 
-    private void notAllowedRequiredStrict(List<String> strings) {
+    protected void notAllowedRequiredStrict(List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(s, "notAllowedRequiredStrict", true), notAllowedMessage(s));
         }
     }
 
-    private void notAllowedRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+    protected void notAllowedRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> test.validate(s, "notAllowedRequired", true, cantEndWithGt), notAllowedMessage(s));
         }
     }
 
-    private void allowedNotRequired(StringAndRequiredTest test, List<String> strings) {
+    protected void allowedNotRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertEquals(s, test.validate(s, false), allowedMessage(s));
         }
     }
 
-    private void allowedNotRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+    protected void allowedNotRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
         for (String s : strings) {
             assertEquals(s, test.validate(s, "allowedNotRequired", false, cantEndWithGt), allowedMessage(s));
         }
     }
 
-    private void allowedNotRequiredEmptyAsNull(StringAndRequiredTest test, List<String> strings) {
+    protected void allowedNotRequiredEmptyAsNull(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertNull(test.validate(s, false), allowedMessage(s));
         }
     }
 
-    private void notAllowedNotRequired(StringAndRequiredTest test, List<String> strings) {
+    protected void notAllowedNotRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> test.validate(s, false), notAllowedMessage(s));
         }
     }
 
-    private void notAllowedNotRequiredStrict(List<String> strings) {
+    protected void notAllowedNotRequiredStrict(List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(s, "notAllowedRequiredStrict", false), notAllowedMessage(s));
         }
     }
 
-    private void notAllowedNotRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
+    protected void notAllowedNotRequiredCheckEndWith(StringLabelRequiredCantEndWithGtTest test, boolean cantEndWithGt, List<String> strings) {
         for (String s : strings) {
             assertThrows(IllegalArgumentException.class, () -> test.validate(s, "notAllowedNotRequired", false, cantEndWithGt), notAllowedMessage(s));
         }
     }
 
-    private String allowedMessage(String s) {
+    protected String allowedMessage(String s) {
         return "Testing [" + s + "] as allowed.";
     }
 
-    private String notAllowedMessage(String s) {
+    protected String notAllowedMessage(String s) {
         return "Testing [" + s + "] as not allowed.";
     }
 
@@ -763,33 +541,5 @@ public class ValidatorTests {
         assertFalse(mapsAreEquivalent(m6, m5));
         assertTrue(mapsAreEquivalent(m6, null));
         assertTrue(mapsAreEquivalent(m6, m6));
-    }
-
-    @Test
-    public void testMetaIsEquivalent() {
-        Map<String, String> m1 = new HashMap<>();
-        Map<String, String> m2 = new HashMap<>();
-
-        assertTrue(Validator.metaIsEquivalent(null, null));
-        assertTrue(Validator.metaIsEquivalent(null, m1));
-        assertTrue(Validator.metaIsEquivalent(m1, null));
-        assertTrue(Validator.metaIsEquivalent(m1, m2));
-
-        m1.put("A", "a");
-        m1.put(NATS_META_KEY_PREFIX + "foo", "foo");
-        assertFalse(Validator.metaIsEquivalent(m1, m2));
-
-        m2.put("A", "a");
-        m2.put(NATS_META_KEY_PREFIX + "bar", "bar");
-        assertTrue(Validator.metaIsEquivalent(m1, m2));
-
-        m1.put("B", "b");
-        assertFalse(Validator.metaIsEquivalent(m1, m2));
-
-        m2.put("B", "b");
-        assertTrue(Validator.metaIsEquivalent(m1, m2));
-
-        m2.put("C", "C");
-        assertFalse(Validator.metaIsEquivalent(m1, m2));
     }
 }

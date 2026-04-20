@@ -1,5 +1,7 @@
 package io.synadia.client;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Duration;
 
 /**
@@ -48,6 +50,15 @@ public interface Subscription extends Consumer {
      * @return the id
      */
     String getSID();
+
+    /**
+     * Gets the consumer name associated with the subscription.
+     * Not all subscriptions have consumer names
+     * @return the consumer name
+     */
+    default @Nullable String getConsumerName() {
+        return null;
+    }
 
     /**
      * Read the next message for a subscription, or block until one is available.

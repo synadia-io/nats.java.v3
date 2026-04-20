@@ -1,10 +1,10 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.ForceReconnectOptions;
-import io.synadia.client.NatsSystemClock;
 import io.synadia.client.Options;
-import io.synadia.client.support.NatsUri;
-import io.synadia.client.support.ScheduledTask;
+import io.synadia.client.global.NatsSystemClock;
+import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.testutils.ScheduledTask;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;

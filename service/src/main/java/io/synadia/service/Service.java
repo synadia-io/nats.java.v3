@@ -1,9 +1,9 @@
 package io.synadia.service;
 
+import io.nats.json.DateTimeUtils;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.NUID;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.support.DateTimeUtils;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -16,8 +16,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.support.ApiConstants.*;
-import static io.synadia.client.support.Validator.nullOrEmpty;
+import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.testutils.Validator.nullOrEmpty;
 
 /**
  * The Services Framework introduces a higher-level API for implementing services with NATS.

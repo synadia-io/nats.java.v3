@@ -7,8 +7,8 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 
-import static io.synadia.client.utils.ConnectionUtils.standardConnect;
-import static io.synadia.client.utils.TestBase.*;
+import static io.synadia.client.testutils.ConnectionUtils.standardConnect;
+import static io.synadia.client.testutils.TestBase.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SubscriberTests {

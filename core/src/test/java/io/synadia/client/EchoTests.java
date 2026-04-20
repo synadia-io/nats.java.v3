@@ -3,16 +3,16 @@ package io.synadia.client;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SharedServer;
-import io.synadia.client.utils.ConnectionUtils;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.ConnectionUtils;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.time.Duration;
 
-import static io.synadia.client.utils.ConnectionUtils.assertCanConnect;
-import static io.synadia.client.utils.OptionsUtils.options;
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.ConnectionUtils.assertCanConnect;
+import static io.synadia.client.testutils.OptionsUtils.options;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class EchoTests extends TestBase {

@@ -12,10 +12,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.utils.ConnectionUtils.*;
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.utils.TestBase.*;
-import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.testutils.ConnectionUtils.*;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.TestBase.*;
+import static io.synadia.client.testutils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DrainTests {

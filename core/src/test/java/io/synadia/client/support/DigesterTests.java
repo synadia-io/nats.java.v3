@@ -1,14 +1,15 @@
 package io.synadia.client.support;
 
-import io.synadia.client.utils.ResourceUtils;
+import io.synadia.client.testutils.Digester;
+import io.synadia.client.testutils.ResourceUtils;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-import static io.synadia.client.support.Digester.DEFAULT_DIGEST_ALGORITHM;
-import static io.synadia.client.support.Digester.DEFAULT_STRING_ENCODING;
+import static io.synadia.client.testutils.Digester.DEFAULT_DIGEST_ALGORITHM;
+import static io.synadia.client.testutils.Digester.DEFAULT_STRING_ENCODING;
 import static org.junit.jupiter.api.Assertions.*;
 
 public final class DigesterTests {

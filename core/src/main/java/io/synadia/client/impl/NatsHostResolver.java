@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.NatsInetAddress;
+import io.synadia.client.global.NatsInetAddress;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 

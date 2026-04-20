@@ -1,0 +1,299 @@
+package io.synadia.client.os;
+
+import io.nats.json.JsonSerializable;
+import io.nats.json.JsonValue;
+import io.synadia.client.impl.Headers;
+import io.synadia.client.testutils.Validator;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import java.util.*;
+
+import static io.nats.json.JsonValueUtils.*;
+import static io.nats.json.JsonWriteUtils.*;
+import static io.synadia.client.testutils.ApiConstants.*;
+
+/**
+ * The ObjectMeta is Object Meta is high level information about an object
+ */
+@NullMarked
+public class ObjectMeta implements JsonSerializable {
+
+    private final String objectName;
+    private final String description;
+    private final Headers headers;
+    private final Map<String, String> metadata;
+    private final ObjectMetaOptions objectMetaOptions;
+
+    private ObjectMeta(Builder b) {
+        objectName = b.objectName;
+        description = b.description;
+        headers = new Headers(b.headers, true);
+        metadata = Collections.unmodifiableMap(b.metadata);
+        objectMetaOptions = b.metaOptionsBuilder.build();
+    }
+
+    ObjectMeta(JsonValue vObjectMeta) {
+        objectName = readString(vObjectMeta, NAME);
+        description = readString(vObjectMeta, DESCRIPTION);
+        Headers h = new Headers();
+        JsonValue hJv = readMapObjectOrNull(vObjectMeta, HEADERS);
+        if (hJv != null && hJv.map != null) {
+            for (String key : hJv.map.keySet()) {
+                List<String> values = readStringListOrNull(hJv, key);
+                if (values != null && values.size() > 0) {
+                    h.put(key, values);
+                }
+            }
+        }
+        headers = new Headers(h, true);
+        metadata = Collections.unmodifiableMap(readStringMapOrEmpty(vObjectMeta, METADATA));
+        objectMetaOptions = new ObjectMetaOptions(readMapObjectOrEmpty(vObjectMeta, OPTIONS));
+    }
+
+    @Override
+    public String toJson() {
+        StringBuilder sb = beginJson();
+        embedJson(sb);
+        return endJson(sb).toString();
+    }
+
+    void embedJson(StringBuilder sb) {
+        addField(sb, NAME, objectName);
+        addField(sb, DESCRIPTION, description);
+        if (headers != null && headers.size() > 0) { addField(sb, HEADERS, headers.toMap()); }
+        addField(sb, METADATA, metadata);
+
+        // avoid adding an empty child to the json because addField
+        // only checks versus the object being null, which it is never
+        if (objectMetaOptions.hasData()) {
+            addField(sb, OPTIONS, objectMetaOptions);
+        }
+    }
+
+    /**
+     * The object name
+     * @return the object name
+     */
+    public String getObjectName() {
+        return objectName;
+    }
+
+    /**
+     * The description
+     * @return the description text or null
+     */
+    @Nullable
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Headers may be empty but will not be null. In all cases it will be unmodifiable
+     * @return the headers object
+     */
+    public Headers getHeaders() {
+        return headers;
+    }
+
+    /**
+     * Metadata may be empty but will not be null. In all cases it will be unmodifiable
+     * @return the map
+     */
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    /**
+     * The ObjectMetaOptions are additional options describing the object
+     * @return the object meta data
+     */
+    @Nullable
+    public ObjectMetaOptions getObjectMetaOptions() {
+        return objectMetaOptions;
+    }
+
+    /**
+     * Get an instance of the ObjectMeta.Builder starting with the object name
+     * @param objectName the object name
+     * @return the builder
+     */
+    public static Builder builder(String objectName) {
+        return new Builder(objectName);
+    }
+
+    /**
+     * Get an instance of the ObjectMeta.Builder as a copy of existing meta
+     * @param om the existing meta
+     * @return the builder
+     */
+    public static Builder builder(ObjectMeta om) {
+        return new Builder(om);
+    }
+
+    /**
+     * Create object meta that only has the object name. Fairly common use case
+     * @param objectName the object name
+     * @return the ObjectMeta
+     */
+    public static ObjectMeta objectName(String objectName) {
+        return new Builder(objectName).build();
+    }
+
+    /**
+     * The builder for ObjectMeta
+     */
+    public static class Builder {
+        String objectName;
+        String description;
+        Headers headers;
+        Map<String, String> metadata;
+        ObjectMetaOptions.Builder metaOptionsBuilder;
+
+        /**
+         * Construct a builder starting with the object name
+         * @param objectName the object name
+         */
+        public Builder(String objectName) {
+            headers = new Headers();
+            metadata = new HashMap<>();
+            metaOptionsBuilder = ObjectMetaOptions.builder();
+            objectName(objectName);
+        }
+
+        /**
+         * Construct a builder as a copy of existing meta
+         * @param om the existing meta
+         */
+        public Builder(ObjectMeta om) {
+            objectName = om.objectName;
+            description = om.description;
+            headers = new Headers(om.headers);
+            metadata = new HashMap<>(om.metadata);
+            metaOptionsBuilder = ObjectMetaOptions.builder(om.objectMetaOptions);
+        }
+
+        /**
+         * Set the object name
+         * @param name the name
+         * @return the builder
+         */
+        public Builder objectName(String name) {
+            this.objectName = Validator.validateNotNull(name, "Object Name");
+            return this;
+        }
+
+        /**
+         * Set the object description
+         * @param description the description
+         * @return the builder
+         */
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        /**
+         * Set the object headers
+         * @param headers the headers
+         * @return the builder
+         */
+        public Builder headers(Headers headers) {
+            if (headers == null) {
+                this.headers.clear();
+            }
+            else {
+                this.headers = new Headers(headers);
+            }
+            return this;
+        }
+
+        /**
+         * Set the object metadata
+         * @param metadata the metadata
+         * @return the builder
+         */
+        public Builder metadata(Map<String, String> metadata) {
+            if (metadata == null) {
+                this.metadata.clear();
+            }
+            else {
+                this.metadata = metadata;
+            }
+            return this;
+        }
+
+        /**
+         * Set the object meta options
+         * @param objectMetaOptions the objectMetaOptions
+         * @return the builder
+         */
+        public Builder options(ObjectMetaOptions objectMetaOptions) {
+            metaOptionsBuilder = ObjectMetaOptions.builder(objectMetaOptions);
+            return this;
+        }
+
+        /**
+         * Convenience method to set the ObjectMetaOptions chunk size
+         * @param chunkSize the size in bytes
+         * @return the builder
+         */
+        public Builder chunkSize(int chunkSize) {
+            metaOptionsBuilder.chunkSize(chunkSize);
+            return this;
+        }
+
+        /**
+         * Convenience method to set the ObjectMetaOptions to set the link
+         * @param link the link
+         * @return the builder
+         */
+        public Builder link(ObjectLink link) {
+            metaOptionsBuilder.link(link);
+            return this;
+        }
+
+        /**
+         * Build the Object Meta
+         * @return the ObjectMeta instance
+         */
+        public ObjectMeta build() {
+            return new ObjectMeta(this);
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ObjectMeta that = (ObjectMeta) o;
+
+        if (!objectName.equals(that.objectName)) return false;
+        if (description != null ? !description.equals(that.description) : that.description != null) return false;
+        if (!Objects.equals(headers, that.headers)) return false;
+        if (!Objects.equals(metadata, that.metadata)) return false;
+        return objectMetaOptions.equals(that.objectMetaOptions);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = objectName.hashCode();
+        result = 31 * result + (description != null ? description.hashCode() : 0);
+        result = 31 * result + headers.hashCode();
+        result = 31 * result + metadata.hashCode();
+        result = 31 * result + objectMetaOptions.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ObjectMeta{" +
+            "objectName='" + objectName + '\'' +
+            ", description='" + description + '\'' +
+            ", headers?" + headers.size() +
+            ", metadata?" + metadata.size() +
+            ", objectMetaOptions=" + objectMetaOptions +
+            '}';
+    }
+}

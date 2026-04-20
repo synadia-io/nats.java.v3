@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.support.NatsRequestCompletableFuture;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.NatsRequestCompletableFuture;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -12,11 +12,11 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.support.NatsRequestCompletableFuture.CancelAction;
-import static io.synadia.client.utils.ConnectionUtils.*;
-import static io.synadia.client.utils.OptionsUtils.options;
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.testutils.ConnectionUtils.*;
+import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
+import static io.synadia.client.testutils.OptionsUtils.options;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RequestTests extends TestBase {

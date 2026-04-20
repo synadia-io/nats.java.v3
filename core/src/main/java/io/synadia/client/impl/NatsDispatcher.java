@@ -10,8 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.synadia.client.support.Validator.required;
-import static io.synadia.client.support.Validator.validateQueueName;
+import static io.synadia.client.testutils.Validator.required;
+import static io.synadia.client.testutils.Validator.validateQueueName;
 
 public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
 

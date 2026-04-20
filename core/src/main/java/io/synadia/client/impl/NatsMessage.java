@@ -2,16 +2,15 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
-import io.synadia.client.js.JetStreamMetaData;
-import io.synadia.client.support.ByteArrayBuilder;
-import io.synadia.client.support.Status;
+import io.synadia.client.testutils.ByteArrayBuilder;
+import io.synadia.client.testutils.Status;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
-import static io.synadia.client.support.NatsConstants.*;
+import static io.synadia.client.testutils.NatsConstants.*;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 

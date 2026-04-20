@@ -1,14 +1,14 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Options;
-import io.synadia.client.support.NatsUri;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.net.URISyntaxException;
 import java.util.*;
 
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ServerPoolTests extends TestBase {

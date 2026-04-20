@@ -1,12 +1,13 @@
 package io.synadia.service;
 
+import io.nats.json.DateTimeUtils;
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.Options;
 import io.synadia.client.impl.*;
-import io.synadia.client.support.DateTimeUtils;
+import io.synadia.client.testutils.TestBase;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
@@ -27,15 +28,15 @@ import static io.nats.json.JsonValueUtils.readInteger;
 import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonWriteUtils.toKey;
 import static io.synadia.client.impl.NatsPackageScopeWorkarounds.getDispatchers;
-import static io.synadia.client.support.NatsConstants.DOT;
-import static io.synadia.client.utils.OptionsUtils.options;
-import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.testutils.NatsConstants.DOT;
+import static io.synadia.client.testutils.OptionsUtils.options;
+import static io.synadia.client.testutils.ThreadUtils.sleep;
 import static io.synadia.service.Service.SRV_PING;
 import static io.synadia.service.ServiceMessage.NATS_SERVICE_ERROR;
 import static io.synadia.service.ServiceMessage.NATS_SERVICE_ERROR_CODE;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ServiceTests extends JetStreamTestBase {
+public class ServiceTests extends TestBase {
 
     public static final String SERVICE_TESTS_SHARED_NAME = "ServiceTests";
 

@@ -16,7 +16,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Options;
 import io.synadia.client.StatisticsCollector;
-import io.synadia.client.support.ByteArrayBuilder;
+import io.synadia.client.testutils.ByteArrayBuilder;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -31,9 +31,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static io.synadia.client.impl.MarkerMessage.END_RECONNECT;
-import static io.synadia.client.support.ByteArrayBuilder.bufferAllocSize;
-import static io.synadia.client.support.NatsConstants.CR;
-import static io.synadia.client.support.NatsConstants.LF;
+import static io.synadia.client.testutils.ByteArrayBuilder.bufferAllocSize;
+import static io.synadia.client.testutils.NatsConstants.CR;
+import static io.synadia.client.testutils.NatsConstants.LF;
 
 public class NatsConnectionWriter implements Runnable {
     enum Mode {

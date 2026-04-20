@@ -4,7 +4,7 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.Statistics;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -12,8 +12,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class NatsStatisticsTests extends TestBase {

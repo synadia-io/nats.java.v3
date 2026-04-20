@@ -1,5 +1,6 @@
 package io.synadia.client.support;
 
+import io.synadia.client.testutils.ByteArrayBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -10,10 +11,10 @@ import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.List;
 
-import static io.synadia.client.support.ByteArrayBuilder.*;
-import static io.synadia.client.support.NatsConstants.*;
-import static io.synadia.client.support.RandomUtils.PRAND;
-import static io.synadia.client.utils.ResourceUtils.dataAsLines;
+import static io.synadia.client.testutils.ByteArrayBuilder.*;
+import static io.synadia.client.testutils.NatsConstants.*;
+import static io.synadia.client.testutils.RandomUtils.PRAND;
+import static io.synadia.client.testutils.ResourceUtils.dataAsLines;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.*;

@@ -1,17 +1,17 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.IncomingHeadersProcessor;
-import io.synadia.client.support.Status;
-import io.synadia.client.support.Token;
-import io.synadia.client.support.TokenType;
+import io.synadia.client.testutils.IncomingHeadersProcessor;
+import io.synadia.client.testutils.Status;
+import io.synadia.client.testutils.Token;
+import io.synadia.client.testutils.TokenType;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static io.synadia.client.support.JetStreamConstants.*;
-import static io.synadia.client.support.Status.*;
+import static io.synadia.client.testutils.NatsConstants.*;
+import static io.synadia.client.testutils.Status.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HeadersTests {

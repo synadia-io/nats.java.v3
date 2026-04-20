@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.ByteArrayBuilder;
+import io.synadia.client.testutils.ByteArrayBuilder;
 
 // ----------------------------------------------------------------------------------------------------
 // Protocol message is a special version of a NatsPublishableMessage extends NatsMessage

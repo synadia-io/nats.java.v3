@@ -1,8 +1,8 @@
 package io.synadia.service;
 
 import io.synadia.client.Message;
-import io.synadia.client.NatsSystemClock;
 import io.synadia.client.Subscription;
+import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.impl.NatsConnection;
 
 import java.time.Duration;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static io.synadia.client.support.NatsConstants.NANOS_PER_MILLI;
+import static io.synadia.client.testutils.NatsConstants.NANOS_PER_MILLI;
 import static io.synadia.service.Service.*;
 
 /**

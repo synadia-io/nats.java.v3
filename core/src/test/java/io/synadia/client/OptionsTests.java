@@ -3,13 +3,9 @@ package io.synadia.client;
 import io.nats.nkey.NKey;
 import io.nats.nkey.NKeyProvider;
 import io.synadia.client.impl.*;
-import io.synadia.client.support.HttpRequest;
 import io.synadia.client.support.Listener;
-import io.synadia.client.support.NatsUri;
 import io.synadia.client.support.ssl.SslTestingHelper;
-import io.synadia.client.utils.CloseOnUpgradeAttempt;
-import io.synadia.client.utils.CoverageServerPool;
-import io.synadia.client.utils.ResourceUtils;
+import io.synadia.client.testutils.*;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -26,10 +22,10 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import static io.nats.json.Encoding.base64UrlEncodeToString;
 import static io.synadia.client.Options.*;
-import static io.synadia.client.support.Encoding.base64UrlEncodeToString;
-import static io.synadia.client.support.NatsConstants.DEFAULT_PORT;
-import static io.synadia.client.utils.ResourceUtils.jwtResource;
+import static io.synadia.client.testutils.NatsConstants.DEFAULT_PORT;
+import static io.synadia.client.testutils.ResourceUtils.jwtResource;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class OptionsTests {
@@ -91,7 +87,6 @@ public class OptionsTests {
         assertEquals(Options.DEFAULT_REQUEST_CLEANUP_INTERVAL, o.getRequestCleanupInterval(),
             "default cleanup interval");
 
-        assertInstanceOf(ErrorListenerLoggerImpl.class, o.getErrorListener(), "error listener");
         assertNull(o.getConnectionListener(), "disconnect listener");
         assertNull(o.getStatisticsCollector(), "statistics collector");
         assertFalse(o.isOldRequestStyle(), "default oldstyle");
@@ -496,7 +491,7 @@ public class OptionsTests {
         props.setProperty(Options.PROP_PING_INTERVAL, "1000");
 
         // classnameProperty
-        props.setProperty(Options.PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, "io.synadia.client.utils.CoverageServerPool");
+        props.setProperty(Options.PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, "io.synadia.client.testutils.CoverageServerPool");
 
         Options o = new Options.Builder(props).build();
         _testProperties(o);
@@ -769,7 +764,7 @@ public class OptionsTests {
     public void testStatisticsCoverage() {
         validateStatisticsCollector(new NatsStatistics());
 
-        StatisticsCollector stats = new NoOpStatistics();
+        StatisticsCollector stats = new StatisticsCollector() {};
         stats.setAdvancedTracking(true);
         stats.incrementPingCount();
         stats.incrementReconnects();
@@ -1255,6 +1250,27 @@ public class OptionsTests {
         assertEquals("nats://1.2.3.4:80", nuri.reHost("1.2.3.4").toString());
         assertEquals("nats://[1:2:3:4:5:6:7:8]:80", nuri.reHost("[1:2:3:4:5:6:7:8]").toString());
         assertEquals("nats://[1:2:3:4:5:6:7:8]:80", nuri.reHost("1:2:3:4:5:6:7:8").toString());
+    }
+
+    @Test
+    public void testNuriEquivalent() throws URISyntaxException {
+        // same host and port
+        assertTrue(new NatsUri("nats://host:4222").equivalent(new NatsUri("nats://host:4222")));
+
+        // case insensitive host
+        assertTrue(new NatsUri("nats://HOST:4222").equivalent(new NatsUri("nats://host:4222")));
+
+        // different port
+        assertFalse(new NatsUri("nats://host:4222").equivalent(new NatsUri("nats://host:4223")));
+
+        // different host
+        assertFalse(new NatsUri("nats://host1:4222").equivalent(new NatsUri("nats://host2:4222")));
+
+        // scheme doesn't matter for equivalence
+        assertTrue(new NatsUri("nats://host:4222").equivalent(new NatsUri("tls://host:4222")));
+
+        // host+port collision guard: "host1" port 22 vs "host12" port 2
+        assertFalse(new NatsUri("nats://host1:22").equivalent(new NatsUri("nats://host12:2")));
     }
 
     @Test

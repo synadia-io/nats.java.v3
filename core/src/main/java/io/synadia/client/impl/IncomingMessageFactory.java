@@ -1,10 +1,9 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.js.JetStreamMessage;
-import io.synadia.client.support.IncomingHeadersProcessor;
-import io.synadia.client.support.Status;
+import io.synadia.client.testutils.IncomingHeadersProcessor;
+import io.synadia.client.testutils.Status;
 
-import static io.synadia.client.support.JetStreamConstants.JS_ACK_SUBJECT_PREFIX;
+import static io.synadia.client.testutils.NatsConstants.JS_ACK_SUBJECT_PREFIX;
 
 // ----------------------------------------------------------------------------------------------------
 // Incoming Message Factory - internal use only

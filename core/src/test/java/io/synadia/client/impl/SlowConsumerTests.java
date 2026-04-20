@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -184,8 +184,8 @@ public class SlowConsumerTests extends TestBase {
         }
 
         @Override
-        public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
-            consumers.add(consumer);
+        public void slowConsumerDetected(NatsConnection conn, Consumer slowConsumer) {
+            consumers.add(slowConsumer);
             if (future != null) {
                 future.complete(true);
             }

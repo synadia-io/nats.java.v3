@@ -2,14 +2,14 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Nats;
 import io.synadia.client.NatsTestServer;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import static io.synadia.client.support.NatsConstants.*;
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.NatsConstants.*;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

@@ -2,7 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.ReadListener;
-import io.synadia.client.support.IncomingHeadersProcessor;
+import io.synadia.client.testutils.IncomingHeadersProcessor;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.synadia.client.support.NatsConstants.*;
+import static io.synadia.client.testutils.NatsConstants.*;
 
 public class NatsConnectionReader implements Runnable {
 

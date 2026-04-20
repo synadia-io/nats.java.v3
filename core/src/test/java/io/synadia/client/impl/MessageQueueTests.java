@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.synadia.client.support.NatsConstants.OUTPUT_QUEUE_IS_FULL;
-import static io.synadia.client.utils.TestBase.random;
-import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.testutils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
+import static io.synadia.client.testutils.TestBase.random;
+import static io.synadia.client.testutils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MessageQueueTests {

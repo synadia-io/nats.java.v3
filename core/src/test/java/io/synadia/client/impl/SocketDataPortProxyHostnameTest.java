@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Options;
-import io.synadia.client.support.NatsUri;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Consumer;
-import io.synadia.client.NatsSystemClock;
+import io.synadia.client.global.NatsSystemClock;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;

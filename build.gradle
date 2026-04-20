@@ -20,9 +20,7 @@ def targetCompat    = tc == "25" ? JavaVersion.VERSION_25 : JavaVersion.VERSION_
 def jarEnd          = tc == "25" ? "-jdk25" : ""
 
 def os              = System.getProperty("os.name")
-def isWindows       = os.contains("Windows")
 def javaVersion     = System.getProperty("java.version")
-def compilerIsJava8 = javaVersion.startsWith("1.8")
 
 System.out.println("OS: " + os)
 System.out.println("Java: " + javaVersion)

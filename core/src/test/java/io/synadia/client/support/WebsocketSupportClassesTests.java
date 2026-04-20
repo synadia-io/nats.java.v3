@@ -1,6 +1,6 @@
 package io.synadia.client.support;
 
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
@@ -15,7 +15,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static io.synadia.client.support.WebsocketFrameHeader.OpCode;
+import static io.synadia.client.testutils.WebsocketFrameHeader.OpCode;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.*;
 

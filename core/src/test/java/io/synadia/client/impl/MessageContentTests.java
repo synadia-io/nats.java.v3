@@ -3,8 +3,8 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.support.Listener;
-import io.synadia.client.utils.ConnectionUtils;
-import io.synadia.client.utils.TestBase;
+import io.synadia.client.testutils.ConnectionUtils;
+import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.*;
 
 
