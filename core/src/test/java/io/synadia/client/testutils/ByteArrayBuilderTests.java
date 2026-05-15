@@ -1,6 +1,5 @@
-package io.synadia.client.support;
+package io.synadia.client.testutils;
 
-import io.synadia.client.testutils.ByteArrayBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;

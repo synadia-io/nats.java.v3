@@ -79,6 +79,8 @@ public interface StreamContext {
     @NonNull
     ConsumerContext getConsumerContext(@NonNull String consumerName) throws IOException, JetStreamApiException;
 
+    ConsumerContext getConsumerContext(@NonNull ConsumerInfo ci) throws IOException, JetStreamApiException;
+
     /**
      * Management function to create or update a consumer on this stream.
      * <p> Note that ConsumerContext expects a <b>pull consumer</b>.

@@ -2,7 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.*;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
-import io.synadia.client.support.Listener;
+import io.synadia.client.testutils.Listener;
 import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +52,7 @@ public class PingTests extends TestBase {
 
     @Test
     public void testPingTimer() throws Exception {
-        Options.Builder builder = optionsBuilder()
+        OptionsBuilder builder = optionsBuilder()
             .pingInterval(Duration.ofMillis(5))
             .maxPingsOut(10000); // just don't want this to be what fails the test
         runInSharedOwnNc(builder, nc -> {

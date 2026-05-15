@@ -2,6 +2,7 @@ package io.synadia.client.support;
 
 import io.synadia.client.testutils.JetStreamClientError;
 import io.synadia.client.testutils.JsValidator;
+import io.synadia.client.testutils.ValidatorTests;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

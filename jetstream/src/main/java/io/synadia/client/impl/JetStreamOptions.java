@@ -20,7 +20,6 @@ public class JetStreamOptions {
 
     private final String jsPrefix;
     private final Duration requestTimeout;
-    private final boolean publishNoAck;
     private final boolean defaultPrefix;
     private final boolean optOut290ConsumerCreate;
 
@@ -34,7 +33,6 @@ public class JetStreamOptions {
             this.jsPrefix = b.jsPrefix;
         }
         this.requestTimeout = b.requestTimeout;
-        this.publishNoAck = b.publishNoAck;
         this.optOut290ConsumerCreate = b.optOut290ConsumerCreate;
     }
 
@@ -61,14 +59,6 @@ public class JetStreamOptions {
      */
     public boolean isDefaultPrefix() {
         return defaultPrefix;
-    }
-
-    /**
-     * Gets whether the publish no ack flag was set
-     * @return the flag
-     */
-    public boolean isPublishNoAck() {
-        return publishNoAck;
     }
 
     /**
@@ -112,7 +102,6 @@ public class JetStreamOptions {
 
         private String jsPrefix;
         private Duration requestTimeout;
-        private boolean publishNoAck;
         private boolean optOut290ConsumerCreate;
 
         /**
@@ -133,7 +122,6 @@ public class JetStreamOptions {
                     this.jsPrefix = jso.jsPrefix;
                 }
                 this.requestTimeout = jso.requestTimeout;
-                this.publishNoAck = jso.publishNoAck;
                 this.optOut290ConsumerCreate = jso.optOut290ConsumerCreate;
             }
         }
@@ -171,16 +159,6 @@ public class JetStreamOptions {
         public Builder domain(String domain) {
             String prefix = convertDomainToPrefix(domain);
             jsPrefix = prefix == null ? null : prefix + DOT;
-            return this;
-        }
-
-        /**
-         * Sets whether the streams in use by contexts created with these options are no-ack streams.
-         * @param publishNoAck how to treat publishes to the stream
-         * @return the builder
-         */
-        public Builder publishNoAck(final boolean publishNoAck) {
-            this.publishNoAck = publishNoAck;
             return this;
         }
 

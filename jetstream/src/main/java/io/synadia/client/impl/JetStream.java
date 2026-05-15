@@ -8,17 +8,29 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static io.synadia.client.impl.ConsumerCreateRequest.Action.Create;
 import static io.synadia.client.impl.MessageManager.ManageResult;
+import static io.synadia.client.testutils.JetStreamClientError.JsSubNoMatchingStreamForSubject;
 import static io.synadia.client.testutils.JsValidator.validateStreamName;
 import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
-import static io.synadia.client.testutils.Validator.required;
-import static io.synadia.client.testutils.Validator.validateNotNull;
+import static io.synadia.client.testutils.Validator.*;
 
 public class JetStream extends JetStreamImpl {
+
+    private Charset defaultCharset = StandardCharsets.UTF_8;
+
+    public static JetStream instance(NatsConnection connection) throws IOException {
+        return new JetStream(connection);
+    }
+
+    public static JetStream instance(NatsConnection connection, JetStreamOptions jsOptions) throws IOException {
+        return new JetStream(connection, jsOptions);
+    }
 
     public JetStream(NatsConnection connection) throws IOException {
         super(connection, null);
@@ -31,6 +43,12 @@ public class JetStream extends JetStreamImpl {
     public JetStream(JetStreamImpl impl) {
         super(impl);
     }
+
+    public JetStream defaultCharset(Charset defaultCharset) {
+        this.defaultCharset = defaultCharset;
+        return this;
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // Publish
     // ----------------------------------------------------------------------------------------------------
@@ -56,7 +74,11 @@ public class JetStream extends JetStreamImpl {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public PublishAck publish(String subject, byte[] body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, body, null);
+        return publishSyncInternal(subject, null, body, null, null);
+    }
+
+    public PublishAck publish(String subject, String body) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, null, null, body, null);
     }
 
     /**
@@ -84,7 +106,11 @@ public class JetStream extends JetStreamImpl {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public PublishAck publish(String subject, Headers headers, byte[] body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, body, null);
+        return publishSyncInternal(subject, headers, body, null, null);
+    }
+
+    public PublishAck publish(String subject, Headers headers, String body) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, headers, null, body, null);
     }
 
     /**
@@ -110,7 +136,11 @@ public class JetStream extends JetStreamImpl {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public PublishAck publish(String subject, byte[] body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, body, options);
+        return publishSyncInternal(subject, null, body, null, options);
+    }
+
+    public PublishAck publish(String subject, String body, PublishOptions options) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, null, null, body, options);
     }
 
     /**
@@ -138,7 +168,11 @@ public class JetStream extends JetStreamImpl {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public PublishAck publish(String subject, Headers headers, byte[] body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, body, options);
+        return publishSyncInternal(subject, headers, body, null, options);
+    }
+
+    public PublishAck publish(String subject, Headers headers, String body, PublishOptions options) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, headers, null, body, options);
     }
 
     /**
@@ -169,7 +203,7 @@ public class JetStream extends JetStreamImpl {
      */
     public PublishAck publish(Message message) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
-        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null);
+        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, null);
     }
 
     /**
@@ -200,7 +234,7 @@ public class JetStream extends JetStreamImpl {
      */
     public PublishAck publish(Message message, PublishOptions options) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
-        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), options);
+        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options);
     }
 
     /**
@@ -227,7 +261,11 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body) {
-        return publishAsyncInternal(subject, null, body, null, true);
+        return publishAsyncInternal(subject, null, body, null, null, true);
+    }
+
+    public CompletableFuture<PublishAck> publishAsync(String subject, String body) {
+        return publishAsyncInternal(subject, null, null, body, null, true);
     }
 
     /**
@@ -256,7 +294,11 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body) {
-        return publishAsyncInternal(subject, headers, body, null, true);
+        return publishAsyncInternal(subject, headers, body, null, null, true);
+    }
+
+    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body) {
+        return publishAsyncInternal(subject, headers, null, body, null, true);
     }
 
     /**
@@ -283,7 +325,11 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body, PublishOptions options) {
-        return publishAsyncInternal(subject, null, body, options, true);
+        return publishAsyncInternal(subject, null, body, null, options, true);
+    }
+
+    public CompletableFuture<PublishAck> publishAsync(String subject, String body, PublishOptions options) {
+        return publishAsyncInternal(subject, null, null, body, options, true);
     }
 
     /**
@@ -312,7 +358,11 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body, PublishOptions options) {
-        return publishAsyncInternal(subject, headers, body, options, true);
+        return publishAsyncInternal(subject, headers, body, null, options, true);
+    }
+
+    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body, PublishOptions options) {
+        return publishAsyncInternal(subject, headers, null, body, options, true);
     }
 
     /**
@@ -342,7 +392,7 @@ public class JetStream extends JetStreamImpl {
      */
     public CompletableFuture<PublishAck> publishAsync(Message message) {
         validateNotNull(message, "Message");
-        return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, false);
+        return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, null, false);
     }
 
     /**
@@ -372,27 +422,25 @@ public class JetStream extends JetStreamImpl {
      */
     public CompletableFuture<PublishAck> publishAsync(Message message, PublishOptions options) {
         validateNotNull(message, "Message");
-        return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), options, false);
+        return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options, false);
     }
 
-    private PublishAck publishSyncInternal(String subject, Headers headers, byte[] data, PublishOptions options) throws IOException, JetStreamApiException {
+    private PublishAck publishSyncInternal(String subject, Headers headers, byte[] data, String sData, PublishOptions options) throws IOException, JetStreamApiException {
         Headers merged = mergePublishOptions(headers, options);
 
-        if (jso.isPublishNoAck()) {
-            conn.publish(subject, null, merged, data, false);
-            return null;
+        if (data == null && sData != null) {
+            data = sData.getBytes(defaultCharset);
         }
 
         Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout(), CancelAction.COMPLETE);
         return processPublishResponse(resp, options);
     }
 
-    private CompletableFuture<PublishAck> publishAsyncInternal(String subject, Headers headers, byte[] data, PublishOptions options, boolean validateSubjectAndReplyTo) {
+    private CompletableFuture<PublishAck> publishAsyncInternal(String subject, Headers headers, byte[] data, String sData, PublishOptions options, boolean validateSubjectAndReplyTo) {
         Headers merged = mergePublishOptions(headers, options);
 
-        if (jso.isPublishNoAck()) {
-            conn.publish(subject, null, merged, data, false);
-            return null;
+        if (data == null && sData != null) {
+            data = sData.getBytes(defaultCharset);
         }
 
         CompletableFuture<Message> future = conn.requestAsync(subject, merged, data, null, CancelAction.COMPLETE);
@@ -561,6 +609,26 @@ public class JetStream extends JetStreamImpl {
     /**
      * pushSubscribe
      */
+    public JetStreamPushSubscription pushSubscribe(@NonNull String subject) throws IOException, JetStreamApiException {
+        return pushSubscribe(subject, (SubscribeBehavior)null);
+    }
+
+    /**
+     * pushSubscribe
+     */
+    public JetStreamPushSubscription pushSubscribe(@NonNull String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        subject = validateSubject(subject, true);
+        String stream = lookupStreamBySubject(subject);
+        if (stream == null) {
+            throw JsSubNoMatchingStreamForSubject.instance();
+        }
+        PushConsumerCreator creator = new PushConsumerCreator(stream).filterSubject(subject);
+        return pushSubscribe(creator, subscribeBehavior);
+    }
+
+    /**
+     * pushSubscribe
+     */
     public JetStreamPushSubscription pushSubscribe(@NonNull PushConsumerCreator creator) throws IOException, JetStreamApiException {
         return pushSubscribe(creator, null);
     }
@@ -614,6 +682,26 @@ public class JetStream extends JetStreamImpl {
      */
     public JetStreamPullSubscription pullSubscribe(@NonNull String stream, @NonNull String consumerName, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
+    }
+
+    /**
+     * pullSubscribe
+     */
+    public JetStreamPullSubscription pullSubscribe(@NonNull String subject) throws IOException, JetStreamApiException {
+        return pullSubscribe(subject, (SubscribeBehavior)null);
+    }
+
+    /**
+     * pullSubscribe
+     */
+    public JetStreamPullSubscription pullSubscribe(@NonNull String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        subject = validateSubject(subject, true);
+        String stream = lookupStreamBySubject(subject);
+        if (stream == null) {
+            throw JsSubNoMatchingStreamForSubject.instance();
+        }
+        PullConsumerCreator creator = new PullConsumerCreator(stream).filterSubject(subject);
+        return pullSubscribe(creator, subscribeBehavior);
     }
 
     /**
@@ -674,6 +762,10 @@ public class JetStream extends JetStreamImpl {
         validateStreamName(streamName, true);
         required(consumerName, "Consumer Name");
         return getNatsStreamContext(streamName).getConsumerContext(consumerName);
+    }
+    public ConsumerContext getConsumerContext(ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
+        required(consumerInfo, "Consumer Info");
+        return getNatsStreamContext(consumerInfo.getStreamName()).getConsumerContext(consumerInfo);
     }
 
     private NatsStreamContext getNatsStreamContext(String streamName) throws IOException, JetStreamApiException {

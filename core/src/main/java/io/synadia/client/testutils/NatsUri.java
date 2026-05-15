@@ -1,6 +1,5 @@
 package io.synadia.client.testutils;
 
-import io.synadia.client.Options;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -9,6 +8,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_URL;
 import static io.synadia.client.testutils.NatsConstants.*;
 
 /**
@@ -141,7 +141,7 @@ public class NatsUri {
      */
     public NatsUri() {
         try {
-            uri = new URI(Options.DEFAULT_URL);
+            uri = new URI(DEFAULT_URL);
         } catch (URISyntaxException e) {
             // seriously, this better not happen!
             throw new RuntimeException(e);

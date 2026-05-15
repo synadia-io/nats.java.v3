@@ -107,7 +107,7 @@ public class JetStreamTestBase extends TestBase {
 
     public static void jsPublishNull(JetStream js, String subject, int count) throws IOException, JetStreamApiException {
         for (int x = 0; x < count; x++) {
-            js.publish(subject, null);
+            js.publish(subject, (String)null);
         }
     }
 
@@ -433,7 +433,7 @@ public class JetStreamTestBase extends TestBase {
     static final String SHARED_NAME = "SHARED";
 
     private static void _runInShared(
-        Options.Builder optionsBuilder,
+        OptionsBuilder optionsBuilder,
         VersionCheck vc,
         OneConnectionTest oneNcTest,
         TwoConnectionTest twoNcTest,
@@ -513,11 +513,11 @@ public class JetStreamTestBase extends TestBase {
         _runInShared(optionsBuilder(el), vc, null, null, 1, ctxTest);
     }
 
-    public static void runInSharedOwnNc(Options.Builder builder, JetStreamTestingContextTest ctxTest) throws Exception {
+    public static void runInSharedOwnNc(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
         _runInShared(builder, null, null, null, 1, ctxTest);
     }
 
-    public static void runInSharedOwnNc(Options.Builder builder, VersionCheck vc, JetStreamTestingContextTest ctxTest) throws Exception {
+    public static void runInSharedOwnNc(OptionsBuilder builder, VersionCheck vc, JetStreamTestingContextTest ctxTest) throws Exception {
         _runInShared(builder, vc, null, null, 1, ctxTest);
     }
 
@@ -536,7 +536,7 @@ public class JetStreamTestBase extends TestBase {
         _runInShared(optionsBuilder(el), null, null, null, 0, ctxTest);
     }
 
-    public static void runInSharedCustom(Options.Builder builder, JetStreamTestingContextTest ctxTest) throws Exception {
+    public static void runInSharedCustom(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
         _runInShared(builder, null, null, null, 0, ctxTest);
     }
 }

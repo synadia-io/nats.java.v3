@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The delivery policy for this consumer, the point in the stream from which to receive messages
@@ -42,7 +43,7 @@ public enum DeliverPolicy {
      * @param dflt the result if value is null or not matched
      * @return the matching DeliverPolicy or the supplied default
      */
-    public static DeliverPolicy get(String value, DeliverPolicy dflt) {
+    public static DeliverPolicy get(@Nullable String value, DeliverPolicy dflt) {
         if (value != null) {
             if (All.policy.equalsIgnoreCase(value)) { return All; }
             if (Last.policy.equalsIgnoreCase(value)) { return Last; }

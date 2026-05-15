@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.support.Listener;
+import io.synadia.client.testutils.Listener;
 import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ public class ConnectionListenerTests extends TestBase {
     public void testCloseEvent() throws Exception {
         Listener listener = new Listener();
         listener.queueConnectionEvent(ConnectionEvents.CLOSED);
-        Options.Builder builder = optionsBuilder().connectionListener(listener);
+        OptionsBuilder builder = optionsBuilder().connectionListener(listener);
         runInSharedOwnNc(builder, nc -> {
             closeAndConfirm(nc);
             assertNull(nc.getConnectedUrl());
@@ -88,7 +88,7 @@ public class ConnectionListenerTests extends TestBase {
     @Test
     public void testExceptionInConnectionListener() throws Exception {
         BadHandler badHandler = new BadHandler();
-        Options.Builder builder = optionsBuilder().connectionListener(badHandler);
+        OptionsBuilder builder = optionsBuilder().connectionListener(badHandler);
         AtomicReference<Statistics> stats = new AtomicReference<>();
         runInSharedOwnNc(builder, nc -> stats.set(nc.getStatistics()));
         sleep(100); // it needs time here
@@ -101,7 +101,7 @@ public class ConnectionListenerTests extends TestBase {
         Listener listener = new Listener();
         listener.queueConnectionEvent(ConnectionEvents.CLOSED);
         AtomicReference<Statistics> stats = new AtomicReference<>();
-        Options.Builder builder = optionsBuilder().connectionListener(listener);
+        OptionsBuilder builder = optionsBuilder().connectionListener(listener);
         runInSharedOwnNc(builder, nc -> {
             stats.set(nc.getStatistics());
 

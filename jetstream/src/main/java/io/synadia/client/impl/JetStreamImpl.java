@@ -2,6 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.*;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import static io.synadia.client.testutils.JetStreamClientError.JsConsumerCreate2
 import static io.synadia.client.testutils.JetStreamClientError.JsMultipleFilterSubjects210NotAvailable;
 import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
 
+@NullMarked
 public class JetStreamImpl implements JetStreamConstants {
 
     // currently the only thing we care about caching is the allowDirect setting
@@ -75,6 +77,7 @@ public class JetStreamImpl implements JetStreamConstants {
         return new ConsumerInfo(resp).throwOnHasError();
     }
 
+    @Nullable
     ConsumerInfo lenientGetConsumerInfo(String streamName, String consumerName) throws IOException, JetStreamApiException {
         try {
             return strictGetConsumerInfo(streamName, consumerName);
@@ -139,7 +142,7 @@ public class JetStreamImpl implements JetStreamConstants {
         return new ConsumerInfo(resp).throwOnHasError();
     }
 
-    StreamInfo _getStreamInfo(String streamName, StreamInfoOptions options) throws IOException, JetStreamApiException {
+    StreamInfo _getStreamInfo(String streamName, @Nullable StreamInfoOptions options) throws IOException, JetStreamApiException {
         String subj = String.format(JSAPI_STREAM_INFO, streamName);
         StreamInfoReader sir = new StreamInfoReader();
         while (sir.hasMore()) {
@@ -163,7 +166,14 @@ public class JetStreamImpl implements JetStreamConstants {
         return list;
     }
 
-    List<String> _getStreamNames(String subjectFilter) throws IOException, JetStreamApiException {
+
+    @Nullable
+    String lookupStreamBySubject(String subject) throws IOException, JetStreamApiException {
+        List<String> list = getStreamNamesInternal(subject);
+        return list.size() == 1 ? list.get(0) : null;
+    }
+
+    List<String> getStreamNamesInternal(@Nullable String subjectFilter) throws IOException, JetStreamApiException {
         StreamNamesReader snr = new StreamNamesReader();
         while (snr.hasMore()) {
             Message resp = makeRequestResponseRequired(JSAPI_STREAM_NAMES, snr.nextJson(subjectFilter), getTimeout());
@@ -175,7 +185,7 @@ public class JetStreamImpl implements JetStreamConstants {
     // ----------------------------------------------------------------------------------------------------
     // Request Utils
     // ----------------------------------------------------------------------------------------------------
-    Message makeRequestResponseRequired(String subject, byte[] bytes, Duration timeout) throws IOException {
+    Message makeRequestResponseRequired(String subject, byte @Nullable[] bytes, Duration timeout) throws IOException {
         try {
             return responseRequired(conn.request(prependPrefix(subject), bytes, timeout));
         } catch (InterruptedException e) {
@@ -184,7 +194,7 @@ public class JetStreamImpl implements JetStreamConstants {
         }
     }
 
-    Message makeInternalRequestResponseRequired(String subject, Headers headers, byte[] data, Duration timeout, CancelAction cancelAction) throws IOException {
+    Message makeInternalRequestResponseRequired(String subject, Headers headers, byte @Nullable [] data, Duration timeout, CancelAction cancelAction) throws IOException {
         try {
             return responseRequired(conn.request(subject, headers, data, timeout, cancelAction));
         } catch (InterruptedException e) {
@@ -193,7 +203,7 @@ public class JetStreamImpl implements JetStreamConstants {
         }
     }
 
-    Message responseRequired(Message respMessage) throws IOException {
+    Message responseRequired(@Nullable Message respMessage) throws IOException {
         if (respMessage == null) {
             throw new IOException("Timeout or no response waiting for NATS JetStream server");
         }

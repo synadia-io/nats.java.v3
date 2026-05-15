@@ -1,6 +1,8 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
+import io.synadia.client.OptionsBuilder;
 import io.synadia.client.testutils.NatsUri;
 import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
@@ -166,12 +168,12 @@ public class SocketDataPortProxyHostnameTest extends TestBase {
         try {
             executor.submit(proxyServer);
 
-            Options.Builder optionsBuilder = new Options.Builder()
+            OptionsBuilder optionsBuilder = new OptionsBuilder()
                 .proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", proxyServer.getPort())))
                 .noReconnect();
 
             if (useUnresolvedMode) {
-                optionsBuilder.hostnameResolveMode(Options.HostnameResolveMode.Unresolved);
+                optionsBuilder.hostnameResolveMode(HostnameResolveMode.Unresolved);
             }
 
             Options options = optionsBuilder.build();

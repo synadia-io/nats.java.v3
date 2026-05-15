@@ -2,12 +2,12 @@ package io.synadia.client.impl;
 
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
-import io.synadia.client.support.Listener;
-import io.synadia.client.support.ssl.ExpiringClientCertUtil;
-import io.synadia.client.support.ssl.ExpiringComponents;
-import io.synadia.client.support.ssl.SslTestingHelper;
 import io.synadia.client.testutils.CloseOnUpgradeAttempt;
+import io.synadia.client.testutils.Listener;
 import io.synadia.client.testutils.TestBase;
+import io.synadia.client.testutils.ssl.ExpiringClientCertUtil;
+import io.synadia.client.testutils.ssl.ExpiringComponents;
+import io.synadia.client.testutils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.Options.PROP_SSL_CONTEXT_FACTORY_CLASS;
+import static io.synadia.client.OptionsProperties.*;
 import static io.synadia.client.testutils.ConnectionUtils.*;
 import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.testutils.ResourceUtils.createTempDirectory;
@@ -45,9 +45,9 @@ public class TLSConnectTests extends TestBase {
     private static Options createTestOptionsViaProperties(String... servers) {
         Options options;
         Properties props = SslTestingHelper.createTestSSLProperties();
-        props.setProperty(Options.PROP_SERVERS, String.join(",", servers));
-        props.setProperty(Options.PROP_MAX_RECONNECT, "0");
-        options = new Options.Builder(props).build();
+        props.setProperty(PROP_SERVERS, String.join(",", servers));
+        props.setProperty(PROP_MAX_RECONNECT, "0");
+        options = new OptionsBuilder(props).build();
         return options;
     }
 
@@ -113,10 +113,10 @@ public class TLSConnectTests extends TestBase {
             assertCanConnectAndPubSub(options);
 
             Properties props = new Properties();
-            props.setProperty(Options.PROP_SERVERS, String.join(",", servers));
-            props.setProperty(Options.PROP_MAX_RECONNECT, "0");
-            props.setProperty(Options.PROP_OPENTLS, "true");
-            assertCanConnectAndPubSub(new Options.Builder(props).build());
+            props.setProperty(PROP_SERVERS, String.join(",", servers));
+            props.setProperty(PROP_MAX_RECONNECT, "0");
+            props.setProperty(PROP_OPEN_TLS, "true");
+            assertCanConnectAndPubSub(new OptionsBuilder(props).build());
         });
     }
 
@@ -132,10 +132,10 @@ public class TLSConnectTests extends TestBase {
                 assertCanConnectAndPubSub(options);
 
                 Properties props = new Properties();
-                props.setProperty(Options.PROP_SERVERS, String.join(",", servers));
-                props.setProperty(Options.PROP_MAX_RECONNECT, "0");
-                props.setProperty(Options.PROP_OPENTLS, "true");
-                assertCanConnectAndPubSub(new Options.Builder(props).build());
+                props.setProperty(PROP_SERVERS, String.join(",", servers));
+                props.setProperty(PROP_MAX_RECONNECT, "0");
+                props.setProperty(PROP_OPEN_TLS, "true");
+                assertCanConnectAndPubSub(new OptionsBuilder(props).build());
             }));
     }
 
@@ -174,10 +174,10 @@ public class TLSConnectTests extends TestBase {
             assertCanConnectAndPubSub(options);
 
             Properties props = new Properties();
-            props.setProperty(Options.PROP_SERVERS, servers);
-            props.setProperty(Options.PROP_MAX_RECONNECT, "0");
-            props.setProperty(Options.PROP_OPENTLS, "true");
-            assertCanConnectAndPubSub(new Options.Builder(props).build());
+            props.setProperty(PROP_SERVERS, servers);
+            props.setProperty(PROP_MAX_RECONNECT, "0");
+            props.setProperty(PROP_OPEN_TLS, "true");
+            assertCanConnectAndPubSub(new OptionsBuilder(props).build());
         });
     }
 
@@ -366,7 +366,7 @@ public class TLSConnectTests extends TestBase {
         }
 
         private static Options makeMiddleman(String servers, boolean tlsFirst, ErrorListener listener) throws Exception {
-            Options.Builder builder = optionsBuilder(servers)
+            OptionsBuilder builder = optionsBuilder(servers)
                 .maxReconnects(0)
                 .sslContext(SslTestingHelper.createTestSSLContext())
                 .errorListener(listener);
@@ -427,7 +427,7 @@ public class TLSConnectTests extends TestBase {
         SslTestErrorListener el = new SslTestErrorListener(1);
 
         runInSharedConfiguredServer("tls.conf", 1, ts -> {
-            Options options = new Options.Builder()
+            Options options = new OptionsBuilder()
                 .server(ts.getNatsLocalhostUri())
                 .sslContext(sslContext)
                 .maxReconnects(1)
@@ -460,7 +460,7 @@ public class TLSConnectTests extends TestBase {
 
             NatsServerRunner.Builder b = NatsServerRunner.builder().configFilePath(configFilePath);
             try (NatsTestServer ts = new NatsTestServer(b)) {
-                Options options = new Options.Builder()
+                Options options = new OptionsBuilder()
                     .server(ts.getNatsLocalhostUri())
                     .sslContext(expiring.sslContext)
                     .maxReconnects(1)
@@ -503,7 +503,7 @@ public class TLSConnectTests extends TestBase {
             NatsServerRunner.Builder b2 = NatsServerRunner.builder().configFilePath(configFilePath);
             try (NatsTestServer ts1 = new NatsTestServer(b1)) {
                 try (NatsTestServer ts2 = new NatsTestServer(b2)) {
-                    Options options = new Options.Builder()
+                    Options options = new OptionsBuilder()
                         .servers(new String[]{ts2.getNatsLocalhostUri(), ts1.getNatsLocalhostUri()})
                         .noRandomize()
                         .sslContext(expiring.sslContext)
@@ -543,7 +543,7 @@ public class TLSConnectTests extends TestBase {
 
             NatsServerRunner.Builder b = NatsServerRunner.builder().configFilePath(configFilePath);
             try (NatsTestServer ts = new NatsTestServer(b)) {
-                Options options = new Options.Builder()
+                Options options = new OptionsBuilder()
                     .server(ts.getNatsLocalhostUri())
                     .sslContext(expiring.sslContext)
                     .maxReconnects(1)

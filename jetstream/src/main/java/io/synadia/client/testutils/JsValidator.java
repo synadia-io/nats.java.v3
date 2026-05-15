@@ -163,6 +163,16 @@ public abstract class JsValidator extends Validator {
         return Duration.ofMillis(millis);
     }
 
+    public static Duration validateDurationNotRequiredGtOrEqZero(long millis, Duration ifZero) {
+        if (millis < 0) {
+            throw new IllegalArgumentException("Duration must be greater than or equal to 0.");
+        }
+        if (millis == 0) {
+            return ifZero;
+        }
+        return Duration.ofMillis(millis);
+    }
+
     public static Duration validateDurationNotRequiredGtOrEqSeconds(long minSeconds, Duration d, Duration ifNull, String label) {
         return d == null ? ifNull : validateDurationGtOrEqSeconds(minSeconds, d.toMillis(), label);
     }

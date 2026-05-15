@@ -1,5 +1,7 @@
 package io.synadia.client.testutils;
 
+import org.jspecify.annotations.NonNull;
+
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -46,6 +48,10 @@ public abstract class Validator {
             }
             return null;
         }
+        return validateSubjectTermStrict(subject, label);
+    }
+
+    public static @NonNull String validateSubjectTermStrict(@NonNull String subject, String label) {
         if (subject.endsWith(".")) {
             throw new IllegalArgumentException(label + " cannot end with '.'");
         }

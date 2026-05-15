@@ -10,6 +10,8 @@ import org.jspecify.annotations.NonNull;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_SOCKET_WRITE_TIMEOUT;
+
 @SuppressWarnings("ClassEscapesDefinedScope") // NatsConnection
 public class SocketDataPortBlockSimulator extends SocketDataPort {
 
@@ -27,7 +29,7 @@ public class SocketDataPortBlockSimulator extends SocketDataPort {
         super.afterConstruct(options);
         long writeTimeoutMillis;
         if (options.getSocketWriteTimeout() == null) {
-            writeTimeoutMillis = Options.DEFAULT_SOCKET_WRITE_TIMEOUT.toMillis();
+            writeTimeoutMillis = DEFAULT_SOCKET_WRITE_TIMEOUT.toMillis();
         }
         else {
             writeTimeoutMillis = options.getSocketWriteTimeout().toMillis();

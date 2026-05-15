@@ -2,6 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.NatsTestServer;
 import io.synadia.client.Options;
+import io.synadia.client.OptionsBuilder;
 import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +28,7 @@ public class NatsConnectionImplTests extends TestBase {
 
             // using options copied from options to demonstrate the executors
             // came from the internal factory and were not reused
-            options = new Options.Builder(options).build();
+            options = new OptionsBuilder(options).build();
             verifyInternalExecutors(options);
 
             ExecutorService es = Executors.newFixedThreadPool(3);

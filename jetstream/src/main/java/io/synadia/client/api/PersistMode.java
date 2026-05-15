@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stream persist modes
@@ -37,7 +38,7 @@ public enum PersistMode {
      * @param dflt the result if value is null or not matched
      * @return the matching PersistMode or the supplied default
      */
-    public static PersistMode get(String value, PersistMode dflt) {
+    public static PersistMode get(@Nullable String value, PersistMode dflt) {
         if (value != null) {
             if (Default.mode.equalsIgnoreCase(value)) { return Default; }
             if (Async.mode.equalsIgnoreCase(value)) { return Async; }

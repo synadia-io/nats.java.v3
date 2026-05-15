@@ -28,11 +28,6 @@ public class StreamConfiguration implements JsonSerializable {
     private final LazyJsonValue ljv;
 
     /**
-     * Construct a StreamConfiguration from JSON (server response).
-     * @param json the JSON
-     */
-
-    /**
      * Construct a StreamConfiguration from a LazyJsonValue (server response).
      * @param v the LazyJsonValue
      */
@@ -347,6 +342,14 @@ public class StreamConfiguration implements JsonSerializable {
      */
     public boolean getAllowAtomicPublish() {
         return readBoolean(ljv, ALLOW_ATOMIC, false);
+    }
+
+    /**
+     * Whether Allow Batched is set
+     * @return the flag
+     */
+    public boolean getAllowBatched() {
+        return readBoolean(ljv, ALLOW_BATCHED, false);
     }
 
     /**

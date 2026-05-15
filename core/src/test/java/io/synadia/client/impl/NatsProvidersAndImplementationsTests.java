@@ -15,6 +15,7 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_URL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,7 +85,7 @@ public class NatsProvidersAndImplementationsTests {
     public void testDataPortInterfaceCoverage() throws IOException, URISyntaxException {
         // this is coverage for connect, afterConstruct and forceClose
         InterfaceCoverageDataPort cdp = new InterfaceCoverageDataPort();
-        cdp.connect((NatsConnection) null, new NatsUri(Options.DEFAULT_URL), 0);
+        cdp.connect((NatsConnection) null, new NatsUri(DEFAULT_URL), 0);
         cdp.afterConstruct(null);
         cdp.forceClose();
 
@@ -139,7 +140,7 @@ public class NatsProvidersAndImplementationsTests {
         // this is coverage for connect, afterConstruct and forceClose
         InterfaceCoverageDataPort cdp = new InterfaceCoverageDataPort();
         //noinspection DataFlowIssue
-        cdp.connect((NatsConnection) null, new NatsUri(Options.DEFAULT_URL), 0);
+        cdp.connect((NatsConnection) null, new NatsUri(DEFAULT_URL), 0);
         //noinspection DataFlowIssue
         cdp.afterConstruct(null);
         cdp.forceClose();

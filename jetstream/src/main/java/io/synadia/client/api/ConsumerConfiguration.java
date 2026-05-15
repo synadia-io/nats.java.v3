@@ -210,9 +210,9 @@ public class ConsumerConfiguration implements JsonSerializable {
     }
 
     /** @return the inactive threshold */
+    @Nullable
     public Duration getInactiveThreshold() {
-        Duration d = readNanosAsDuration(ljv, INACTIVE_THRESHOLD);
-        return d == null ? Duration.ZERO : d;
+        return readNanosAsDuration(ljv, INACTIVE_THRESHOLD);
     }
 
     /** @return the backoff list */

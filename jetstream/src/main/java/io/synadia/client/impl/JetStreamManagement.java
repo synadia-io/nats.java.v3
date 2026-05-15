@@ -18,12 +18,31 @@ public class JetStreamManagement extends JetStreamImpl {
     @Nullable
     private JetStream js; // this is lazy init'ed
 
+    public static JetStreamManagement instance(NatsConnection connection) throws IOException {
+        return new JetStreamManagement(connection);
+    }
+
+    public static JetStreamManagement instance(NatsConnection connection, JetStreamOptions jsOptions) throws IOException {
+        return new JetStreamManagement(connection, jsOptions);
+    }
+
     public JetStreamManagement(NatsConnection connection) throws IOException {
         super(connection, null);
     }
 
     public JetStreamManagement(NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws IOException {
         super(connection, jsOptions);
+    }
+
+    /**
+     * Gets a JetStream context using the same connection and JetStreamOptions as the management.
+     * @return a JetStream instance.
+     */
+    public JetStream jetStream() {
+        if (js == null) {
+            js = new JetStream(this);
+        }
+        return js;
     }
 
     /**
@@ -217,6 +236,7 @@ public class JetStreamManagement extends JetStreamImpl {
     public ConsumerPauseResponse pauseConsumer(String streamName, String consumerName, ZonedDateTime pauseUntil) throws IOException, JetStreamApiException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(consumerName, "Consumer Name");
+        validateNotNull(pauseUntil, "Pause Until");
         String subj = String.format(JSAPI_CONSUMER_PAUSE, streamName, consumerName);
         ConsumerPauseRequest pauseRequest = new ConsumerPauseRequest(pauseUntil);
         Message resp = makeRequestResponseRequired(subj, pauseRequest.serialize(), getTimeout());
@@ -227,7 +247,7 @@ public class JetStreamManagement extends JetStreamImpl {
      * Resumes a paused consumer.
      * @param streamName name of the stream
      * @param consumerName the name of the consumer.
-     * @return true if the resume succeeded
+     * @return true if the call succeeded
      * @throws IOException covers various communication issues with the NATS
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data, for instance the consumer does not exist.
@@ -300,7 +320,7 @@ public class JetStreamManagement extends JetStreamImpl {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public List<String> getStreamNames() throws IOException, JetStreamApiException {
-        return _getStreamNames(null);
+        return getStreamNamesInternal(null);
     }
 
     /**
@@ -313,7 +333,7 @@ public class JetStreamManagement extends JetStreamImpl {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public List<String> getStreamNames(String subjectFilter) throws IOException, JetStreamApiException {
-        return _getStreamNames(subjectFilter);
+        return getStreamNamesInternal(subjectFilter);
     }
 
     /**
@@ -523,17 +543,5 @@ public class JetStreamManagement extends JetStreamImpl {
         byte[] payload = String.format("{\"group\": \"%s\"}", consumerGroup).getBytes();
         Message resp = makeRequestResponseRequired(subj, payload, getTimeout());
         return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
-    }
-
-    /**
-     * Gets a context for publishing and subscribing to subjects backed by Jetstream streams
-     * and consumers, using the same connection and JetStreamOptions as the management.
-     * @return a JetStream instance.
-     */
-    public JetStream jetStream() {
-        if (js == null) {
-            js = new JetStream(this);
-        }
-        return js;
     }
 }

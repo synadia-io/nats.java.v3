@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents the replay policy of a consumer.
@@ -29,7 +30,7 @@ public enum ReplayPolicy {
      * @param dflt the result if value is null or not matched
      * @return the matching ReplayPolicy or the supplied default
      */
-    public static ReplayPolicy get(String value, ReplayPolicy dflt) {
+    public static ReplayPolicy get(@Nullable String value, ReplayPolicy dflt) {
         if (value != null) {
             if (Instant.policy.equalsIgnoreCase(value)) { return Instant; }
             if (Original.policy.equalsIgnoreCase(value)) { return Original; }

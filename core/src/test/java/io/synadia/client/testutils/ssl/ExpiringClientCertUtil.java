@@ -1,4 +1,4 @@
-package io.synadia.client.support.ssl;
+package io.synadia.client.testutils.ssl;
 
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;

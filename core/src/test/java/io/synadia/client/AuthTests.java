@@ -6,10 +6,10 @@ import io.nats.jwt.JwtUtils;
 import io.nats.nkey.NKey;
 import io.nats.nkey.NKeyProvider;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.support.Listener;
-import io.synadia.client.support.ssl.SslTestingHelper;
+import io.synadia.client.testutils.Listener;
 import io.synadia.client.testutils.ResourceUtils;
 import io.synadia.client.testutils.TestBase;
+import io.synadia.client.testutils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -25,8 +25,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.support.Listener.LONG_VALIDATE_TIMEOUT;
 import static io.synadia.client.testutils.ConnectionUtils.*;
+import static io.synadia.client.testutils.Listener.LONG_VALIDATE_TIMEOUT;
 import static io.synadia.client.testutils.OptionsUtils.NOOP_EL;
 import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.testutils.ResourceUtils.jwtResource;
@@ -212,7 +212,7 @@ public class AuthTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer(customArgs)) {
             port = ts.getPort();
             // See config file for user/pass
-            Options options = new Options.Builder().server(userPassInUrl("uuu", "ppp", ts.getPort()))
+            Options options = new OptionsBuilder().server(userPassInUrl("uuu", "ppp", ts.getPort()))
                 .maxReconnects(-1).connectionListener(listener).errorListener(NOOP_EL).build();
             nc = managedConnect(options);
 

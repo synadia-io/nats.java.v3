@@ -1,7 +1,6 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.Options.HostnameResolveMode;
 import io.synadia.client.api.ServerInfo;
 import io.synadia.client.global.NatsInetAddress;
 import io.synadia.client.global.NatsSystemClock;
@@ -1062,8 +1061,8 @@ public class NatsConnection implements AutoCloseable {
      * where the sender creates a byte array immediately before calling publish.
      * <p>
      * During reconnect the client will try to buffer messages. The buffer size is set
-     * in the connect options, see {@link Options.Builder#reconnectBufferSize(long) reconnectBufferSize()}
-     * with a default value of {@link Options#DEFAULT_RECONNECT_BUF_SIZE 8 * 1024 * 1024} bytes.
+     * in the connect options, see {@link OptionsBuilder#reconnectBufferSize(long) reconnectBufferSize()}
+     * with a default value of {@link OptionsConstants#DEFAULT_RECONNECT_BUF_SIZE 8 * 1024 * 1024} bytes.
      * If the buffer is exceeded an IllegalStateException is thrown. Applications should use
      * this exception as a signal to wait for reconnect before continuing.
      * </p>
@@ -1090,8 +1089,8 @@ public class NatsConnection implements AutoCloseable {
      * where the sender creates a byte array immediately before calling publish.
      * <p>
      * During reconnect the client will try to buffer messages. The buffer size is set
-     * in the connect options, see {@link Options.Builder#reconnectBufferSize(long) reconnectBufferSize()}
-     * with a default value of {@link Options#DEFAULT_RECONNECT_BUF_SIZE 8 * 1024 * 1024} bytes.
+     * in the connect options, see {@link OptionsBuilder#reconnectBufferSize(long) reconnectBufferSize()}
+     * with a default value of {@link OptionsConstants#DEFAULT_RECONNECT_BUF_SIZE 8 * 1024 * 1024} bytes.
      * If the buffer is exceeded an IllegalStateException is thrown. Applications should use
      * this exception as a signal to wait for reconnect before continuing.
      * </p>
@@ -1603,30 +1602,14 @@ public class NatsConnection implements AutoCloseable {
             }
         }
 
-        boolean oldStyle = options.isOldRequestStyle();
-        String responseInbox = oldStyle ? createInbox() : createResponseInbox(this.mainInbox);
+        String responseInbox = createResponseInbox(this.mainInbox);
         String responseToken = getResponseToken(responseInbox);
         NatsRequestCompletableFuture future =
             new NatsRequestCompletableFuture(cancelAction,
                 futureTimeout == null ? options.getRequestCleanupInterval() : futureTimeout, options.useTimeoutException());
 
-        if (!oldStyle) {
-            responsesAwaiting.put(responseToken, future);
-        }
+        responsesAwaiting.put(responseToken, future);
         statistics.incrementOutstandingRequests();
-
-        if (oldStyle) {
-            NatsDispatcher dispatcher = this.inboxDispatcher.get();
-            NatsSubscription sub = dispatcher.subscribeReturningSubscription(responseInbox);
-            dispatcher.unsubscribe(responseInbox, 1);
-            // Unsubscribe when future is cancelled:
-            future.whenComplete((msg, exception) -> {
-                if (exception instanceof CancellationException) {
-                    dispatcher.unsubscribe(responseInbox);
-                }
-            });
-            responsesAwaiting.put(sub.getSID(), future);
-        }
 
         publish(subject, responseInbox, headers, body, flushImmediatelyAfterPublish);
         statistics.incrementRequestsSent();
@@ -1635,10 +1618,8 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void deliverReply(Message msg) {
-        boolean oldStyle = options.isOldRequestStyle();
         String subject = msg.getSubject();
-        String token = getResponseToken(subject);
-        String key = oldStyle ? msg.getSID() : token;
+        String key = getResponseToken(subject);
         NatsRequestCompletableFuture f = responsesAwaiting.remove(key);
         if (f != null) {
             if (advancedTracking) {
@@ -1663,7 +1644,7 @@ public class NatsConnection implements AutoCloseable {
             }
             statistics.incrementRepliesReceived();
         }
-        else if (!oldStyle && !subject.startsWith(mainInbox)) {
+        else if (!subject.startsWith(mainInbox)) {
             if (advancedTracking) {
                 if (responsesRespondedTo.get(key) != null) {
                     statistics.incrementDuplicateRepliesReceived();
@@ -1770,7 +1751,7 @@ public class NatsConnection implements AutoCloseable {
     }
 
     /**
-     * Detach a ConnectionListioner. This will cease delivery of any further NatsConnection events to this instance.
+     * Detach a ConnectionListener. This will cease delivery of any further NatsConnection events to this instance.
      *
      * @param connectionListener the ConnectionListener to detach
      */

@@ -93,6 +93,7 @@ public class AuthViolationDuringReconnectOnFlushTimeoutTest {
         AtomicReference<NatsTestServer> server = new AtomicReference<>();
         AtomicBoolean violated = new AtomicBoolean(false);
         CountDownLatch restartsLeft = new CountDownLatch(1);
+
         ErrorListener errorListener = new ErrorListener() {
 //            @Override
 //            public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {

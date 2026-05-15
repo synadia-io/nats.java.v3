@@ -2,8 +2,8 @@ package io.synadia.client.impl;
 
 
 import io.synadia.client.*;
-import io.synadia.client.support.Listener;
 import io.synadia.client.testutils.ConnectionUtils;
+import io.synadia.client.testutils.Listener;
 import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 

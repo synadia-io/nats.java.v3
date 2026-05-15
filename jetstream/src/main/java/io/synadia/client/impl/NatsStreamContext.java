@@ -77,6 +77,11 @@ class NatsStreamContext implements StreamContext {
         return new NatsConsumerContext(this, jsm.getConsumerInfo(streamName, consumerName), null);
     }
 
+    @Override
+    public ConsumerContext getConsumerContext(@NonNull ConsumerInfo ci) throws IOException, JetStreamApiException {
+        return new NatsConsumerContext(this, ci, null);
+    }
+
     /**
      * {@inheritDoc}
      */

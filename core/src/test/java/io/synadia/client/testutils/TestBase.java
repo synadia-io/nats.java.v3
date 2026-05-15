@@ -16,6 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 import static io.nats.nkey.NKeyConstants.NKEY_PROVIDER_CLASS_SYSTEM_PROPERTY;
+import static io.synadia.client.OptionsConstants.DEFAULT_URL;
 import static io.synadia.client.testutils.ConnectionUtils.*;
 import static io.synadia.client.testutils.NatsConstants.DOT;
 import static io.synadia.client.testutils.OptionsUtils.options;
@@ -73,6 +74,7 @@ public class TestBase {
     static {
         System.setProperty(NKEY_PROVIDER_CLASS_SYSTEM_PROPERTY, "io.nats.nkey.LtsNKeyProvider");
     }
+
     @AfterAll
     public static void testBaseAfterAll() {
         if (SharedNamedServers.size() > 0) {
@@ -100,7 +102,7 @@ public class TestBase {
     }
 
     public interface ThreeServerTestOptions {
-        default void append(int index, Options.Builder builder) {}
+        default void append(int index, OptionsBuilder builder) {}
         default boolean configureAccount() { return false; }
         default boolean includeAllServers() { return false; }
         default boolean jetStream() { return false; }
@@ -197,7 +199,7 @@ public class TestBase {
     static final String SHARED_NAME = "SHARED";
 
     private static void _runInShared(
-        Options.Builder optionsBuilder,
+        OptionsBuilder optionsBuilder,
         VersionCheck vc,
         OneConnectionTest oneNcTest,
         TwoConnectionTest twoNcTest
@@ -276,7 +278,7 @@ public class TestBase {
         _runInShared(optionsBuilder(el), null, onNcTest, null);
     }
 
-    public static void runInSharedOwnNc(Options.Builder builder, OneConnectionTest onNcTest) throws Exception {
+    public static void runInSharedOwnNc(OptionsBuilder builder, OneConnectionTest onNcTest) throws Exception {
         _runInShared(builder, null, onNcTest, null);
     }
 
@@ -284,7 +286,7 @@ public class TestBase {
         _runInShared(optionsBuilder(), null, null, test);
     }
 
-    public static void runInSharedOwnNcs(Options.Builder builder, TwoConnectionTest twoNcTest) throws Exception {
+    public static void runInSharedOwnNcs(OptionsBuilder builder, TwoConnectionTest twoNcTest) throws Exception {
         _runInShared(builder, null, null, twoNcTest);
     }
 
@@ -292,7 +294,7 @@ public class TestBase {
     // runners / external
     // ----------------------------------------------------------------------------------------------------
     public static void runInExternalServer(OneConnectionTest oneNcTest) throws Exception {
-        runInExternalServer(Options.DEFAULT_URL, oneNcTest);
+        runInExternalServer(DEFAULT_URL, oneNcTest);
     }
 
     public static void runInExternalServer(String url, OneConnectionTest oneNcTest) throws Exception {
@@ -409,7 +411,7 @@ public class TestBase {
     private static final String USER_SEED = "SUAIUIHFQNVWSMKYGC4E5H5IEQZHHND3DKHTRKZWPCDXB6LXVD5R2KROSA";
 
     private static Options makeOptions(int id, ThreeServerTestOptions tstOpts, NatsTestServer... srvs) {
-        Options.Builder b = Options.builder();
+        OptionsBuilder b = Options.builder();
         if (tstOpts.includeAllServers()) {
             String[] servers = new String[srvs.length];
             for (int i = 0; i < srvs.length; i++) {

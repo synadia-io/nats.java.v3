@@ -20,7 +20,11 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
         super(stream, isPush);
     }
 
-    // ----------------------------------------------------------------------------------------------------
+    protected AbstractEphemeralConsumerCreator(ConsumerCreator<?> creator) {
+        super(creator);
+    }
+
+// ----------------------------------------------------------------------------------------------------
     // ConsumerFields setters beyond ConsumerCreator
     // ----------------------------------------------------------------------------------------------------
 

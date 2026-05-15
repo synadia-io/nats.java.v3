@@ -8,6 +8,8 @@ public class JetStreamClientError {
     private static final String OS = "OS";
     private static final String CON = "CON";
 
+    public static final JetStreamClientError JsSubNoMatchingStreamForSubject = new JetStreamClientError(SUB, 90007, "No matching streams for subject.", KIND_ILLEGAL_STATE);
+
     public static final JetStreamClientError OsObjectNotFound = new JetStreamClientError(OS, 90201, "The object was not found.");
     public static final JetStreamClientError OsObjectIsDeleted = new JetStreamClientError(OS, 90202, "The object is deleted.");
     public static final JetStreamClientError OsObjectAlreadyExists = new JetStreamClientError(OS, 90203, "An object with that name already exists.");

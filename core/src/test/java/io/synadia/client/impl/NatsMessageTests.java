@@ -3,7 +3,6 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.NatsServerProtocolMock;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
-import io.synadia.client.Options;
 import io.synadia.client.Subscription;
 import io.synadia.client.testutils.ConnectionUtils;
 import io.synadia.client.testutils.IncomingHeadersProcessor;
@@ -14,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_MAX_CONTROL_LINE;
 import static io.synadia.client.testutils.NatsConstants.OP_PING;
 import static io.synadia.client.testutils.NatsConstants.OP_PING_BYTES;
 import static io.synadia.client.testutils.OptionsUtils.options;
@@ -120,7 +120,7 @@ public class NatsMessageTests extends TestBase {
     @Test
     public void testBigProtocolLine() throws Exception {
         StringBuilder subject = new StringBuilder(random());
-        while (subject.length() <= Options.DEFAULT_MAX_CONTROL_LINE) {
+        while (subject.length() <= DEFAULT_MAX_CONTROL_LINE) {
             subject.append(subject);
         }
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.NO_EXIT)) {

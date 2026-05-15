@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static io.synadia.client.OptionsConstants.MAX_MESSAGES_IN_NETWORK_BUFFER;
 import static io.synadia.client.impl.MarkerMessage.END_RECONNECT;
 import static io.synadia.client.testutils.ByteArrayBuilder.bufferAllocSize;
 import static io.synadia.client.testutils.NatsConstants.CR;
@@ -206,10 +207,10 @@ public class NatsConnectionWriter implements Runnable {
             while (running.get() && !Thread.interrupted()) {
                 NatsMessage msg;
                 if (mode.get() == Mode.Normal) {
-                    msg = this.normalOutgoing.accumulate(sendBufferLength.get(), Options.MAX_MESSAGES_IN_NETWORK_BUFFER, outgoingTimeout);
+                    msg = this.normalOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, outgoingTimeout);
                 }
                 else {
-                    msg = this.reconnectOutgoing.accumulate(sendBufferLength.get(), Options.MAX_MESSAGES_IN_NETWORK_BUFFER, reconnectTimeout);
+                    msg = this.reconnectOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, reconnectTimeout);
                 }
                 if (msg != null) {
                     sendMessageBatch(msg, dataPort, stats);

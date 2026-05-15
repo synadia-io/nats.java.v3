@@ -1,4 +1,4 @@
-package io.synadia.client.support.ssl;
+package io.synadia.client.testutils.ssl;
 
 import javax.net.ssl.*;
 import java.security.KeyManagementException;

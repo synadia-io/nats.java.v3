@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.support.ssl.SslTestingHelper;
+import io.synadia.client.testutils.ssl.SslTestingHelper;
 
 import javax.net.ssl.SSLContext;
 

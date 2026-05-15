@@ -2,7 +2,6 @@ package io.synadia.client;
 
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.testutils.Status;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -21,7 +20,6 @@ import org.jspecify.annotations.Nullable;
  * <p>All of these problems are reported to the application code using the ErrorListener. The
  * listener is configured in the {@link Options Options} at creation time.
  */
-@NullMarked
 public interface ErrorListener {
 
     /**
@@ -147,7 +145,7 @@ public interface ErrorListener {
      *              to the message like ", foo: &lt;fooValue&gt;, bar-&lt;barValue&gt;".
      * @return the message
      */
-    default String supplyMessage(@Nullable String label, @Nullable NatsConnection conn, @Nullable Consumer slowConsumer, @Nullable Subscription sub, @Nullable Object @Nullable ... pairs) {
+    default String supplyMessage(@Nullable String label, @Nullable NatsConnection conn, @Nullable Consumer slowConsumer, @Nullable Subscription sub, @Nullable Object @Nullable... pairs) {
         StringBuilder sb = new StringBuilder(label == null ? "" : label);
         if (conn != null) {
             sb.append(", NatsConnection: ").append(conn.getServerInfo().getClientId());

@@ -24,8 +24,8 @@ public class StreamState {
     }
 
     private final LazyJsonValue ljv;
-    private List<Subject> _subjects;
-    private Map<String, Long> _subjectMap;
+    private @Nullable List<Subject> _subjects;
+    private @Nullable Map<String, Long> _subjectMap;
 
     StreamState(LazyJsonValue v) {
         this.ljv = v;
@@ -141,9 +141,8 @@ public class StreamState {
      * Get a list of deleted sequence numbers. May be null.
      * @return the list of deleted sequences
      */
-    @Nullable
     public List<Long> getDeleted() {
-        return readLongListOrNull(ljv, DELETED);
+        return readLongListOrEmpty(ljv, DELETED);
     }
 
     /**

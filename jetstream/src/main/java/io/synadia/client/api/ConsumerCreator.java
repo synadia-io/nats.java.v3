@@ -136,42 +136,42 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         priorityGroups = new ArrayList<>();
     }
 
-    protected ConsumerCreator(ConsumerCreator<?> cc) {
-        this.stream = cc.stream;
-        this.isPush = cc.isPush;
-        this.deliverPolicy = cc.deliverPolicy;
-        this.ackPolicy = cc.ackPolicy;
-        this.replayPolicy = cc.replayPolicy;
-        this.description = cc.description;
-        this.durable = cc.durable;
-        this.name = cc.name;
-        this.deliverSubject = cc.deliverSubject;
-        this.deliverGroup = cc.deliverGroup;
-        this.sampleFrequency = cc.sampleFrequency;
-        this.startTime = cc.startTime;
-        this.ackWait = cc.ackWait;
-        this.idleHeartbeat = cc.idleHeartbeat;
-        this.maxExpires = cc.maxExpires;
-        this.inactiveThreshold = cc.inactiveThreshold;
-        this.startSequence = cc.startSequence;
-        this.maxDeliver = cc.maxDeliver;
-        this.rateLimit = cc.rateLimit;
-        this.maxAckPending = cc.maxAckPending;
-        this.maxPullWaiting = cc.maxPullWaiting;
-        this.maxBatch = cc.maxBatch;
-        this.maxBytes = cc.maxBytes;
-        this.numReplicas = cc.numReplicas;
-        this.pauseUntil = cc.pauseUntil;
-        this.flowControl = cc.flowControl;
-        this.headersOnly = cc.headersOnly;
-        this.memStorage = cc.memStorage;
-        this.priorityPolicy = cc.priorityPolicy;
-        this.priorityTimeout = cc.priorityTimeout;
+    protected ConsumerCreator(ConsumerCreator<?> creator) {
+        this.stream = creator.stream;
+        this.isPush = creator.isPush;
+        this.deliverPolicy = creator.deliverPolicy;
+        this.ackPolicy = creator.ackPolicy;
+        this.replayPolicy = creator.replayPolicy;
+        this.description = creator.description;
+        this.durable = creator.durable;
+        this.name = creator.name;
+        this.deliverSubject = creator.deliverSubject;
+        this.deliverGroup = creator.deliverGroup;
+        this.sampleFrequency = creator.sampleFrequency;
+        this.startTime = creator.startTime;
+        this.ackWait = creator.ackWait;
+        this.idleHeartbeat = creator.idleHeartbeat;
+        this.maxExpires = creator.maxExpires;
+        this.inactiveThreshold = creator.inactiveThreshold;
+        this.startSequence = creator.startSequence;
+        this.maxDeliver = creator.maxDeliver;
+        this.rateLimit = creator.rateLimit;
+        this.maxAckPending = creator.maxAckPending;
+        this.maxPullWaiting = creator.maxPullWaiting;
+        this.maxBatch = creator.maxBatch;
+        this.maxBytes = creator.maxBytes;
+        this.numReplicas = creator.numReplicas;
+        this.pauseUntil = creator.pauseUntil;
+        this.flowControl = creator.flowControl;
+        this.headersOnly = creator.headersOnly;
+        this.memStorage = creator.memStorage;
+        this.priorityPolicy = creator.priorityPolicy;
+        this.priorityTimeout = creator.priorityTimeout;
 
-        this.filterSubjects = new ArrayList<>(cc.filterSubjects);
-        this.backoff = new ArrayList<>(cc.backoff);
-        this.metadata = new HashMap<>(cc.metadata);
-        this.priorityGroups = new ArrayList<>(cc.priorityGroups);
+        this.filterSubjects = new ArrayList<>(creator.filterSubjects);
+        this.backoff = new ArrayList<>(creator.backoff);
+        this.metadata = new HashMap<>(creator.metadata);
+        this.priorityGroups = new ArrayList<>(creator.priorityGroups);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -186,14 +186,14 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         addField(sb, NAME, name);
         addField(sb, DELIVER_SUBJECT, deliverSubject);
         addField(sb, DELIVER_GROUP, deliverGroup);
-        addEnumWhenNot(sb, DELIVER_POLICY, deliverPolicy, DEFAULT_DELIVER_POLICY);
+        addEnum(sb, DELIVER_POLICY, deliverPolicy);
         addFieldWhenGtZero(sb, OPT_START_SEQ, startSequence);
         addField(sb, OPT_START_TIME, startTime);
-        addEnumWhenNot(sb, ACK_POLICY, ackPolicy, DEFAULT_ACK_POLICY);
+        addEnum(sb, ACK_POLICY, ackPolicy);
         addFieldAsNanos(sb, ACK_WAIT, ackWait);
         addFieldWhenGtZero(sb, MAX_DELIVER, maxDeliver);
         addField(sb, MAX_ACK_PENDING, maxAckPending);
-        addEnumWhenNot(sb, REPLAY_POLICY, replayPolicy, DEFAULT_REPLAY_POLICY);
+        addEnum(sb, REPLAY_POLICY, replayPolicy);
         addField(sb, SAMPLE_FREQ, sampleFrequency);
         addFieldWhenGtZero(sb, RATE_LIMIT_BPS, rateLimit);
         addFieldAsNanos(sb, IDLE_HEARTBEAT, idleHeartbeat);
@@ -243,34 +243,34 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     /** @return the description. */
-    @Nullable public String getDescription() { return description; }
+    public @Nullable String getDescription() { return description; }
 
     /** @return name of the durable. */
-    @Nullable public String getDurable() { return durable; }
+    public @Nullable String getDurable() { return durable; }
 
     /** @return name of the consumer. */
-    @Nullable public String getName() { return name; }
+    public @Nullable String getName() { return name; }
 
     /** @return the deliver subject. */
-    @Nullable public String getDeliverSubject() { return deliverSubject; }
+    public @Nullable String getDeliverSubject() { return deliverSubject; }
 
     /** @return the deliver group. */
-    @Nullable public String getDeliverGroup() { return deliverGroup; }
+    public @Nullable String getDeliverGroup() { return deliverGroup; }
 
     /** @return the deliver policy. */
-    @Nullable public DeliverPolicy getDeliverPolicy() { return deliverPolicy; }
+    public DeliverPolicy getDeliverPolicy() { return deliverPolicy; }
 
     /** @return the start sequence. */
     public long getStartSequence() { return startSequence; }
 
     /** @return the start time. */
-    @Nullable public ZonedDateTime getStartTime() { return startTime; }
+    public @Nullable ZonedDateTime getStartTime() { return startTime; }
 
     /** @return the acknowledgment policy. */
-    @Nullable public AckPolicy getAckPolicy() { return ackPolicy; }
+    public AckPolicy getAckPolicy() { return ackPolicy; }
 
     /** @return the acknowledgment wait duration. */
-    @Nullable public Duration getAckWait() { return ackWait; }
+    public @Nullable Duration getAckWait() { return ackWait; }
 
     /** @return the max delivery amount. */
     public long getMaxDeliver() { return maxDeliver; }
@@ -280,7 +280,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * Returns null if there is not exactly one filter subject.
      * @return the first filter subject.
      */
-    @Nullable public String getFilterSubject() {
+    public @Nullable String getFilterSubject() {
         return filterSubjects.size() != 1 ? null : filterSubjects.get(0);
     }
 
@@ -294,7 +294,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     public boolean hasMultipleFilterSubjects() { return filterSubjects.size() > 1; }
 
     /** @return the replay policy. */
-    @Nullable public ReplayPolicy getReplayPolicy() { return replayPolicy; }
+    public ReplayPolicy getReplayPolicy() { return replayPolicy; }
 
     /** @return the rate limit in bits per second */
     public long getRateLimit() { return rateLimit; }
@@ -303,10 +303,10 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     public long getMaxAckPending() { return maxAckPending; }
 
     /** @return the sample frequency. */
-    @Nullable public String getSampleFrequency() { return sampleFrequency; }
+    public @Nullable String getSampleFrequency() { return sampleFrequency; }
 
     /** @return the idle heart beat wait duration. */
-    @Nullable public Duration getIdleHeartbeat() { return idleHeartbeat; }
+    public @Nullable Duration getIdleHeartbeat() { return idleHeartbeat; }
 
     /** @return the flow control flag */
     public boolean isFlowControl() { return flowControl; }
@@ -327,10 +327,10 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     public long getMaxBytes() { return maxBytes; }
 
     /** @return the max expire */
-    @Nullable public Duration getMaxExpires() { return maxExpires; }
+    public @Nullable Duration getMaxExpires() { return maxExpires; }
 
     /** @return the inactive threshold */
-    @Nullable public Duration getInactiveThreshold() { return inactiveThreshold; }
+    public @Nullable Duration getInactiveThreshold() { return inactiveThreshold; }
 
     /** @return the backoff list */
     public List<Duration> getBackoff() { return Collections.unmodifiableList(backoff); }
@@ -342,13 +342,13 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     public long getNumReplicas() { return numReplicas; }
 
     /** @return paused until time */
-    @Nullable public ZonedDateTime getPauseUntil() { return pauseUntil; }
+    public @Nullable ZonedDateTime getPauseUntil() { return pauseUntil; }
 
     /** @return the priority policy. */
-    @Nullable public PriorityPolicy getPriorityPolicy() { return priorityPolicy; }
+    public PriorityPolicy getPriorityPolicy() { return priorityPolicy; }
 
     /** @return the priority timeout duration */
-    @Nullable public Duration getPriorityTimeout() { return priorityTimeout; }
+    public @Nullable Duration getPriorityTimeout() { return priorityTimeout; }
 
     // ----------------------------------------------------------------------------------------------------
     // PUBLIC SETTERS (common to all consumer types)
@@ -430,15 +430,8 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param filterSubjects one or more filter subjects
      * @return this instance for chaining.
      */
-    public T filterSubjects(String... filterSubjects) {
-        this.filterSubjects.clear();
-        if (!nullOrEmpty(filterSubjects)) {
-            for (String fs : filterSubjects) {
-                if (!nullOrEmpty(fs)) {
-                    this.filterSubjects.add(fs);
-                }
-            }
-        }
+    public T filterSubjects(@Nullable String... filterSubjects) {
+        replaceAllStrings(this.filterSubjects, filterSubjects, s -> validateSubjectTermStrict(s, "Subject"));
         //noinspection unchecked
         return (T)this;
     }
@@ -449,15 +442,8 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param filterSubjects the list of filter subjects
      * @return this instance for chaining.
      */
-    public T filterSubjects(List<String> filterSubjects) {
-        this.filterSubjects.clear();
-        if (!nullOrEmpty(filterSubjects)) {
-            for (String fs : filterSubjects) {
-                if (!nullOrEmpty(fs)) {
-                    this.filterSubjects.add(fs);
-                }
-            }
-        }
+    public T filterSubjects(@Nullable List<String> filterSubjects) {
+        replaceAllStrings(this.filterSubjects, filterSubjects, s -> validateSubjectTermStrict(s, "Subject"));
         //noinspection unchecked
         return (T)this;
     }
@@ -705,7 +691,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.memStorage = memStorage;
     }
 
-    protected void _backoff(Duration @Nullable ... backoffs) {
+    protected void _backoff(Duration... backoffs) {
         backoff.clear();
         if (backoffs != null) {
             for (Duration d : backoffs) {
@@ -717,7 +703,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         }
     }
 
-    protected void _backoff(long @Nullable ... backoffMillis) {
+    protected void _backoff(long... backoffMillis) {
         backoff.clear();
         if (backoffMillis != null) {
             for (long l : backoffMillis) {
@@ -730,25 +716,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     protected void _priorityGroups(String... priorityGroups) {
-        this.priorityGroups.clear();
-        if (!nullOrEmpty(priorityGroups)) {
-            addPriorityGroupsInternal(Arrays.asList(priorityGroups));
-        }
+        replaceAllStrings(this.priorityGroups, priorityGroups);
     }
 
-    protected void _priorityGroups(List<String> priorityGroups) {
-        this.priorityGroups.clear();
-        if (!nullOrEmpty(priorityGroups)) {
-            addPriorityGroupsInternal(priorityGroups);
-        }
-    }
-
-    private void addPriorityGroupsInternal(List<String> priorityGroups) {
-        for (String pg : priorityGroups) {
-            if (!nullOrEmpty(pg)) {
-                this.priorityGroups.add(pg);
-            }
-        }
+    protected void _priorityGroups(@Nullable List<String> priorityGroups) {
+        replaceAllStrings(this.priorityGroups, priorityGroups);
     }
 
     protected void _priorityPolicy(@Nullable PriorityPolicy policy) {

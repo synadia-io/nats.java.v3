@@ -4,7 +4,7 @@ import io.synadia.client.NatsServerProtocolMock.ExitAt;
 import io.synadia.client.api.ServerInfo;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SimulateSocketDataPortException;
-import io.synadia.client.support.Listener;
+import io.synadia.client.testutils.Listener;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -503,7 +503,7 @@ public class ConnectTests {
 
         ThreeServerTestOptions tstOpts = new ThreeServerTestOptions() {
             @Override
-            public void append(int index, Options.Builder builder) {
+            public void append(int index, OptionsBuilder builder) {
                 builder.connectionListener(listeners[index]).errorListener(listeners[index]);
             }
 
@@ -567,7 +567,7 @@ public class ConnectTests {
     @Test
     void testConnectWithHappyEyeballsShortCircuitCoverage() throws Exception {
         Options options = Options.builder().server("demo.nats.io")
-            .hostnameResolveMode(Options.HostnameResolveMode.HappyEyeballs)
+            .hostnameResolveMode(HostnameResolveMode.HappyEyeballs)
             .build();
         try (NatsConnection nc = Nats.connect(options)) {
             assertConnected(nc);

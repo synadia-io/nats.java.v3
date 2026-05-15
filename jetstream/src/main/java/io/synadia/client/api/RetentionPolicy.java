@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stream retention policies.
@@ -31,7 +32,7 @@ public enum RetentionPolicy {
      * @param dflt the result if value is not null or not matched
      * @return the matching RetentionPolicy or the supplied default
      */
-    public static RetentionPolicy get(String value, RetentionPolicy dflt) {
+    public static RetentionPolicy get(@Nullable String value, RetentionPolicy dflt) {
         if (value != null) {
             if (Limits.policy.equalsIgnoreCase(value)) {
                 return Limits;

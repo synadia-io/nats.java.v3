@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stream discard policies
@@ -29,7 +30,7 @@ public enum DiscardPolicy {
      * @param dflt the result if value is null or not matched
      * @return the matching DiscardPolicy or the supplied default
      */
-    public static DiscardPolicy get(String value, DiscardPolicy dflt) {
+    public static DiscardPolicy get(@Nullable String value, DiscardPolicy dflt) {
         if (value != null) {
             if (New.policy.equalsIgnoreCase(value)) { return New; }
             if (Old.policy.equalsIgnoreCase(value)) { return Old; }

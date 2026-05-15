@@ -1,6 +1,5 @@
-package io.synadia.client.support.ssl;
+package io.synadia.client.testutils.ssl;
 
-import io.synadia.client.Options;
 import io.synadia.client.testutils.SSLUtils;
 
 import javax.net.ssl.KeyManager;
@@ -15,6 +14,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Properties;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_SSL_PROTOCOL;
+import static io.synadia.client.OptionsProperties.*;
 import static io.synadia.client.testutils.ResourceUtils.configResource;
 
 public class SslTestingHelper {
@@ -29,10 +30,10 @@ public class SslTestingHelper {
 
     public static Properties createTestSSLProperties() {
         Properties props = new Properties();
-        props.setProperty(Options.PROP_KEYSTORE, KEYSTORE_PATH);
-        props.setProperty(Options.PROP_KEYSTORE_PASSWORD, PASSWORD);
-        props.setProperty(Options.PROP_TRUSTSTORE, TRUSTSTORE_PATH);
-        props.setProperty(Options.PROP_TRUSTSTORE_PASSWORD, PASSWORD);
+        props.setProperty(PROP_KEY_STORE, KEYSTORE_PATH);
+        props.setProperty(PROP_KEY_STORE_PASSWORD, PASSWORD);
+        props.setProperty(PROP_TRUST_STORE, TRUSTSTORE_PATH);
+        props.setProperty(PROP_TRUST_STORE_PASSWORD, PASSWORD);
         return props;
     }
 
@@ -56,7 +57,7 @@ public class SslTestingHelper {
     }
 
     public static SSLContext createEmptySSLContext() throws Exception {
-        SSLContext ctx = SSLContext.getInstance(Options.DEFAULT_SSL_PROTOCOL);
+        SSLContext ctx = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
         ctx.init(new KeyManager[0], new TrustManager[0], new SecureRandom());
         return ctx;
     }

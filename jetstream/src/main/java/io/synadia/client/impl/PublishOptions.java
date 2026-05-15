@@ -1,11 +1,13 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.MessageTtl;
-import io.synadia.client.Options;
 
 import java.time.Duration;
 import java.util.Properties;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_CONNECTION_TIMEOUT;
+import static io.synadia.client.OptionsProperties.PFX;
+import static io.synadia.client.OptionsProperties.getPropertyValue;
 import static io.synadia.client.testutils.JsValidator.validateDurationNotRequiredGtOrEqZero;
 import static io.synadia.client.testutils.JsValidator.validateStreamName;
 import static io.synadia.client.testutils.Validator.*;
@@ -18,7 +20,7 @@ public class PublishOptions {
     /**
      * Use this variable for timeout in publish options.
      */
-    public static final Duration DEFAULT_TIMEOUT = Options.DEFAULT_CONNECTION_TIMEOUT;
+    public static final Duration DEFAULT_TIMEOUT = DEFAULT_CONNECTION_TIMEOUT;
 
     /**
      * Use this variable to unset a sequence number in publish options.
@@ -60,9 +62,9 @@ public class PublishOptions {
     }
 
     /**
-     * Property used to configure a builder from a Properties object..
+     * Property used to configure a builder from a Properties object...
      */
-    public static final String PROP_PUBLISH_TIMEOUT = Options.PFX + "publish.timeout";
+    public static final String PROP_PUBLISH_TIMEOUT = PFX + "publish.timeout";
 
     /**
      * Gets the publish timeout.
@@ -163,7 +165,7 @@ public class PublishOptions {
          * @param properties properties
          */
         public Builder(Properties properties) {
-            String s = properties.getProperty(PublishOptions.PROP_PUBLISH_TIMEOUT);
+            String s = getPropertyValue(properties, PublishOptions.PROP_PUBLISH_TIMEOUT);
             if (s != null) {
                 streamTimeout = Duration.parse(s);
             }

@@ -19,7 +19,6 @@ public class JetStreamOptionsTests extends TestBase {
         assertNull(jso.getRequestTimeout());
         assertEquals(DEFAULT_API_PREFIX, jso.getPrefix());
         assertTrue(jso.isDefaultPrefix());
-        assertFalse(jso.isPublishNoAck());
         assertFalse(jso.isOptOut290ConsumerCreate());
 
         // default copy
@@ -27,20 +26,17 @@ public class JetStreamOptionsTests extends TestBase {
         assertNull(jso.getRequestTimeout());
         assertEquals(DEFAULT_API_PREFIX, jso.getPrefix());
         assertTrue(jso.isDefaultPrefix());
-        assertFalse(jso.isPublishNoAck());
         assertFalse(jso.isOptOut290ConsumerCreate());
 
         // affirmative
         jso = JetStreamOptions.builder()
             .prefix("pre")
             .requestTimeout(Duration.ofSeconds(42))
-            .publishNoAck(true)
             .optOut290ConsumerCreate(true)
             .build();
         assertEquals(Duration.ofSeconds(42), jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
-        assertTrue(jso.isPublishNoAck());
         assertTrue(jso.isOptOut290ConsumerCreate());
 
         // affirmative copy
@@ -48,19 +44,16 @@ public class JetStreamOptionsTests extends TestBase {
         assertEquals(Duration.ofSeconds(42), jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
-        assertTrue(jso.isPublishNoAck());
         assertTrue(jso.isOptOut290ConsumerCreate());
 
         // variations / coverage
         jso = JetStreamOptions.builder()
             .prefix("pre.")
-            .publishNoAck(false)
             .optOut290ConsumerCreate(false)
             .build();
         assertNull(jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
-        assertFalse(jso.isPublishNoAck());
         assertFalse(jso.isOptOut290ConsumerCreate());
 
         // variations / coverage copy
@@ -68,7 +61,6 @@ public class JetStreamOptionsTests extends TestBase {
         assertNull(jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
-        assertFalse(jso.isPublishNoAck());
         assertFalse(jso.isOptOut290ConsumerCreate());
     }
 

@@ -1,7 +1,5 @@
-package io.synadia.client.support;
+package io.synadia.client.testutils;
 
-import io.synadia.client.testutils.Digester;
-import io.synadia.client.testutils.ResourceUtils;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;

@@ -1,7 +1,5 @@
-package io.synadia.client.support;
+package io.synadia.client.testutils;
 
-import io.synadia.client.testutils.ScheduledTask;
-import io.synadia.client.testutils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;

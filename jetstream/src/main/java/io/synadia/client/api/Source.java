@@ -2,6 +2,7 @@ package io.synadia.client.api;
 
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
  */
 @NullMarked
 public class Source extends StreamSource {
-    static List<Source> listOf(LazyJsonValue v) {
+    static List<Source> listOf(@Nullable LazyJsonValue v) {
         return mapToList(v, Source::new);
     }
 

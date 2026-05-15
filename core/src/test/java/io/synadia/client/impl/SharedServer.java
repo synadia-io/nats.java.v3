@@ -3,7 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.ConnectionStatus;
 import io.synadia.client.NUID;
 import io.synadia.client.NatsTestServer;
-import io.synadia.client.Options;
+import io.synadia.client.OptionsBuilder;
 import io.synadia.client.testutils.ConnectionUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -137,7 +137,7 @@ public class SharedServer {
         return shared.getSharedConnection();
     }
 
-    public static NatsConnection connectionForSameServer(NatsConnection nc, Options.Builder builder) {
+    public static NatsConnection connectionForSameServer(NatsConnection nc, OptionsBuilder builder) {
         SharedServer shared = SHARED_BY_URL.get(nc.getConnectedUrl());
         if (shared == null) {
             throw new RuntimeException("No shared server for that connection.");
@@ -175,7 +175,7 @@ public class SharedServer {
         }
     }
 
-    public NatsConnection newConnection(Options.Builder builder) {
+    public NatsConnection newConnection(OptionsBuilder builder) {
         return ConnectionUtils.managedConnect(builder.server(serverUrl).build());
     }
 

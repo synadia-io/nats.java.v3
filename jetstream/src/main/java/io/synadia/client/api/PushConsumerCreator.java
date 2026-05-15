@@ -16,7 +16,11 @@ public class PushConsumerCreator extends AbstractEphemeralConsumerCreator<PushCo
         super(stream, true);
     }
 
-    // ----------------------------------------------------------------------------------------------------
+    public PushConsumerCreator(PushConsumerCreator creator) {
+        super(creator);
+    }
+
+// ----------------------------------------------------------------------------------------------------
     // Durable
     // ----------------------------------------------------------------------------------------------------
 

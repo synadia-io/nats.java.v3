@@ -2,6 +2,7 @@ package io.synadia.client.api;
 
 import io.synadia.client.impl.BaseConsumeOptions;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents the Priority Policy of a consumer
@@ -50,7 +51,7 @@ public enum PriorityPolicy {
      * @param dflt the result if value is null or not matched
      * @return the matching PriorityPolicy or the supplied default
      */
-    public static PriorityPolicy get(String value, PriorityPolicy dflt) {
+    public static PriorityPolicy get(@Nullable String value, PriorityPolicy dflt) {
         if (value != null) {
             if (None.policy.equalsIgnoreCase(value)) { return None; }
             if (Overflow.policy.equalsIgnoreCase(value)) { return Overflow; }

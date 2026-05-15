@@ -3,9 +3,9 @@ package io.synadia.client.impl;
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
 import io.synadia.client.api.ServerInfo;
-import io.synadia.client.support.Listener;
-import io.synadia.client.support.ssl.SslTestingHelper;
 import io.synadia.client.testutils.ConnectionUtils;
+import io.synadia.client.testutils.Listener;
+import io.synadia.client.testutils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -23,9 +23,9 @@ import java.util.function.BiConsumer;
 
 import static io.synadia.client.AuthTests.getUserCredsAuthHander;
 import static io.synadia.client.NatsTestServer.configFileBuilder;
-import static io.synadia.client.support.Listener.LONG_VALIDATE_TIMEOUT;
-import static io.synadia.client.support.Listener.VERY_LONG_VALIDATE_TIMEOUT;
 import static io.synadia.client.testutils.ConnectionUtils.*;
+import static io.synadia.client.testutils.Listener.LONG_VALIDATE_TIMEOUT;
+import static io.synadia.client.testutils.Listener.VERY_LONG_VALIDATE_TIMEOUT;
 import static io.synadia.client.testutils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
 import static io.synadia.client.testutils.OptionsUtils.*;
 import static io.synadia.client.testutils.TestBase.*;
@@ -51,7 +51,7 @@ public class ReconnectTests {
             (ts, optionsBuilder) -> optionsBuilder.server(ts.getLocalhostUri(WS)).authHandler(getUserCredsAuthHander()));
     }
 
-    private void _testReconnect(NatsServerRunner.Builder nsrb, BiConsumer<NatsTestServer, Options.Builder> optSetter) throws Exception {
+    private void _testReconnect(NatsServerRunner.Builder nsrb, BiConsumer<NatsTestServer, OptionsBuilder> optSetter) throws Exception {
         int port = NatsTestServer.nextPort();
         nsrb.port(port); // set the port into the builder
         Listener listener = new Listener();
@@ -62,7 +62,7 @@ public class ReconnectTests {
         String subsubject = random();
         String dispatchSubject = random();
         try (NatsTestServer ts = new NatsTestServer(nsrb)) {
-            Options.Builder builder = optionsBuilder() // server intentionally not set
+            OptionsBuilder builder = optionsBuilder() // server intentionally not set
                 .maxReconnects(-1)
                 .reconnectWait(Duration.ofMillis(1000))
                 .connectionListener(listener);
@@ -731,7 +731,7 @@ public class ReconnectTests {
     private static ThreeServerTestOptions makeThreeServerTestOptions(Listener listener, final boolean configureAccount) {
         return new ThreeServerTestOptions() {
             @Override
-            public void append(int index, Options.Builder builder) {
+            public void append(int index, OptionsBuilder builder) {
                 if (index == 0) {
                     builder
                         .connectionListener(listener)
@@ -881,7 +881,7 @@ public class ReconnectTests {
     @Test
     public void testSocketDataPortTimeout() throws Exception {
         Listener listener = new Listener();
-        Options.Builder builder = Options.builder()
+        OptionsBuilder builder = Options.builder()
             .noRandomize()
             .socketWriteTimeout(5000) // long time ensures we can get to OUTPUT_QUEUE_IS_FULL
             .writeQueuePushTimeout(Duration.ofSeconds(5))

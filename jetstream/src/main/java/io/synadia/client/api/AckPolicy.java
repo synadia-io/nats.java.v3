@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents the Ack Policy of a consumer
@@ -41,7 +42,7 @@ public enum AckPolicy {
      * @param dflt the result if value is null or not matched
      * @return the matching AckPolicy or the supplied default
      */
-    public static AckPolicy get(String value, AckPolicy dflt) {
+    public static AckPolicy get(@Nullable String value, AckPolicy dflt) {
         if (value != null) {
             if (None.policy.equalsIgnoreCase(value)) { return None; }
             if (All.policy.equalsIgnoreCase(value)) { return All; }

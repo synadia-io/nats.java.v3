@@ -20,11 +20,11 @@ public abstract class OptionsUtils {
 
     public static ErrorListener NOOP_EL = new ErrorListener() {};
 
-    public static Options.Builder optionsBuilder(ErrorListener el) {
+    public static OptionsBuilder optionsBuilder(ErrorListener el) {
         return optionsBuilder().errorListener(el);
     }
 
-    public static Options.Builder optionsBuilder(TestServer... tses) {
+    public static OptionsBuilder optionsBuilder(TestServer... tses) {
         if (tses.length == 1) {
             return optionsBuilder().server(tses[0].getServerUri());
         }
@@ -34,19 +34,19 @@ public abstract class OptionsUtils {
         }
         return optionsBuilder().servers(servers);
     }
-    public static Options.Builder optionsBuilder(NatsTestServer ts, String schema) {
+    public static OptionsBuilder optionsBuilder(NatsTestServer ts, String schema) {
         return optionsBuilder().server(ts.getLocalhostUri(schema));
     }
 
-    public static Options.Builder optionsBuilder(int port) {
+    public static OptionsBuilder optionsBuilder(int port) {
         return optionsBuilder().server(NatsTestServer.getLocalhostUri(port));
     }
 
-    public static Options.Builder optionsBuilder(String... servers) {
+    public static OptionsBuilder optionsBuilder(String... servers) {
         return optionsBuilder().servers(servers);
     }
 
-    public static Options.Builder optionsBuilder(NatsConnection nc) {
+    public static OptionsBuilder optionsBuilder(NatsConnection nc) {
         //noinspection DataFlowIssue
         return optionsBuilder().server(nc.getConnectedUrl());
     }
@@ -75,7 +75,7 @@ public abstract class OptionsUtils {
         return optionsBuilder().servers(servers).build();
     }
 
-    public static Options.Builder optionsBuilder() {
+    public static OptionsBuilder optionsBuilder() {
         if (EX == null) {
             EX = new ThreadPoolExecutor(6, Integer.MAX_VALUE, 30, TimeUnit.SECONDS,
                 new SynchronousQueue<>(),

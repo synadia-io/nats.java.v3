@@ -2,12 +2,8 @@ package io.synadia.client.impl;
 
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
-import io.synadia.client.support.Listener;
-import io.synadia.client.support.ssl.SslTestingHelper;
-import io.synadia.client.testutils.CloseOnUpgradeAttempt;
-import io.synadia.client.testutils.HttpRequest;
-import io.synadia.client.testutils.RunProxy;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.testutils.*;
+import io.synadia.client.testutils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -30,24 +26,24 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class WebsocketConnectTests extends TestBase {
 
-    private static Options.Builder builder() {
+    private static OptionsBuilder builder() {
         return Options.builder()
             .maxReconnects(0)
             .errorListener(NOOP_EL);
     }
 
-    private static Options.Builder wsBuilder(NatsTestServer ts) {
+    private static OptionsBuilder wsBuilder(NatsTestServer ts) {
         return builder()
             .server(NatsTestServer.getLocalhostUri(WS, ts.getPort(WS)));
     }
 
-    private static Options.Builder wssBuilder(NatsTestServer ts) throws Exception {
+    private static OptionsBuilder wssBuilder(NatsTestServer ts) throws Exception {
         return builder()
             .server(NatsTestServer.getLocalhostUri(WSS, ts.getPort(WSS)))
             .sslContext(SslTestingHelper.createTestSSLContext());
     }
 
-    private static void _test(Options.Builder builder) throws InterruptedException {
+    private static void _test(OptionsBuilder builder) throws InterruptedException {
         try (NatsConnection connection = managedConnect(builder.build())) {
             Dispatcher dispatcher = connection.createDispatcher(
                 msg -> connection.publish(msg.getReplyTo(), (new String(msg.getData()) + ":reply").getBytes()));
@@ -132,7 +128,7 @@ public class WebsocketConnectTests extends TestBase {
         executor.submit(proxy);
 
         runInSharedConfiguredServer("ws.conf", ts -> {
-            Options.Builder builder = wsBuilder(ts)
+            OptionsBuilder builder = wsBuilder(ts)
                 .proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("localhost", proxy.getPort())));
             _test(builder);
         });

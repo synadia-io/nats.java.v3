@@ -5,13 +5,12 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static io.nats.json.JsonWriteUtils.*;
+import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
 import static io.synadia.client.testutils.ApiConstants.CLUSTER;
 import static io.synadia.client.testutils.ApiConstants.TAGS;
-import static io.synadia.client.testutils.Validator.nullOrEmpty;
 
 /**
  * PlacementCreator is used to create placement directives for use in a StreamCreator.
@@ -19,12 +18,14 @@ import static io.synadia.client.testutils.Validator.nullOrEmpty;
 @NullMarked
 public class PlacementCreator implements JsonSerializable {
     private @Nullable String cluster;
-    private @Nullable List<String> tags;
+    private final List<String> tags;
 
     /**
      * Construct an empty PlacementCreator
      */
-    public PlacementCreator() {}
+    public PlacementCreator() {
+        this.tags = new ArrayList<>();
+    }
 
     /**
      * Construct a PlacementCreator with cluster and tags
@@ -33,7 +34,8 @@ public class PlacementCreator implements JsonSerializable {
      */
     public PlacementCreator(@Nullable String cluster, @Nullable List<String> tags) {
         this.cluster = cluster == null || cluster.isEmpty() ? null : cluster;
-        this.tags = tags == null || tags.isEmpty() ? null : tags;
+        this.tags = new ArrayList<>();
+        replaceAllStrings(this.tags, tags);
     }
 
     /**
@@ -59,8 +61,9 @@ public class PlacementCreator implements JsonSerializable {
      * @param tags the tags
      * @return this instance for chaining
      */
-    public PlacementCreator tags(String... tags) {
-        return tags(Arrays.asList(tags));
+    public PlacementCreator tags(@Nullable String... tags) {
+        replaceAllStrings(this.tags, tags);
+        return this;
     }
 
     /**
@@ -69,20 +72,7 @@ public class PlacementCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public PlacementCreator tags(@Nullable List<String> tags) {
-        if (nullOrEmpty(tags)) {
-            this.tags = null;
-        }
-        else {
-            this.tags = new ArrayList<>();
-            for (String tag : tags) {
-                if (!nullOrEmpty(tag)) {
-                    this.tags.add(tag);
-                }
-            }
-            if (this.tags.isEmpty()) {
-                this.tags = null;
-            }
-        }
+        replaceAllStrings(this.tags, tags);
         return this;
     }
 
@@ -91,23 +81,21 @@ public class PlacementCreator implements JsonSerializable {
      * @return true if the Placement has data
      */
     public boolean hasData() {
-        return cluster != null || tags != null;
+        return cluster != null || !tags.isEmpty();
     }
 
     /**
      * The desired cluster name to place the stream.
      * @return The cluster name
      */
-    @Nullable
-    public String getCluster() {
+    public @Nullable String getCluster() {
         return cluster;
     }
 
     /**
      * Tags required on servers hosting this stream
-     * @return the list of tags
+     * @return the list of tags; never null, but may be empty
      */
-    @Nullable
     public List<String> getTags() {
         return tags;
     }

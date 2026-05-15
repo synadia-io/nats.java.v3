@@ -17,6 +17,17 @@ public class RepublishCreator implements JsonSerializable {
     private final boolean headersOnly;
 
     /**
+     * Construct a RepublishCreator with headers only false
+     * @param source the Published subject matching filter
+     * @param destination the RePublish Subject template
+     */
+    public RepublishCreator(String source, String destination) {
+        this.source = Validator.required(source, "Source");
+        this.destination = Validator.required(destination, "Destination");
+        this.headersOnly = false;
+    }
+
+    /**
      * Construct a RepublishCreator
      * @param source the Published subject matching filter
      * @param destination the RePublish Subject template

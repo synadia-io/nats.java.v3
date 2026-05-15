@@ -1,7 +1,6 @@
 package io.synadia.client.testutils;
 
 import io.synadia.client.Message;
-import io.synadia.client.Options;
 import io.synadia.client.global.NatsSystemClock;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -11,6 +10,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_REQUEST_CLEANUP_INTERVAL;
 import static io.synadia.client.testutils.NatsConstants.NANOS_PER_MILLI;
 
 /**
@@ -25,7 +25,7 @@ public class NatsRequestCompletableFuture extends CompletableFuture<Message> {
 
     private static final String CLOSING_MESSAGE = "Future cancelled, connection closing.";
     private static final String CANCEL_MESSAGE = "Future cancelled, response not registered in time, check connection status.";
-    private static final long DEFAULT_TIMEOUT_NANOS = Options.DEFAULT_REQUEST_CLEANUP_INTERVAL.toNanos(); // currently 5 seconds
+    private static final long DEFAULT_TIMEOUT_NANOS = DEFAULT_REQUEST_CLEANUP_INTERVAL.toNanos(); // currently 5 seconds
 
     private final CancelAction cancelAction;
     private final long timeOutAfterNanoTime;

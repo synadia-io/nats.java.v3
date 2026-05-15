@@ -19,6 +19,10 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
         super(stream, false);
     }
 
+    public PullConsumerCreator(PullConsumerCreator creator) {
+        super(creator);
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // Durable
     // ----------------------------------------------------------------------------------------------------

@@ -1,8 +1,7 @@
-package io.synadia.client.support;
+package io.synadia.client.testutils;
 
 import io.synadia.client.*;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.testutils.Status;
 import org.junit.jupiter.api.Assertions;
 
 import java.time.format.DateTimeFormatter;

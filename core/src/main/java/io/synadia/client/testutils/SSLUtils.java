@@ -1,7 +1,5 @@
 package io.synadia.client.testutils;
 
-import io.synadia.client.Options;
-
 import javax.net.ssl.*;
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -11,6 +9,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_SSL_PROTOCOL;
 import static io.synadia.client.testutils.RandomUtils.SRAND;
 
 public class SSLUtils {
@@ -60,7 +59,7 @@ public class SSLUtils {
     }
 
     public static SSLContext createTrustAllTlsContext() throws GeneralSecurityException {
-        SSLContext context = SSLContext.getInstance(Options.DEFAULT_SSL_PROTOCOL);
+        SSLContext context = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
         context.init(null, DEFAULT_TRUST_MANAGERS, SRAND);
         return context;
     }
@@ -105,7 +104,7 @@ public class SSLUtils {
         return createSSLContext(keystorePath, keystorePwd, truststorePath, truststorePwd, DEFAULT_TLS_ALGORITHM);
     }
     public static SSLContext createSSLContext(String keystorePath, char[] keystorePwd, String truststorePath, char[] truststorePwd, String tlsAlgo) throws GeneralSecurityException, IOException {
-        SSLContext ctx = SSLContext.getInstance(Options.DEFAULT_SSL_PROTOCOL);
+        SSLContext ctx = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
         ctx.init(createKeyManagers(keystorePath, keystorePwd, tlsAlgo), createTrustManagers(truststorePath, truststorePwd, tlsAlgo), SRAND);
         return ctx;
     }

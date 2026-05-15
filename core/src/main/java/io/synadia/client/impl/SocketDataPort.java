@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
-import io.synadia.client.Options.HostnameResolveMode;
 import io.synadia.client.testutils.HappyEyeballsConnector;
 import io.synadia.client.testutils.NatsUri;
 import io.synadia.client.testutils.WebSocket;

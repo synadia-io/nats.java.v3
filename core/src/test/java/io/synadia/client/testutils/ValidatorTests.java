@@ -1,7 +1,5 @@
-package io.synadia.client.support;
+package io.synadia.client.testutils;
 
-import io.synadia.client.testutils.JetStreamClientError;
-import io.synadia.client.testutils.Validator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -246,8 +244,8 @@ public class ValidatorTests {
         assertEquals("as", emptyOrNullAs("\t", "as"));
     }
 
-    interface StringAndRequiredTest { String validate(String s, boolean required); }
-    interface StringLabelRequiredCantEndWithGtTest { String validate(String s, String l, boolean required, boolean cantEndWithGt); }
+    public interface StringAndRequiredTest { String validate(String s, boolean required); }
+    public interface StringLabelRequiredCantEndWithGtTest { String validate(String s, String l, boolean required, boolean cantEndWithGt); }
 
     protected void allowedRequired(StringAndRequiredTest test, List<String> strings) {
         for (String s : strings) {

@@ -9,6 +9,8 @@ import java.time.Duration;
 import java.util.*;
 
 import static io.nats.json.JsonWriteUtils.*;
+import static io.synadia.client.impl.JetStreamApiUtils.replaceAll;
+import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
 import static io.synadia.client.testutils.ApiConstants.*;
 import static io.synadia.client.testutils.JsValidator.*;
 
@@ -31,17 +33,17 @@ public class StreamCreator implements JsonSerializable {
     private RetentionPolicy retentionPolicy;
     private CompressionOption compressionOption;
     private long maxConsumers;
-    private long maxMsgs;
-    private long maxMsgsPerSubject;
+    private long maxMessages;
+    private long maxMessagesPerSubject;
     private long maxBytes;
-    private Duration maxAge;
+    private @Nullable Duration maxAge;
     private int maxMessageSize;
     private StorageType storageType;
     private int replicas;
     private boolean noAck;
     private @Nullable String templateOwner;
     private DiscardPolicy discardPolicy;
-    private Duration duplicateWindow;
+    private @Nullable Duration duplicateWindow;
     private @Nullable PlacementCreator placementCreator;
     private @Nullable RepublishCreator republishCreator;
     private @Nullable SubjectTransformCreator subjectTransformCreator;
@@ -59,9 +61,10 @@ public class StreamCreator implements JsonSerializable {
     private long firstSequence;
     private @Nullable Duration subjectDeleteMarkerTtl;
     private boolean allowMessageTtl;
-    private boolean allowMsgSchedules;
+    private boolean allowMessageSchedules;
     private boolean allowMessageCounter;
     private boolean allowAtomicPublish;
+    private boolean allowBatched;
     private @Nullable PersistMode persistMode;
 
     /**
@@ -72,16 +75,15 @@ public class StreamCreator implements JsonSerializable {
         this.name = validateStreamName(name, true);
         retentionPolicy = DEFAULT_RETENTION_POLICY;
         compressionOption = DEFAULT_COMPRESSION_OPTION;
-        maxConsumers = -1;
-        maxMsgs = -1;
-        maxMsgsPerSubject = -1;
-        maxBytes = -1;
-        maxAge = Duration.ZERO;
-        maxMessageSize = -1;
         storageType = DEFAULT_STORAGE_TYPE;
+        discardPolicy = DEFAULT_DISCARD_POLICY;
+
+        maxConsumers = -1;
+        maxMessages = -1;
+        maxMessagesPerSubject = -1;
+        maxBytes = -1;
+        maxMessageSize = -1;
         replicas = 1;
-        discardPolicy = DiscardPolicy.Old;
-        duplicateWindow = Duration.ZERO;
         firstSequence = 1;
 
         subjects = new ArrayList<>();
@@ -99,8 +101,8 @@ public class StreamCreator implements JsonSerializable {
         this.retentionPolicy = sc.retentionPolicy;
         this.compressionOption = sc.compressionOption;
         this.maxConsumers = sc.maxConsumers;
-        this.maxMsgs = sc.maxMsgs;
-        this.maxMsgsPerSubject = sc.maxMsgsPerSubject;
+        this.maxMessages = sc.maxMessages;
+        this.maxMessagesPerSubject = sc.maxMessagesPerSubject;
         this.maxBytes = sc.maxBytes;
         this.maxAge = sc.maxAge;
         this.maxMessageSize = sc.maxMessageSize;
@@ -125,9 +127,10 @@ public class StreamCreator implements JsonSerializable {
         this.firstSequence = sc.firstSequence;
         this.subjectDeleteMarkerTtl = sc.subjectDeleteMarkerTtl;
         this.allowMessageTtl = sc.allowMessageTtl;
-        this.allowMsgSchedules = sc.allowMsgSchedules;
+        this.allowMessageSchedules = sc.allowMessageSchedules;
         this.allowMessageCounter = sc.allowMessageCounter;
         this.allowAtomicPublish = sc.allowAtomicPublish;
+        this.allowBatched = sc.allowBatched;
         this.persistMode = sc.persistMode;
         this.subjects = new ArrayList<>(sc.subjects);
         this.sourceCreators = new ArrayList<>(sc.sourceCreators);
@@ -146,8 +149,8 @@ public class StreamCreator implements JsonSerializable {
         this.retentionPolicy = sc.getRetentionPolicy();
         this.compressionOption = sc.getCompressionOption();
         this.maxConsumers = sc.getMaxConsumers();
-        this.maxMsgs = sc.getMaxMessages();
-        this.maxMsgsPerSubject = sc.getMaxMessagesPerSubject();
+        this.maxMessages = sc.getMaxMessages();
+        this.maxMessagesPerSubject = sc.getMaxMessagesPerSubject();
         this.maxBytes = sc.getMaxBytes();
         this.maxAge = sc.getMaxAge();
         this.maxMessageSize = sc.getMaxMessageSize();
@@ -167,9 +170,10 @@ public class StreamCreator implements JsonSerializable {
         this.firstSequence = sc.getFirstSequence();
         this.subjectDeleteMarkerTtl = sc.getSubjectDeleteMarkerTtl();
         this.allowMessageTtl = sc.getAllowMessageTtl();
-        this.allowMsgSchedules = sc.getAllowMessageSchedules();
+        this.allowMessageSchedules = sc.getAllowMessageSchedules();
         this.allowMessageCounter = sc.getAllowMessageCounter();
         this.allowAtomicPublish = sc.getAllowAtomicPublish();
+        this.allowBatched = sc.getAllowBatched();
         this.persistMode = sc.getPersistMode();
         this.subjects = new ArrayList<>(sc.getSubjects());
         this.metadata = new HashMap<>(sc.getMetadata());
@@ -213,8 +217,8 @@ public class StreamCreator implements JsonSerializable {
         addEnumWhenNot(sb, RETENTION, retentionPolicy, DEFAULT_RETENTION_POLICY);
         addEnumWhenNot(sb, COMPRESSION, compressionOption, DEFAULT_COMPRESSION_OPTION);
         addField(sb, MAX_CONSUMERS, maxConsumers);
-        addField(sb, MAX_MSGS, maxMsgs);
-        addField(sb, MAX_MSGS_PER_SUB, maxMsgsPerSubject);
+        addField(sb, MAX_MSGS, maxMessages);
+        addField(sb, MAX_MSGS_PER_SUB, maxMessagesPerSubject);
         addField(sb, MAX_BYTES, maxBytes);
         addFieldAsNanos(sb, MAX_AGE, maxAge);
         addField(sb, MAX_MSG_SIZE, maxMessageSize);
@@ -241,9 +245,10 @@ public class StreamCreator implements JsonSerializable {
         addFieldWhenGreaterThan(sb, FIRST_SEQ, firstSequence, 1);
         addFieldAsNanos(sb, SUBJECT_DELETE_MARKER_TTL, subjectDeleteMarkerTtl);
         addField(sb, ALLOW_MSG_TTL, allowMessageTtl);
-        addField(sb, ALLOW_MSG_SCHEDULES, allowMsgSchedules);
+        addField(sb, ALLOW_MSG_SCHEDULES, allowMessageSchedules);
         addField(sb, ALLOW_MSG_COUNTER, allowMessageCounter);
         addField(sb, ALLOW_ATOMIC, allowAtomicPublish);
+        addField(sb, ALLOW_BATCHED, allowBatched);
         addEnumWhenNot(sb, PERSIST_MODE, persistMode, DEFAULT_PERSIST_MODE);
         return endJson(sb).toString();
     }
@@ -264,8 +269,7 @@ public class StreamCreator implements JsonSerializable {
      * Gets the description of this stream configuration.
      * @return the description of the stream.
      */
-    @Nullable
-    public String getDescription() {
+    public @Nullable String getDescription() {
         return description;
     }
 
@@ -306,7 +310,7 @@ public class StreamCreator implements JsonSerializable {
      * @return the maximum number of messages for this stream.
      */
     public long getMaxMessages() {
-        return maxMsgs;
+        return maxMessages;
     }
 
     /**
@@ -314,7 +318,7 @@ public class StreamCreator implements JsonSerializable {
      * @return the maximum number of messages per subject for this stream.
      */
     public long getMaxMessagesPerSubject() {
-        return maxMsgsPerSubject;
+        return maxMessagesPerSubject;
     }
 
     /**
@@ -329,7 +333,7 @@ public class StreamCreator implements JsonSerializable {
      * Gets the maximum message age for this stream configuration.
      * @return the maximum message age for this stream.
      */
-    public Duration getMaxAge() {
+    public @Nullable Duration getMaxAge() {
         return maxAge;
     }
 
@@ -369,8 +373,7 @@ public class StreamCreator implements JsonSerializable {
      * Gets the template JSON for this stream configuration.
      * @return the template for this stream.
      */
-    @Nullable
-    public String getTemplateOwner() {
+    public @Nullable String getTemplateOwner() {
         return templateOwner;
     }
 
@@ -387,7 +390,7 @@ public class StreamCreator implements JsonSerializable {
      * Duration.ZERO means duplicate checking is not enabled.
      * @return the duration of the window.
      */
-    public Duration getDuplicateWindow() {
+    public @Nullable Duration getDuplicateWindow() {
         return duplicateWindow;
     }
 
@@ -396,8 +399,7 @@ public class StreamCreator implements JsonSerializable {
      * random placement when unset. May be null.
      * @return the placement object
      */
-    @Nullable
-    public PlacementCreator getPlacementCreator() {
+    public @Nullable PlacementCreator getPlacementCreator() {
         return placementCreator;
     }
 
@@ -405,8 +407,7 @@ public class StreamCreator implements JsonSerializable {
      * Get the republish configuration. May be null.
      * @return the republish object
      */
-    @Nullable
-    public RepublishCreator getRepublishCreator() {
+    public @Nullable RepublishCreator getRepublishCreator() {
         return republishCreator;
     }
 
@@ -414,8 +415,7 @@ public class StreamCreator implements JsonSerializable {
      * Get the subjectTransform configuration. May be null.
      * @return the subjectTransform object
      */
-    @Nullable
-    public SubjectTransformCreator getSubjectTransformCreator() {
+    public @Nullable SubjectTransformCreator getSubjectTransformCreator() {
         return subjectTransformCreator;
     }
 
@@ -423,8 +423,7 @@ public class StreamCreator implements JsonSerializable {
      * Get the consumerLimits configuration. May be null.
      * @return the consumerLimits object
      */
-    @Nullable
-    public ConsumerLimitsCreator getConsumerLimitsCreator() {
+    public @Nullable ConsumerLimitsCreator getConsumerLimitsCreator() {
         return consumerLimitsCreator;
     }
 
@@ -432,8 +431,7 @@ public class StreamCreator implements JsonSerializable {
      * The mirror definition for this stream
      * @return the mirror
      */
-    @Nullable
-    public MirrorCreator getMirrorCreator() {
+    public @Nullable MirrorCreator getMirrorCreator() {
         return mirrorCreator;
     }
 
@@ -531,7 +529,7 @@ public class StreamCreator implements JsonSerializable {
      * @return the flag
      */
     public boolean getAllowMessageSchedules() {
-        return allowMsgSchedules;
+        return allowMessageSchedules;
     }
 
     /**
@@ -551,11 +549,18 @@ public class StreamCreator implements JsonSerializable {
     }
 
     /**
+     * Whether Allow Batched is set
+     * @return the flag
+     */
+    public boolean getAllowBatched() {
+        return allowBatched;
+    }
+
+    /**
      * Get the Subject Delete Marker TTL duration. May be null.
      * @return The duration
      */
-    @Nullable
-    public Duration getSubjectDeleteMarkerTtl() {
+    public @Nullable Duration getSubjectDeleteMarkerTtl() {
         return subjectDeleteMarkerTtl;
     }
 
@@ -563,8 +568,7 @@ public class StreamCreator implements JsonSerializable {
      * Gets the persist mode or null if it was not explicitly set when creating or the server did not send it with stream info
      * @return the persist mode
      */
-    @Nullable
-    public PersistMode getPersistMode() {
+    public @Nullable PersistMode getPersistMode() {
         return persistMode;
     }
 
@@ -588,7 +592,8 @@ public class StreamCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public StreamCreator subjects(String... subjects) {
-        return subjects(Arrays.asList(subjects));
+        replaceAllStrings(this.subjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
+        return this;
     }
 
     /**
@@ -596,13 +601,8 @@ public class StreamCreator implements JsonSerializable {
      * @param subjects the stream's subjects
      * @return this instance for chaining
      */
-    public StreamCreator subjects(Collection<String> subjects) {
-        this.subjects.clear();
-        for (String sub : subjects) {
-            if (!nullOrEmpty(sub) && !this.subjects.contains(sub)) {
-                this.subjects.add(sub);
-            }
-        }
+    public StreamCreator subjects(@Nullable Collection<String> subjects) {
+        replaceAllStrings(this.subjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
         return this;
     }
 
@@ -638,21 +638,21 @@ public class StreamCreator implements JsonSerializable {
 
     /**
      * Sets the maximum number of messages in the StreamCreator.
-     * @param maxMsgs the maximum number of messages
+     * @param maxMessages the maximum number of messages
      * @return this instance for chaining
      */
-    public StreamCreator maxMessages(long maxMsgs) {
-        this.maxMsgs = validateMaxMessages(maxMsgs);
+    public StreamCreator maxMessages(long maxMessages) {
+        this.maxMessages = validateMaxMessages(maxMessages);
         return this;
     }
 
     /**
      * Sets the maximum number of message per subject in the StreamCreator.
-     * @param maxMsgsPerSubject the maximum number of messages
+     * @param maxMessagesPerSubject the maximum number of messages
      * @return this instance for chaining
      */
-    public StreamCreator maxMessagesPerSubject(long maxMsgsPerSubject) {
-        this.maxMsgsPerSubject = validateMaxMessagesPerSubject(maxMsgsPerSubject);
+    public StreamCreator maxMessagesPerSubject(long maxMessagesPerSubject) {
+        this.maxMessagesPerSubject = validateMaxMessagesPerSubject(maxMessagesPerSubject);
         return this;
     }
 
@@ -672,7 +672,7 @@ public class StreamCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public StreamCreator maxAge(@Nullable Duration maxAge) {
-        this.maxAge = validateDurationNotRequiredGtOrEqZero(maxAge, Duration.ZERO);
+        this.maxAge = validateDurationNotRequiredGtOrEqZero(maxAge, null);
         return this;
     }
 
@@ -682,7 +682,7 @@ public class StreamCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public StreamCreator maxAge(long maxAgeMillis) {
-        this.maxAge = validateDurationNotRequiredGtOrEqZero(maxAgeMillis);
+        this.maxAge = validateDurationNotRequiredGtOrEqZero(maxAgeMillis, null);
         return this;
     }
 
@@ -755,7 +755,7 @@ public class StreamCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public StreamCreator duplicateWindow(@Nullable Duration window) {
-        this.duplicateWindow = validateDurationNotRequiredGtOrEqZero(window, Duration.ZERO);
+        this.duplicateWindow = validateDurationNotRequiredGtOrEqZero(window, null);
         return this;
     }
 
@@ -766,17 +766,32 @@ public class StreamCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public StreamCreator duplicateWindow(long windowMillis) {
-        this.duplicateWindow = validateDurationNotRequiredGtOrEqZero(windowMillis);
+        this.duplicateWindow = validateDurationNotRequiredGtOrEqZero(windowMillis, null);
         return this;
     }
 
     /**
-     * Sets the placement directive object
-     * @param placementCreator the placement directive object
+     * Sets the placement creator directive object via a placement directive object
+     * @param placement the placement directive object
      * @return this instance for chaining
      */
-    public StreamCreator placementCreator(PlacementCreator placementCreator) {
-        if (placementCreator.hasData()) {
+    public StreamCreator placement(@Nullable Placement placement) {
+        if (placement != null && placement.hasData()) {
+            this.placementCreator = new PlacementCreator(placement);
+        }
+        else {
+            this.placementCreator = null;
+        }
+        return this;
+    }
+
+    /**
+     * Sets the placement creator directive object
+     * @param placementCreator the placement directive object creator
+     * @return this instance for chaining
+     */
+    public StreamCreator placementCreator(@Nullable PlacementCreator placementCreator) {
+        if (placementCreator != null && placementCreator.hasData()) {
             this.placementCreator = placementCreator;
         }
         else {
@@ -786,66 +801,122 @@ public class StreamCreator implements JsonSerializable {
     }
 
     /**
-     * Sets the republish config object
-     * @param republishCreator the republish config object
+     * Sets the republish creator directive object via a republish object
+     * @param republish the republish object
      * @return this instance for chaining
      */
-    public StreamCreator republishCreator(RepublishCreator republishCreator) {
+    public StreamCreator republish(@Nullable Republish republish) {
+        this.republishCreator = republish == null ? null : new RepublishCreator(republish);
+        return this;
+    }
+
+    /**
+     * Sets the republish config creator object
+     * @param republishCreator the republish config object creator
+     * @return this instance for chaining
+     */
+    public StreamCreator republishCreator(@Nullable RepublishCreator republishCreator) {
         this.republishCreator = republishCreator;
         return this;
     }
 
     /**
-     * Sets the subjectTransform config object
-     * @param subjectTransformCreator the subjectTransform config object
+     * Sets the subjectTransform creator object via a subjectTransform object
+     * @param subjectTransform the subjectTransform object
      * @return this instance for chaining
      */
-    public StreamCreator subjectTransformCreator(SubjectTransformCreator subjectTransformCreator) {
+    public StreamCreator subjectTransform(@Nullable SubjectTransform subjectTransform) {
+        this.subjectTransformCreator = subjectTransform == null ? null : new SubjectTransformCreator(subjectTransform);
+        return this;
+    }
+
+    /**
+     * Sets the subjectTransform config creator object
+     * @param subjectTransformCreator the subjectTransform config object creator
+     * @return this instance for chaining
+     */
+    public StreamCreator subjectTransformCreator(@Nullable SubjectTransformCreator subjectTransformCreator) {
         this.subjectTransformCreator = subjectTransformCreator;
         return this;
     }
 
     /**
-     * Sets the consumerLimits config object
-     * @param consumerLimits the consumerLimits config object
+     * Sets the consumerLimits creator object via a consumerLimits object
+     * @param consumerLimit the consumerLimits object
      * @return this instance for chaining
      */
-    public StreamCreator consumerLimits(ConsumerLimitsCreator consumerLimits) {
-        this.consumerLimitsCreator = consumerLimits;
+    public StreamCreator consumerLimits(@Nullable ConsumerLimits consumerLimit) {
+        this.consumerLimitsCreator = consumerLimit == null ? null : new ConsumerLimitsCreator(consumerLimit);
+        return this;
+    }
+
+    /**
+     * Sets the consumerLimits creator config object
+     * @param consumerLimitCreator the consumerLimits config object creator
+     * @return this instance for chaining
+     */
+    public StreamCreator consumerLimitsCreator(@Nullable ConsumerLimitsCreator consumerLimitCreator) {
+        this.consumerLimitsCreator = consumerLimitCreator;
+        return this;
+    }
+
+    /**
+     * Sets the mirror creator object via a mirror object
+     * @param mirror the mirror object
+     * @return this instance for chaining
+     */
+    public StreamCreator mirror(@Nullable Mirror mirror) {
+        this.mirrorCreator = mirror == null ? null : new MirrorCreator(mirror);
         return this;
     }
 
     /**
      * Sets the mirror object
-     * @param mirrorCreator the mirror object
+     * @param mirrorCreator the mirror object creator
      * @return this instance for chaining
      */
-    public StreamCreator mirrorCreator(MirrorCreator mirrorCreator) {
+    public StreamCreator mirrorCreator(@Nullable MirrorCreator mirrorCreator) {
         this.mirrorCreator = mirrorCreator;
         return this;
     }
 
     /**
      * Sets the sources in the StreamCreator.
-     * @param sourceCreators the stream's sources
+     * @param sources the stream's sources creators
      * @return this instance for chaining
      */
-    public StreamCreator sourceCreators(SourceCreator... sourceCreators) {
-        return sourceCreators(Arrays.asList(sourceCreators));
+    public StreamCreator sources(@Nullable Source... sources) {
+        replaceAll(this.sourceCreators, sources, SourceCreator::new);
+        return this;
     }
 
     /**
      * Sets the sources in the StreamCreator.
-     * @param sourceCreators the stream's sources
+     * @param sourceCreators the stream's sources creators
      * @return this instance for chaining
      */
-    public StreamCreator sourceCreators(Collection<SourceCreator> sourceCreators) {
-        this.sourceCreators.clear();
-        for (SourceCreator sc : sourceCreators) {
-            if (!this.sourceCreators.contains(sc)) {
-                this.sourceCreators.add(sc);
-            }
-        }
+    public StreamCreator sourceCreators(@Nullable SourceCreator... sourceCreators) {
+        replaceAll(this.sourceCreators, sourceCreators);
+        return this;
+    }
+
+    /**
+     * Sets the sources in the StreamCreator.
+     * @param sources the stream's sources
+     * @return this instance for chaining
+     */
+    public StreamCreator sources(@Nullable Collection<Source> sources) {
+        replaceAll(this.sourceCreators, sources, SourceCreator::new);
+        return this;
+    }
+
+    /**
+     * Sets the sources in the StreamCreator.
+     * @param sourceCreators the stream's sources creators
+     * @return this instance for chaining
+     */
+    public StreamCreator sourceCreators(@Nullable Collection<SourceCreator> sourceCreators) {
+        replaceAll(this.sourceCreators, sourceCreators);
         return this;
     }
 
@@ -933,11 +1004,8 @@ public class StreamCreator implements JsonSerializable {
      * @param metadata the metadata map
      * @return this instance for chaining
      */
-    public StreamCreator metadata(Map<String, String> metadata) {
-        this.metadata.clear();
-        if (!metadata.isEmpty()) {
-            this.metadata.putAll(metadata);
-        }
+    public StreamCreator metadata(@Nullable Map<String, String> metadata) {
+        replaceAll(this.metadata, metadata);
         return this;
     }
 
@@ -998,7 +1066,7 @@ public class StreamCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public StreamCreator allowMessageSchedules() {
-        this.allowMsgSchedules = true;
+        this.allowMessageSchedules = true;
         return this;
     }
 
@@ -1008,7 +1076,7 @@ public class StreamCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public StreamCreator allowMessageSchedules(boolean allowMessageSchedules) {
-        this.allowMsgSchedules = allowMessageSchedules;
+        this.allowMessageSchedules = allowMessageSchedules;
         return this;
     }
 
@@ -1051,11 +1119,30 @@ public class StreamCreator implements JsonSerializable {
     }
 
     /**
+     * Set allow batched to true
+     * @return this instance for chaining
+     */
+    public StreamCreator allowBatched() {
+        this.allowBatched = true;
+        return this;
+    }
+
+    /**
+     * Set allow batched flag
+     * @param allowBatched the flag
+     * @return this instance for chaining
+     */
+    public StreamCreator allowBatched(boolean allowBatched) {
+        this.allowBatched = allowBatched;
+        return this;
+    }
+
+    /**
      * Set the persist mode. Setting null leaves it up to the server
      * @param persistMode the persist mode
      * @return this instance for chaining
      */
-    public StreamCreator persistMode(PersistMode persistMode) {
+    public StreamCreator persistMode(@Nullable PersistMode persistMode) {
         this.persistMode = persistMode;
         return this;
     }

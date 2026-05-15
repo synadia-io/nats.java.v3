@@ -12,6 +12,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.synadia.client.OptionsConstants.*;
 import static io.synadia.client.testutils.ConnectionUtils.*;
 import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
 import static io.synadia.client.testutils.OptionsUtils.options;
@@ -28,7 +29,7 @@ public class RequestTests extends TestBase {
             AtomicReference<String> replyTo = new AtomicReference<>();
             Dispatcher d = nc.createDispatcher(msg -> {
                 replyTo.set(msg.getReplyTo());
-                assertTrue(msg.getReplyTo().startsWith(Options.DEFAULT_INBOX_PREFIX));
+                assertTrue(msg.getReplyTo().startsWith(DEFAULT_INBOX_PREFIX));
                 if (msg.hasHeaders()) {
                     nc.publish(msg.getReplyTo(), msg.getHeaders(), null);
                 }
@@ -116,7 +117,7 @@ public class RequestTests extends TestBase {
             assertConnected(nc);
             
             Dispatcher d = nc.createDispatcher(msg -> {
-                assertTrue(msg.getReplyTo().startsWith(Options.DEFAULT_INBOX_PREFIX));
+                assertTrue(msg.getReplyTo().startsWith(DEFAULT_INBOX_PREFIX));
                 msg.getConnection().publish(msg.getReplyTo(), null);
             });
             String subject = random();
@@ -176,7 +177,7 @@ public class RequestTests extends TestBase {
 
     @Test
     public void testMultipleReplies() throws Exception {
-        Options.Builder builder = optionsBuilder().turnOnAdvancedStats().requestCleanupInterval(Duration.ofMillis(2500));
+        OptionsBuilder builder = optionsBuilder().turnOnAdvancedStats().requestCleanupInterval(Duration.ofMillis(2500));
         runInSharedOwnNc(builder, nc -> {
             CountDownLatch d4CanReply = new CountDownLatch(1);
             AtomicInteger requests = new AtomicInteger();
@@ -314,7 +315,7 @@ public class RequestTests extends TestBase {
                 NatsMessage nm = NatsMessage.builder().subject(random()).data(dataBytes(2)).build();
                 CompletableFuture<Message> future = nc.requestAsync(nm, Duration.ofMillis(cleanupInterval));
                 
-                Thread.sleep(2 * cleanupInterval + Options.DEFAULT_CONNECTION_TIMEOUT.toMillis());
+                Thread.sleep(2 * cleanupInterval + DEFAULT_CONNECTION_TIMEOUT.toMillis());
 
                 assertTrue(future.isCompletedExceptionally());
                 assertEquals(0, nc.getStatistics().getOutstandingRequests());
@@ -339,7 +340,7 @@ public class RequestTests extends TestBase {
                 assertConnected(nc);
 
                 Dispatcher d = nc.createDispatcher(msg -> {
-                    assertTrue(msg.getReplyTo().startsWith(Options.DEFAULT_INBOX_PREFIX));
+                    assertTrue(msg.getReplyTo().startsWith(DEFAULT_INBOX_PREFIX));
                     if (msg.hasHeaders()) {
                         nc.publish(msg.getReplyTo(), msg.getHeaders(), null);
                     }
@@ -389,10 +390,10 @@ public class RequestTests extends TestBase {
                 assertConnected(nc);
 
                 //slow responder
-                long delay = 2 * cleanupInterval + Options.DEFAULT_CONNECTION_TIMEOUT.toMillis();
+                long delay = 2 * cleanupInterval + DEFAULT_CONNECTION_TIMEOUT.toMillis();
 
                 Dispatcher d = nc.createDispatcher(msg -> {
-                    assertTrue(msg.getReplyTo().startsWith(Options.DEFAULT_INBOX_PREFIX));
+                    assertTrue(msg.getReplyTo().startsWith(DEFAULT_INBOX_PREFIX));
                     Thread.sleep(delay);
                     nc.publish(msg.getReplyTo(), null);
                 });
@@ -590,27 +591,6 @@ public class RequestTests extends TestBase {
     }
 
     @Test
-    public void testOldStyleRequest() throws Exception {
-        runInSharedOwnNc(Options.builder().oldRequestStyle(), nc -> {
-            String subject = random();
-            AtomicReference<String> replyTo = new AtomicReference<>();
-            Dispatcher d = nc.createDispatcher(msg -> {
-                replyTo.set(msg.getReplyTo());
-                nc.publish(msg.getReplyTo(), null);
-            });
-            d.subscribe(subject);
-
-            Future<Message> incoming = nc.requestAsync(subject, null);
-            Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
-
-            assertEquals(0, nc.getStatistics().getOutstandingRequests());
-            assertNotNull(msg);
-            assertEquals(0, msg.getData().length);
-            assertEquals(msg.getSubject(), replyTo.get());
-        });
-    }
-
-    @Test
     public void testBuffersResize() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
             int initialSize = 128;
@@ -670,7 +650,7 @@ public class RequestTests extends TestBase {
 
         // coverage for null timeout
         f = new NatsRequestCompletableFuture(CancelAction.CANCEL, null, true);
-        Thread.sleep(Options.DEFAULT_REQUEST_CLEANUP_INTERVAL.toMillis() + 100);
+        Thread.sleep(DEFAULT_REQUEST_CLEANUP_INTERVAL.toMillis() + 100);
         assertTrue(f.hasExceededTimeout());
 
         f = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofNanos(0), false);

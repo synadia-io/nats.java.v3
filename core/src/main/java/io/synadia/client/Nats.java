@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import static io.synadia.client.OptionsConstants.DEFAULT_URL;
+
 /**
  * The Nats class is the entry point into the NATS client for Java. This class
  * is used to create a connection to the NATS server. Connecting is a
@@ -31,18 +33,18 @@ import java.util.Properties;
  * <ul>
  * <li>Pass a tls:// URL to the connect method, or as part of the options. The library will use the 
  * default SSLContext for both the client certificates and trust managers.
- * <li>Call the {@link Options.Builder#secure() secure} method on the options builder, again the default
+ * <li>Call the {@link OptionsBuilder#secure() secure} method on the options builder, again the default
  * SSL Context is used.
- * <li>Call {@link Options.Builder#sslContext(javax.net.ssl.SSLContext) sslContext} when building your options.
+ * <li>Call {@link OptionsBuilder#sslContext(javax.net.ssl.SSLContext) sslContext} when building your options.
  * Your context will be used.
  * <li>Pass an opentls:// url to the connect method, or in the options. The library will create a special
  * SSLContext that has no client certificates and trusts any server. <strong>This is less secure, but useful for
  * testing and behind a firewall.</strong>
- * <li>Call the {@link Options.Builder#opentls() opentls} method on the builder when creating your options, again
+ * <li>Call the {@link OptionsBuilder#opentls() opentls} method on the builder when creating your options, again
  * the all trusting, non-verifiable client is created.
  * </ul>
  * 
- * <p>To set up the default context for tls:// or {@link Options.Builder#secure() secure} you can:
+ * <p>To set up the default context for tls:// or {@link OptionsBuilder#secure() secure} you can:
  * <ul>
  * <li>Configure the default using System properties, i.e. <em>javax.net.ssl.keyStore</em>.
  * <li>Set the context manually with the SSLContext setDefault method.
@@ -85,7 +87,7 @@ public abstract class Nats {
     }
 
     /**
-     * Connect to the default URL, {@link Options#DEFAULT_URL Options.DEFAULT_URL}, with all the
+     * Connect to the default URL, {@link OptionsConstants#DEFAULT_URL DEFAULT_URL}, with all the
      * default options.
      * 
      * <p>This is a synchronous call, and the connection should be ready for use on return
@@ -101,19 +103,19 @@ public abstract class Nats {
      * @throws InterruptedException if the current thread is interrupted
      */
     public static NatsConnection connect() throws IOException, InterruptedException {
-        Options options = new Options.Builder().server(Options.DEFAULT_URL).build();
+        Options options = new OptionsBuilder().server(DEFAULT_URL).build();
         return createConnection(options, false);
     }
 
     /**
-     * Connect to the default URL, {@link Options#DEFAULT_URL Options.DEFAULT_URL}, with all the
+     * Connect to the default URL, {@link OptionsConstants#DEFAULT_URL DEFAULT_URL}, with all the
      * default options, allowing re-connect attempts if the initial connection fails
      * @return the connection
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
     public static NatsConnection connectReconnectOnConnect() throws IOException, InterruptedException {
-        Options options = new Options.Builder().server(Options.DEFAULT_URL).build();
+        Options options = new OptionsBuilder().server(DEFAULT_URL).build();
         return createConnection(options, true);
     }
 
@@ -145,7 +147,7 @@ public abstract class Nats {
      * @return the connection
      */
     public static NatsConnection connect(String url) throws IOException, InterruptedException {
-        Options options = new Options.Builder().server(url).build();
+        Options options = new OptionsBuilder().server(url).build();
         return createConnection(options, false);
     }
 
@@ -158,7 +160,7 @@ public abstract class Nats {
      * @throws InterruptedException if the current thread is interrupted
      */
     public static NatsConnection connectReconnectOnConnect(String url) throws IOException, InterruptedException {
-        Options options = new Options.Builder().server(url).build();
+        Options options = new OptionsBuilder().server(url).build();
         return createConnection(options, true);
     }
 
@@ -180,7 +182,7 @@ public abstract class Nats {
      * @throws InterruptedException if the current thread is interrupted
      */
     public static NatsConnection connect(String url, AuthHandler handler) throws IOException, InterruptedException {
-        Options options = new Options.Builder().server(url).authHandler(handler).build();
+        Options options = new OptionsBuilder().server(url).authHandler(handler).build();
         return createConnection(options, false);
     }
 
@@ -194,7 +196,7 @@ public abstract class Nats {
      * @throws InterruptedException if the current thread is interrupted
      */
     public static NatsConnection connectReconnectOnConnect(String url, AuthHandler handler) throws IOException, InterruptedException {
-        Options options = new Options.Builder().server(url).authHandler(handler).build();
+        Options options = new OptionsBuilder().server(url).authHandler(handler).build();
         return createConnection(options, true);
     }
 

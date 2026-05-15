@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static io.synadia.client.Options.MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT;
+import static io.synadia.client.OptionsConstants.MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT;
 import static io.synadia.client.impl.MarkerMessage.POISON_PILL;
 import static io.synadia.client.testutils.NatsConstants.OUTPUT_QUEUE_BUSY;
 import static io.synadia.client.testutils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
