@@ -207,7 +207,7 @@ public class WebsocketSupportClassesTests extends TestBase {
         testWithWriter(out -> {
             OutputStreamWriter writer = new OutputStreamWriter(out, UTF_8);
             writer.append("HTTP/1.1 101 Switching Protocols\r\n");
-            writer.append("NatsConnection: Upgrade\r\n");
+            writer.append("Connection: Upgrade\r\n");
             writer.append("Sec-Websocket-Accept: DEADBEEF\r\n");
             writer.append("\r\n");
             writer.close();
@@ -220,13 +220,13 @@ public class WebsocketSupportClassesTests extends TestBase {
             writer.append("Sec-Websocket-Accept: DEADBEEF\n");
             writer.append("\n");
             writer.close();
-        }, "Expected HTTP `NatsConnection: Upgrade` header");
+        }, "Expected HTTP `Connection: Upgrade` header");
 
         testWithWriter(out -> {
             OutputStreamWriter writer = new OutputStreamWriter(out, UTF_8);
             writer.append("HTTP/1.1 101 Switching Protocols\r\n");
             writer.append("Upgrade: Websocket\r\n");
-            writer.append("NatsConnection: Upgrade\r\n");
+            writer.append("Connection: Upgrade\r\n");
             writer.append("Sec-Websocket-Accept: DEADBEEF\r\n");
             writer.append("\r\n");
             writer.close();
@@ -237,7 +237,7 @@ public class WebsocketSupportClassesTests extends TestBase {
             OutputStreamWriter writer = new OutputStreamWriter(out, UTF_8);
             writer.append("HTTP/1.1 101 Switching Protocols\r\n");
             writer.append("Upgrade: Websocket\r\n");
-            writer.append("NatsConnection: Upgrade\r\n");
+            writer.append("Connection: Upgrade\r\n");
             writer.append("Sec-Websocket-Accept: DEADBEEF");
             writer.flush();
         }, "Expected HTTP `Sec-WebSocket-Accept: ");
