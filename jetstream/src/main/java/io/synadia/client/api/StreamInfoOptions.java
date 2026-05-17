@@ -4,6 +4,8 @@ import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.testutils.ApiConstants.DELETED_DETAILS;
 import static io.synadia.client.testutils.ApiConstants.SUBJECTS_FILTER;
@@ -134,5 +136,19 @@ public class StreamInfoOptions implements JsonSerializable {
         public StreamInfoOptions build() {
             return new StreamInfoOptions(subjectsFilter, deletedDetails);
         }
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof StreamInfoOptions that)) return false;
+        return deletedDetails == that.deletedDetails
+            && Objects.equals(subjectsFilter, that.subjectsFilter);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(subjectsFilter);
+        result = 31 * result + Boolean.hashCode(deletedDetails);
+        return result;
     }
 }

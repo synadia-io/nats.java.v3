@@ -15,17 +15,15 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * stream, plus the last active time.
  */
 @NullMarked
-public class SequenceInfo {
+public class SequenceInfo extends LazyApiObject {
 
     static final SequenceInfo EMPTY;
     static {
         EMPTY = new SequenceInfo(LazyJsonValue.EMPTY_MAP);
     }
 
-    private final LazyJsonValue ljv;
-
     SequenceInfo(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

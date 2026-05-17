@@ -2,6 +2,7 @@ package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 
@@ -26,9 +27,18 @@ public class ConsumerPauseRequest implements JsonSerializable {
     @Override
     public String toJson() {
         StringBuilder sb = beginJson();
-
         addField(sb, PAUSE_UNTIL, pauseUntil);
-
         return endJson(sb).toString();
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof ConsumerPauseRequest that)) return false;
+        return pauseUntil.equals(that.pauseUntil);
+    }
+
+    @Override
+    public int hashCode() {
+        return pauseUntil.hashCode();
     }
 }

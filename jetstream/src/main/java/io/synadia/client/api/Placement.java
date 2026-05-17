@@ -1,6 +1,5 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -16,8 +15,7 @@ import static io.synadia.client.testutils.ApiConstants.TAGS;
  * Placement directives returned from the server.
  */
 @NullMarked
-public class Placement implements JsonSerializable {
-    private final LazyJsonValue ljv;
+public class Placement extends LazyApiObject {
 
     @Nullable
     static Placement optionalInstance(@Nullable LazyJsonValue v) {
@@ -25,7 +23,7 @@ public class Placement implements JsonSerializable {
     }
 
     Placement(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**
@@ -53,11 +51,6 @@ public class Placement implements JsonSerializable {
     @Nullable
     public List<String> getTags() {
         return readStringListOrNull(ljv, TAGS);
-    }
-
-    @Override
-    public String toJson() {
-        return ljv.toJson();
     }
 
     @Override

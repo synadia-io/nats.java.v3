@@ -11,11 +11,10 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Represents the JetStream Account Api Stats
  */
 @NullMarked
-public class ApiStats {
-    private final LazyJsonValue ljv;
+public class ApiStats extends LazyApiObject {
 
     ApiStats(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

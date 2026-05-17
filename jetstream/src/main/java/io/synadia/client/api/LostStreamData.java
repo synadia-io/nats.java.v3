@@ -15,8 +15,7 @@ import static io.synadia.client.testutils.ApiConstants.MSGS;
  * Information about lost stream data
  */
 @NullMarked
-public class LostStreamData {
-    private final LazyJsonValue ljv;
+public class LostStreamData extends LazyApiObject {
 
     @Nullable
     static LostStreamData optionalInstance(@Nullable LazyJsonValue v) {
@@ -24,7 +23,7 @@ public class LostStreamData {
     }
 
     LostStreamData(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

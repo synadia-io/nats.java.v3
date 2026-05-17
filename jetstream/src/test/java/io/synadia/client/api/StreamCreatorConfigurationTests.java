@@ -185,11 +185,11 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
             assertEquals(originalCreator.toJson(), roundTrip.toJson());
 
             // round trip through the SourceCreator copy constructor (basis)
-            SourceCreator copy = new SourceCreator(originalCreator.getName(), roundTrip);
+            SourceCreator copy = new SourceCreator(originalCreator.getStreamName(), roundTrip);
             assertEquals(originalCreator.toJson(), copy.toJson());
 
             // verify the round-tripped Source matches the original SourceCreator content
-            ExternalCreator originalExternal = originalCreator.getExternal();
+            ExternalCreator originalExternal = originalCreator.getExternalCreator();
             External roundTripExternal = source.getExternal();
             if (originalExternal == null) {
                 assertNull(roundTripExternal);
@@ -302,103 +302,6 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").subjectDeleteMarkerTtl(1));
     }
 
-//    @Test
-//    public void testSourceBase() {
-//        StreamConfiguration sc = getTestStreamCreator();
-//        Mirror m = sc.getMirror();
-//        assertNotNull(m);
-//        LazyJsonValue v = LazyJsonParser.parseUnchecked(m.toJson());
-//        Source s1 = new Source(v);
-//        Source s2 = new Source(v);
-//        assertEquals(s1, s2);
-//        //noinspection MisorderedAssertEqualsArguments
-//        assertNotEquals(s1, null);
-//        //noinspection MisorderedAssertEqualsArguments
-//        assertNotEquals(s1, new Object());
-//        Mirror m1 = new Mirror(v);
-//        Mirror m2 = new Mirror(v);
-//        assertEquals(m1, m2);
-//        //noinspection MisorderedAssertEqualsArguments
-//        assertNotEquals(m1, null);
-//        //noinspection MisorderedAssertEqualsArguments
-//        assertNotEquals(m1, new Object());
-//
-//        Source.Builder sb = Source.builder();
-//        Mirror.Builder mb = Mirror.builder();
-//
-//        // STEPPED like this so the equals returns false on different portion of the object
-//        // by the end I've built an equal object
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.startSeq(999), mb.startSeq(999));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.startSeq(m.getStartSeq()), mb.startSeq(m.getStartSeq()));
-//
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.sourceName(null), mb.sourceName(null));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.sourceName("not"), mb.sourceName("not"));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.sourceName(m.getSourceName()), mb.sourceName(m.getSourceName()));
-//
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.startTime(null), mb.startTime(null));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.startTime(ZonedDateTime.now()), mb.startTime(ZonedDateTime.now()));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.startTime(m.getStartTime()), mb.startTime(m.getStartTime()));
-//
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.filterSubject(null), mb.filterSubject(null));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.filterSubject("not"), mb.filterSubject("not"));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.filterSubject(m.getFilterSubject()), mb.filterSubject(m.getFilterSubject()));
-//
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.external(null), mb.external(null));
-//        assertNotEqualsEqualsHashcode(s1, m1, sb.external(new External(LazyJsonValue.NULL)), mb.external(new External(LazyJsonValue.NULL)));
-//
-//        sb.external(m.getExternal());
-//        mb.external(m.getExternal());
-//
-//        sb.subjectTransforms((SubjectTransform[]) null);
-//        mb.subjectTransforms((SubjectTransform[]) null);
-//        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
-//
-//        List<SubjectTransform> stList = null;
-//        sb.subjectTransforms(stList);
-//        mb.subjectTransforms(stList);
-//        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
-//
-//        sb.subjectTransforms(stList);
-//        mb.subjectTransforms(stList);
-//        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
-//
-//        stList = new ArrayList<>();
-//        sb.subjectTransforms(stList);
-//        mb.subjectTransforms(stList);
-//        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
-//
-//        stList.add(null);
-//        sb.subjectTransforms(stList);
-//        mb.subjectTransforms(stList);
-//        assertEquals(sb.subjectTransforms, mb.subjectTransforms);
-//
-//        sb.subjectTransforms(m.getSubjectTransforms());
-//        mb.subjectTransforms(m.getSubjectTransforms());
-//
-//        assertEquals(s1, sb.build());
-//        assertEquals(m1, mb.build());
-//        assertEquals(s1.hashCode(), sb.build().hashCode());
-//        assertEquals(m1.hashCode(), mb.build().hashCode());
-//        assertEquals(sb.subjectTransforms, m1.getSubjectTransforms());
-//
-//        // coverage
-//        List<SubjectTransform> st = m.getSubjectTransforms();
-//        assertNotNull(st);
-//        String s = st.get(0).toString();
-//        assertTrue(s != null && !s.isEmpty());
-//    }
-//
-//    private void assertNotEqualsEqualsHashcode(Source s, Mirror m, Source.Builder sb, Mirror.Builder mb) {
-//        assertNotEquals(s, sb.build());
-//        assertNotEquals(m, mb.build());
-//        assertNotEquals(s.hashCode(), sb.build().hashCode());
-//        assertNotEquals(m.hashCode(), mb.build().hashCode());
-//        assertNotEquals(sb.build(), s);
-//        assertNotEquals(mb.build(), m);
-//        assertNotEquals(sb.build().hashCode(), s.hashCode());
-//        assertNotEquals(mb.build().hashCode(), m.hashCode());
-//    }
-//
 //    @Test
 //    public void testSubjects() {
 //        StreamCreator builder = new StreamCreator(random());
@@ -593,7 +496,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
 
             Mirror mirror = sc.getMirror();
             assertNotNull(mirror);
-            assertEquals("eman", mirror.getName());
+            assertEquals("eman", mirror.getStreamName());
             assertEquals(736, mirror.getStartSequence());
             assertEquals(zdt, mirror.getStartTime());
             assertEquals("mfsub", mirror.getFilterSubject());
@@ -634,7 +537,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
     private void validateSource(Source source, int index, ZonedDateTime zdt) {
         long seq = 737 + index;
         String name = "s" + index;
-        assertEquals(name, source.getName());
+        assertEquals(name, source.getStreamName());
         assertEquals(seq, source.getStartSequence());
         assertEquals(zdt, source.getStartTime());
         assertEquals(name + "sub", source.getFilterSubject());

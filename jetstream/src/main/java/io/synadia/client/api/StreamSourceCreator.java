@@ -6,14 +6,14 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
+import static io.synadia.client.impl.JetStreamApiUtils.replaceAll;
 import static io.synadia.client.impl.JetStreamOptions.convertDomainToPrefix;
 import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.Validator.nullOrEmpty;
+import static io.synadia.client.testutils.JsValidator.validateStreamName;
 
 /**
  * Base class for MirrorCreator and SourceCreator.
@@ -21,19 +21,19 @@ import static io.synadia.client.testutils.Validator.nullOrEmpty;
 @SuppressWarnings("unchecked")
 @NullMarked
 abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements JsonSerializable {
-    private final String name;
+    private final String streamName;
     private long startSequence;
     private @Nullable ZonedDateTime startTime;
     private @Nullable String filterSubject;
-    private @Nullable ExternalCreator external;
-    private final List<SubjectTransformCreator> subjectTransforms = new ArrayList<>();
+    private @Nullable ExternalCreator externalCreator;
+    private final List<SubjectTransformCreator> subjectTransformCreators = new ArrayList<>();
 
     /**
      * Construct a StreamSourceCreator
-     * @param name the stream name
+     * @param streamName the stream name
      */
-    public StreamSourceCreator(String name) {
-        this.name = name;
+    public StreamSourceCreator(String streamName) {
+        this.streamName = validateStreamName(streamName, true);
     }
 
     /**
@@ -42,12 +42,12 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param basis the source base the copy on for all the other fields
      */
     public StreamSourceCreator(String newName, StreamSourceCreator<?> basis) {
-        this.name = newName;
+        this.streamName = newName;
         this.startSequence = basis.startSequence;
         this.startTime = basis.startTime;
         this.filterSubject = basis.filterSubject;
-        this.external = basis.external;
-        this.subjectTransforms.addAll(basis.subjectTransforms);
+        this.externalCreator = basis.externalCreator;
+        this.subjectTransformCreators.addAll(basis.subjectTransformCreators);
     }
 
     /**
@@ -55,14 +55,14 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param ss the stream source to copy from
      */
     StreamSourceCreator(StreamSource ss) {
-        this.name = ss.getName();
+        this.streamName = ss.getStreamName();
         this.startSequence = ss.getStartSequence();
         this.startTime = ss.getStartTime();
         this.filterSubject = ss.getFilterSubject();
         External ext = ss.getExternal();
-        this.external = ext == null ? null : new ExternalCreator(ext);
+        this.externalCreator = ext == null ? null : new ExternalCreator(ext);
         for (SubjectTransform st : ss.getSubjectTransforms()) {
-            this.subjectTransforms.add(new SubjectTransformCreator(st));
+            this.subjectTransformCreators.add(new SubjectTransformCreator(st));
         }
     }
 
@@ -81,7 +81,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param startTime the start time
      * @return this instance for chaining
      */
-    public T startTime(ZonedDateTime startTime) {
+    public T startTime(@Nullable ZonedDateTime startTime) {
         this.startTime = startTime;
         return (T) this;
     }
@@ -91,7 +91,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param filterSubject the filter subject
      * @return this instance for chaining
      */
-    public T filterSubject(String filterSubject) {
+    public T filterSubject(@Nullable String filterSubject) {
         this.filterSubject = filterSubject;
         return (T) this;
     }
@@ -101,8 +101,8 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param external the external
      * @return this instance for chaining
      */
-    public T external(ExternalCreator external) {
-        this.external = external;
+    public T externalCreator(@Nullable ExternalCreator external) {
+        this.externalCreator = external;
         return (T) this;
     }
 
@@ -113,7 +113,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      */
     public T domain(String domain) {
         String prefix = convertDomainToPrefix(domain);
-        external = prefix == null ? null : new ExternalCreator().api(prefix);
+        externalCreator = prefix == null ? null : new ExternalCreator().api(prefix);
         return (T) this;
     }
 
@@ -123,7 +123,8 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @return this instance for chaining
      */
     public T subjectTransforms(SubjectTransformCreator... subjectTransformCreators) {
-        return subjectTransforms(Arrays.asList(subjectTransformCreators));
+        replaceAll(this.subjectTransformCreators, subjectTransformCreators);
+        return (T) this;
     }
 
     /**
@@ -132,10 +133,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @return this instance for chaining
      */
     public T subjectTransforms(List<SubjectTransformCreator> subjectTransformCreators) {
-        this.subjectTransforms.clear();
-        if (!nullOrEmpty(subjectTransformCreators)) {
-            this.subjectTransforms.addAll(subjectTransformCreators);
-        }
+        replaceAll(this.subjectTransformCreators, subjectTransformCreators);
         return (T) this;
     }
 
@@ -144,7 +142,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
     // ----------------------------------------------------------------------------------------------------
 
     /** @return the name */
-    public String getName() { return name; }
+    public String getStreamName() { return streamName; }
 
     /** @return the start sequence */
     public long getStartSequence() { return startSequence; }
@@ -156,43 +154,43 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
     @Nullable public String getFilterSubject() { return filterSubject; }
 
     /** @return the external reference */
-    @Nullable public ExternalCreator getExternal() { return external; }
+    @Nullable public ExternalCreator getExternalCreator() { return externalCreator; }
 
     /** @return the subject transforms */
-    public List<SubjectTransformCreator> getSubjectTransforms() { return subjectTransforms; }
+    public List<SubjectTransformCreator> getSubjectTransformCreators() { return subjectTransformCreators; }
 
     @Override
     public String toJson() {
         StringBuilder sb = beginJson();
-        addField(sb, NAME, name);
+        addField(sb, NAME, streamName);
         addFieldWhenGtZero(sb, OPT_START_SEQ, startSequence);
         addField(sb, OPT_START_TIME, startTime);
         addField(sb, FILTER_SUBJECT, filterSubject);
-        addField(sb, EXTERNAL, external);
-        addJsons(sb, SUBJECT_TRANSFORMS, subjectTransforms);
+        addField(sb, EXTERNAL, externalCreator);
+        addJsons(sb, SUBJECT_TRANSFORMS, subjectTransformCreators);
         return endJson(sb).toString();
     }
 
     @Override
-    public final boolean equals(Object o) {
+    public final boolean equals(@Nullable Object o) {
         if (!(o instanceof StreamSourceCreator<?> that)) return false;
 
         return startSequence == that.startSequence
-            && Objects.equals(name, that.name)
+            && Objects.equals(streamName, that.streamName)
             && Objects.equals(startTime, that.startTime)
             && Objects.equals(filterSubject, that.filterSubject)
-            && Objects.equals(external, that.external)
-            && subjectTransforms.equals(that.subjectTransforms);
+            && Objects.equals(externalCreator, that.externalCreator)
+            && subjectTransformCreators.equals(that.subjectTransformCreators);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hashCode(name);
+        int result = Objects.hashCode(streamName);
         result = 31 * result + Long.hashCode(startSequence);
         result = 31 * result + Objects.hashCode(startTime);
         result = 31 * result + Objects.hashCode(filterSubject);
-        result = 31 * result + Objects.hashCode(external);
-        result = 31 * result + subjectTransforms.hashCode();
+        result = 31 * result + Objects.hashCode(externalCreator);
+        result = 31 * result + subjectTransformCreators.hashCode();
         return result;
     }
 }

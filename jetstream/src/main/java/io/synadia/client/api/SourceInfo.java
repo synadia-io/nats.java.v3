@@ -19,6 +19,6 @@ public class SourceInfo extends StreamSourceInfo {
     }
 
     SourceInfo(LazyJsonValue v) {
-        super("Source", v);
+        super(v);
     }
 }

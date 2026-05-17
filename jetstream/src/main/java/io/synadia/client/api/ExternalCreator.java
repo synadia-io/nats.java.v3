@@ -4,6 +4,8 @@ import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.testutils.ApiConstants.API;
 import static io.synadia.client.testutils.ApiConstants.DELIVER;
@@ -88,5 +90,19 @@ public class ExternalCreator implements JsonSerializable {
     @Override
     public String toString() {
         return "ExternalCreator" + toJson();
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof ExternalCreator that)) return false;
+        return Objects.equals(api, that.api)
+            && Objects.equals(deliver, that.deliver);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(api);
+        result = 31 * result + Objects.hashCode(deliver);
+        return result;
     }
 }

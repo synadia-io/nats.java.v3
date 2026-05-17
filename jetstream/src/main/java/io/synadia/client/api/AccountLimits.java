@@ -11,11 +11,10 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Represents the JetStream Account Limits
  */
 @NullMarked
-public class AccountLimits {
-    private final LazyJsonValue ljv;
+public class AccountLimits extends LazyApiObject {
 
     AccountLimits(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

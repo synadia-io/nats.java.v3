@@ -14,8 +14,7 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Information about the cluster a stream or consumer is part of.
  */
 @NullMarked
-public class ClusterInfo {
-    private final LazyJsonValue ljv;
+public class ClusterInfo extends LazyApiObject {
     private @Nullable List<Replica> _replicas;
 
     @Nullable
@@ -24,7 +23,7 @@ public class ClusterInfo {
     }
 
     ClusterInfo(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

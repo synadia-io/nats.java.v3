@@ -2,6 +2,7 @@ package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.testutils.ApiConstants.NO_ERASE;
@@ -15,19 +16,36 @@ public class MessageDeleteRequest implements JsonSerializable {
     private final long sequence;
     private final boolean erase;
 
+    /**
+     * Construct a message delete request for the given sequence.
+     * @param sequence the message sequence to delete
+     * @param erase whether to erase the message on delete (true) or simply remove it (false)
+     */
     public MessageDeleteRequest(long sequence, boolean erase) {
         this.sequence = sequence;
         this.erase = erase;
     }
 
+    /**
+     * Get the sequence of the message to delete.
+     * @return the sequence
+     */
     public long getSequence() {
         return sequence;
     }
 
+    /**
+     * Whether the message should be erased on delete.
+     * @return true if the message will be erased
+     */
     public boolean isErase() {
         return erase;
     }
 
+    /**
+     * Whether the message should not be erased on delete.
+     * @return true if the message will not be erased
+     */
     public boolean isNoErase() {
         return !erase;
     }
@@ -48,9 +66,17 @@ public class MessageDeleteRequest implements JsonSerializable {
         return new Builder();
     }
 
+    /**
+     * Builder for constructing a MessageDeleteRequest.
+     */
     public static class Builder {
         private long seq = -1;
         private boolean erase = true;
+
+        /**
+         * Construct an instance of the builder
+         */
+        public Builder() {}
 
         /**
          * Set upper-bound sequence for messages to be deleted
@@ -87,5 +113,19 @@ public class MessageDeleteRequest implements JsonSerializable {
         public MessageDeleteRequest build() {
             return new MessageDeleteRequest(seq, erase);
         }
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof MessageDeleteRequest that)) return false;
+        return sequence == that.sequence
+            && erase == that.erase;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Long.hashCode(sequence);
+        result = 31 * result + Boolean.hashCode(erase);
+        return result;
     }
 }

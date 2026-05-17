@@ -106,4 +106,22 @@ public class Error {
      * Error representing 404 / 10037 / "no message found"
      */
     public static final Error JsNoMessageFoundErr = new Error(404, 10037, "no message found");
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Error)) return false;
+        Error that = (Error) o;
+        return code == that.code
+            && apiErrorCode == that.apiErrorCode
+            && description.equals(that.description);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = code;
+        result = 31 * result + apiErrorCode;
+        result = 31 * result + description.hashCode();
+        return result;
+    }
 }

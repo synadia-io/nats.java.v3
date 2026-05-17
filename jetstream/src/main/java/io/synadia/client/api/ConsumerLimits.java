@@ -1,6 +1,5 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -17,8 +16,7 @@ import static io.synadia.client.testutils.ApiConstants.MAX_ACK_PENDING;
  * ConsumerLimits returned from the server.
  */
 @NullMarked
-public class ConsumerLimits implements JsonSerializable {
-    private final LazyJsonValue ljv;
+public class ConsumerLimits extends LazyApiObject {
 
     @Nullable
     static ConsumerLimits optionalInstance(@Nullable LazyJsonValue v) {
@@ -26,7 +24,7 @@ public class ConsumerLimits implements JsonSerializable {
     }
 
     ConsumerLimits(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**
@@ -46,11 +44,6 @@ public class ConsumerLimits implements JsonSerializable {
      */
     public long getMaxAckPending() {
         return readLong(ljv, MAX_ACK_PENDING, UNSET);
-    }
-
-    @Override
-    public String toJson() {
-        return ljv.toJson();
     }
 
     @Override

@@ -1,6 +1,5 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -13,8 +12,7 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Republish Configuration returned from the server.
  */
 @NullMarked
-public class Republish implements JsonSerializable {
-    private final LazyJsonValue ljv;
+public class Republish extends LazyApiObject {
 
     @Nullable
     static Republish optionalInstance(@Nullable LazyJsonValue v) {
@@ -22,7 +20,7 @@ public class Republish implements JsonSerializable {
     }
 
     Republish(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**
@@ -49,11 +47,6 @@ public class Republish implements JsonSerializable {
      */
     public boolean isHeadersOnly() {
         return readBoolean(ljv, HEADERS_ONLY, false);
-    }
-
-    @Override
-    public String toJson() {
-        return ljv.toJson();
     }
 
     @Override

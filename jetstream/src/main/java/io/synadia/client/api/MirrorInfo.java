@@ -16,6 +16,6 @@ public class MirrorInfo extends StreamSourceInfo {
     }
 
     MirrorInfo(LazyJsonValue v) {
-        super("Mirror", v);
+        super(v);
     }
 }

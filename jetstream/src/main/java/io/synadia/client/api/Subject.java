@@ -64,4 +64,19 @@ public class Subject implements Comparable<Subject> {
     public int compareTo(Subject o) {
         return name.compareTo(o.name);
     }
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Subject)) return false;
+        Subject that = (Subject) o;
+        return count == that.count && name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + Long.hashCode(count);
+        return result;
+    }
 }

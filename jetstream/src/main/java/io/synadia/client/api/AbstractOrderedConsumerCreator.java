@@ -5,6 +5,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.Objects;
 
 /**
  * The AbstractOrderedConsumerCreator class helps specify the configuration for creating an ordered JetStream consumer
@@ -63,5 +64,17 @@ public abstract class AbstractOrderedConsumerCreator<T extends AbstractOrderedCo
         _name(JetStreamApiUtils.generateConsumerName(namePrefix));
         //noinspection unchecked
         return (T)this;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+        if (!super.equals(o)) return false;
+        AbstractOrderedConsumerCreator<?> that = (AbstractOrderedConsumerCreator<?>) o;
+        return Objects.equals(namePrefix, that.namePrefix);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * super.hashCode() + Objects.hashCode(namePrefix);
     }
 }

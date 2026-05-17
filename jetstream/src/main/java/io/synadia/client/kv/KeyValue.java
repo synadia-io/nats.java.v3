@@ -45,7 +45,7 @@ public class KeyValue extends AbstractBucketFeature {
         String writeTemp;
         Mirror m = si.getConfiguration().getMirror();
         if (m != null) {
-            String bName = trimPrefix(m.getName());
+            String bName = trimPrefix(m.getStreamName());
             String mExtApi = m.getExternal() == null ? null : m.getExternal().getApi();
             if (mExtApi == null) {
                 writeTemp = toKeyPrefix(bName);

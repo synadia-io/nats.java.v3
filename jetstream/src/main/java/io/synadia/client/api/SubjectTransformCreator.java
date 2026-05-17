@@ -3,6 +3,7 @@ package io.synadia.client.api;
 import io.nats.json.JsonSerializable;
 import io.synadia.client.testutils.Validator;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.testutils.ApiConstants.DEST;
@@ -61,5 +62,19 @@ public class SubjectTransformCreator implements JsonSerializable {
     @Override
     public String toString() {
         return "SubjectTransformCreator " + toJson();
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof SubjectTransformCreator that)) return false;
+
+        return source.equals(that.source) && destination.equals(that.destination);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = source.hashCode();
+        result = 31 * result + destination.hashCode();
+        return result;
     }
 }

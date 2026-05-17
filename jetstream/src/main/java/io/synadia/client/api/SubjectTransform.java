@@ -1,12 +1,10 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
@@ -17,8 +15,7 @@ import static io.synadia.client.testutils.ApiConstants.SRC;
  * SubjectTransform returned from the server.
  */
 @NullMarked
-public class SubjectTransform implements JsonSerializable {
-    private final LazyJsonValue ljv;
+public class SubjectTransform extends LazyApiObject {
 
     @Nullable
     static SubjectTransform optionalInstance(@Nullable LazyJsonValue v) {
@@ -30,7 +27,7 @@ public class SubjectTransform implements JsonSerializable {
     }
 
     SubjectTransform(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**
@@ -49,31 +46,6 @@ public class SubjectTransform implements JsonSerializable {
     public String getDestination() {
         //noinspection DataFlowIssue we know this will not be null
         return readString(ljv, DEST);
-    }
-
-    @Override
-    public String toJson() {
-        return ljv.toJson();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        SubjectTransform that = (SubjectTransform) o;
-
-        if (!Objects.equals(getSource(), that.getSource())) return false;
-        return Objects.equals(getDestination(), that.getDestination());
-    }
-
-    @Override
-    public int hashCode() {
-        getSource();
-        int result = getSource().hashCode();
-        getDestination();
-        result = 31 * result + getDestination().hashCode();
-        return result;
     }
 
     @Override

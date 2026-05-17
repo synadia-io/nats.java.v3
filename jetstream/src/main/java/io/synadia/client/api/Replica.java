@@ -17,6 +17,6 @@ public class Replica extends PeerInfo {
     }
 
     Replica(LazyJsonValue ljv) {
-        super("Replica", ljv);
+        super(ljv);
     }
 }

@@ -244,6 +244,18 @@ public abstract class ApiResponse<T> {
     }
 
     @Override
+    public boolean equals(@Nullable Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return ljv.equals(((ApiResponse<?>)o).ljv);
+    }
+
+    @Override
+    public int hashCode() {
+        return ljv.hashCode();
+    }
+
+    @Override
     public String toString() {
         if (ljv == LazyJsonValue.EMPTY_MAP) {
             return toKey(getClass()) + "\":null";

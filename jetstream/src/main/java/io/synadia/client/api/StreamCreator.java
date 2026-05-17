@@ -1151,4 +1151,93 @@ public class StreamCreator implements JsonSerializable {
     public String toString() {
         return "StreamCreator " + toJson();
     }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof StreamCreator that)) return false;
+
+        return maxConsumers == that.maxConsumers
+            && maxMessages == that.maxMessages
+            && maxMessagesPerSubject == that.maxMessagesPerSubject
+            && maxBytes == that.maxBytes
+            && maxMessageSize == that.maxMessageSize
+            && replicas == that.replicas
+            && noAck == that.noAck
+            && sealed == that.sealed
+            && allowRollup == that.allowRollup
+            && allowDirect == that.allowDirect
+            && mirrorDirect == that.mirrorDirect
+            && denyDelete == that.denyDelete
+            && denyPurge == that.denyPurge
+            && discardNewPerSubject == that.discardNewPerSubject
+            && firstSequence == that.firstSequence
+            && allowMessageTtl == that.allowMessageTtl
+            && allowMessageSchedules == that.allowMessageSchedules
+            && allowMessageCounter == that.allowMessageCounter
+            && allowAtomicPublish == that.allowAtomicPublish
+            && allowBatched == that.allowBatched
+            && name.equals(that.name)
+            && Objects.equals(description, that.description)
+            && subjects.equals(that.subjects)
+            && retentionPolicy.equals(that.retentionPolicy)
+            && compressionOption.equals(that.compressionOption)
+            && Objects.equals(maxAge, that.maxAge)
+            && storageType.equals(that.storageType)
+            && Objects.equals(templateOwner, that.templateOwner)
+            && discardPolicy.equals(that.discardPolicy)
+            && Objects.equals(duplicateWindow, that.duplicateWindow)
+            && Objects.equals(placementCreator, that.placementCreator)
+            && Objects.equals(republishCreator, that.republishCreator)
+            && Objects.equals(subjectTransformCreator, that.subjectTransformCreator)
+            && Objects.equals(consumerLimitsCreator, that.consumerLimitsCreator)
+            && Objects.equals(mirrorCreator, that.mirrorCreator)
+            && sourceCreators.equals(that.sourceCreators)
+            && metadata.equals(that.metadata)
+            && Objects.equals(subjectDeleteMarkerTtl, that.subjectDeleteMarkerTtl)
+            && Objects.equals(persistMode, that.persistMode);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + Objects.hashCode(description);
+        result = 31 * result + subjects.hashCode();
+        result = 31 * result + retentionPolicy.hashCode();
+        result = 31 * result + compressionOption.hashCode();
+        result = 31 * result + Long.hashCode(maxConsumers);
+        result = 31 * result + Long.hashCode(maxMessages);
+        result = 31 * result + Long.hashCode(maxMessagesPerSubject);
+        result = 31 * result + Long.hashCode(maxBytes);
+        result = 31 * result + Objects.hashCode(maxAge);
+        result = 31 * result + Integer.hashCode(maxMessageSize);
+        result = 31 * result + storageType.hashCode();
+        result = 31 * result + Integer.hashCode(replicas);
+        result = 31 * result + Boolean.hashCode(noAck);
+        result = 31 * result + Objects.hashCode(templateOwner);
+        result = 31 * result + discardPolicy.hashCode();
+        result = 31 * result + Objects.hashCode(duplicateWindow);
+        result = 31 * result + Objects.hashCode(placementCreator);
+        result = 31 * result + Objects.hashCode(republishCreator);
+        result = 31 * result + Objects.hashCode(subjectTransformCreator);
+        result = 31 * result + Objects.hashCode(consumerLimitsCreator);
+        result = 31 * result + Objects.hashCode(mirrorCreator);
+        result = 31 * result + sourceCreators.hashCode();
+        result = 31 * result + Boolean.hashCode(sealed);
+        result = 31 * result + Boolean.hashCode(allowRollup);
+        result = 31 * result + Boolean.hashCode(allowDirect);
+        result = 31 * result + Boolean.hashCode(mirrorDirect);
+        result = 31 * result + Boolean.hashCode(denyDelete);
+        result = 31 * result + Boolean.hashCode(denyPurge);
+        result = 31 * result + Boolean.hashCode(discardNewPerSubject);
+        result = 31 * result + metadata.hashCode();
+        result = 31 * result + Long.hashCode(firstSequence);
+        result = 31 * result + Objects.hashCode(subjectDeleteMarkerTtl);
+        result = 31 * result + Boolean.hashCode(allowMessageTtl);
+        result = 31 * result + Boolean.hashCode(allowMessageSchedules);
+        result = 31 * result + Boolean.hashCode(allowMessageCounter);
+        result = 31 * result + Boolean.hashCode(allowAtomicPublish);
+        result = 31 * result + Boolean.hashCode(allowBatched);
+        result = 31 * result + Objects.hashCode(persistMode);
+        return result;
+    }
 }

@@ -10,10 +10,10 @@ public class SourceCreator extends StreamSourceCreator<SourceCreator> {
 
     /**
      * Construct a SourceCreator
-     * @param name the source stream name
+     * @param streamName the source stream name
      */
-    public SourceCreator(String name) {
-        super(name);
+    public SourceCreator(String streamName) {
+        super(streamName);
     }
 
     /**

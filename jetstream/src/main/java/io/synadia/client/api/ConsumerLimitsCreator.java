@@ -5,6 +5,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.*;
@@ -91,5 +92,19 @@ public class ConsumerLimitsCreator implements JsonSerializable {
     @Override
     public String toString() {
         return "ConsumerLimitsCreator " + toJson();
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof ConsumerLimitsCreator that)) return false;
+        return maxAckPending == that.maxAckPending
+            && Objects.equals(inactiveThreshold, that.inactiveThreshold);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(inactiveThreshold);
+        result = 31 * result + Long.hashCode(maxAckPending);
+        return result;
     }
 }

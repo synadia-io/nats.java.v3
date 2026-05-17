@@ -14,13 +14,10 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Information about a stream being sourced
  */
 @NullMarked
-abstract class StreamSourceInfo {
-    private final String type;
-    private final LazyJsonValue ljv;
+abstract class StreamSourceInfo extends LazyApiObject {
 
-    protected StreamSourceInfo(String type, LazyJsonValue v) {
-        this.type = type;
-        this.ljv = v;
+    protected StreamSourceInfo(LazyJsonValue v) {
+        super(v);
     }
 
     /**
@@ -30,7 +27,7 @@ abstract class StreamSourceInfo {
     public String getName() {
         String name = readString(ljv, NAME);
         if (name == null) {
-            throw new IllegalStateException(type + " does not have required name.");
+            throw new IllegalStateException(getClass().getSimpleName() + " does not have required name.");
         }
         return name;
     }
@@ -90,6 +87,6 @@ abstract class StreamSourceInfo {
 
     @Override
     public String toString() {
-        return type + " " + ljv.toJson();
+        return getClass().getSimpleName() + " " + ljv.toJson();
     }
 }

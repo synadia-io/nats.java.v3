@@ -734,4 +734,88 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     protected void _priorityTimeout(long priorityTimeoutMillis) {
         this.priorityTimeout = normalizeDuration(priorityTimeoutMillis);
     }
+
+    // ----------------------------------------------------------------------------------------------------
+    // EQUALS / HASHCODE
+    // ----------------------------------------------------------------------------------------------------
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ConsumerCreator<?> that = (ConsumerCreator<?>) o;
+        return isPush == that.isPush
+            && startSequence == that.startSequence
+            && rateLimit == that.rateLimit
+            && maxDeliver == that.maxDeliver
+            && maxAckPending == that.maxAckPending
+            && maxPullWaiting == that.maxPullWaiting
+            && maxBatch == that.maxBatch
+            && maxBytes == that.maxBytes
+            && numReplicas == that.numReplicas
+            && flowControl == that.flowControl
+            && headersOnly == that.headersOnly
+            && memStorage == that.memStorage
+            && stream.equals(that.stream)
+            && deliverPolicy.equals(that.deliverPolicy)
+            && ackPolicy.equals(that.ackPolicy)
+            && replayPolicy.equals(that.replayPolicy)
+            && priorityPolicy.equals(that.priorityPolicy)
+            && Objects.equals(description, that.description)
+            && Objects.equals(durable, that.durable)
+            && Objects.equals(name, that.name)
+            && Objects.equals(deliverSubject, that.deliverSubject)
+            && Objects.equals(deliverGroup, that.deliverGroup)
+            && Objects.equals(sampleFrequency, that.sampleFrequency)
+            && Objects.equals(startTime, that.startTime)
+            && Objects.equals(ackWait, that.ackWait)
+            && Objects.equals(idleHeartbeat, that.idleHeartbeat)
+            && Objects.equals(maxExpires, that.maxExpires)
+            && Objects.equals(inactiveThreshold, that.inactiveThreshold)
+            && Objects.equals(pauseUntil, that.pauseUntil)
+            && Objects.equals(priorityTimeout, that.priorityTimeout)
+            && filterSubjects.equals(that.filterSubjects)
+            && backoff.equals(that.backoff)
+            && metadata.equals(that.metadata)
+            && priorityGroups.equals(that.priorityGroups);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = stream.hashCode();
+        result = 31 * result + Boolean.hashCode(isPush);
+        result = 31 * result + deliverPolicy.hashCode();
+        result = 31 * result + ackPolicy.hashCode();
+        result = 31 * result + replayPolicy.hashCode();
+        result = 31 * result + priorityPolicy.hashCode();
+        result = 31 * result + Objects.hashCode(description);
+        result = 31 * result + Objects.hashCode(durable);
+        result = 31 * result + Objects.hashCode(name);
+        result = 31 * result + Objects.hashCode(deliverSubject);
+        result = 31 * result + Objects.hashCode(deliverGroup);
+        result = 31 * result + Objects.hashCode(sampleFrequency);
+        result = 31 * result + Objects.hashCode(startTime);
+        result = 31 * result + Objects.hashCode(ackWait);
+        result = 31 * result + Objects.hashCode(idleHeartbeat);
+        result = 31 * result + Objects.hashCode(maxExpires);
+        result = 31 * result + Objects.hashCode(inactiveThreshold);
+        result = 31 * result + Long.hashCode(startSequence);
+        result = 31 * result + Long.hashCode(rateLimit);
+        result = 31 * result + Long.hashCode(maxDeliver);
+        result = 31 * result + Long.hashCode(maxAckPending);
+        result = 31 * result + Long.hashCode(maxPullWaiting);
+        result = 31 * result + Long.hashCode(maxBatch);
+        result = 31 * result + Long.hashCode(maxBytes);
+        result = 31 * result + Long.hashCode(numReplicas);
+        result = 31 * result + Objects.hashCode(pauseUntil);
+        result = 31 * result + Boolean.hashCode(flowControl);
+        result = 31 * result + Boolean.hashCode(headersOnly);
+        result = 31 * result + Boolean.hashCode(memStorage);
+        result = 31 * result + filterSubjects.hashCode();
+        result = 31 * result + backoff.hashCode();
+        result = 31 * result + metadata.hashCode();
+        result = 31 * result + priorityGroups.hashCode();
+        result = 31 * result + Objects.hashCode(priorityTimeout);
+        return result;
+    }
 }

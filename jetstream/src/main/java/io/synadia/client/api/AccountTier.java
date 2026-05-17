@@ -2,6 +2,7 @@ package io.synadia.client.api;
 
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.nats.json.LazyJsonValueUtils.readMapObjectOrEmpty;
@@ -11,12 +12,11 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Represents the JetStream Account Tier
  */
 @NullMarked
-public class AccountTier {
-    private final LazyJsonValue ljv;
-    private AccountLimits _limits;
+public class AccountTier extends LazyApiObject {
+    private @Nullable AccountLimits _limits;
 
     AccountTier(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

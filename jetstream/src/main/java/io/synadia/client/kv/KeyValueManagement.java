@@ -83,7 +83,7 @@ public class KeyValueManagement {
             // - the stream must have mirror connect and
             // - the stream name must be a proper bucket name
             sc.mirrorDirect(true);
-            String mName = mc.getName();
+            String mName = mc.getStreamName();
             if (!hasPrefix(mName)) {
                 mc = new MirrorCreator(toStreamName(mName), mc);
             }
@@ -94,7 +94,7 @@ public class KeyValueManagement {
             if (!sourceCreators.isEmpty()) {
                 for (int i = 0; i < sourceCreators.size(); i++) {
                     SourceCreator c = sourceCreators.get(i);
-                    String sName = c.getName();
+                    String sName = c.getStreamName();
                     if (!hasPrefix(sName)) {
                         sourceCreators.set(i, new SourceCreator(toStreamName(sName), c));
                     }

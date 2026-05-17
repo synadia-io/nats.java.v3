@@ -1,7 +1,6 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonParseException;
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
@@ -23,7 +22,7 @@ import static io.synadia.client.testutils.NatsConstants.UNDEFINED;
  * The ConsumerConfiguration is returned from the server on consumer info calls.
  */
 @NullMarked
-public class ConsumerConfiguration implements JsonSerializable {
+public class ConsumerConfiguration extends LazyApiObject {
     private static @Nullable ConsumerConfiguration DEFAULT_INSTANCE;
 
     public static ConsumerConfiguration getDefaultInstance() {
@@ -39,14 +38,12 @@ public class ConsumerConfiguration implements JsonSerializable {
         return DEFAULT_INSTANCE;
     }
 
-    private final LazyJsonValue ljv;
-
     /**
      * Construct a ConsumerConfiguration from a LazyJsonValue (server response).
      * @param v the LazyJsonValue
      */
     ConsumerConfiguration(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -250,11 +247,6 @@ public class ConsumerConfiguration implements JsonSerializable {
     // ----------------------------------------------------------------------------------------------------
     // JSON
     // ----------------------------------------------------------------------------------------------------
-
-    @Override
-    public String toJson() {
-        return ljv.toJson();
-    }
 
     @Override
     public String toString() {

@@ -16,14 +16,13 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Status of a specific consumer priority group
  */
 @NullMarked
-public class PriorityGroupState {
-    private final LazyJsonValue ljv;
+public class PriorityGroupState extends LazyApiObject {
     static List<PriorityGroupState> listOf(LazyJsonValue v) {
         return mapToList(v, PriorityGroupState::new);
     }
 
     PriorityGroupState(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

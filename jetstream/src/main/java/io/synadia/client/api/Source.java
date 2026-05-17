@@ -18,6 +18,6 @@ public class Source extends StreamSource {
     }
 
     Source(LazyJsonValue v) {
-        super("Source", v);
+        super(v);
     }
 }

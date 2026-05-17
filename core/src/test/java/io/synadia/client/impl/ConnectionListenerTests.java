@@ -105,9 +105,9 @@ public class ConnectionListenerTests extends TestBase {
         runInSharedOwnNc(builder, nc -> {
             stats.set(nc.getStatistics());
 
-            //noinspection DataFlowIssue // addConnectionListener parameter is annotated as @NonNull
+            //noinspection DataFlowIssue // parameter is annotated as @NonNull
             assertThrows(NullPointerException.class, () -> nc.addConnectionListener(null));
-            //noinspection DataFlowIssue // removeConnectionListener parameter is annotated as @NonNull
+            //noinspection DataFlowIssue // parameter is annotated as @NonNull
             assertThrows(NullPointerException.class, () -> nc.removeConnectionListener(null));
 
             ConnectionListener removedConnectionListener = (conn, event, time, details) -> capturedEvents.add("NEVER INVOKED");

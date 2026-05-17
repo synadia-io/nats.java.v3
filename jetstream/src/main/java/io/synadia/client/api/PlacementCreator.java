@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
@@ -111,5 +112,19 @@ public class PlacementCreator implements JsonSerializable {
     @Override
     public String toString() {
         return "PlacementCreator" + toJson();
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof PlacementCreator that)) return false;
+        return Objects.equals(cluster, that.cluster)
+            && tags.equals(that.tags);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(cluster);
+        result = 31 * result + tags.hashCode();
+        return result;
     }
 }

@@ -1,6 +1,5 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 
@@ -13,13 +12,10 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Server peer information
  */
 @NullMarked
-abstract class PeerInfo implements JsonSerializable {
-    protected final LazyJsonValue ljv;
-    private final String type;
+abstract class PeerInfo extends LazyApiObject {
 
-    protected PeerInfo(String type, LazyJsonValue v) {
-        this.type = type;
-        this.ljv = v;
+    protected PeerInfo(LazyJsonValue v) {
+        super(v);
     }
 
     /**
@@ -65,12 +61,7 @@ abstract class PeerInfo implements JsonSerializable {
     }
 
     @Override
-    public String toJson() {
-        return ljv.toJson();
-    }
-
-    @Override
     public String toString() {
-        return type + " " + ljv.toJson();
+        return getClass().getSimpleName() + " " + ljv.toJson();
     }
 }

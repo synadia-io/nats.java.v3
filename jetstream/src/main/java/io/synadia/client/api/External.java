@@ -1,11 +1,8 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
-
-import java.util.Objects;
 
 import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.testutils.ApiConstants.API;
@@ -16,8 +13,7 @@ import static io.synadia.client.testutils.ApiConstants.DELIVER;
  * Returned from the server.
  */
 @NullMarked
-public class External implements JsonSerializable {
-    private final LazyJsonValue ljv;
+public class External extends LazyApiObject {
 
     @Nullable
     static External optionalInstance(@Nullable LazyJsonValue v) {
@@ -25,7 +21,7 @@ public class External implements JsonSerializable {
     }
 
     External(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**
@@ -47,30 +43,7 @@ public class External implements JsonSerializable {
     }
 
     @Override
-    public String toJson() {
-        return ljv.toJson();
-    }
-
-    @Override
     public String toString() {
         return "External " + ljv.toJson();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        External external = (External) o;
-
-        if (!Objects.equals(getApi(), external.getApi())) return false;
-        return Objects.equals(getDeliver(), external.getDeliver());
-    }
-
-    @Override
-    public int hashCode() {
-        int result = getApi() != null ? getApi().hashCode() : 0;
-        result = 31 * result + (getDeliver() != null ? getDeliver().hashCode() : 0);
-        return result;
     }
 }

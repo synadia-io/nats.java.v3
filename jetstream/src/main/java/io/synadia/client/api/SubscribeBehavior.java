@@ -5,11 +5,16 @@ import io.synadia.client.impl.NatsDispatcher;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 /**
  * The SubscribeBehavior configures how the subscription behaves
  */
 @NullMarked
 public class SubscribeBehavior {
+    /**
+     * The default SubscribeBehavior instance with all settings at their defaults.
+     */
     public final static SubscribeBehavior DEFAULT_SUBSCRIBE_BEHAVIOR = new SubscribeBehavior();
 
     private @Nullable NatsDispatcher dispatcher;
@@ -18,6 +23,9 @@ public class SubscribeBehavior {
     private long pendingMessageLimit; // Only applicable for non-dispatched (sync) push consumers.
     private long pendingByteLimit;    // Only applicable for non-dispatched (sync) push consumers.
 
+    /**
+     * Construct a SubscribeBehavior with default settings.
+     */
     public SubscribeBehavior() {}
 
     /**
@@ -132,5 +140,25 @@ public class SubscribeBehavior {
     public SubscribeBehavior pendingByteLimit(long pendingByteLimit) {
         this.pendingByteLimit = pendingByteLimit;
         return this;
+    }
+
+    @Override
+    public final boolean equals(@Nullable Object o) {
+        if (!(o instanceof SubscribeBehavior that)) return false;
+        return messageAlarmTime == that.messageAlarmTime
+            && pendingMessageLimit == that.pendingMessageLimit
+            && pendingByteLimit == that.pendingByteLimit
+            && Objects.equals(dispatcher, that.dispatcher)
+            && Objects.equals(handler, that.handler);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(dispatcher);
+        result = 31 * result + Objects.hashCode(handler);
+        result = 31 * result + Long.hashCode(messageAlarmTime);
+        result = 31 * result + Long.hashCode(pendingMessageLimit);
+        result = 31 * result + Long.hashCode(pendingByteLimit);
+        return result;
     }
 }

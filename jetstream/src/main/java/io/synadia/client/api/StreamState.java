@@ -16,19 +16,18 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Object representing the state of a stream
  */
 @NullMarked
-public class StreamState {
+public class StreamState extends LazyApiObject {
     static final StreamState EMPTY;
     static {
         try { EMPTY = new StreamState(io.nats.json.LazyJsonParser.parse("{}")); }
         catch (Exception e) { throw new RuntimeException(e); }
     }
 
-    private final LazyJsonValue ljv;
     private @Nullable List<Subject> _subjects;
     private @Nullable Map<String, Long> _subjectMap;
 
     StreamState(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

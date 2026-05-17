@@ -1,13 +1,11 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Objects;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.testutils.ApiConstants.*;
@@ -17,23 +15,20 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * Used in StreamConfiguration for both mirror and sources.
  */
 @NullMarked
-abstract class StreamSource implements JsonSerializable {
-    private final LazyJsonValue ljv;
-    private final String type;
+abstract class StreamSource extends LazyApiObject {
 
-    protected StreamSource(String type, LazyJsonValue v) {
-        this.type = type;
-        this.ljv = v;
+    protected StreamSource(LazyJsonValue v) {
+        super(v);
     }
 
     /**
      * Get the name of the source.
      * @return the source name
      */
-    public String getName() {
+    public String getStreamName() {
         String name = readString(ljv, NAME);
         if (name == null) {
-            throw new IllegalStateException(type + " does not have required name.");
+            throw new IllegalStateException(getClass().getSimpleName() + " does not have required name.");
         }
         return name;
     }
@@ -82,38 +77,7 @@ abstract class StreamSource implements JsonSerializable {
     }
 
     @Override
-    public String toJson() {
-        return ljv.toJson();
-    }
-
-    @Override
     public String toString() {
-        return type + " " + ljv.toJson();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        StreamSource that = (StreamSource) o;
-
-        if (getStartSequence() != that.getStartSequence()) return false;
-        if (!Objects.equals(getName(), that.getName())) return false;
-        if (!Objects.equals(getStartTime(), that.getStartTime())) return false;
-        if (!Objects.equals(getFilterSubject(), that.getFilterSubject())) return false;
-        if (!Objects.equals(getExternal(), that.getExternal())) return false;
-        return Objects.equals(getSubjectTransforms(), that.getSubjectTransforms());
-    }
-
-    @Override
-    public int hashCode() {
-        int result = getName().hashCode();
-        result = 31 * result + Long.hashCode(getStartSequence());
-        result = 31 * result + (getStartTime() != null ? getStartTime().hashCode() : 0);
-        result = 31 * result + (getFilterSubject() != null ? getFilterSubject().hashCode() : 0);
-        result = 31 * result + (getExternal() != null ? getExternal().hashCode() : 0);
-        result = 31 * result + getSubjectTransforms().hashCode();
-        return result;
+        return getClass().getSimpleName() + " " + ljv.toJson();
     }
 }

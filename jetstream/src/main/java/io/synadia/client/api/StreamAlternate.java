@@ -14,15 +14,14 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * The Stream Alternate
  */
 @NullMarked
-public class StreamAlternate {
-    private final LazyJsonValue ljv;
+public class StreamAlternate extends LazyApiObject {
 
     static List<StreamAlternate> listOf(@Nullable LazyJsonValue v) {
         return mapToList(v, StreamAlternate::new);
     }
 
     StreamAlternate(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     /**

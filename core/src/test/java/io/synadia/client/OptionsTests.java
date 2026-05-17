@@ -1139,7 +1139,7 @@ public class OptionsTests extends TestBase {
             }
         }
 
-        //noinspection DataFlowIssue // NatsUri constructor parameters are annotated as @NonNull
+        //noinspection DataFlowIssue // parameter is annotated as @NonNull
         assertThrows(NullPointerException.class, () -> new NatsUri((String)null));
 
         // coverage

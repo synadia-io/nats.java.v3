@@ -1,6 +1,5 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -18,21 +17,19 @@ import static io.synadia.client.testutils.ApiConstants.*;
  * The StreamConfiguration is returned from the server on stream info calls.
  */
 @NullMarked
-public class StreamConfiguration implements JsonSerializable {
+public class StreamConfiguration extends LazyApiObject {
 
     static final StreamConfiguration EMPTY;
     static {
         EMPTY = new StreamConfiguration(LazyJsonValue.EMPTY_MAP);
     }
 
-    private final LazyJsonValue ljv;
-
     /**
      * Construct a StreamConfiguration from a LazyJsonValue (server response).
      * @param v the LazyJsonValue
      */
     StreamConfiguration(LazyJsonValue v) {
-        this.ljv = v;
+        super(v);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -372,11 +369,6 @@ public class StreamConfiguration implements JsonSerializable {
     // ----------------------------------------------------------------------------------------------------
     // JSON
     // ----------------------------------------------------------------------------------------------------
-
-    @Override
-    public String toJson() {
-        return ljv.toJson();
-    }
 
     @Override
     public String toString() {
