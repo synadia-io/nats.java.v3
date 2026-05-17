@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import static io.nats.json.DateTimeUtils.ZONE_ID_GMT;
+import static io.nats.json.DateTimeUtils.ZONE_ID_UTC;
 import static io.synadia.client.OptionsConstants.DEFAULT_INBOX_PREFIX;
 import static io.synadia.client.testutils.NatsConstants.*;
 import static io.synadia.client.testutils.ThreadUtils.sleep;
@@ -672,7 +672,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             List<ConsumerInfo> list = ctx.jsm.getConsumers(ctx.stream);
             assertEquals(0, list.size());
 
-            ZonedDateTime pauseUntil = ZonedDateTime.now(ZONE_ID_GMT).plusMinutes(2);
+            ZonedDateTime pauseUntil = ZonedDateTime.now(ZONE_ID_UTC).plusMinutes(2);
             PushConsumerCreator cc = new PushConsumerCreator(ctx.stream)
                     .durable(ctx.consumerName())
                     .pauseUntil(pauseUntil);
@@ -697,7 +697,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertNotNull(ci.getName());
 
             // pause consumer
-            ZonedDateTime pauseUntil = ZonedDateTime.now(ZONE_ID_GMT).plusMinutes(2);
+            ZonedDateTime pauseUntil = ZonedDateTime.now(ZONE_ID_UTC).plusMinutes(2);
             ConsumerPauseResponse pauseResponse = ctx.jsm.pauseConsumer(ctx.stream, ci.getName(), pauseUntil);
             assertTrue(pauseResponse.isPaused());
             assertEquals(pauseUntil, pauseResponse.getPauseUntil());

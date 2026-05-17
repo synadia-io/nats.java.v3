@@ -1,16 +1,20 @@
 package io.synadia.client.api;
 
 import io.nats.json.DateTimeUtils;
+import io.nats.json.JsonParseException;
 import io.nats.json.LazyJsonParser;
 import io.synadia.client.impl.JetStreamTestBase;
 import io.synadia.client.testutils.ResourceUtils;
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static io.synadia.client.api.CompressionOption.None;
 import static io.synadia.client.api.CompressionOption.S2;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -302,132 +306,113 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").subjectDeleteMarkerTtl(1));
     }
 
-//    @Test
-//    public void testSubjects() {
-//        StreamCreator builder = new StreamCreator(random());
-//
-//        String subject = random();
-//        // subjects(...) replaces
-//        builder.subjects(subject);
-//        assertSubjects(builder, subject);
-//
-//        // subjects(...) replaces
-//        builder.subjects();
-//        assertSubjects(builder);
-//
-//        // subjects(...) replaces
-//        subject = random();
-//        builder.subjects(subject);
-//        assertSubjects(builder, subject);
-//
-//        // subjects(...) replaces
-//        builder.subjects((String)null);
-//        assertSubjects(builder);
-//
-//        // subjects(...) replaces
-//        String subjectA = random();
-//        String subjectB = random();
-//        builder.subjects(subjectA, subjectB);
-//        assertSubjects(builder, subjectA, subjectB);
-//
-//        // subjects(...) replaces
-//        subjectA = random();
-//        subjectB = random();
-//        builder.subjects(subjectA, null, subjectB);
-//        assertSubjects(builder, subjectA, subjectB);
-//
-//        // subjects(...) replaces
-//        subjectA = random();
-//        subjectB = random();
-//        builder.subjects(Arrays.asList(subjectA, subjectB));
-//        assertSubjects(builder, subjectA, subjectB);
-//
-//        // addSubjects(...) adds unique
-//        String subjectC = random();
-//        builder.addSubjects(subjectB, subjectC);
-//        assertSubjects(builder, subjectA, subjectB, subjectC);
-//
-//        // addSubjects(...) adds unique
-//        String subjectD = random();
-//        String subjectE = random();
-//        builder.addSubjects(Arrays.asList(subjectC, subjectD, subjectE));
-//        assertSubjects(builder, subjectA, subjectB, subjectC, subjectD, subjectE);
-//
-//        // addSubjects(...) null check
-//        builder.addSubjects((String[]) null);
-//        assertSubjects(builder, subjectA, subjectB, subjectC, subjectD, subjectE);
-//
-//        // addSubjects(...) null check
-//        builder.addSubjects((Collection<String>) null);
-//        assertSubjects(builder, subjectA, subjectB, subjectC, subjectD, subjectE);
-//    }
-//
-//    private void assertSubjects(StreamCreator sc, String... subjects) {
-//        assertEquals(subjects.length, sc.getSubjects().size());
-//        for (String s : subjects) {
-//            assertTrue(sc.getSubjects().contains(s));
-//        }
-//    }
-//
-//    @Test
-//    public void testRetentionPolicy() {
-//        StreamCreator builder = new StreamCreator(random());
-//        assertEquals(RetentionPolicy.Limits, builder.getRetentionPolicy());
-//
-//        builder.retentionPolicy(RetentionPolicy.Limits);
-//        assertEquals(RetentionPolicy.Limits, builder.getRetentionPolicy());
-//
-//        builder.retentionPolicy(null);
-//        assertEquals(RetentionPolicy.Limits, builder.getRetentionPolicy());
-//
-//        builder.retentionPolicy(RetentionPolicy.Interest);
-//        assertEquals(RetentionPolicy.Interest, builder.getRetentionPolicy());
-//
-//        builder.retentionPolicy(RetentionPolicy.WorkQueue);
-//        assertEquals(RetentionPolicy.WorkQueue, builder.getRetentionPolicy());
-//    }
-//
-//    @Test
-//    public void testCompressionOption() {
-//        StreamCreator builder = new StreamCreator(random());
-//        assertEquals(None, builder.getCompressionOption());
-//
-//        builder.compressionOption(None);
-//        assertEquals(None, builder.getCompressionOption());
-//
-//        builder.compressionOption(null);
-//        assertEquals(None, builder.getCompressionOption());
-//        assertFalse(builder.toJson().contains("\"compression\""));
-//
-//        builder.compressionOption(S2);
-//        assertEquals(S2, builder.getCompressionOption());
-//        assertTrue(builder.toJson().contains("\"compression\":\"s2\""));
-//    }
-//
-//    @Test
-//    public void testStorageType() {
-//        StreamCreator builder = new StreamCreator(random());
-//        assertEquals(StorageType.File, builder.getStorageType());
-//
-//        builder.storageType(StorageType.Memory);
-//        assertEquals(StorageType.Memory, builder.getStorageType());
-//
-//        builder.storageType(null);
-//        assertEquals(StorageType.File, builder.getStorageType());
-//    }
-//
-//    @Test
-//    public void testDiscardPolicy() {
-//        StreamCreator builder = new StreamCreator(random());
-//        assertEquals(DiscardPolicy.Old, builder.getDiscardPolicy());
-//
-//        builder.discardPolicy(DiscardPolicy.New);
-//        assertEquals(DiscardPolicy.New, builder.getDiscardPolicy());
-//
-//        builder.discardPolicy(null);
-//        assertEquals(DiscardPolicy.Old, builder.getDiscardPolicy());
-//    }
-//
+    @Test
+    public void testSubjects() {
+        StreamCreator creator = new StreamCreator(random());
+
+        String subject = random();
+        // subjects(...) replaces
+        creator.subjects(subject);
+        assertSubjects(creator, subject);
+
+        // subjects(...) replaces
+        creator.subjects();
+        assertSubjects(creator);
+
+        // subjects(...) replaces
+        subject = random();
+        creator.subjects(subject);
+        assertSubjects(creator, subject);
+
+        // subjects(...) replaces
+        creator.subjects((String)null);
+        assertSubjects(creator);
+
+        // subjects(...) replaces
+        String subjectA = random();
+        String subjectB = random();
+        creator.subjects(subjectA, subjectB);
+        assertSubjects(creator, subjectA, subjectB);
+
+        // subjects(...) replaces
+        subjectA = random();
+        subjectB = random();
+        creator.subjects(subjectA, null, subjectB);
+        assertSubjects(creator, subjectA, subjectB);
+
+        // subjects(...) replaces
+        subjectA = random();
+        subjectB = random();
+        creator.subjects(Arrays.asList(subjectA, subjectB));
+        assertSubjects(creator, subjectA, subjectB);
+    }
+
+    private void assertSubjects(StreamCreator sc, String... subjects) {
+        assertEquals(subjects.length, sc.getSubjects().size());
+        for (String s : subjects) {
+            assertTrue(sc.getSubjects().contains(s));
+        }
+    }
+
+    @Test
+    public void testRetentionPolicy() {
+        StreamCreator builder = new StreamCreator(random());
+        assertEquals(RetentionPolicy.Limits, builder.getRetentionPolicy());
+
+        builder.retentionPolicy(RetentionPolicy.Limits);
+        assertEquals(RetentionPolicy.Limits, builder.getRetentionPolicy());
+
+        builder.retentionPolicy(null);
+        assertEquals(RetentionPolicy.Limits, builder.getRetentionPolicy());
+
+        builder.retentionPolicy(RetentionPolicy.Interest);
+        assertEquals(RetentionPolicy.Interest, builder.getRetentionPolicy());
+
+        builder.retentionPolicy(RetentionPolicy.WorkQueue);
+        assertEquals(RetentionPolicy.WorkQueue, builder.getRetentionPolicy());
+    }
+
+    @Test
+    public void testCompressionOption() {
+        StreamCreator builder = new StreamCreator(random());
+        assertEquals(None, builder.getCompressionOption());
+
+        builder.compressionOption(None);
+        assertEquals(None, builder.getCompressionOption());
+
+        builder.compressionOption(null);
+        assertEquals(None, builder.getCompressionOption());
+        assertFalse(builder.toJson().contains("\"compression\""));
+
+        builder.compressionOption(S2);
+        assertEquals(S2, builder.getCompressionOption());
+        assertTrue(builder.toJson().contains("\"compression\":\"s2\""));
+    }
+
+    @Test
+    public void testStorageType() {
+        StreamCreator builder = new StreamCreator(random());
+        assertEquals(StorageType.File, builder.getStorageType());
+
+        builder.storageType(StorageType.Memory);
+        assertEquals(StorageType.Memory, builder.getStorageType());
+
+        builder.storageType(null);
+        assertEquals(StorageType.File, builder.getStorageType());
+    }
+
+    @Test
+    public void testDiscardPolicy() {
+        StreamCreator builder = new StreamCreator(random());
+        assertEquals(DiscardPolicy.Old, builder.getDiscardPolicy());
+
+        builder.discardPolicy(DiscardPolicy.New);
+        assertEquals(DiscardPolicy.New, builder.getDiscardPolicy());
+
+        builder.discardPolicy(null);
+        assertEquals(DiscardPolicy.Old, builder.getDiscardPolicy());
+    }
+
     @SuppressWarnings("SameParameterValue")
     private void validateTestStreamConfiguration(StreamCreator sc, boolean serverTest, String name) {
         validateTestStreamConfiguration(new StreamConfiguration(LazyJsonParser.parseUnchecked(sc.toJson())), serverTest, name);
@@ -692,26 +677,15 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
 //        cl = ConsumerLimits.builder().maxAckPending(Long.MAX_VALUE).build();
 //        assertEquals(Integer.MAX_VALUE, cl.getMaxAckPending());
 //    }
-//
-//    @Test
-//    public void testExternal() {
-//        External e = External.builder().api("api").deliver("deliver").build();
-//        assertEquals("api", e.getApi());
-//        assertEquals("deliver", e.getDeliver());
-//
-//        e = External.builder().build();
-//        assertNull(e.getApi());
-//        assertNull(e.getDeliver());
-//    }
-//
-//    @Test
-//    public void equalsContract() {
-//        // really testing SourceBase
-//        EqualsVerifier.simple().forClass(Mirror.class).verify();
-//        EqualsVerifier.simple().forClass(Source.class).verify();
-//    }
-//
-//    public static StreamConfiguration getStreamConfigurationFromJson(String jsonFile) throws JsonParseException {
-//        return new StreamConfiguration(LazyJsonParser.parse(ResourceUtils.dataAsString(jsonFile)));
-//    }
+
+    @Test
+    public void equalsContract() {
+        // really testing SourceBase
+        EqualsVerifier.simple().forClass(Mirror.class).verify();
+        EqualsVerifier.simple().forClass(Source.class).verify();
+    }
+
+    public static StreamConfiguration getStreamConfigurationFromJson(String jsonFile) throws JsonParseException {
+        return new StreamConfiguration(LazyJsonParser.parse(ResourceUtils.dataAsString(jsonFile)));
+    }
 }

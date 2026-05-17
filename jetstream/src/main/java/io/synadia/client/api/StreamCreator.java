@@ -591,7 +591,7 @@ public class StreamCreator implements JsonSerializable {
      * @param subjects the stream's subjects
      * @return this instance for chaining
      */
-    public StreamCreator subjects(String... subjects) {
+    public StreamCreator subjects(@Nullable String... subjects) {
         replaceAllStrings(this.subjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
         return this;
     }
