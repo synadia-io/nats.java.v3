@@ -6,8 +6,8 @@ import io.synadia.client.api.StreamInfo;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.synadia.client.testutils.ApiConstants.STREAMS;
-import static io.synadia.client.testutils.ApiConstants.SUBJECT;
+import static io.synadia.client.utils.ApiConstants.STREAMS;
+import static io.synadia.client.utils.ApiConstants.SUBJECT;
 
 class StreamListReader extends AbstractListReader {
 

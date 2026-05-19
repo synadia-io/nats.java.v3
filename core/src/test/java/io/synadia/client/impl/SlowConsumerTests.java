@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;

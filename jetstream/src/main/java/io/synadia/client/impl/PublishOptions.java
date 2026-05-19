@@ -8,9 +8,9 @@ import java.util.Properties;
 import static io.synadia.client.OptionsConstants.DEFAULT_CONNECTION_TIMEOUT;
 import static io.synadia.client.OptionsProperties.PFX;
 import static io.synadia.client.OptionsProperties.getPropertyValue;
-import static io.synadia.client.testutils.JsValidator.validateDurationNotRequiredGtOrEqZero;
-import static io.synadia.client.testutils.JsValidator.validateStreamName;
-import static io.synadia.client.testutils.Validator.*;
+import static io.synadia.client.utils.JsValidator.validateDurationNotRequiredGtOrEqZero;
+import static io.synadia.client.utils.JsValidator.validateStreamName;
+import static io.synadia.client.utils.Validator.*;
 
 /**
  * The PublishOptions class specifies the options for publishing with JetStream enabled servers.

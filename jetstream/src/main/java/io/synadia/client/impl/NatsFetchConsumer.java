@@ -8,7 +8,7 @@ import java.io.IOException;
 
 import static io.synadia.client.impl.BaseConsumeOptions.MIN_EXPIRES_MILLS;
 import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
-import static io.synadia.client.testutils.NatsConstants.NANOS_PER_MILLI;
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
 class NatsFetchConsumer extends NatsMessageConsumerBase implements FetchConsumer {
     private final boolean isNoWaitNoExpires;

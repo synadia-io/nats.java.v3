@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import static io.synadia.client.testutils.Validator.validateNotNull;
+import static io.synadia.client.utils.Validator.validateNotNull;
 
 @NullMarked
 public class JetStreamManagement extends JetStreamImpl {

@@ -1,13 +1,13 @@
 package io.synadia.client.api;
 
 import io.nats.json.LazyJsonValue;
-import io.synadia.client.testutils.Status;
+import io.synadia.client.utils.Status;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.LazyJsonValueUtils.readInteger;
 import static io.nats.json.LazyJsonValueUtils.readString;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Error returned from an api request.
@@ -110,8 +110,7 @@ public class Error {
     @Override
     public boolean equals(@Nullable Object o) {
         if (this == o) return true;
-        if (!(o instanceof Error)) return false;
-        Error that = (Error) o;
+        if (!(o instanceof Error that)) return false;
         return code == that.code
             && apiErrorCode == that.apiErrorCode
             && description.equals(that.description);

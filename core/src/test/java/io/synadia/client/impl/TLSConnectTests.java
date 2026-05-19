@@ -2,12 +2,12 @@ package io.synadia.client.impl;
 
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
-import io.synadia.client.testutils.CloseOnUpgradeAttempt;
-import io.synadia.client.testutils.Listener;
-import io.synadia.client.testutils.TestBase;
-import io.synadia.client.testutils.ssl.ExpiringClientCertUtil;
-import io.synadia.client.testutils.ssl.ExpiringComponents;
-import io.synadia.client.testutils.ssl.SslTestingHelper;
+import io.synadia.client.utils.CloseOnUpgradeAttempt;
+import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.TestBase;
+import io.synadia.client.utils.ssl.ExpiringClientCertUtil;
+import io.synadia.client.utils.ssl.ExpiringComponents;
+import io.synadia.client.utils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -26,11 +26,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.synadia.client.OptionsProperties.*;
-import static io.synadia.client.testutils.ConnectionUtils.*;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.testutils.ResourceUtils.createTempDirectory;
-import static io.synadia.client.testutils.ResourceUtils.deleteFileOrFolder;
-import static io.synadia.client.testutils.ThreadUtils.sleep;
+import static io.synadia.client.utils.ConnectionUtils.*;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ResourceUtils.createTempDirectory;
+import static io.synadia.client.utils.ResourceUtils.deleteFileOrFolder;
+import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TLSConnectTests extends TestBase {

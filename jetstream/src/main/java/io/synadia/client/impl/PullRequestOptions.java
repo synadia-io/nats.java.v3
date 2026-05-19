@@ -6,8 +6,8 @@ import org.jspecify.annotations.NonNull;
 import java.time.Duration;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.Validator.validateGtZero;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.Validator.validateGtZero;
 
 /**
  * The PullRequestOptions class specifies the options for pull requests

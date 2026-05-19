@@ -10,8 +10,8 @@ import static io.nats.json.JsonValueUtils.readDate;
 import static io.nats.json.JsonValueUtils.readValue;
 import static io.nats.json.JsonWriteUtils.addField;
 import static io.nats.json.JsonWriteUtils.addJsons;
-import static io.synadia.client.testutils.ApiConstants.ENDPOINTS;
-import static io.synadia.client.testutils.ApiConstants.STARTED;
+import static io.synadia.client.utils.ApiConstants.ENDPOINTS;
+import static io.synadia.client.utils.ApiConstants.STARTED;
 
 /**
  * Stats response class forms the stats json payload, for example:

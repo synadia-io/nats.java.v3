@@ -5,7 +5,7 @@ import io.synadia.client.api.StreamInfo;
 import io.synadia.client.os.ObjectStoreConfigurationCreator;
 import io.synadia.client.os.ObjectStoreManagement;
 import io.synadia.client.os.ObjectStoreStatus;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.TestBase;
 
 import java.io.IOException;
 import java.util.HashMap;

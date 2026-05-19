@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.nats.json.LazyJsonValueUtils.readMapObjectOrEmpty;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Represents the JetStream Account Tier

@@ -4,8 +4,8 @@ import io.synadia.client.impl.DataPort;
 import io.synadia.client.impl.DispatcherFactory;
 import io.synadia.client.impl.SocketDataPort;
 import io.synadia.client.impl.SocketDataPortWithWriteTimeout;
-import io.synadia.client.testutils.HttpRequest;
-import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.utils.HttpRequest;
+import io.synadia.client.utils.NatsUri;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLContext;
@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 import static io.nats.json.Encoding.*;
 import static io.synadia.client.OptionsConstants.*;
 import static io.synadia.client.OptionsProperties.createInstanceOf;
-import static io.synadia.client.testutils.Validator.nullOrEmpty;
+import static io.synadia.client.utils.Validator.nullOrEmpty;
 
 /**
  * The Options class specifies the connection options for a new NATs connection, including the default options.

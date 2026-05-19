@@ -7,7 +7,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.ZonedDateTime;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.PAUSE_UNTIL;
+import static io.synadia.client.utils.ApiConstants.PAUSE_UNTIL;
 
 /**
  * Object used to make a request to pause a consumer. Used Internally

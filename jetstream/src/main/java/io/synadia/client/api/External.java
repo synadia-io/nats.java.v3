@@ -5,8 +5,8 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.LazyJsonValueUtils.readString;
-import static io.synadia.client.testutils.ApiConstants.API;
-import static io.synadia.client.testutils.ApiConstants.DELIVER;
+import static io.synadia.client.utils.ApiConstants.API;
+import static io.synadia.client.utils.ApiConstants.DELIVER;
 
 /**
  * External configuration referencing a stream source in another account.

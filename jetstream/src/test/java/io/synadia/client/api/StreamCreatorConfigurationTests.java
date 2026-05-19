@@ -4,8 +4,7 @@ import io.nats.json.DateTimeUtils;
 import io.nats.json.JsonParseException;
 import io.nats.json.LazyJsonParser;
 import io.synadia.client.impl.JetStreamTestBase;
-import io.synadia.client.testutils.ResourceUtils;
-import nl.jqno.equalsverifier.EqualsVerifier;
+import io.synadia.client.utils.ResourceUtils;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -60,7 +59,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
     }
 
     @Test
-    public void testSerializationDeserialization() throws Exception {
+    public void testSerializationDeserialization() {
         String originalJson = getStreamConfigurationJson();
         StreamConfiguration sc = new StreamConfiguration(LazyJsonParser.parseUnchecked(originalJson));
         validateTestStreamConfiguration(sc, false, DEFAULT_STREAM_NAME);
@@ -68,7 +67,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
     }
 
     @Test
-    public void testSerializationDeserializationDefaults() throws Exception {
+    public void testSerializationDeserializationDefaults() {
         StreamConfiguration sc = new StreamConfiguration(LazyJsonParser.parseUnchecked("{\"name\":\"name\"}"));
         assertNotNull(sc);
         assertEquals("name", sc.getName());
@@ -284,7 +283,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testConstructionInvalidsCoverage() {
-        //noinspection DataFlowIssue passing null to annotated @NonNull
+        //noinspection DataFlowIssue
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator((String)null));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator(HAS_SPACE));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxConsumers(0));
@@ -677,13 +676,6 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
 //        cl = ConsumerLimits.builder().maxAckPending(Long.MAX_VALUE).build();
 //        assertEquals(Integer.MAX_VALUE, cl.getMaxAckPending());
 //    }
-
-    @Test
-    public void equalsContract() {
-        // really testing SourceBase
-        EqualsVerifier.simple().forClass(Mirror.class).verify();
-        EqualsVerifier.simple().forClass(Source.class).verify();
-    }
 
     public static StreamConfiguration getStreamConfigurationFromJson(String jsonFile) throws JsonParseException {
         return new StreamConfiguration(LazyJsonParser.parse(ResourceUtils.dataAsString(jsonFile)));

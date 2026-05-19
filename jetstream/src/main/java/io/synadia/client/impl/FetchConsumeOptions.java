@@ -7,8 +7,8 @@ import static io.nats.json.JsonValueUtils.readBoolean;
 import static io.nats.json.JsonValueUtils.readLong;
 import static io.nats.json.JsonWriteUtils.addField;
 import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
-import static io.synadia.client.testutils.ApiConstants.EXPIRES_IN;
-import static io.synadia.client.testutils.ApiConstants.NO_WAIT;
+import static io.synadia.client.utils.ApiConstants.EXPIRES_IN;
+import static io.synadia.client.utils.ApiConstants.NO_WAIT;
 
 /**
  * Fetch Consume Options are provided to customize the fetch operation.

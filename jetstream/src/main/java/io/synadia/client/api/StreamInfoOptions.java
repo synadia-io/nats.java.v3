@@ -7,10 +7,10 @@ import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.DELETED_DETAILS;
-import static io.synadia.client.testutils.ApiConstants.SUBJECTS_FILTER;
-import static io.synadia.client.testutils.NatsConstants.GREATER_THAN;
-import static io.synadia.client.testutils.Validator.emptyAsNull;
+import static io.synadia.client.utils.ApiConstants.DELETED_DETAILS;
+import static io.synadia.client.utils.ApiConstants.SUBJECTS_FILTER;
+import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
+import static io.synadia.client.utils.Validator.emptyAsNull;
 
 /**
  * Object used to make a request for special stream info requests

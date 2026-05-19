@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * PublishAck objects represent a JetStream enabled server acknowledgment from a publish call.

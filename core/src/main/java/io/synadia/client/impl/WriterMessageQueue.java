@@ -10,8 +10,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static io.synadia.client.OptionsConstants.MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT;
 import static io.synadia.client.impl.MarkerMessage.POISON_PILL;
-import static io.synadia.client.testutils.NatsConstants.OUTPUT_QUEUE_BUSY;
-import static io.synadia.client.testutils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
+import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_BUSY;
+import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
 
 class WriterMessageQueue extends MessageQueueBase {
     protected static final long MIN_PUSH_TIMEOUT_NANOS = MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT.toNanos();

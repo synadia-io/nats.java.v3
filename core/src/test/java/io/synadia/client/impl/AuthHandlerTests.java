@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 
-import static io.synadia.client.testutils.ResourceUtils.jwtResource;
-import static io.synadia.client.testutils.ResourceUtils.resourceAsString;
+import static io.synadia.client.utils.ResourceUtils.jwtResource;
+import static io.synadia.client.utils.ResourceUtils.resourceAsString;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 

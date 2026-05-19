@@ -4,8 +4,8 @@ import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.Validator.validateSubjectStrict;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.Validator.validateSubjectStrict;
 
 /**
  * The PurgeOptions class specifies the options for purging a stream

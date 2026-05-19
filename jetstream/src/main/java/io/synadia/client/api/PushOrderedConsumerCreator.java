@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The PushOrderedConsumerCreator class specifies the configuration for creating an ordered JetStream consumer
@@ -23,7 +24,7 @@ public class PushOrderedConsumerCreator extends AbstractOrderedConsumerCreator<P
     // Push Specific ConsumerFields
     // ----------------------------------------------------------------------------------------------------
 
-    public PushOrderedConsumerCreator deliverSubject(String deliverSubject) {
+    public PushOrderedConsumerCreator deliverSubject(@Nullable String deliverSubject) {
         _deliverSubject(deliverSubject);
         return this;
     }

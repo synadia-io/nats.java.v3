@@ -11,7 +11,7 @@ import java.util.Map;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.api.StreamCreator.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * The StreamConfiguration is returned from the server on stream info calls.

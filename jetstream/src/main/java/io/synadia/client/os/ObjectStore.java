@@ -8,7 +8,7 @@ import io.synadia.client.api.PushOrderedConsumerCreator;
 import io.synadia.client.api.StreamCreator;
 import io.synadia.client.api.StreamInfo;
 import io.synadia.client.impl.*;
-import io.synadia.client.testutils.Digester;
+import io.synadia.client.utils.Digester;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -18,9 +18,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.synadia.client.os.ObjectStoreUtil.*;
-import static io.synadia.client.testutils.JetStreamClientError.*;
-import static io.synadia.client.testutils.NatsConstants.GREATER_THAN;
-import static io.synadia.client.testutils.Validator.validateNotNull;
+import static io.synadia.client.utils.JetStreamClientError.*;
+import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
+import static io.synadia.client.utils.Validator.validateNotNull;
 
 public class ObjectStore extends AbstractBucketFeature {
 

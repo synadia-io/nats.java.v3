@@ -9,7 +9,7 @@ import org.jspecify.annotations.NonNull;
 
 import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Base Consume Options are provided to customize the way the consume and

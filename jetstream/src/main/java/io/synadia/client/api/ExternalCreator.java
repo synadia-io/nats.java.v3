@@ -7,8 +7,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.API;
-import static io.synadia.client.testutils.ApiConstants.DELIVER;
+import static io.synadia.client.utils.ApiConstants.API;
+import static io.synadia.client.utils.ApiConstants.DELIVER;
 
 /**
  * ExternalCreator is used to create an External configuration referencing a stream source in another account.

@@ -1,8 +1,7 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
-import io.synadia.client.impl.JetStreamApiUtils;
-import io.synadia.client.testutils.ApiConstants;
+import io.synadia.client.utils.ApiConstants;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -12,9 +11,9 @@ import java.util.*;
 
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.JetStreamClientError.JsConsumerNameDurableMismatch;
-import static io.synadia.client.testutils.JsValidator.*;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.JetStreamClientError.JsConsumerNameDurableMismatch;
+import static io.synadia.client.utils.JsValidator.*;
 
 /**
  * Base class for consumer creators, providing setters common to all consumer types
@@ -381,19 +380,8 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param sequence the start sequence
      * @return this instance for chaining.
      */
-    public T startSequence(Long sequence) {
-        this.startSequence = normalizeUlong(sequence);
-        //noinspection unchecked
-        return (T)this;
-    }
-
-    /**
-     * Sets the start sequence
-     * @param sequence the start sequence
-     * @return this instance for chaining.
-     */
-    public T startSequence(long sequence) {
-        this.startSequence = normalizeUlong(sequence);
+    public T startSequence(@Nullable Long sequence) {
+        this.startSequence = normalizeULong(sequence);
         //noinspection unchecked
         return (T)this;
     }
@@ -430,7 +418,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param filterSubjects one or more filter subjects
      * @return this instance for chaining.
      */
-    public T filterSubjects(@Nullable String... filterSubjects) {
+    public T filterSubjects(String... filterSubjects) {
         replaceAllStrings(this.filterSubjects, filterSubjects, s -> validateSubjectTermStrict(s, "Subject"));
         //noinspection unchecked
         return (T)this;
@@ -475,19 +463,8 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param bitsPerSecond bits per second to deliver
      * @return this instance for chaining.
      */
-    public T rateLimit(Long bitsPerSecond) {
-        this.rateLimit = normalizeUlong(bitsPerSecond);
-        //noinspection unchecked
-        return (T)this;
-    }
-
-    /**
-     * Set the rate limit
-     * @param bitsPerSecond bits per second to deliver
-     * @return this instance for chaining.
-     */
-    public T rateLimit(long bitsPerSecond) {
-        this.rateLimit = normalizeUlong(bitsPerSecond);
+    public T rateLimit(@Nullable Long bitsPerSecond) {
+        this.rateLimit = normalizeULong(bitsPerSecond);
         //noinspection unchecked
         return (T)this;
     }
@@ -497,7 +474,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param idleHeartbeat the idle heart beat duration
      * @return this instance for chaining.
      */
-    public T idleHeartbeat(Duration idleHeartbeat) {
+    public T idleHeartbeat(@Nullable Duration idleHeartbeat) {
         _idleHeartbeat(idleHeartbeat);
         //noinspection unchecked
         return (T)this;
@@ -519,19 +496,20 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param inactiveThreshold the threshold duration
      * @return this instance for chaining.
      */
-    public T inactiveThreshold(Duration inactiveThreshold) {
-        this.inactiveThreshold = JetStreamApiUtils.normalizeDuration(inactiveThreshold);
+    public T inactiveThreshold(@Nullable Duration inactiveThreshold) {
+        this.inactiveThreshold = normalizeDuration(inactiveThreshold, null);
         //noinspection unchecked
         return (T)this;
     }
 
     /**
      * Sets the amount of time before the consumer is deemed inactive.
-     * @param inactiveThreshold the threshold duration in milliseconds
+     * A value less than 1 nullifies the threshold (server default applies).
+     * @param inactiveThresholdMillis the threshold duration in milliseconds
      * @return this instance for chaining.
      */
-    public T inactiveThreshold(long inactiveThreshold) {
-        this.inactiveThreshold = normalizeDuration(inactiveThreshold);
+    public T inactiveThreshold(long inactiveThresholdMillis) {
+        this.inactiveThreshold = normalizeDuration(inactiveThresholdMillis, null);
         //noinspection unchecked
         return (T)this;
     }
@@ -541,7 +519,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @param headersOnly the flag
      * @return this instance for chaining.
      */
-    public T headersOnly(Boolean headersOnly) {
+    public T headersOnly(boolean headersOnly) {
         this.headersOnly = headersOnly;
         //noinspection unchecked
         return (T)this;
@@ -565,21 +543,21 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     // PROTECTED DELEGATE SETTERS (for subclasses that selectively expose)
     // ----------------------------------------------------------------------------------------------------
 
-    protected void _durable(String durable) {
+    protected void _durable(@Nullable String durable) {
         this.durable = validateDurable(emptyAsNull(durable), false);
         validateMustMatchIfBothSupplied(name, durable, JsConsumerNameDurableMismatch);
     }
 
-    protected void _name(String name) {
+    protected void _name(@Nullable String name) {
         this.name = validateConsumerName(emptyAsNull(name), false);
         validateMustMatchIfBothSupplied(name, durable, JsConsumerNameDurableMismatch);
     }
 
-    protected void _deliverSubject(String subject) {
+    protected void _deliverSubject(@Nullable String subject) {
         this.deliverSubject = emptyAsNull(subject);
     }
 
-    protected void _deliverGroup(String group) {
+    protected void _deliverGroup(@Nullable String group) {
         this.deliverGroup = emptyAsNull(group);
     }
 
@@ -587,20 +565,16 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.ackPolicy = policy == null ? DEFAULT_ACK_POLICY : policy;
     }
 
-    protected void _ackWait(Duration timeout) {
-        this.ackWait = JetStreamApiUtils.normalizeDuration(timeout);
+    protected void _ackWait(@Nullable Duration timeout) {
+        this.ackWait = normalizeDuration(timeout, null);
     }
 
     protected void _ackWait(long timeoutMillis) {
-        this.ackWait = normalizeDuration(timeoutMillis);
+        this.ackWait = normalizeDuration(timeoutMillis, null);
     }
 
     protected void _maxDeliver(long maxDeliver) {
         this.maxDeliver = normalizeLong(maxDeliver, MAX_DELIVER_MIN);
-    }
-
-    protected void _maxAckPending(Long maxAckPending) {
-        this.maxAckPending = normalizeLong(maxAckPending, STANDARD_MIN);
     }
 
     protected void _maxAckPending(long maxAckPending) {
@@ -617,7 +591,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
                 this.idleHeartbeat = DURATION_UNSET;
             }
             else if (nanos < MIN_IDLE_HEARTBEAT_NANOS) {
-                throw new IllegalArgumentException("Duration must be greater than or equal to " + MIN_IDLE_HEARTBEAT_NANOS + " nanos.");
+                throw new IllegalArgumentException("Idle Heartbeat must be greater than or equal to " + MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.");
             }
             else {
                 this.idleHeartbeat = idleHeartbeat;
@@ -630,32 +604,38 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
             this.idleHeartbeat = Duration.ZERO;
         }
         else if (idleHeartbeatMillis < MIN_IDLE_HEARTBEAT_MILLIS) {
-            throw new IllegalArgumentException("Duration must be greater than or equal to " + MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.");
+            throw new IllegalArgumentException("Idle Heartbeat must be greater than or equal to " + MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.");
         }
         else {
             this.idleHeartbeat = Duration.ofMillis(idleHeartbeatMillis);
         }
     }
 
-    protected void _flowControl(Duration idleHeartbeat) {
-        this.flowControl = true;
+    protected void _flowControl(@Nullable Duration idleHeartbeat) {
         _idleHeartbeat(idleHeartbeat);
+        if (idleHeartbeat == null) {
+            throw new IllegalArgumentException("Idle Heartbeat must set with flow control and must be at least " + MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.");
+        }
+        this.flowControl = true;
     }
 
     protected void _flowControl(long idleHeartbeatMillis) {
-        this.flowControl = true;
         _idleHeartbeat(idleHeartbeatMillis);
+        if (idleHeartbeat == null) {
+            throw new IllegalArgumentException("Idle Heartbeat must set with flow control and must be at least " + MIN_IDLE_HEARTBEAT + " milliseconds.");
+        }
+        this.flowControl = true;
     }
 
-    protected void _maxExpires(Duration maxExpires) {
-        this.maxExpires = JetStreamApiUtils.normalizeDuration(maxExpires);
+    protected void _maxExpires(@Nullable Duration maxExpires) {
+        this.maxExpires = normalizeDuration(maxExpires, null);
     }
 
-    protected void _maxExpires(long maxExpires) {
-        this.maxExpires = normalizeDuration(maxExpires);
+    protected void _maxExpires(long maxExpiresMillis) {
+        this.maxExpires = normalizeDuration(maxExpiresMillis, null);
     }
 
-    protected void _maxPullWaiting(Long maxPullWaiting) {
+    protected void _maxPullWaiting(@Nullable Long maxPullWaiting) {
         this.maxPullWaiting = normalizeLong(maxPullWaiting, STANDARD_MIN);
     }
 
@@ -663,7 +643,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.maxPullWaiting = normalizeLong(maxPullWaiting, STANDARD_MIN);
     }
 
-    protected void _maxBatch(Long maxBatch) {
+    protected void _maxBatch(@Nullable Long maxBatch) {
         this.maxBatch = normalizeLong(maxBatch, STANDARD_MIN);
     }
 
@@ -671,7 +651,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.maxBatch = normalizeLong(maxBatch, STANDARD_MIN);
     }
 
-    protected void _maxBytes(Long maxBytes) {
+    protected void _maxBytes(@Nullable Long maxBytes) {
         this.maxBytes = normalizeLong(maxBytes);
     }
 
@@ -683,35 +663,31 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.numReplicas = numReplicas <= 0 ? 0 : validateNumberOfReplicas(numReplicas);
     }
 
-    protected void _pauseUntil(ZonedDateTime pauseUntil) {
+    protected void _pauseUntil(@Nullable ZonedDateTime pauseUntil) {
         this.pauseUntil = pauseUntil;
     }
 
-    protected void _memStorage(Boolean memStorage) {
+    protected void _memStorage(boolean memStorage) {
         this.memStorage = memStorage;
     }
 
     protected void _backoff(Duration... backoffs) {
         backoff.clear();
-        if (backoffs != null) {
-            for (Duration d : backoffs) {
-                if (d.toNanos() < 0) {
-                    throw new IllegalArgumentException("Backoff must be 0 or greater.");
-                }
-                this.backoff.add(d);
+        for (Duration d : backoffs) {
+            if (d.toNanos() < 0) {
+                throw new IllegalArgumentException("Backoff must be 0 or greater.");
             }
+            this.backoff.add(d);
         }
     }
 
     protected void _backoff(long... backoffMillis) {
         backoff.clear();
-        if (backoffMillis != null) {
-            for (long l : backoffMillis) {
-                if (l < 0) {
-                    throw new IllegalArgumentException("Backoff must be 0 or greater.");
-                }
-                this.backoff.add(Duration.ofMillis(l));
+        for (long l : backoffMillis) {
+            if (l < 0) {
+                throw new IllegalArgumentException("Backoff must be 0 or greater.");
             }
+            this.backoff.add(Duration.ofMillis(l));
         }
     }
 
@@ -727,12 +703,12 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.priorityPolicy = policy == null ? DEFAULT_PRIORITY_POLICY : policy;
     }
 
-    protected void _priorityTimeout(Duration priorityTimeout) {
-        this.priorityTimeout = JetStreamApiUtils.normalizeDuration(priorityTimeout);
+    protected void _priorityTimeout(@Nullable Duration priorityTimeout) {
+        this.priorityTimeout = normalizeDuration(priorityTimeout, null);
     }
 
     protected void _priorityTimeout(long priorityTimeoutMillis) {
-        this.priorityTimeout = normalizeDuration(priorityTimeoutMillis);
+        this.priorityTimeout = normalizeDuration(priorityTimeoutMillis, null);
     }
 
     // ----------------------------------------------------------------------------------------------------

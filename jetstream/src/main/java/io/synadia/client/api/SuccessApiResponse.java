@@ -4,7 +4,7 @@ import io.synadia.client.Message;
 import org.jspecify.annotations.NullMarked;
 
 import static io.nats.json.LazyJsonValueUtils.readBoolean;
-import static io.synadia.client.testutils.ApiConstants.SUCCESS;
+import static io.synadia.client.utils.ApiConstants.SUCCESS;
 
 /**
  * A response indicating a successful api call

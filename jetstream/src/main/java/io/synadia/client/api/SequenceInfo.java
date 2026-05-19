@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
 
 import static io.nats.json.LazyJsonValueUtils.readDate;
 import static io.nats.json.LazyJsonValueUtils.readLong;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * This class holds the sequence numbers for a consumer and

@@ -5,7 +5,7 @@ import io.synadia.client.impl.Headers;
 import static io.nats.json.Encoding.base64BasicEncodeToString;
 import static io.synadia.client.impl.JetStreamConstants.ROLLUP_HDR;
 import static io.synadia.client.impl.JetStreamConstants.ROLLUP_HDR_SUBJECT;
-import static io.synadia.client.testutils.NatsConstants.DOT;
+import static io.synadia.client.utils.NatsConstants.DOT;
 
 public abstract class ObjectStoreUtil {
 

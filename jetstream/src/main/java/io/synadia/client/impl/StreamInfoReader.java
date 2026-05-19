@@ -7,8 +7,8 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.DELETED_DETAILS;
-import static io.synadia.client.testutils.ApiConstants.SUBJECTS_FILTER;
+import static io.synadia.client.utils.ApiConstants.DELETED_DETAILS;
+import static io.synadia.client.utils.ApiConstants.SUBJECTS_FILTER;
 
 class StreamInfoReader {
 

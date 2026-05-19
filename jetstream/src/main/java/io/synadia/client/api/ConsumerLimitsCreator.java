@@ -9,8 +9,8 @@ import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.*;
-import static io.synadia.client.testutils.ApiConstants.INACTIVE_THRESHOLD;
-import static io.synadia.client.testutils.ApiConstants.MAX_ACK_PENDING;
+import static io.synadia.client.utils.ApiConstants.INACTIVE_THRESHOLD;
+import static io.synadia.client.utils.ApiConstants.MAX_ACK_PENDING;
 
 /**
  * ConsumerLimitsCreator is used to create a ConsumerLimits configuration for use in a StreamCreator.
@@ -39,18 +39,18 @@ public class ConsumerLimitsCreator implements JsonSerializable {
      * @param inactiveThreshold the threshold duration
      * @return this instance for chaining
      */
-    public ConsumerLimitsCreator inactiveThreshold(Duration inactiveThreshold) {
+    public ConsumerLimitsCreator inactiveThreshold(@Nullable Duration inactiveThreshold) {
         this.inactiveThreshold = normalizeDuration(inactiveThreshold, null);
         return this;
     }
 
     /**
      * Sets the amount of time before the consumer is deemed inactive.
-     * @param inactiveThreshold the threshold duration in milliseconds
+     * @param inactiveThresholdMillis the threshold duration in milliseconds
      * @return this instance for chaining
      */
-    public ConsumerLimitsCreator inactiveThreshold(long inactiveThreshold) {
-        this.inactiveThreshold = normalizeDuration(inactiveThreshold, null);
+    public ConsumerLimitsCreator inactiveThreshold(long inactiveThresholdMillis) {
+        this.inactiveThreshold = normalizeDuration(inactiveThresholdMillis, null);
         return this;
     }
 

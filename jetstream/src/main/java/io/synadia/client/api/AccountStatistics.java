@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * The JetStream Account Statistics

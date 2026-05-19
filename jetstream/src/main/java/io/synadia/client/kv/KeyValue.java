@@ -19,9 +19,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static io.synadia.client.impl.JetStreamConstants.JS_SEQUENCE_TEMPORARILY_UNKNOWN;
 import static io.synadia.client.impl.JetStreamConstants.JS_WRONG_LAST_SEQUENCE;
 import static io.synadia.client.kv.KeyValueUtils.*;
-import static io.synadia.client.testutils.JsValidator.*;
-import static io.synadia.client.testutils.NatsConstants.DOT;
-import static io.synadia.client.testutils.NatsConstants.GREATER_THAN;
+import static io.synadia.client.utils.JsValidator.*;
+import static io.synadia.client.utils.NatsConstants.DOT;
+import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
 
 public class KeyValue extends AbstractBucketFeature {
 

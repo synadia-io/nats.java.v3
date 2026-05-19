@@ -1,6 +1,6 @@
 package io.synadia.client;
 
-import io.synadia.client.testutils.Validator;
+import io.synadia.client.utils.Validator;
 
 /**
  * Class to make setting a per message ttl easier.

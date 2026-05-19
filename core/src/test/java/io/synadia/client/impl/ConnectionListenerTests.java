@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
-import io.synadia.client.testutils.Listener;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -12,9 +12,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.testutils.ConnectionUtils.*;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.testutils.ThreadUtils.sleep;
+import static io.synadia.client.utils.ConnectionUtils.*;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ConnectionListenerTests extends TestBase {

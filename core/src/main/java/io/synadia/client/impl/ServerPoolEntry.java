@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.utils.NatsUri;
 
 public class ServerPoolEntry {
     public final NatsUri nuri;

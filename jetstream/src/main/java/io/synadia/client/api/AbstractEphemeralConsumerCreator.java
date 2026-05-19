@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -34,7 +35,7 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
      * @param name name of the consumer.
      * @return this instance for chaining.
      */
-    public T name(String name) {
+    public T name(@Nullable String name) {
         _name(name);
         //noinspection unchecked
         return (T)this;
@@ -45,7 +46,7 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
      * @param policy the acknowledgement policy.
      * @return this instance for chaining.
      */
-    public T ackPolicy(AckPolicy policy) {
+    public T ackPolicy(@Nullable AckPolicy policy) {
         _ackPolicy(policy);
         //noinspection unchecked
         return (T)this;
@@ -56,7 +57,7 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
      * @param timeout the wait timeout
      * @return this instance for chaining.
      */
-    public T ackWait(Duration timeout) {
+    public T ackWait(@Nullable Duration timeout) {
         _ackWait(timeout);
         //noinspection unchecked
         return (T)this;
@@ -89,17 +90,6 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
      * @param maxAckPending maximum pending acknowledgements.
      * @return this instance for chaining.
      */
-    public T maxAckPending(Long maxAckPending) {
-        _maxAckPending(maxAckPending);
-        //noinspection unchecked
-        return (T)this;
-    }
-
-    /**
-     * Sets the maximum ack pending.
-     * @param maxAckPending maximum pending acknowledgements.
-     * @return this instance for chaining.
-     */
     public T maxAckPending(long maxAckPending) {
         _maxAckPending(maxAckPending);
         //noinspection unchecked
@@ -111,7 +101,7 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
      * @param idleHeartbeat the idle heart beat duration
      * @return this instance for chaining.
      */
-    public T flowControl(Duration idleHeartbeat) {
+    public T flowControl(@Nullable Duration idleHeartbeat) {
         _flowControl(idleHeartbeat);
         //noinspection unchecked
         return (T)this;
@@ -145,7 +135,7 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
      * @param pauseUntil the time to pause
      * @return this instance for chaining.
      */
-    public T pauseUntil(ZonedDateTime pauseUntil) {
+    public T pauseUntil(@Nullable ZonedDateTime pauseUntil) {
         _pauseUntil(pauseUntil);
         //noinspection unchecked
         return (T)this;
@@ -157,7 +147,7 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
      * @param memStorage the flag
      * @return this instance for chaining.
      */
-    public T memStorage(Boolean memStorage) {
+    public T memStorage(boolean memStorage) {
         _memStorage(memStorage);
         //noinspection unchecked
         return (T)this;

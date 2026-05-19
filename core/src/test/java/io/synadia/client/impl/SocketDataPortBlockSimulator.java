@@ -3,8 +3,8 @@ package io.synadia.client.impl;
 import io.synadia.client.ForceReconnectOptions;
 import io.synadia.client.Options;
 import io.synadia.client.global.NatsSystemClock;
-import io.synadia.client.testutils.NatsUri;
-import io.synadia.client.testutils.ScheduledTask;
+import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ScheduledTask;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;

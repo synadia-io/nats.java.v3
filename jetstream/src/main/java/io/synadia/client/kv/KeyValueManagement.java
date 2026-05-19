@@ -16,7 +16,7 @@ import java.util.List;
 
 import static io.synadia.client.impl.JetStreamConstants.SERVER_DEFAULT_DUPLICATE_WINDOW_MS;
 import static io.synadia.client.kv.KeyValueUtils.*;
-import static io.synadia.client.testutils.JsValidator.validateBucketName;
+import static io.synadia.client.utils.JsValidator.validateBucketName;
 
 public class KeyValueManagement {
     private final NatsConnection nc;

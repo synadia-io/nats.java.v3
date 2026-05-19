@@ -4,7 +4,7 @@ import io.synadia.client.*;
 import io.synadia.client.api.ServerInfo;
 import io.synadia.client.global.NatsInetAddress;
 import io.synadia.client.global.NatsSystemClock;
-import io.synadia.client.testutils.*;
+import io.synadia.client.utils.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -25,8 +25,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import static io.synadia.client.ConnectionStatus.*;
-import static io.synadia.client.testutils.NatsConstants.*;
-import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
+import static io.synadia.client.utils.NatsConstants.*;
+import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class NatsConnection implements AutoCloseable {

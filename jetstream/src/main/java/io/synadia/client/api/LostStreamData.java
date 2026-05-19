@@ -8,8 +8,8 @@ import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.nats.json.LazyJsonValueUtils.readLongListOrEmpty;
-import static io.synadia.client.testutils.ApiConstants.BYTES;
-import static io.synadia.client.testutils.ApiConstants.MSGS;
+import static io.synadia.client.utils.ApiConstants.BYTES;
+import static io.synadia.client.utils.ApiConstants.MSGS;
 
 /**
  * Information about lost stream data

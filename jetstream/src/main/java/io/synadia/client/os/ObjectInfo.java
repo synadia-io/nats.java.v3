@@ -15,8 +15,8 @@ import java.util.Map;
 
 import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.JsValidator.validateBucketName;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.JsValidator.validateBucketName;
 
 /**
  * The ObjectInfo is Object Meta Information plus instance information

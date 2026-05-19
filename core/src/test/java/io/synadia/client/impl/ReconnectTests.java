@@ -3,9 +3,9 @@ package io.synadia.client.impl;
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
 import io.synadia.client.api.ServerInfo;
-import io.synadia.client.testutils.ConnectionUtils;
-import io.synadia.client.testutils.Listener;
-import io.synadia.client.testutils.ssl.SslTestingHelper;
+import io.synadia.client.utils.ConnectionUtils;
+import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -23,13 +23,13 @@ import java.util.function.BiConsumer;
 
 import static io.synadia.client.AuthTests.getUserCredsAuthHander;
 import static io.synadia.client.NatsTestServer.configFileBuilder;
-import static io.synadia.client.testutils.ConnectionUtils.*;
-import static io.synadia.client.testutils.Listener.LONG_VALIDATE_TIMEOUT;
-import static io.synadia.client.testutils.Listener.VERY_LONG_VALIDATE_TIMEOUT;
-import static io.synadia.client.testutils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
-import static io.synadia.client.testutils.OptionsUtils.*;
-import static io.synadia.client.testutils.TestBase.*;
-import static io.synadia.client.testutils.ThreadUtils.sleep;
+import static io.synadia.client.utils.ConnectionUtils.*;
+import static io.synadia.client.utils.Listener.LONG_VALIDATE_TIMEOUT;
+import static io.synadia.client.utils.Listener.VERY_LONG_VALIDATE_TIMEOUT;
+import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
+import static io.synadia.client.utils.OptionsUtils.*;
+import static io.synadia.client.utils.TestBase.*;
+import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Isolated

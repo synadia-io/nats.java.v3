@@ -2,8 +2,8 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.global.NatsSystemClock;
-import io.synadia.client.testutils.NatsConstants;
-import io.synadia.client.testutils.ScheduledTask;
+import io.synadia.client.utils.NatsConstants;
+import io.synadia.client.utils.ScheduledTask;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;

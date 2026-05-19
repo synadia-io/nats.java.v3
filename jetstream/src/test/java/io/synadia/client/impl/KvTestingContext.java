@@ -5,7 +5,7 @@ import io.synadia.client.api.StreamInfo;
 import io.synadia.client.kv.KeyValueConfigurationCreator;
 import io.synadia.client.kv.KeyValueManagement;
 import io.synadia.client.kv.KeyValueStatus;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.TestBase;
 
 import java.io.IOException;
 import java.util.HashMap;

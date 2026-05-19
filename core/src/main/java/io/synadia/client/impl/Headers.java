@@ -7,8 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
 
-import static io.synadia.client.testutils.NatsConstants.*;
-import static io.synadia.client.testutils.Validator.nullOrEmpty;
+import static io.synadia.client.utils.NatsConstants.*;
+import static io.synadia.client.utils.Validator.nullOrEmpty;
 
 /**
  * An object that represents a map of keys to a list of values. It does not accept

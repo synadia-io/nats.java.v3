@@ -1,13 +1,13 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
-import io.synadia.client.testutils.Validator;
+import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.DEST;
-import static io.synadia.client.testutils.ApiConstants.SRC;
+import static io.synadia.client.utils.ApiConstants.DEST;
+import static io.synadia.client.utils.ApiConstants.SRC;
 
 /**
  * SubjectTransformCreator is used to create a SubjectTransform for use in a StreamCreator.

@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Object used to make a request for message get requests.

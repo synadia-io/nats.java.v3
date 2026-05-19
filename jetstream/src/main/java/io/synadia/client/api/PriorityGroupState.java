@@ -10,14 +10,14 @@ import java.util.List;
 import static io.nats.json.LazyJsonValueUtils.readDate;
 import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Status of a specific consumer priority group
  */
 @NullMarked
 public class PriorityGroupState extends LazyApiObject {
-    static List<PriorityGroupState> listOf(LazyJsonValue v) {
+    static List<PriorityGroupState> listOf(@Nullable LazyJsonValue v) {
         return mapToList(v, PriorityGroupState::new);
     }
 

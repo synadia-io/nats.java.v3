@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Object representing the state of a stream

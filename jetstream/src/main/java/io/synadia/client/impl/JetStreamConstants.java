@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.testutils.NatsConstants;
+import io.synadia.client.utils.NatsConstants;
 
 public interface JetStreamConstants extends NatsConstants {
 

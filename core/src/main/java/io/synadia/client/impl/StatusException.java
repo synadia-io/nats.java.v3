@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.testutils.Status;
+import io.synadia.client.utils.Status;
 
 /**
  * StatusException is used to carry a status message response that was received.

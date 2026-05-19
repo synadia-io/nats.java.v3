@@ -9,7 +9,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * The StreamInfo class contains information about a JetStream stream.

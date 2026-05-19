@@ -12,8 +12,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.synadia.client.testutils.ConnectionUtils.standardConnect;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ConnectionUtils.standardConnect;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

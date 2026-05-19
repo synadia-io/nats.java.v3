@@ -3,7 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.NatsTestServer;
 import io.synadia.client.Options;
 import io.synadia.client.OptionsBuilder;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ExecutorService;
@@ -12,8 +12,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.synadia.client.testutils.ConnectionUtils.closeAndConfirm;
-import static io.synadia.client.testutils.ConnectionUtils.managedConnect;
+import static io.synadia.client.utils.ConnectionUtils.closeAndConfirm;
+import static io.synadia.client.utils.ConnectionUtils.managedConnect;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class NatsConnectionImplTests extends TestBase {

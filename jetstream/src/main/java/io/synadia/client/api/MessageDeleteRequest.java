@@ -5,8 +5,8 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.NO_ERASE;
-import static io.synadia.client.testutils.ApiConstants.SEQ;
+import static io.synadia.client.utils.ApiConstants.NO_ERASE;
+import static io.synadia.client.utils.ApiConstants.SEQ;
 
 /**
  * Object used to make a request for message delete requests.

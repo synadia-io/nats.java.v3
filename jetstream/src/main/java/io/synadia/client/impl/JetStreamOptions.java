@@ -3,9 +3,9 @@ package io.synadia.client.impl;
 import java.time.Duration;
 
 import static io.synadia.client.impl.JetStreamConstants.*;
-import static io.synadia.client.testutils.JsValidator.validatePrefixOrDomain;
-import static io.synadia.client.testutils.NatsConstants.DOT;
-import static io.synadia.client.testutils.Validator.ensureEndsWithDot;
+import static io.synadia.client.utils.JsValidator.validatePrefixOrDomain;
+import static io.synadia.client.utils.NatsConstants.DOT;
+import static io.synadia.client.utils.Validator.ensureEndsWithDot;
 
 /**
  * The JetStreamOptions class specifies the general options for JetStream.

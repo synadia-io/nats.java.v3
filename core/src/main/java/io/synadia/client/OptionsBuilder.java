@@ -3,9 +3,9 @@ package io.synadia.client;
 import io.synadia.client.impl.DispatcherFactory;
 import io.synadia.client.impl.SSLContextFactory;
 import io.synadia.client.impl.SSLContextFactoryProperties;
-import io.synadia.client.testutils.HttpRequest;
-import io.synadia.client.testutils.NatsUri;
-import io.synadia.client.testutils.SSLUtils;
+import io.synadia.client.utils.HttpRequest;
+import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.SSLUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -31,10 +31,10 @@ import java.util.function.Supplier;
 
 import static io.synadia.client.OptionsConstants.*;
 import static io.synadia.client.OptionsProperties.*;
-import static io.synadia.client.testutils.NatsConstants.*;
-import static io.synadia.client.testutils.SSLUtils.DEFAULT_TLS_ALGORITHM;
-import static io.synadia.client.testutils.Validator.emptyAsNull;
-import static io.synadia.client.testutils.Validator.emptyOrNullAs;
+import static io.synadia.client.utils.NatsConstants.*;
+import static io.synadia.client.utils.SSLUtils.DEFAULT_TLS_ALGORITHM;
+import static io.synadia.client.utils.Validator.emptyAsNull;
+import static io.synadia.client.utils.Validator.emptyOrNullAs;
 
 /**
  * Options are created using a Builder. The builder supports chaining and will

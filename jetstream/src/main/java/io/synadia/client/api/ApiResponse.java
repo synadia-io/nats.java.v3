@@ -16,8 +16,8 @@ import static io.nats.json.JsonWriteUtils.toKey;
 import static io.nats.json.LazyJsonParser.parse;
 import static io.nats.json.LazyJsonParser.parseUnchecked;
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.ERROR;
-import static io.synadia.client.testutils.ApiConstants.TYPE;
+import static io.synadia.client.utils.ApiConstants.ERROR;
+import static io.synadia.client.utils.ApiConstants.TYPE;
 
 /**
  * ApiResponse is the base class for all api responses from the server

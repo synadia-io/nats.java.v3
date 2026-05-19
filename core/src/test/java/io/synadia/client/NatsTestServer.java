@@ -7,7 +7,7 @@ import io.nats.NatsServerRunner;
 import java.io.IOException;
 import java.util.logging.Level;
 
-import static io.synadia.client.testutils.ResourceUtils.configResource;
+import static io.synadia.client.utils.ResourceUtils.configResource;
 
 public class NatsTestServer extends NatsServerRunner implements TestServer {
 

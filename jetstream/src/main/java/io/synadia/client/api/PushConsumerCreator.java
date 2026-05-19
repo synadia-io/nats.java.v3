@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * PushConsumerCreator helps you create a push Consumer with durable support.
@@ -30,7 +31,7 @@ public class PushConsumerCreator extends AbstractEphemeralConsumerCreator<PushCo
      * @param durable name of the durable consumer.
      * @return the creator
      */
-    public PushConsumerCreator durable(String durable) {
+    public PushConsumerCreator durable(@Nullable String durable) {
         _durable(durable);
         return this;
     }
@@ -44,12 +45,12 @@ public class PushConsumerCreator extends AbstractEphemeralConsumerCreator<PushCo
      * @param group the delivery group.
      * @return the creator
      */
-    public PushConsumerCreator deliverGroup(String group) {
+    public PushConsumerCreator deliverGroup(@Nullable String group) {
         _deliverGroup(group);
         return this;
     }
 
-    public PushConsumerCreator deliverSubject(String deliverSubject) {
+    public PushConsumerCreator deliverSubject(@Nullable String deliverSubject) {
         _deliverSubject(deliverSubject);
         return this;
     }

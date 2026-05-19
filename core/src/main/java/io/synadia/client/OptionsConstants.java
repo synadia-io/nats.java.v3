@@ -1,7 +1,7 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.SocketDataPort;
-import io.synadia.client.testutils.NatsConstants;
+import io.synadia.client.utils.NatsConstants;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;

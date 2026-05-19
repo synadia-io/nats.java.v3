@@ -12,8 +12,8 @@ import java.util.Objects;
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAll;
 import static io.synadia.client.impl.JetStreamOptions.convertDomainToPrefix;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.JsValidator.validateStreamName;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.JsValidator.validateStreamName;
 
 /**
  * Base class for MirrorCreator and SourceCreator.
@@ -132,7 +132,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param subjectTransformCreators the list of SubjectTransformCreator
      * @return this instance for chaining
      */
-    public T subjectTransforms(List<SubjectTransformCreator> subjectTransformCreators) {
+    public T subjectTransforms(@Nullable List<SubjectTransformCreator> subjectTransformCreators) {
         replaceAll(this.subjectTransformCreators, subjectTransformCreators);
         return (T) this;
     }

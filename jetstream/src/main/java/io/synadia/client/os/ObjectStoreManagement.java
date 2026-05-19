@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.synadia.client.os.ObjectStoreUtil.*;
-import static io.synadia.client.testutils.JsValidator.validateBucketName;
+import static io.synadia.client.utils.JsValidator.validateBucketName;
 
 public class ObjectStoreManagement {
     private final NatsConnection nc;

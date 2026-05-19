@@ -4,8 +4,8 @@ import io.nats.json.DateTimeUtils;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
-import io.synadia.client.testutils.Listener;
-import io.synadia.client.testutils.VersionUtils;
+import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -20,8 +20,8 @@ import java.util.function.Function;
 
 import static io.nats.json.DateTimeUtils.ZONE_ID_UTC;
 import static io.synadia.client.OptionsConstants.DEFAULT_INBOX_PREFIX;
-import static io.synadia.client.testutils.NatsConstants.*;
-import static io.synadia.client.testutils.ThreadUtils.sleep;
+import static io.synadia.client.utils.NatsConstants.*;
+import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamManagementTests extends JetStreamTestBase {
@@ -573,7 +573,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             // threshold can be set for durable
             pushCreator = new PushConsumerCreator(ctx.stream)
                 .durable(random())
-                .inactiveThreshold(10000);
+                .inactiveThreshold(10000L);
             ci = ctx.jsm.addOrUpdateConsumer(pushCreator);
             assertNotNull(ci.getName());
             Duration duration = ci.getConsumerConfiguration().getInactiveThreshold();
@@ -759,11 +759,11 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
-            creator = new PushConsumerCreator(creator).rateLimit(100);
+            creator = new PushConsumerCreator(creator).rateLimit(100L);
             assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
-            creator = new PushConsumerCreator(creator).maxAckPending(100);
+            creator = new PushConsumerCreator(creator).maxAckPending(100L);
             assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());

@@ -3,8 +3,8 @@ package io.synadia.client;
 import io.nats.nkey.NKey;
 import io.nats.nkey.NKeyProvider;
 import io.synadia.client.impl.*;
-import io.synadia.client.testutils.*;
-import io.synadia.client.testutils.ssl.SslTestingHelper;
+import io.synadia.client.utils.*;
+import io.synadia.client.utils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -24,8 +24,8 @@ import java.util.function.Supplier;
 import static io.nats.json.Encoding.base64UrlEncodeToString;
 import static io.synadia.client.OptionsConstants.*;
 import static io.synadia.client.OptionsProperties.*;
-import static io.synadia.client.testutils.NatsConstants.DEFAULT_PORT;
-import static io.synadia.client.testutils.ResourceUtils.jwtResource;
+import static io.synadia.client.utils.NatsConstants.DEFAULT_PORT;
+import static io.synadia.client.utils.ResourceUtils.jwtResource;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class OptionsTests extends TestBase {
@@ -478,7 +478,7 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_PING_INTERVAL, "1000");
 
         // classnameProperty
-        props.setProperty(PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, "io.synadia.client.testutils.CoverageServerPool");
+        props.setProperty(PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, "io.synadia.client.utils.CoverageServerPool");
 
         Options o = new OptionsBuilder(props).build();
         _testProperties(o);

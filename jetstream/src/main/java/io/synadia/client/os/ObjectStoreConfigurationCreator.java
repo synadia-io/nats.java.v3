@@ -10,8 +10,8 @@ import java.time.Duration;
 import java.util.Map;
 
 import static io.synadia.client.os.ObjectStoreUtil.toStreamName;
-import static io.synadia.client.testutils.JsValidator.validateBucketName;
-import static io.synadia.client.testutils.JsValidator.validateMaxBucketBytes;
+import static io.synadia.client.utils.JsValidator.validateBucketName;
+import static io.synadia.client.utils.JsValidator.validateMaxBucketBytes;
 
 /**
  * ObjectStoreConfigurationCreator is used to create an Object Store bucket.

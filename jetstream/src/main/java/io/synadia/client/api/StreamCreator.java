@@ -11,8 +11,8 @@ import java.util.*;
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAll;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.JsValidator.*;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.JsValidator.*;
 
 /**
  * StreamCreator is used to create or update a stream on the server.
@@ -591,7 +591,7 @@ public class StreamCreator implements JsonSerializable {
      * @param subjects the stream's subjects
      * @return this instance for chaining
      */
-    public StreamCreator subjects(@Nullable String... subjects) {
+    public StreamCreator subjects(String... subjects) {
         replaceAllStrings(this.subjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
         return this;
     }
@@ -628,11 +628,12 @@ public class StreamCreator implements JsonSerializable {
 
     /**
      * Sets the maximum number of consumers in the StreamCreator.
+     * Any value less than 1 is clamped to -1 (no limit).
      * @param maxConsumers the maximum number of consumers
      * @return this instance for chaining
      */
     public StreamCreator maxConsumers(long maxConsumers) {
-        this.maxConsumers = validateMaxConsumers(maxConsumers);
+        this.maxConsumers = maxConsumers < 1 ? -1 : maxConsumers;
         return this;
     }
 
@@ -885,7 +886,7 @@ public class StreamCreator implements JsonSerializable {
      * @param sources the stream's sources creators
      * @return this instance for chaining
      */
-    public StreamCreator sources(@Nullable Source... sources) {
+    public StreamCreator sources(Source... sources) {
         replaceAll(this.sourceCreators, sources, SourceCreator::new);
         return this;
     }
@@ -895,7 +896,7 @@ public class StreamCreator implements JsonSerializable {
      * @param sourceCreators the stream's sources creators
      * @return this instance for chaining
      */
-    public StreamCreator sourceCreators(@Nullable SourceCreator... sourceCreators) {
+    public StreamCreator sourceCreators(SourceCreator... sourceCreators) {
         replaceAll(this.sourceCreators, sourceCreators);
         return this;
     }

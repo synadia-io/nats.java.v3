@@ -4,8 +4,8 @@ import io.nats.json.DateTimeUtils;
 import io.nats.json.LazyJsonValue;
 import io.synadia.client.Message;
 import io.synadia.client.api.ApiResponse;
-import io.synadia.client.testutils.IncomingHeadersProcessor;
-import io.synadia.client.testutils.Status;
+import io.synadia.client.utils.IncomingHeadersProcessor;
+import io.synadia.client.utils.Status;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -14,7 +14,7 @@ import java.time.ZonedDateTime;
 import static io.nats.json.JsonWriteUtils.*;
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.impl.JetStreamConstants.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * The MessageInfo class contains information about a JetStream message.

@@ -4,13 +4,13 @@ import io.nats.json.LazyJsonParser;
 import io.synadia.client.Message;
 import io.synadia.client.api.ApiResponse;
 import io.synadia.client.api.SuccessApiResponse;
-import io.synadia.client.testutils.Status;
+import io.synadia.client.utils.Status;
 import org.junit.jupiter.api.Test;
 
 import static io.synadia.client.api.ApiResponse.NO_TYPE;
 import static io.synadia.client.api.Error.*;
-import static io.synadia.client.testutils.ResourceUtils.dataAsString;
-import static io.synadia.client.testutils.TestBase.getDataMessage;
+import static io.synadia.client.utils.ResourceUtils.dataAsString;
+import static io.synadia.client.utils.TestBase.getDataMessage;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ApiResponseTests {

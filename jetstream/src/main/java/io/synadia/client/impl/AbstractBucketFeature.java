@@ -5,7 +5,7 @@ import io.synadia.client.MessageHandler;
 import io.synadia.client.api.DeliverPolicy;
 import io.synadia.client.api.PushConsumerCreator;
 import io.synadia.client.api.PushOrderedConsumerCreator;
-import io.synadia.client.testutils.JsValidator;
+import io.synadia.client.utils.JsValidator;
 
 import java.io.IOException;
 import java.time.Duration;

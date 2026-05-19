@@ -8,7 +8,7 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * The response for a ConsumerPauseRequest

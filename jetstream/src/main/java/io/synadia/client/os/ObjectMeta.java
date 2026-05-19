@@ -3,7 +3,7 @@ package io.synadia.client.os;
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
 import io.synadia.client.impl.Headers;
-import io.synadia.client.testutils.Validator;
+import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -11,7 +11,7 @@ import java.util.*;
 
 import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * The ObjectMeta is Object Meta is high level information about an object

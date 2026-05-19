@@ -3,9 +3,9 @@ package io.synadia.client.impl;
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
 import io.synadia.client.api.*;
-import io.synadia.client.testutils.JetStreamClientError;
-import io.synadia.client.testutils.TestBase;
-import io.synadia.client.testutils.VersionUtils.VersionCheck;
+import io.synadia.client.utils.JetStreamClientError;
+import io.synadia.client.utils.TestBase;
+import io.synadia.client.utils.VersionUtils.VersionCheck;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.function.Executable;
 
@@ -22,14 +22,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static io.synadia.client.testutils.ConnectionUtils.managedConnect;
-import static io.synadia.client.testutils.JetStreamClientError.KIND_ILLEGAL_ARGUMENT;
-import static io.synadia.client.testutils.JetStreamClientError.KIND_ILLEGAL_STATE;
-import static io.synadia.client.testutils.OptionsUtils.options;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.testutils.ThreadUtils.sleep;
-import static io.synadia.client.testutils.VersionUtils.VERSION_SERVER_INFO;
-import static io.synadia.client.testutils.VersionUtils.initVersionServerInfo;
+import static io.synadia.client.utils.ConnectionUtils.managedConnect;
+import static io.synadia.client.utils.JetStreamClientError.KIND_ILLEGAL_ARGUMENT;
+import static io.synadia.client.utils.JetStreamClientError.KIND_ILLEGAL_STATE;
+import static io.synadia.client.utils.OptionsUtils.options;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.utils.VersionUtils.VERSION_SERVER_INFO;
+import static io.synadia.client.utils.VersionUtils.initVersionServerInfo;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamTestBase extends TestBase {

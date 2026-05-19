@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Options;
-import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.utils.NatsUri;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;

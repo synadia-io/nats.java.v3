@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.LazyJsonValueUtils.readBoolean;
 import static io.nats.json.LazyJsonValueUtils.readString;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Republish Configuration returned from the server.

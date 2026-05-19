@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.concurrent.*;
 
 import static io.synadia.client.impl.JetStreamConstants.MSG_TTL_HDR;
-import static io.synadia.client.testutils.NatsConstants.NATS_MARKER_REASON_HDR;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.testutils.ThreadUtils.sleep;
-import static io.synadia.client.testutils.VersionUtils.atLeast2_12;
+import static io.synadia.client.utils.NatsConstants.NATS_MARKER_REASON_HDR;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.utils.VersionUtils.atLeast2_12;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamPubTests extends JetStreamTestBase {

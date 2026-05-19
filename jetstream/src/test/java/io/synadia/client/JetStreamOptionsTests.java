@@ -1,13 +1,13 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.JetStreamOptions;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
 import static io.synadia.client.impl.JetStreamConstants.*;
-import static io.synadia.client.testutils.NatsConstants.DOT;
+import static io.synadia.client.utils.NatsConstants.DOT;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamOptionsTests extends TestBase {

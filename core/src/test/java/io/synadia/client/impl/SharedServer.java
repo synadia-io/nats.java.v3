@@ -4,7 +4,7 @@ import io.synadia.client.ConnectionStatus;
 import io.synadia.client.NUID;
 import io.synadia.client.NatsTestServer;
 import io.synadia.client.OptionsBuilder;
-import io.synadia.client.testutils.ConnectionUtils;
+import io.synadia.client.utils.ConnectionUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -15,9 +15,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static io.synadia.client.NatsTestServer.configFileBuilder;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.testutils.ThreadUtils.sleep;
-import static io.synadia.client.testutils.VersionUtils.initVersionServerInfo;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ThreadUtils.sleep;
+import static io.synadia.client.utils.VersionUtils.initVersionServerInfo;
 
 /**
  * This class is in the impl package instead of the support package

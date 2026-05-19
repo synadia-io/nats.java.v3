@@ -5,7 +5,7 @@ import io.synadia.client.global.NatsInetAddress;
 import io.synadia.client.global.NatsInetAddressProvider;
 import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.global.NatsSystemClockProvider;
-import io.synadia.client.testutils.NatsUri;
+import io.synadia.client.utils.NatsUri;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 

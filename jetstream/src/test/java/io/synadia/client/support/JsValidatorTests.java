@@ -1,8 +1,8 @@
 package io.synadia.client.support;
 
-import io.synadia.client.testutils.JetStreamClientError;
-import io.synadia.client.testutils.JsValidator;
-import io.synadia.client.testutils.ValidatorTests;
+import io.synadia.client.utils.JetStreamClientError;
+import io.synadia.client.utils.JsValidator;
+import io.synadia.client.utils.ValidatorTests;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -10,9 +10,9 @@ import java.time.Duration;
 import java.util.*;
 
 import static io.synadia.client.impl.JetStreamConstants.NATS_META_KEY_PREFIX;
-import static io.synadia.client.testutils.JsValidator.*;
-import static io.synadia.client.testutils.ResourceUtils.dataAsLines;
-import static io.synadia.client.testutils.TestBase.*;
+import static io.synadia.client.utils.JsValidator.*;
+import static io.synadia.client.utils.ResourceUtils.dataAsLines;
+import static io.synadia.client.utils.TestBase.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JsValidatorTests extends ValidatorTests {

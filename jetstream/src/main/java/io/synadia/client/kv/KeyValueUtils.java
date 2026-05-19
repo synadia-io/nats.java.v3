@@ -9,7 +9,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import static io.synadia.client.impl.JetStreamConstants.*;
-import static io.synadia.client.testutils.NatsConstants.DOT;
+import static io.synadia.client.utils.NatsConstants.DOT;
 
 public abstract class KeyValueUtils {
 

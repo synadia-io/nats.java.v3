@@ -6,7 +6,7 @@ import io.synadia.client.api.ConsumerInfo;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.synadia.client.testutils.ApiConstants.CONSUMERS;
+import static io.synadia.client.utils.ApiConstants.CONSUMERS;
 
 public class ConsumerListReader extends AbstractListReader {
 

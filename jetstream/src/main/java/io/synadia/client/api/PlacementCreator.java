@@ -10,8 +10,8 @@ import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
-import static io.synadia.client.testutils.ApiConstants.CLUSTER;
-import static io.synadia.client.testutils.ApiConstants.TAGS;
+import static io.synadia.client.utils.ApiConstants.CLUSTER;
+import static io.synadia.client.utils.ApiConstants.TAGS;
 
 /**
  * PlacementCreator is used to create placement directives for use in a StreamCreator.
@@ -62,7 +62,7 @@ public class PlacementCreator implements JsonSerializable {
      * @param tags the tags
      * @return this instance for chaining
      */
-    public PlacementCreator tags(@Nullable String... tags) {
+    public PlacementCreator tags(String... tags) {
         replaceAllStrings(this.tags, tags);
         return this;
     }

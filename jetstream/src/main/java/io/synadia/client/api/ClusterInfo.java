@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Information about the cluster a stream or consumer is part of.

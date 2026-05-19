@@ -4,8 +4,8 @@ import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
 import static io.synadia.client.impl.AckType.*;
-import static io.synadia.client.testutils.NatsConstants.NANOS_PER_MILLI;
-import static io.synadia.client.testutils.Validator.validateDurationRequired;
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
+import static io.synadia.client.utils.Validator.validateDurationRequired;
 
 public class JetStreamMessage extends IncomingMessage {
 

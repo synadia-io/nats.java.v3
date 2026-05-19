@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.synadia.client.testutils.ResourceUtils.dataAsLines;
+import static io.synadia.client.utils.ResourceUtils.dataAsLines;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JsPublishTests extends JetStreamTestBase {

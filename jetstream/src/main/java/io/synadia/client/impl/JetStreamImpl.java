@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.synadia.client.impl.JetStreamApiUtils.generateConsumerName;
-import static io.synadia.client.testutils.JetStreamClientError.JsConsumerCreate290NotAvailable;
-import static io.synadia.client.testutils.JetStreamClientError.JsMultipleFilterSubjects210NotAvailable;
-import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
+import static io.synadia.client.utils.JetStreamClientError.JsConsumerCreate290NotAvailable;
+import static io.synadia.client.utils.JetStreamClientError.JsMultipleFilterSubjects210NotAvailable;
+import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 
 @NullMarked
 public class JetStreamImpl implements JetStreamConstants {

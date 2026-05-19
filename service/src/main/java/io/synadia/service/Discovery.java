@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static io.synadia.client.testutils.NatsConstants.NANOS_PER_MILLI;
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 import static io.synadia.service.Service.*;
 
 /**

@@ -4,7 +4,7 @@ package io.synadia.client;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-import static io.synadia.client.testutils.RandomUtils.*;
+import static io.synadia.client.utils.RandomUtils.*;
 
 /**
  * A highly performant unique identifier generator. The library uses this to generate

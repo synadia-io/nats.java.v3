@@ -2,7 +2,7 @@ package io.synadia.service;
 
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
-import io.synadia.client.testutils.Validator;
+import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
@@ -12,8 +12,8 @@ import java.util.Objects;
 import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonValueUtils.readStringMapOrNull;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.Validator.validateIsRestrictedTerm;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.Validator.validateIsRestrictedTerm;
 
 /**
  * Endpoint encapsulates the name, subject and metadata for a {@link ServiceEndpoint}.

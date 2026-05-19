@@ -5,7 +5,7 @@ import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Properties;
 
-import static io.synadia.client.testutils.Validator.emptyAsNull;
+import static io.synadia.client.utils.Validator.emptyAsNull;
 
 /**
  * Constants and static functions used by {@link Options} and the connection machinery.

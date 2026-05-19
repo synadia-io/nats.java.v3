@@ -8,8 +8,8 @@ import org.jspecify.annotations.Nullable;
 import static io.nats.json.JsonValueUtils.readInteger;
 import static io.nats.json.JsonValueUtils.readValue;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.LINK;
-import static io.synadia.client.testutils.ApiConstants.MAX_CHUNK_SIZE;
+import static io.synadia.client.utils.ApiConstants.LINK;
+import static io.synadia.client.utils.ApiConstants.MAX_CHUNK_SIZE;
 
 /**
  * The ObjectMetaOptions are additional options describing the object

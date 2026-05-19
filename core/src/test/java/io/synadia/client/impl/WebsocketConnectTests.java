@@ -2,8 +2,8 @@ package io.synadia.client.impl;
 
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
-import io.synadia.client.testutils.*;
-import io.synadia.client.testutils.ssl.SslTestingHelper;
+import io.synadia.client.utils.*;
+import io.synadia.client.utils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -18,10 +18,10 @@ import static io.synadia.client.ConnectionEvents.CONNECTED;
 import static io.synadia.client.ConnectionEvents.RECONNECTED;
 import static io.synadia.client.NatsTestServer.configFileBuilder;
 import static io.synadia.client.NatsTestServer.nextPort;
-import static io.synadia.client.testutils.ConnectionUtils.assertConnected;
-import static io.synadia.client.testutils.ConnectionUtils.managedConnect;
-import static io.synadia.client.testutils.OptionsUtils.NOOP_EL;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ConnectionUtils.assertConnected;
+import static io.synadia.client.utils.ConnectionUtils.managedConnect;
+import static io.synadia.client.utils.OptionsUtils.NOOP_EL;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class WebsocketConnectTests extends TestBase {

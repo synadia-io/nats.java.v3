@@ -3,7 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
-import io.synadia.client.testutils.Validator;
+import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -15,10 +15,10 @@ import java.util.concurrent.CompletableFuture;
 
 import static io.synadia.client.impl.ConsumerCreateRequest.Action.Create;
 import static io.synadia.client.impl.MessageManager.ManageResult;
-import static io.synadia.client.testutils.JetStreamClientError.JsSubNoMatchingStreamForSubject;
-import static io.synadia.client.testutils.JsValidator.validateStreamName;
-import static io.synadia.client.testutils.NatsRequestCompletableFuture.CancelAction;
-import static io.synadia.client.testutils.Validator.*;
+import static io.synadia.client.utils.JetStreamClientError.JsSubNoMatchingStreamForSubject;
+import static io.synadia.client.utils.JsValidator.validateStreamName;
+import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
+import static io.synadia.client.utils.Validator.*;
 
 public class JetStream extends JetStreamImpl {
 

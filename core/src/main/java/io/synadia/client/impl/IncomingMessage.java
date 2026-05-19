@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.testutils.ByteArrayBuilder;
+import io.synadia.client.utils.ByteArrayBuilder;
 
 public class IncomingMessage extends NatsMessage {
     protected IncomingMessage() {

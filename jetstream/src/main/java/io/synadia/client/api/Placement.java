@@ -8,8 +8,8 @@ import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.nats.json.LazyJsonValueUtils.readStringListOrNull;
-import static io.synadia.client.testutils.ApiConstants.CLUSTER;
-import static io.synadia.client.testutils.ApiConstants.TAGS;
+import static io.synadia.client.utils.ApiConstants.CLUSTER;
+import static io.synadia.client.utils.ApiConstants.TAGS;
 
 /**
  * Placement directives returned from the server.

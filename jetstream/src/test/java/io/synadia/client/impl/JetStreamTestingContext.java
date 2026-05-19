@@ -3,7 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamCreator;
 import io.synadia.client.api.StreamInfo;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.TestBase;
 
 import java.io.IOException;
 import java.util.HashMap;

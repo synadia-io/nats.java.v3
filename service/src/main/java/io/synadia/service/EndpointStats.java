@@ -10,7 +10,7 @@ import java.util.Objects;
 
 import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Endpoints stats contains various stats and custom data for an endpoint.

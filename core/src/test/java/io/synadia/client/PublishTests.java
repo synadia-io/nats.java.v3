@@ -3,8 +3,8 @@ package io.synadia.client;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
-import io.synadia.client.testutils.Listener;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -16,11 +16,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.synadia.client.testutils.ConnectionUtils.*;
-import static io.synadia.client.testutils.NatsConstants.*;
-import static io.synadia.client.testutils.OptionsUtils.options;
-import static io.synadia.client.testutils.OptionsUtils.optionsBuilder;
-import static io.synadia.client.testutils.ResourceUtils.dataAsLines;
+import static io.synadia.client.utils.ConnectionUtils.*;
+import static io.synadia.client.utils.NatsConstants.*;
+import static io.synadia.client.utils.OptionsUtils.options;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ResourceUtils.dataAsLines;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class PublishTests extends TestBase {

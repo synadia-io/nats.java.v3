@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.List;
@@ -33,7 +34,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param durable name of the durable consumer.
      * @return this instance for chaining.
      */
-    public PullConsumerCreator durable(String durable) {
+    public PullConsumerCreator durable(@Nullable String durable) {
         _durable(durable);
         return this;
     }
@@ -47,7 +48,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param maxExpires the max expire duration
      * @return this instance for chaining.
      */
-    public PullConsumerCreator maxExpires(Duration maxExpires) {
+    public PullConsumerCreator maxExpires(@Nullable Duration maxExpires) {
         _maxExpires(maxExpires);
         return this;
     }
@@ -68,7 +69,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param maxPullWaiting the max pull waiting
      * @return this instance for chaining.
      */
-    public PullConsumerCreator maxPullWaiting(Long maxPullWaiting) {
+    public PullConsumerCreator maxPullWaiting(@Nullable Long maxPullWaiting) {
         _maxPullWaiting(maxPullWaiting);
         return this;
     }
@@ -88,7 +89,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param maxBatch the max batch size
      * @return this instance for chaining.
      */
-    public PullConsumerCreator maxBatch(Long maxBatch) {
+    public PullConsumerCreator maxBatch(@Nullable Long maxBatch) {
         _maxBatch(maxBatch);
         return this;
     }
@@ -108,7 +109,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param maxBytes the max bytes size
      * @return this instance for chaining.
      */
-    public PullConsumerCreator maxBytes(Long maxBytes) {
+    public PullConsumerCreator maxBytes(@Nullable Long maxBytes) {
         _maxBytes(maxBytes);
         return this;
     }
@@ -144,7 +145,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param priorityGroups the list of priority groups
      * @return this instance for chaining.
      */
-    public PullConsumerCreator priorityGroups(List<String> priorityGroups) {
+    public PullConsumerCreator priorityGroups(@Nullable List<String> priorityGroups) {
         _priorityGroups(priorityGroups);
         return this;
     }
@@ -154,7 +155,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param policy the priority policy.
      * @return this instance for chaining.
      */
-    public PullConsumerCreator priorityPolicy(PriorityPolicy policy) {
+    public PullConsumerCreator priorityPolicy(@Nullable PriorityPolicy policy) {
         _priorityPolicy(policy);
         return this;
     }
@@ -164,7 +165,7 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
      * @param priorityTimeout the timeout
      * @return this instance for chaining.
      */
-    public PullConsumerCreator priorityTimeout(Duration priorityTimeout) {
+    public PullConsumerCreator priorityTimeout(@Nullable Duration priorityTimeout) {
         _priorityTimeout(priorityTimeout);
         return this;
     }

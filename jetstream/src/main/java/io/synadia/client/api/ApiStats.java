@@ -5,7 +5,7 @@ import org.jspecify.annotations.NullMarked;
 
 import static io.nats.json.LazyJsonValueUtils.readInteger;
 import static io.nats.json.LazyJsonValueUtils.readLong;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Represents the JetStream Account Api Stats

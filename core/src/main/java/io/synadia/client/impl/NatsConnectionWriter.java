@@ -16,7 +16,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Options;
 import io.synadia.client.StatisticsCollector;
-import io.synadia.client.testutils.ByteArrayBuilder;
+import io.synadia.client.utils.ByteArrayBuilder;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -32,9 +32,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static io.synadia.client.OptionsConstants.MAX_MESSAGES_IN_NETWORK_BUFFER;
 import static io.synadia.client.impl.MarkerMessage.END_RECONNECT;
-import static io.synadia.client.testutils.ByteArrayBuilder.bufferAllocSize;
-import static io.synadia.client.testutils.NatsConstants.CR;
-import static io.synadia.client.testutils.NatsConstants.LF;
+import static io.synadia.client.utils.ByteArrayBuilder.bufferAllocSize;
+import static io.synadia.client.utils.NatsConstants.CR;
+import static io.synadia.client.utils.NatsConstants.LF;
 
 public class NatsConnectionWriter implements Runnable {
     enum Mode {

@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.synadia.client.testutils.Validator.*;
+import static io.synadia.client.utils.Validator.*;
 
 /**
  * Build a Service using a fluent builder.

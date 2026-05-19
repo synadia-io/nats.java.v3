@@ -7,9 +7,9 @@ import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.BUCKET;
-import static io.synadia.client.testutils.ApiConstants.NAME;
-import static io.synadia.client.testutils.JsValidator.validateBucketName;
+import static io.synadia.client.utils.ApiConstants.BUCKET;
+import static io.synadia.client.utils.ApiConstants.NAME;
+import static io.synadia.client.utils.JsValidator.validateBucketName;
 
 /**
  * The ObjectLink is used to embed links to other objects.

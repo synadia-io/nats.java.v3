@@ -15,8 +15,8 @@ import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.api.ConsumerCreator.*;
 import static io.synadia.client.impl.JetStreamApiUtils.ULONG_UNSET;
 import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.NatsConstants.UNDEFINED;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.NatsConstants.UNDEFINED;
 
 /**
  * The ConsumerConfiguration is returned from the server on consumer info calls.

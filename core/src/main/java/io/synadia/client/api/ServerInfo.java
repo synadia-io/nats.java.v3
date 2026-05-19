@@ -2,8 +2,8 @@ package io.synadia.client.api;
 
 import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
-import io.synadia.client.testutils.ApiUtils;
-import io.synadia.client.testutils.ServerVersion;
+import io.synadia.client.utils.ApiUtils;
+import io.synadia.client.utils.ServerVersion;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -11,8 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
-import static io.synadia.client.testutils.NatsConstants.UNDEFINED;
+import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.NatsConstants.UNDEFINED;
 
 /**
  * Class holding information about a server

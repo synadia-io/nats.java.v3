@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static io.synadia.client.impl.BaseConsumeOptions.DEFAULT_EXPIRES_IN_MILLIS;
 import static io.synadia.client.impl.BaseConsumeOptions.MIN_EXPIRES_MILLS;
 import static io.synadia.client.impl.ConsumeOptions.DEFAULT_CONSUME_OPTIONS;
-import static io.synadia.client.testutils.Validator.required;
+import static io.synadia.client.utils.Validator.required;
 
 /**
  * Implementation of Consumer Context

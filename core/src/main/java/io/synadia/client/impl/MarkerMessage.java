@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import static io.synadia.client.testutils.NatsConstants.EMPTY_BODY;
+import static io.synadia.client.utils.NatsConstants.EMPTY_BODY;
 
 class MarkerMessage extends NatsMessage {
     // Poison pill is a graphic, but common term for an item that breaks loops or stop something.

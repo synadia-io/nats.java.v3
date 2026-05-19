@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.util.*;
 
 import static io.synadia.client.kv.KeyValueUtils.toStreamName;
-import static io.synadia.client.testutils.JsValidator.*;
+import static io.synadia.client.utils.JsValidator.*;
 
 /**
  * KeyValueConfigurationCreator is used to create a Key Value bucket.

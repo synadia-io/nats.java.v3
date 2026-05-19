@@ -5,8 +5,8 @@ import org.jspecify.annotations.NullMarked;
 
 import static io.nats.json.LazyJsonValueUtils.readBoolean;
 import static io.nats.json.LazyJsonValueUtils.readLong;
-import static io.synadia.client.testutils.ApiConstants.PURGED;
-import static io.synadia.client.testutils.ApiConstants.SUCCESS;
+import static io.synadia.client.utils.ApiConstants.PURGED;
+import static io.synadia.client.utils.ApiConstants.SUCCESS;
 
 /**
  * The response to a request to Purge a stream

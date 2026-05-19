@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
-import static io.synadia.client.testutils.ResourceUtils.dataAsString;
-import static io.synadia.client.testutils.TestBase.getDataMessage;
+import static io.synadia.client.utils.ResourceUtils.dataAsString;
+import static io.synadia.client.utils.TestBase.getDataMessage;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ResponseTests {

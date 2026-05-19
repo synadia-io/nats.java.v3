@@ -3,8 +3,8 @@ package io.synadia.client.impl;
 import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
 import io.synadia.client.OptionsBuilder;
-import io.synadia.client.testutils.NatsUri;
-import io.synadia.client.testutils.TestBase;
+import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

@@ -1,12 +1,12 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
-import io.synadia.client.testutils.Validator;
+import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.testutils.ApiConstants.*;
+import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * RepublishCreator is used to create a Republish configuration for use in a StreamCreator.
