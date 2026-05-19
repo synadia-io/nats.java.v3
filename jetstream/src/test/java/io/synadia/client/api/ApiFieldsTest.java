@@ -250,8 +250,8 @@ public class ApiFieldsTest {
         assertNull(c.getFilterSubject());
         c.externalCreator(null);
         assertNull(c.getExternalCreator());
-        // subjectTransforms varargs null clears
-        c.subjectTransforms((SubjectTransformCreator[]) null);
+        // subjectTransforms varargs null is an error
+        assertThrows(NullPointerException.class, () -> c.subjectTransforms((SubjectTransformCreator[]) null));
         assertTrue(c.getSubjectTransformCreators().isEmpty());
         // re-set then clear via list null
         c.subjectTransforms(new SubjectTransformCreator("s", "t"));
@@ -305,8 +305,8 @@ public class ApiFieldsTest {
         assertEquals(2, c.getTags().size());
         c.cluster(null);
         assertNull(c.getCluster());
-        // tags(null) clears the list (replaceAllStrings clears on null)
-        c.tags((String[]) null);
+        // tags(null) is an error
+        assertThrows(NullPointerException.class, () -> c.tags((String[]) null));
         assertTrue(c.getTags().isEmpty());
         // re-set, then clear via List form
         c.tags("a", "b");
@@ -452,7 +452,7 @@ public class ApiFieldsTest {
         // ---- filterSubjects array/list null -> clears ----
         c.filterSubjects("a.>", "b.>");
         assertEquals(2, c.getFilterSubjects().size());
-        c.filterSubjects((String[]) null);
+        assertThrows(NullPointerException.class, () -> c.filterSubjects((String[]) null));
         assertTrue(c.getFilterSubjects().isEmpty());
         c.filterSubjects("a.>", "b.>");
         c.filterSubjects((List<String>) null);
@@ -461,7 +461,7 @@ public class ApiFieldsTest {
         // ---- priorityGroups null -> clears ----
         c.priorityGroups("g1", "g2");
         assertEquals(2, c.getPriorityGroups().size());
-        c.priorityGroups((String[]) null);
+        assertThrows(NullPointerException.class, () -> c.priorityGroups((String[]) null));
         assertTrue(c.getPriorityGroups().isEmpty());
 
         // ---- policies: null -> default ----
@@ -871,7 +871,7 @@ public class ApiFieldsTest {
         assertNull(c.getFilterSubject());
         c.externalCreator(null);
         assertNull(c.getExternalCreator());
-        c.subjectTransforms((SubjectTransformCreator[]) null);
+        assertThrows(NullPointerException.class, () -> c.subjectTransforms((SubjectTransformCreator[]) null));
         assertTrue(c.getSubjectTransformCreators().isEmpty());
     }
 
@@ -1027,7 +1027,7 @@ public class ApiFieldsTest {
         // sourceCreators list (Source is converted via SourceCreator::new).
         s.sources(new Source(lj("{\"name\":\"s1\"}")), new Source(lj("{\"name\":\"s2\"}")));
         assertEquals(2, s.getSourceCreators().size());
-        s.sources(Arrays.asList(new Source(lj("{\"name\":\"s3\"}"))));
+        s.sources(List.of(new Source(lj("{\"name\":\"s3\"}"))));
         assertEquals(1, s.getSourceCreators().size());
 
         // sourceCreators(SourceCreator...)

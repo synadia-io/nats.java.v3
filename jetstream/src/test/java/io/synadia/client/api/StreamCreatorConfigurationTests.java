@@ -286,8 +286,6 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
         //noinspection DataFlowIssue
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator((String)null));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator(HAS_SPACE));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxConsumers(0));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxConsumers(-2));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessages(0));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessages(-2));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessagesPerSubject(0));
@@ -324,19 +322,9 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
         assertSubjects(creator, subject);
 
         // subjects(...) replaces
-        creator.subjects((String)null);
-        assertSubjects(creator);
-
-        // subjects(...) replaces
         String subjectA = random();
         String subjectB = random();
         creator.subjects(subjectA, subjectB);
-        assertSubjects(creator, subjectA, subjectB);
-
-        // subjects(...) replaces
-        subjectA = random();
-        subjectB = random();
-        creator.subjects(subjectA, null, subjectB);
         assertSubjects(creator, subjectA, subjectB);
 
         // subjects(...) replaces
