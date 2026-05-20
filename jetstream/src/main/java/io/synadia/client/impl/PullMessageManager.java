@@ -1,11 +1,11 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Message;
-import io.synadia.client.utils.Status;
+import io.synadia.client.api.Status;
 
+import static io.synadia.client.api.Status.*;
 import static io.synadia.client.impl.JetStreamConstants.*;
 import static io.synadia.client.impl.MessageManager.ManageResult.*;
-import static io.synadia.client.utils.Status.*;
 
 public class PullMessageManager extends MessageManager {
 

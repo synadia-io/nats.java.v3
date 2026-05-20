@@ -1,5 +1,6 @@
 package io.synadia.client.utils;
 
+import io.synadia.client.api.Status;
 import io.synadia.client.impl.Headers;
 
 import static io.synadia.client.utils.NatsConstants.*;

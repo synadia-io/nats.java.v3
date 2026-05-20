@@ -1,0 +1,24 @@
+{
+  "name": "ci-name",
+  "raft_group": "ci-raft",
+  "leader": "ci-leader",
+  "leader_since": "2024-01-15T10:11:12.000000051Z",
+  "system_account": true,
+  "traffic_account": "ci-traffic",
+  "replicas": [
+    {
+      "name": "ci-rep0",
+      "current": true,
+      "offline": true,
+      "active": 51000000000,
+      "lag": 52
+    },
+    {
+      "name": "ci-rep1",
+      "current": false,
+      "offline": false,
+      "active": 53000000000,
+      "lag": 54
+    }
+  ]
+}

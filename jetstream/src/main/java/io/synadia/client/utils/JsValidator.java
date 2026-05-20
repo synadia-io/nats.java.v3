@@ -104,18 +104,6 @@ public abstract class JsValidator extends Validator {
         });
     }
 
-    public static long validateMaxConsumers(long max) {
-        return validateGtZeroOrMinus1(max, "Max Consumers");
-    }
-
-    public static long validateMaxMessages(long max) {
-        return validateGtZeroOrMinus1(max, "Max Messages");
-    }
-
-    public static long validateMaxMessagesPerSubject(long max) {
-        return validateGtZeroOrMinus1(max, "Max Messages Per Subject");
-    }
-
     public static int validateMaxHistory(int max) {
         if (max < 1 || max > MAX_HISTORY_PER_KEY) {
             throw new IllegalArgumentException("Max History must be from 1 to " + MAX_HISTORY_PER_KEY + " inclusive.");
@@ -123,16 +111,8 @@ public abstract class JsValidator extends Validator {
         return max;
     }
 
-    public static long validateMaxBytes(long max) {
-        return validateGtZeroOrMinus1(max, "Max Bytes");
-    }
-
     public static long validateMaxBucketBytes(long max) {
         return validateGtZeroOrMinus1(max, "Max Bucket Bytes"); // max bucket bytes is a kv alias to max bytes
-    }
-
-    public static int validateMaxMessageSize(int max) {
-        return validateGtZeroOrMinus1(max, "Max Message Size");
     }
 
     public static int validateMaxValueSize(int max) {

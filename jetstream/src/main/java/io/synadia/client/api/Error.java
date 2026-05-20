@@ -1,7 +1,6 @@
 package io.synadia.client.api;
 
 import io.nats.json.LazyJsonValue;
-import io.synadia.client.utils.Status;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 

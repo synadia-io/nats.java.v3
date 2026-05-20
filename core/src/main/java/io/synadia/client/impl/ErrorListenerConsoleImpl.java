@@ -4,7 +4,7 @@ import io.synadia.client.Consumer;
 import io.synadia.client.ErrorListener;
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
-import io.synadia.client.utils.Status;
+import io.synadia.client.api.Status;
 
 public class ErrorListenerConsoleImpl implements ErrorListener {
 

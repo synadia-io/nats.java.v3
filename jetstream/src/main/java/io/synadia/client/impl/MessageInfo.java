@@ -4,8 +4,8 @@ import io.nats.json.DateTimeUtils;
 import io.nats.json.LazyJsonValue;
 import io.synadia.client.Message;
 import io.synadia.client.api.ApiResponse;
+import io.synadia.client.api.Status;
 import io.synadia.client.utils.IncomingHeadersProcessor;
-import io.synadia.client.utils.Status;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 

@@ -12,6 +12,8 @@ import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAll;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.normalizeInt;
+import static io.synadia.client.utils.ApiUtils.normalizeLong;
 import static io.synadia.client.utils.JsValidator.*;
 
 /**
@@ -628,42 +630,45 @@ public class StreamCreator implements JsonSerializable {
 
     /**
      * Sets the maximum number of consumers in the StreamCreator.
-     * Any value less than 1 is clamped to -1 (no limit).
+     * Any value less than 1 is treated as unset (the server applies its default).
      * @param maxConsumers the maximum number of consumers
      * @return this instance for chaining
      */
     public StreamCreator maxConsumers(long maxConsumers) {
-        this.maxConsumers = maxConsumers < 1 ? -1 : maxConsumers;
+        this.maxConsumers = normalizeLong(maxConsumers, 1);
         return this;
     }
 
     /**
      * Sets the maximum number of messages in the StreamCreator.
+     * Any value less than 1 is treated as unset (the server applies its default).
      * @param maxMessages the maximum number of messages
      * @return this instance for chaining
      */
     public StreamCreator maxMessages(long maxMessages) {
-        this.maxMessages = validateMaxMessages(maxMessages);
+        this.maxMessages = normalizeLong(maxMessages, 1);
         return this;
     }
 
     /**
      * Sets the maximum number of message per subject in the StreamCreator.
+     * Any value less than 1 is treated as unset (the server applies its default).
      * @param maxMessagesPerSubject the maximum number of messages
      * @return this instance for chaining
      */
     public StreamCreator maxMessagesPerSubject(long maxMessagesPerSubject) {
-        this.maxMessagesPerSubject = validateMaxMessagesPerSubject(maxMessagesPerSubject);
+        this.maxMessagesPerSubject = normalizeLong(maxMessagesPerSubject, 1);
         return this;
     }
 
     /**
      * Sets the maximum number of bytes in the StreamCreator.
+     * Any value less than 1 is treated as unset (the server applies its default).
      * @param maxBytes the maximum number of bytes
      * @return this instance for chaining
      */
     public StreamCreator maxBytes(long maxBytes) {
-        this.maxBytes = validateMaxBytes(maxBytes);
+        this.maxBytes = normalizeLong(maxBytes, 1);
         return this;
     }
 
@@ -689,11 +694,12 @@ public class StreamCreator implements JsonSerializable {
 
     /**
      * Sets the maximum message size in the StreamCreator.
+     * Any value less than 1 is treated as unset (the server applies its default).
      * @param maxMessageSize the maximum message size
      * @return this instance for chaining
      */
     public StreamCreator maxMessageSize(int maxMessageSize) {
-        this.maxMessageSize = validateMaxMessageSize(maxMessageSize);
+        this.maxMessageSize = normalizeInt(maxMessageSize, 1);
         return this;
     }
 

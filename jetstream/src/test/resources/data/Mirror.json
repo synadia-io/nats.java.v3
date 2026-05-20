@@ -1,0 +1,14 @@
+{
+  "name": "mirror-name",
+  "opt_start_seq": 91,
+  "opt_start_time": "2024-02-16T11:12:13.000000092Z",
+  "filter_subject": "mirror.filter",
+  "external": {
+    "api": "mirror-ext-api",
+    "deliver": "mirror-ext-deliver"
+  },
+  "subject_transforms": [
+    { "src": "mirror.src.0", "dest": "mirror.dest.0" },
+    { "src": "mirror.src.1", "dest": "mirror.dest.1" }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "memory": 21,
+  "storage": 22,
+  "reserved_memory": 25,
+  "reserved_storage": 26,
+  "streams": 23,
+  "consumers": 24,
+  "limits": {
+    "max_memory": 31,
+    "max_storage": 32,
+    "max_streams": 33,
+    "max_consumers": 34,
+    "max_ack_pending": 35,
+    "memory_max_stream_bytes": 36,
+    "storage_max_stream_bytes": 37,
+    "max_bytes_required": true
+  }
+}

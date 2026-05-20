@@ -111,15 +111,16 @@ public class ApiUtilsTests {
     }
 
     @Test
-    public void normalizeLong_singleArg() {
-        // null -> UNSET
-        assertEquals(UNSET, normalizeLong(null));
-        // <= UNSET (-1) -> UNSET
-        assertEquals(UNSET, normalizeLong(-2L));
-        assertEquals(UNSET, normalizeLong(-1L));
-        // > UNSET -> kept (including 0)
-        assertEquals(0L, normalizeLong(0L));
-        assertEquals(7L, normalizeLong(7L));
+    public void normalizeInt_withMin() {
+        // null -> UNSET (-1)
+        assertEquals((int) UNSET, normalizeInt(null, 0));
+        // below min -> UNSET
+        assertEquals((int) UNSET, normalizeInt(-1, 0));
+        assertEquals((int) UNSET, normalizeInt(0, 1));
+        // at or above min -> kept
+        assertEquals(0, normalizeInt(0, 0));
+        assertEquals(5, normalizeInt(5, 0));
+        assertEquals(1, normalizeInt(1, 1));
     }
 
     @Test
@@ -214,7 +215,6 @@ public class ApiUtilsTests {
         assertNull(DURATION_UNSET);
         assertEquals(-1L, UNSET);
         assertEquals(0L, ULONG_UNSET);
-        assertEquals(0, STANDARD_MIN);
     }
 
     @Test

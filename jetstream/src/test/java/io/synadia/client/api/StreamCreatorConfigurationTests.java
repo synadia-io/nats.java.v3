@@ -286,16 +286,8 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
         //noinspection DataFlowIssue
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator((String)null));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator(HAS_SPACE));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessages(0));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessages(-2));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessagesPerSubject(0));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessagesPerSubject(-2));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxBytes(0));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxBytes(-2));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxAge(Duration.ofNanos(-1)));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxAge(-1));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessageSize(0));
-        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").maxMessageSize(-2));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").replicas(0));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").replicas(6));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").duplicateWindow(Duration.ofNanos(-1)));

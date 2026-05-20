@@ -109,18 +109,16 @@ public class ApiFieldsTest {
         c.inactiveThreshold(-1L);
         assertNull(c.getInactiveThreshold());
 
-        // maxAckPending(-1) -> -1 (normalizeLong with STANDARD_MIN=0)
+        // maxAckPending: normalizeLong(l, 1). l < 1 -> -1.
         c.maxAckPending(100);
         assertEquals(100L, c.getMaxAckPending());
         c.maxAckPending(-1);
         assertEquals(-1L, c.getMaxAckPending());
-        // maxAckPending(-99) -> -1
         c.maxAckPending(100);
         c.maxAckPending(-99);
         assertEquals(-1L, c.getMaxAckPending());
-        // maxAckPending(0) -> 0 (not negative, so kept)
         c.maxAckPending(0);
-        assertEquals(0L, c.getMaxAckPending());
+        assertEquals(-1L, c.getMaxAckPending());
     }
 
     @Test
@@ -442,8 +440,10 @@ public class ApiFieldsTest {
         c.pauseUntil(null);
         assertNull(c.getPauseUntil());
 
-        // ---- filterSubject(null/empty) clears (filterSubjects list becomes empty) ----
-        c.filterSubject(null);
+        // ---- filterSubject(empty) clears (filterSubjects list becomes empty) ----
+        // Setup chain set filterSubject("f.>"); verify empty resets it.
+        assertEquals("f.>", c.getFilterSubject());
+        c.filterSubject("");
         assertNull(c.getFilterSubject());
         assertTrue(c.getFilterSubjects().isEmpty());
         c.filterSubject("a.>").filterSubject("");
@@ -531,7 +531,7 @@ public class ApiFieldsTest {
         assertNull(c.getInactiveThreshold());
 
         // ---- numeric resets ----
-        // maxDeliver: normalizeLong(l, MAX_DELIVER_MIN=1). l < 1 -> -1.
+        // All these fields use normalizeLong(l, 1). l < 1 -> -1.
         c.maxDeliver(7);
         assertEquals(7L, c.getMaxDeliver());
         c.maxDeliver(0);
@@ -540,28 +540,31 @@ public class ApiFieldsTest {
         c.maxDeliver(-1);
         assertEquals(-1L, c.getMaxDeliver());
 
-        // maxAckPending: normalizeLong(l, STANDARD_MIN=0). l < 0 -> -1.
         c.maxAckPending(50);
         assertEquals(50L, c.getMaxAckPending());
+        c.maxAckPending(0);
+        assertEquals(-1L, c.getMaxAckPending());
         c.maxAckPending(-1);
         assertEquals(-1L, c.getMaxAckPending());
-        c.maxAckPending(0);
-        assertEquals(0L, c.getMaxAckPending());
 
-        // maxPullWaiting/maxBatch: same normalizeLong(l, 0).
         c.maxPullWaiting(10L);
         assertEquals(10L, c.getMaxPullWaiting());
+        c.maxPullWaiting(0L);
+        assertEquals(-1L, c.getMaxPullWaiting());
         c.maxPullWaiting(-1L);
         assertEquals(-1L, c.getMaxPullWaiting());
 
         c.maxBatch(10L);
         assertEquals(10L, c.getMaxBatch());
+        c.maxBatch(0L);
+        assertEquals(-1L, c.getMaxBatch());
         c.maxBatch(-5L);
         assertEquals(-1L, c.getMaxBatch());
 
-        // maxBytes: normalizeLong(l). l < -1 -> -1; l >= -1 kept.
         c.maxBytes(2048L);
         assertEquals(2048L, c.getMaxBytes());
+        c.maxBytes(0L);
+        assertEquals(-1L, c.getMaxBytes());
         c.maxBytes(-1L);
         assertEquals(-1L, c.getMaxBytes());
         c.maxBytes(-5L);
@@ -579,13 +582,13 @@ public class ApiFieldsTest {
         c.rateLimit(-5L);
         assertEquals(0L, c.getRateLimit());
 
-        // numReplicas: <= 0 -> 0; otherwise validateNumberOfReplicas (1..5).
+        // numReplicas: < 1 -> UNSET (-1); otherwise validateNumberOfReplicas (1..5).
         c.numReplicas(3);
         assertEquals(3L, c.getNumReplicas());
         c.numReplicas(0);
-        assertEquals(0L, c.getNumReplicas());
+        assertEquals(-1L, c.getNumReplicas());
         c.numReplicas(-1);
-        assertEquals(0L, c.getNumReplicas());
+        assertEquals(-1L, c.getNumReplicas());
         assertThrows(IllegalArgumentException.class, () -> c.numReplicas(6));
 
         // ---- additional overloads not covered above ----
@@ -617,15 +620,18 @@ public class ApiFieldsTest {
 
         // boxed-Long overloads: null clears to UNSET (-1)
         c.maxBatch(10L);
-        c.maxBatch((Long) null);
+        assertEquals(10L, c.getMaxBatch());
+        c.maxBatch(Long.MIN_VALUE);
         assertEquals(-1L, c.getMaxBatch());
 
         c.maxBytes(2048L);
-        c.maxBytes((Long) null);
+        assertEquals(2048L, c.getMaxBytes());
+        c.maxBytes(Long.MIN_VALUE);
         assertEquals(-1L, c.getMaxBytes());
 
         c.maxPullWaiting(10L);
-        c.maxPullWaiting((Long) null);
+        assertEquals(10L, c.getMaxPullWaiting());
+        c.maxPullWaiting(Long.MIN_VALUE);
         assertEquals(-1L, c.getMaxPullWaiting());
     }
 
@@ -660,10 +666,6 @@ public class ApiFieldsTest {
         c.maxExpires(45000L);
         assertEquals(Duration.ofMillis(45000), c.getMaxExpires());
 
-        c.maxPullWaiting((Long) null);
-        assertEquals(-1L, c.getMaxPullWaiting());
-        c.maxBatch((Long) null);
-        assertEquals(-1L, c.getMaxBatch());
         c.maxBytes((Long) null);
         assertEquals(-1L, c.getMaxBytes());
 
@@ -973,36 +975,42 @@ public class ApiFieldsTest {
         assertNull(c.getDuplicateWindow());
 
         // ---- numeric-reset coverage ----
-        // maxConsumers: clamps any value < 1 to -1 (no limit).
-        // maxMessages / maxMessagesPerSubject / maxBytes / maxMessageSize:
-        // validateGtZeroOrMinus1: -1 keeps -1; 0 or < -1 throws.
+        // All Stream max* fields use normalizeLong(x, 1): values < 1 -> UNSET (-1).
         StreamCreator n = new StreamCreator("num-stream");
         n.maxConsumers(50);
         assertEquals(50L, n.getMaxConsumers());
         n.maxConsumers(-1);
         assertEquals(-1L, n.getMaxConsumers());
-        n.maxConsumers(0);   // clamps to -1
+        n.maxConsumers(0);
         assertEquals(-1L, n.getMaxConsumers());
-        n.maxConsumers(-2);  // clamps to -1
+        n.maxConsumers(-2);
         assertEquals(-1L, n.getMaxConsumers());
 
         n.maxMessages(100);
         assertEquals(100L, n.getMaxMessages());
+        n.maxMessages(0);
+        assertEquals(-1L, n.getMaxMessages());
         n.maxMessages(-1);
         assertEquals(-1L, n.getMaxMessages());
 
         n.maxMessagesPerSubject(10);
         assertEquals(10L, n.getMaxMessagesPerSubject());
+        n.maxMessagesPerSubject(0);
+        assertEquals(-1L, n.getMaxMessagesPerSubject());
         n.maxMessagesPerSubject(-1);
         assertEquals(-1L, n.getMaxMessagesPerSubject());
 
         n.maxBytes(2048);
         assertEquals(2048L, n.getMaxBytes());
+        n.maxBytes(0);
+        assertEquals(-1L, n.getMaxBytes());
         n.maxBytes(-1);
         assertEquals(-1L, n.getMaxBytes());
 
         n.maxMessageSize(512);
         assertEquals(512, n.getMaxMessageSize());
+        n.maxMessageSize(0);
+        assertEquals(-1, n.getMaxMessageSize());
         n.maxMessageSize(-1);
         assertEquals(-1, n.getMaxMessageSize());
 
@@ -1074,6 +1082,191 @@ public class ApiFieldsTest {
         assertEquals(original.getDestination(), round.getDestination());
 
         // SubjectTransformCreator has no nullable setters (all fields are final).
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // Collection invariants: for every collection field on a Creator class, verify that
+    //   (1) a default instance returns an empty (non-null) collection, and
+    //   (2) the collection can be cleared by passing an empty collection / empty varargs.
+    // ----------------------------------------------------------------------------------------------------
+
+    @Test
+    public void testStreamCreatorCollectionInvariants() {
+        // ---- subjects ----
+        StreamCreator c = new StreamCreator("x");
+        assertNotNull(c.getSubjects());
+        assertTrue(c.getSubjects().isEmpty());
+        c.subjects("a.>", "b.>");
+        assertEquals(2, c.getSubjects().size());
+        c.subjects(new ArrayList<>());
+        assertTrue(c.getSubjects().isEmpty());
+        c.subjects("a.>", "b.>");
+        c.subjects();
+        assertTrue(c.getSubjects().isEmpty());
+        // setter is @Nullable on Collection form
+        c.subjects("a.>", "b.>");
+        c.subjects((Collection<String>) null);
+        assertTrue(c.getSubjects().isEmpty());
+
+        // ---- sourceCreators ----
+        c = new StreamCreator("x");
+        assertNotNull(c.getSourceCreators());
+        assertTrue(c.getSourceCreators().isEmpty());
+        c.sourceCreators(new SourceCreator("a"), new SourceCreator("b"));
+        assertEquals(2, c.getSourceCreators().size());
+        c.sourceCreators(new ArrayList<>());
+        assertTrue(c.getSourceCreators().isEmpty());
+        c.sourceCreators(new SourceCreator("a"), new SourceCreator("b"));
+        c.sourceCreators();
+        assertTrue(c.getSourceCreators().isEmpty());
+        // Collection form is @Nullable
+        c.sourceCreators(new SourceCreator("a"));
+        c.sourceCreators((Collection<SourceCreator>) null);
+        assertTrue(c.getSourceCreators().isEmpty());
+        // sources(Source...) and sources(Collection<Source>) also populate sourceCreators
+        c.sources(new Source(lj("{\"name\":\"s1\"}")));
+        assertEquals(1, c.getSourceCreators().size());
+        c.sources(new ArrayList<>());
+        assertTrue(c.getSourceCreators().isEmpty());
+        c.sources(new Source(lj("{\"name\":\"s1\"}")));
+        c.sources();
+        assertTrue(c.getSourceCreators().isEmpty());
+
+        // ---- metadata ----
+        c = new StreamCreator("x");
+        assertNotNull(c.getMetadata());
+        assertTrue(c.getMetadata().isEmpty());
+        Map<String, String> m = new HashMap<>();
+        m.put("k", "v");
+        c.metadata(m);
+        assertEquals(1, c.getMetadata().size());
+        c.metadata(new HashMap<>());
+        assertTrue(c.getMetadata().isEmpty());
+        c.metadata(m);
+        c.metadata(null);
+        assertTrue(c.getMetadata().isEmpty());
+    }
+
+    @Test
+    public void testConsumerCreatorCollectionInvariants() {
+        // ConsumerCreator is abstract; PullConsumerCreator exposes all collection setters.
+
+        // ---- filterSubjects ----
+        PullConsumerCreator c = new PullConsumerCreator("s");
+        assertNotNull(c.getFilterSubjects());
+        assertTrue(c.getFilterSubjects().isEmpty());
+        c.filterSubjects("a.>", "b.>");
+        assertEquals(2, c.getFilterSubjects().size());
+        c.filterSubjects(new ArrayList<>());
+        assertTrue(c.getFilterSubjects().isEmpty());
+        c.filterSubjects("a.>", "b.>");
+        c.filterSubjects();
+        assertTrue(c.getFilterSubjects().isEmpty());
+        // List form is @Nullable
+        c.filterSubjects("a.>", "b.>");
+        c.filterSubjects((List<String>) null);
+        assertTrue(c.getFilterSubjects().isEmpty());
+
+        // ---- backoff (both Duration... and long... varargs overloads exist; no-arg
+        // form would be ambiguous, so we clear via empty typed arrays) ----
+        c = new PullConsumerCreator("s");
+        assertNotNull(c.getBackoff());
+        assertTrue(c.getBackoff().isEmpty());
+        c.backoff(Duration.ofSeconds(1), Duration.ofSeconds(2));
+        assertEquals(2, c.getBackoff().size());
+        c.backoff(new Duration[0]);
+        assertTrue(c.getBackoff().isEmpty());
+        // long... form: clears via empty array
+        c.backoff(1000L, 2000L);
+        assertEquals(2, c.getBackoff().size());
+        c.backoff(new long[0]);
+        assertTrue(c.getBackoff().isEmpty());
+
+        // ---- metadata ----
+        c = new PullConsumerCreator("s");
+        assertNotNull(c.getMetadata());
+        assertTrue(c.getMetadata().isEmpty());
+        Map<String, String> m = new HashMap<>();
+        m.put("k", "v");
+        c.metadata(m);
+        assertEquals(1, c.getMetadata().size());
+        c.metadata(new HashMap<>());
+        assertTrue(c.getMetadata().isEmpty());
+        // setter is @Nullable
+        c.metadata(m);
+        c.metadata(null);
+        assertTrue(c.getMetadata().isEmpty());
+
+        // ---- priorityGroups ----
+        c = new PullConsumerCreator("s");
+        assertNotNull(c.getPriorityGroups());
+        assertTrue(c.getPriorityGroups().isEmpty());
+        c.priorityGroups("g1", "g2");
+        assertEquals(2, c.getPriorityGroups().size());
+        c.priorityGroups(new ArrayList<>());
+        assertTrue(c.getPriorityGroups().isEmpty());
+        c.priorityGroups("g1", "g2");
+        c.priorityGroups();
+        assertTrue(c.getPriorityGroups().isEmpty());
+        // List form is @Nullable
+        c.priorityGroups("g1", "g2");
+        c.priorityGroups((List<String>) null);
+        assertTrue(c.getPriorityGroups().isEmpty());
+    }
+
+    @Test
+    public void testPlacementCreatorCollectionInvariants() {
+        // ---- tags ----
+        PlacementCreator c = new PlacementCreator();
+        assertNotNull(c.getTags());
+        assertTrue(c.getTags().isEmpty());
+        c.tags("a", "b");
+        assertEquals(2, c.getTags().size());
+        c.tags(new ArrayList<>());
+        assertTrue(c.getTags().isEmpty());
+        c.tags("a", "b");
+        c.tags();
+        assertTrue(c.getTags().isEmpty());
+        // List form is @Nullable
+        c.tags("a", "b");
+        c.tags((List<String>) null);
+        assertTrue(c.getTags().isEmpty());
+    }
+
+    @Test
+    public void testStreamSourceCreatorCollectionInvariants() {
+        // StreamSourceCreator is abstract; both MirrorCreator and SourceCreator inherit it.
+
+        // ---- MirrorCreator.subjectTransformCreators ----
+        MirrorCreator m = new MirrorCreator("m");
+        assertNotNull(m.getSubjectTransformCreators());
+        assertTrue(m.getSubjectTransformCreators().isEmpty());
+        m.subjectTransforms(new SubjectTransformCreator("a", "b"), new SubjectTransformCreator("c", "d"));
+        assertEquals(2, m.getSubjectTransformCreators().size());
+        m.subjectTransforms(new ArrayList<>());
+        assertTrue(m.getSubjectTransformCreators().isEmpty());
+        m.subjectTransforms(new SubjectTransformCreator("a", "b"));
+        m.subjectTransforms();
+        assertTrue(m.getSubjectTransformCreators().isEmpty());
+        // List form is @Nullable
+        m.subjectTransforms(new SubjectTransformCreator("a", "b"));
+        m.subjectTransforms((List<SubjectTransformCreator>) null);
+        assertTrue(m.getSubjectTransformCreators().isEmpty());
+
+        // ---- SourceCreator.subjectTransformCreators ----
+        SourceCreator s = new SourceCreator("s");
+        assertNotNull(s.getSubjectTransformCreators());
+        assertTrue(s.getSubjectTransformCreators().isEmpty());
+        s.subjectTransforms(new SubjectTransformCreator("a", "b"), new SubjectTransformCreator("c", "d"));
+        assertEquals(2, s.getSubjectTransformCreators().size());
+        s.subjectTransforms(new ArrayList<>());
+        assertTrue(s.getSubjectTransformCreators().isEmpty());
+        s.subjectTransforms(new SubjectTransformCreator("a", "b"));
+        s.subjectTransforms();
+        assertTrue(s.getSubjectTransformCreators().isEmpty());
+        s.subjectTransforms(new SubjectTransformCreator("a", "b"));
+        s.subjectTransforms((List<SubjectTransformCreator>) null);
+        assertTrue(s.getSubjectTransformCreators().isEmpty());
     }
 
     // ====================================================================================================
@@ -1575,7 +1768,7 @@ public class ApiFieldsTest {
         assertNull(ok.getErrorObject());
         assertEquals(Error.NOT_SET, ok.getErrorCode());
         assertEquals(Error.NOT_SET, ok.getApiErrorCode());
-        assertNotNull(ok.getOriginalJsonValue());
+        assertNotNull(ok.getSourceLazyJsonValue());
 
         // throwOnHasError throws on error
         SuccessApiResponse err = new SuccessApiResponse(msg("{\"error\":{\"code\":401,\"description\":\"nope\"}}"));

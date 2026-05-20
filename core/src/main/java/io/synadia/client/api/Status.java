@@ -1,4 +1,7 @@
-package io.synadia.client.utils;
+package io.synadia.client.api;
+
+import io.synadia.client.utils.NatsConstants;
+import io.synadia.client.utils.Token;
 
 import java.util.HashMap;
 import java.util.Map;

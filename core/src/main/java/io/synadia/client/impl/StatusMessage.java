@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.utils.Status;
+import io.synadia.client.api.Status;
 
 public class StatusMessage extends IncomingMessage {
     private final Status status;

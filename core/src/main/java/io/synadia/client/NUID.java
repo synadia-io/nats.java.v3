@@ -155,7 +155,7 @@ public final class NUID {
      * called automatically when we exhaust the sequential range.
      */
 
-    final void randomizePrefix() {
+    void randomizePrefix() {
         byte[] cb = new byte[preLen];
 
         // Use SecureRandom for prefix only

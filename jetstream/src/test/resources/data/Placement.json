@@ -1,0 +1,4 @@
+{
+  "cluster": "placement-cluster",
+  "tags": ["ptag-a", "ptag-b", "ptag-c"]
+}

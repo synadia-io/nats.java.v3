@@ -1,0 +1,14 @@
+{
+  "name": "source-name",
+  "opt_start_seq": 141,
+  "opt_start_time": "2024-05-19T14:15:16.000000142Z",
+  "filter_subject": "source.filter",
+  "external": {
+    "api": "source-ext-api",
+    "deliver": "source-ext-deliver"
+  },
+  "subject_transforms": [
+    { "src": "source.src.0", "dest": "source.dest.0" },
+    { "src": "source.src.1", "dest": "source.dest.1" }
+  ]
+}

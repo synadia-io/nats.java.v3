@@ -1,0 +1,18 @@
+{
+  "name": "mi-name",
+  "filter_subject": "mi.filter",
+  "lag": 101,
+  "active": 102000000000,
+  "external": {
+    "api": "mi-ext-api",
+    "deliver": "mi-ext-deliver"
+  },
+  "subject_transforms": [
+    { "src": "mi.src.0", "dest": "mi.dest.0" }
+  ],
+  "error": {
+    "code": 103,
+    "err_code": 104,
+    "description": "mi-error"
+  }
+}

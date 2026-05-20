@@ -32,11 +32,6 @@ public abstract class ApiUtils {
     public static final long ULONG_UNSET = 0;
 
     /**
-     * Constant used to as a standard minimum value
-     */
-    public static final int STANDARD_MIN = 0;
-
-    /**
      * Get a random string.
      * @return the random string
      */
@@ -76,8 +71,8 @@ public abstract class ApiUtils {
         return l == null || l < min ? UNSET : l;
     }
 
-    public static long normalizeLong(Long l) {
-        return l == null || l <= UNSET ? UNSET : l;
+    public static int normalizeInt(Integer i, int min) {
+        return i == null || i < min ? (int) UNSET : i;
     }
 
     public static long normalizeULong(Long u) {

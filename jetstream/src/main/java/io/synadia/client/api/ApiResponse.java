@@ -40,7 +40,7 @@ public abstract class ApiResponse<T> {
      * The JSON value made from creating the object from a message or that was used to directly construct the response
      */
     protected final LazyJsonValue ljv;
-
+    private final @Nullable LazyJsonValue sourceLjv;
     private final String type;
     private @Nullable Error error;
 
@@ -131,11 +131,13 @@ public abstract class ApiResponse<T> {
     protected ApiResponse(@Nullable LazyJsonValue lazyJsonValue) {
         if (lazyJsonValue == null) {
             ljv = LazyJsonValue.EMPTY_MAP;
+            sourceLjv = null;
             error = null;
             type = NO_TYPE;
         }
         else {
             ljv = lazyJsonValue;
+            sourceLjv = null;
             error = Error.optionalInstance(readValue(ljv, ERROR));
             String temp = readString(ljv, TYPE);
             type = temp == null ? NO_TYPE : temp;
@@ -146,9 +148,7 @@ public abstract class ApiResponse<T> {
      * Construct an empty ApiResponse
      */
     protected ApiResponse() {
-        ljv = LazyJsonValue.EMPTY_MAP;
-        error = null;
-        type = NO_TYPE;
+        this((LazyJsonValue) null);
     }
 
     /**
@@ -156,9 +156,10 @@ public abstract class ApiResponse<T> {
      * @param error the error object
      */
     protected ApiResponse(Error error) {
-        ljv = LazyJsonValue.EMPTY_MAP;
+        this.ljv = LazyJsonValue.EMPTY_MAP;
+        this.sourceLjv = null;
         this.error = error;
-        type = NO_TYPE;
+        this.type = NO_TYPE;
     }
 
     /**
@@ -179,7 +180,7 @@ public abstract class ApiResponse<T> {
      * @return the value
      */
     @Nullable
-    public LazyJsonValue getOriginalJsonValue() {
+    public LazyJsonValue getSourceLazyJsonValue() {
         return ljv;
     }
 
@@ -195,7 +196,6 @@ public abstract class ApiResponse<T> {
      * The type of the response object
      * @return the type
      */
-    @Nullable
     public String getType() {
         return type;
     }

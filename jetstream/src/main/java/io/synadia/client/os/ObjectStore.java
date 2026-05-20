@@ -71,7 +71,7 @@ public class ObjectStore extends AbstractBucketFeature {
             .data(info.serialize())
             .build()
         );
-        return ObjectInfo.builder(info).modified(DateTimeUtils.gmtNow()).build();
+        return ObjectInfo.builder(info).modified(DateTimeUtils.utcNow()).build();
     }
 
     /**

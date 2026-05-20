@@ -65,17 +65,6 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
 
     /**
      * Sets the max pull waiting, the number of pulls that can be outstanding on a pull consumer, pulls received after this is reached are ignored.
-     * Use null to unset / clear.
-     * @param maxPullWaiting the max pull waiting
-     * @return this instance for chaining.
-     */
-    public PullConsumerCreator maxPullWaiting(@Nullable Long maxPullWaiting) {
-        _maxPullWaiting(maxPullWaiting);
-        return this;
-    }
-
-    /**
-     * Sets the max pull waiting, the number of pulls that can be outstanding on a pull consumer, pulls received after this is reached are ignored.
      * @param maxPullWaiting the max pull waiting
      * @return this instance for chaining.
      */
@@ -85,18 +74,13 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
     }
 
     /**
-     * Sets the max batch size for the server to allow on pull requests.
-     * @param maxBatch the max batch size
-     * @return this instance for chaining.
-     */
-    public PullConsumerCreator maxBatch(@Nullable Long maxBatch) {
-        _maxBatch(maxBatch);
-        return this;
-    }
-
-    /**
-     * Sets the max batch size for the server to allow on pull requests.
-     * @param maxBatch the max batch size
+     * Sets the max batch size, the largest batch a single pull request may specify on this consumer.
+     * <p>
+     * Server semantics: {@code 0} means no per-consumer cap, so a pull request may ask for any batch
+     * size. When this is {@code 0} and account or stream JetStream limits define a {@code MaxRequestBatch},
+     * the server inherits that value for the consumer. Negative values are rejected by the server and
+     * are normalized to unset by this client.
+     * @param maxBatch the max batch size; {@code 0} disables the per-consumer cap
      * @return this instance for chaining.
      */
     public PullConsumerCreator maxBatch(long maxBatch) {
@@ -105,8 +89,12 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
     }
 
     /**
-     * Sets the max bytes size for the server to allow on pull requests.
-     * @param maxBytes the max bytes size
+     * Sets the max bytes size, the largest byte count a single pull request may specify on this consumer.
+     * <p>
+     * Server semantics: {@code 0} means no per-consumer cap, so a pull request may ask for any number
+     * of bytes. Negative values are rejected by the server and are normalized to unset by this client.
+     * {@code null} is treated as unset.
+     * @param maxBytes the max bytes size; {@code 0} or {@code null} disables the per-consumer cap
      * @return this instance for chaining.
      */
     public PullConsumerCreator maxBytes(@Nullable Long maxBytes) {
@@ -115,8 +103,11 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
     }
 
     /**
-     * Sets the max bytes size for the server to allow on pull requests.
-     * @param maxBytes the max bytes size
+     * Sets the max bytes size, the largest byte count a single pull request may specify on this consumer.
+     * <p>
+     * Server semantics: {@code 0} means no per-consumer cap, so a pull request may ask for any number
+     * of bytes. Negative values are rejected by the server and are normalized to unset by this client.
+     * @param maxBytes the max bytes size; {@code 0} disables the per-consumer cap
      * @return this instance for chaining.
      */
     public PullConsumerCreator maxBytes(long maxBytes) {

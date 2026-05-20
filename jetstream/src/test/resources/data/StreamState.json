@@ -1,0 +1,21 @@
+{
+  "messages": 161,
+  "bytes": 162,
+  "first_seq": 163,
+  "first_ts": "2024-06-20T15:16:17.000000164Z",
+  "last_seq": 165,
+  "last_ts": "2024-06-21T16:17:18.000000166Z",
+  "consumer_count": 167,
+  "num_subjects": 3,
+  "subjects": {
+    "ss.sub.a": 168,
+    "ss.sub.b": 169,
+    "ss.sub.c": 170
+  },
+  "num_deleted": 4,
+  "deleted": [171, 172, 173, 174],
+  "lost": {
+    "msgs": [175, 176],
+    "bytes": 177
+  }
+}

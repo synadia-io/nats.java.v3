@@ -1,6 +1,7 @@
 package io.synadia.client.utils;
 
 import io.synadia.client.*;
+import io.synadia.client.api.Status;
 import io.synadia.client.impl.NatsConnection;
 import org.junit.jupiter.api.Assertions;
 
@@ -14,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
-import static io.nats.json.DateTimeUtils.gmtNow;
+import static io.nats.json.DateTimeUtils.utcNow;
 
 @SuppressWarnings({"CallToPrintStackTrace", "RedundantMethodOverride"})
 public class Listener implements ErrorListener, ConnectionListener {
@@ -370,7 +371,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     public static final DateTimeFormatter SIMPLE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     public static String simpleTime() {
-        return SIMPLE_TIME_FORMATTER.format(gmtNow());
+        return SIMPLE_TIME_FORMATTER.format(utcNow());
     }
 
     @SuppressWarnings("SameParameterValue")

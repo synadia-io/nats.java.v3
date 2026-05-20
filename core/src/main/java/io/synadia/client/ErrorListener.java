@@ -1,7 +1,7 @@
 package io.synadia.client;
 
+import io.synadia.client.api.Status;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.utils.Status;
 import org.jspecify.annotations.Nullable;
 
 /**

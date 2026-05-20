@@ -49,10 +49,12 @@
     "last_active": "2022-06-29T20:33:21.163377Z"
   },
   "num_pending": 24,
+  "num_waiting": 17,
   "num_ack_pending": 42,
   "num_redelivered": 42,
   "paused": true,
   "pause_remaining": 20000000000,
+  "push_bound": true,
   "cluster": {
     "name": "clustername",
     "raft_group": "raftgroupname",

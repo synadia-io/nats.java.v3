@@ -60,7 +60,7 @@ public class ConsumerLimitsCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public ConsumerLimitsCreator maxAckPending(long maxAckPending) {
-        this.maxAckPending = normalizeLong(maxAckPending, STANDARD_MIN);
+        this.maxAckPending = normalizeLong(maxAckPending, 1);
         return this;
     }
 

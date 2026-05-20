@@ -284,7 +284,7 @@ public class ServiceTests extends TestBase {
             assertTrue(found);
 
             // test reset
-            ZonedDateTime zdt = DateTimeUtils.gmtNow();
+            ZonedDateTime zdt = DateTimeUtils.utcNow();
             sleep(1);
             service1.reset();
             StatsResponse sr = service1.getStatsResponse();
@@ -1146,7 +1146,7 @@ public class ServiceTests extends TestBase {
         EqualsVerifier.simple().forClass(EndpointStats.class)
             .withPrefabValues(JsonValue.class, data, JsonValue.NULL)
             .verify();
-        ZonedDateTime zdt = DateTimeUtils.gmtNow();
+        ZonedDateTime zdt = DateTimeUtils.utcNow();
 
         EndpointStats er = new EndpointStats("name", "subject", "queue", 0, 0, 0, null, null, zdt);
         assertEquals("name", er.getName());
@@ -1429,12 +1429,12 @@ public class ServiceTests extends TestBase {
         validateApiInOutInfoResponse(ir1);
         validateApiInOutInfoResponse(ir2);
 
-        ZonedDateTime serviceStarted = DateTimeUtils.gmtNow();
+        ZonedDateTime serviceStarted = DateTimeUtils.utcNow();
         ZonedDateTime[] endStarteds = new ZonedDateTime[2];
         sleep(100);
-        endStarteds[0] = DateTimeUtils.gmtNow();
+        endStarteds[0] = DateTimeUtils.utcNow();
         sleep(100);
-        endStarteds[1] = DateTimeUtils.gmtNow();
+        endStarteds[1] = DateTimeUtils.utcNow();
 
         List<EndpointStats> statsList = new ArrayList<>();
         JsonValue[] data = new JsonValue[]{supplyData(), supplyData()};

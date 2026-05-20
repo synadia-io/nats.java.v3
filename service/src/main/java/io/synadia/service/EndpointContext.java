@@ -52,7 +52,7 @@ class EndpointContext {
         numRequests = new AtomicLong();
         numErrors = new AtomicLong();
         processingTime = new AtomicLong();
-        started = DateTimeUtils.gmtNow();
+        started = DateTimeUtils.utcNow();
     }
 
     // this method does not need a lock because it is only
@@ -66,7 +66,7 @@ class EndpointContext {
             else {
                 dispatcher.subscribe(se.getSubject(), qGroup, this::onMessage);
             }
-            started = DateTimeUtils.gmtNow();
+            started = DateTimeUtils.utcNow();
             running = true;
         }
     }
@@ -114,7 +114,7 @@ class EndpointContext {
         numErrors.set(0);
         processingTime.set(0);
         lastError = null;
-        started = DateTimeUtils.gmtNow();
+        started = DateTimeUtils.utcNow();
     }
 
     boolean isNotInternalDispatcher() {

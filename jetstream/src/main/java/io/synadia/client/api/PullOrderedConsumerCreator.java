@@ -51,32 +51,11 @@ public class PullOrderedConsumerCreator extends AbstractOrderedConsumerCreator<P
 
     /**
      * Sets the max pull waiting, the number of pulls that can be outstanding on a pull consumer, pulls received after this is reached are ignored.
-     * Use null to unset / clear.
-     * @param maxPullWaiting the max pull waiting
-     * @return this instance for chaining.
-     */
-    public PullOrderedConsumerCreator maxPullWaiting(@Nullable Long maxPullWaiting) {
-        _maxPullWaiting(maxPullWaiting);
-        return this;
-    }
-
-    /**
-     * Sets the max pull waiting, the number of pulls that can be outstanding on a pull consumer, pulls received after this is reached are ignored.
      * @param maxPullWaiting the max pull waiting
      * @return this instance for chaining.
      */
     public PullOrderedConsumerCreator maxPullWaiting(long maxPullWaiting) {
         _maxPullWaiting(maxPullWaiting);
-        return this;
-    }
-
-    /**
-     * Sets the max batch size for the server to allow on pull requests.
-     * @param maxBatch the max batch size
-     * @return this instance for chaining.
-     */
-    public PullOrderedConsumerCreator maxBatch(@Nullable Long maxBatch) {
-        _maxBatch(maxBatch);
         return this;
     }
 

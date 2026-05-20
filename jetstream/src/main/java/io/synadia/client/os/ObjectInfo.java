@@ -65,7 +65,7 @@ public class ObjectInfo implements JsonSerializable {
         bucket = readString(jv, BUCKET);
         nuid = readString(jv, NUID);
         size = readLong(jv, SIZE, 0);
-        modified = DateTimeUtils.toGmt(messageTime);
+        modified = DateTimeUtils.toUtc(messageTime);
         chunks = readLong(jv, CHUNKS, 0);
         digest = readString(jv, DIGEST);
         deleted = readBoolean(jv, DELETED, false);

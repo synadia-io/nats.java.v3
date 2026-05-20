@@ -48,11 +48,6 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     public static final Duration MIN_IDLE_HEARTBEAT = Duration.ofMillis(100);
 
     /**
-     * Constant representing the minimum max deliver
-     */
-    public static final int MAX_DELIVER_MIN = 1;
-
-    /**
      * Constant representing the minimum idle heartbeat in nanos
      */
     public static final long MIN_IDLE_HEARTBEAT_NANOS = MIN_IDLE_HEARTBEAT.toNanos();
@@ -127,7 +122,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         maxPullWaiting = UNSET;
         maxBatch = UNSET;
         maxBytes = UNSET;
-        numReplicas = 0;
+        numReplicas = UNSET;
 
         filterSubjects = new ArrayList<>();
         backoff = new ArrayList<>();
@@ -376,11 +371,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     /**
-     * Sets the start sequence or null to unset / clear.
+     * Sets the start sequence to -1 clear.
      * @param sequence the start sequence
      * @return this instance for chaining.
      */
-    public T startSequence(@Nullable Long sequence) {
+    public T startSequence(long sequence) {
         this.startSequence = normalizeULong(sequence);
         //noinspection unchecked
         return (T)this;
@@ -405,7 +400,8 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      */
     public T filterSubject(String filterSubject) {
         this.filterSubjects.clear();
-        if (!nullOrEmpty(filterSubject)) {
+        String fs = emptyAsNull(filterSubject);
+        if (fs != null) {
             this.filterSubjects.add(filterSubject);
         }
         //noinspection unchecked
@@ -459,11 +455,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     /**
-     * Set the rate limit or null to unset / clear.
+     * Set the rate limit to -1 unset / clear.
      * @param bitsPerSecond bits per second to deliver
      * @return this instance for chaining.
      */
-    public T rateLimit(@Nullable Long bitsPerSecond) {
+    public T rateLimit(long bitsPerSecond) {
         this.rateLimit = normalizeULong(bitsPerSecond);
         //noinspection unchecked
         return (T)this;
@@ -574,11 +570,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     protected void _maxDeliver(long maxDeliver) {
-        this.maxDeliver = normalizeLong(maxDeliver, MAX_DELIVER_MIN);
+        this.maxDeliver = normalizeLong(maxDeliver, 1);
     }
 
     protected void _maxAckPending(long maxAckPending) {
-        this.maxAckPending = normalizeLong(maxAckPending, STANDARD_MIN);
+        this.maxAckPending = normalizeLong(maxAckPending, 1);
     }
 
     protected void _idleHeartbeat(@Nullable Duration idleHeartbeat) {
@@ -635,32 +631,24 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.maxExpires = normalizeDuration(maxExpiresMillis, null);
     }
 
-    protected void _maxPullWaiting(@Nullable Long maxPullWaiting) {
-        this.maxPullWaiting = normalizeLong(maxPullWaiting, STANDARD_MIN);
-    }
-
     protected void _maxPullWaiting(long maxPullWaiting) {
-        this.maxPullWaiting = normalizeLong(maxPullWaiting, STANDARD_MIN);
-    }
-
-    protected void _maxBatch(@Nullable Long maxBatch) {
-        this.maxBatch = normalizeLong(maxBatch, STANDARD_MIN);
+        this.maxPullWaiting = normalizeLong(maxPullWaiting, 1);
     }
 
     protected void _maxBatch(long maxBatch) {
-        this.maxBatch = normalizeLong(maxBatch, STANDARD_MIN);
+        this.maxBatch = normalizeLong(maxBatch, 1);
     }
 
     protected void _maxBytes(@Nullable Long maxBytes) {
-        this.maxBytes = normalizeLong(maxBytes);
+        this.maxBytes = normalizeLong(maxBytes, 1);
     }
 
     protected void _maxBytes(long maxBytes) {
-        this.maxBytes = normalizeLong(maxBytes);
+        this.maxBytes = normalizeLong(maxBytes, 1);
     }
 
     protected void _numReplicas(int numReplicas) {
-        this.numReplicas = numReplicas <= 0 ? 0 : validateNumberOfReplicas(numReplicas);
+        this.numReplicas = numReplicas < 1 ? UNSET : validateNumberOfReplicas(numReplicas);
     }
 
     protected void _pauseUntil(@Nullable ZonedDateTime pauseUntil) {

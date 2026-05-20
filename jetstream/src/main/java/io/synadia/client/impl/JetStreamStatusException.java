@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.utils.Status;
+import io.synadia.client.api.Status;
 
 /**
  * JetStreamStatusException is used to indicate an unknown status message was received.

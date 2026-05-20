@@ -2,8 +2,8 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
+import io.synadia.client.api.Status;
 import io.synadia.client.utils.ByteArrayBuilder;
-import io.synadia.client.utils.Status;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;

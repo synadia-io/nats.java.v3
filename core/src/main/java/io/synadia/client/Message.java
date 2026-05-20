@@ -1,10 +1,10 @@
 package io.synadia.client;
 
+import io.synadia.client.api.Status;
 import io.synadia.client.impl.AckType;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.JetStreamMetaData;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.utils.Status;
 
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;

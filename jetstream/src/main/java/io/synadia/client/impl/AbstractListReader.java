@@ -17,7 +17,7 @@ abstract class AbstractListReader {
 
     void process(Message msg) throws JetStreamApiException {
         engine = new ListRequestEngine(msg);
-        processItems(readArrayOrEmpty(engine.getOriginalJsonValue(), objectName));
+        processItems(readArrayOrEmpty(engine.getSourceLazyJsonValue(), objectName));
     }
 
     abstract void processItems(List<LazyJsonValue> items);

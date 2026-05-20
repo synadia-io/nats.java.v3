@@ -3,8 +3,8 @@ package io.synadia.client.utils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import static io.synadia.client.api.Status.*;
 import static io.synadia.client.utils.NatsConstants.*;
-import static io.synadia.client.utils.Status.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Token {

@@ -200,7 +200,7 @@ public class Service {
                 for (EndpointContext ctx : discoveryContexts) {
                     ctx.start();
                 }
-                startTimeRef.set(DateTimeUtils.gmtNow());
+                startTimeRef.set(DateTimeUtils.utcNow());
                 startedFuture.complete(true);
             }
             return runningIndicator;
@@ -316,7 +316,7 @@ public class Service {
     public void reset() {
         if (isStarted()) {
             // has actually been started if the ref has been set
-            startTimeRef.set(DateTimeUtils.gmtNow());
+            startTimeRef.set(DateTimeUtils.utcNow());
         }
         for (EndpointContext c : discoveryContexts) {
             c.reset();

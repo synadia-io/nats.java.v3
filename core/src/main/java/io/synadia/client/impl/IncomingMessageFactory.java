@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.api.Status;
 import io.synadia.client.utils.IncomingHeadersProcessor;
-import io.synadia.client.utils.Status;
 
 import static io.synadia.client.utils.NatsConstants.JS_ACK_SUBJECT_PREFIX;
 

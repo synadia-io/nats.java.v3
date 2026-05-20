@@ -2,7 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.ConsumerConfiguration;
-import io.synadia.client.utils.Status;
+import io.synadia.client.api.Status;
 
 import static io.synadia.client.ErrorListener.FlowControlSource;
 import static io.synadia.client.ErrorListener.FlowControlSource.FLOW_CONTROL;

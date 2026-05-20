@@ -1,0 +1,5 @@
+{
+  "src": "rep.src.>",
+  "dest": "rep.dest.>",
+  "headers_only": true
+}

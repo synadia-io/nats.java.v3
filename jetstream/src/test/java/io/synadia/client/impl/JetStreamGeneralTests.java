@@ -30,7 +30,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
 //    public void testJetStreamPublishDefaultOptions() throws Exception {
 //        runInShared((nc, ctx) -> {
 //            PublishAck ack = jsPublish(ctx.js, ctx.subject());
-//            assertEquals(1, ack.getSeqno());
+//            assertEquals(1, ack.getSequenceNumber());
 //        });
 //    }
 //

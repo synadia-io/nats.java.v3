@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.*;
+import io.synadia.client.api.Status;
 import io.synadia.client.utils.Listener;
-import io.synadia.client.utils.Status;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 

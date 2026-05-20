@@ -1,21 +1,27 @@
 {
   "type": "io.nats.jetstream.api.v1.stream_create_response",
+  "did_create": true,
   "config": {
     "name": "streamName",
+    "description": "stream description",
     "subjects": [
       "sub0",
       "sub1",
-      "x.\u003e"
+      "x.>"
     ],
     "retention": "limits",
+    "compression": "s2",
     "max_consumers": 1,
     "max_msgs": 2,
+    "max_msgs_per_subject": 50,
     "max_bytes": 3,
     "discard": "old",
     "max_age": 100000000000,
     "max_msg_size": 4,
     "storage": "memory",
     "num_replicas": 5,
+    "no_ack": true,
+    "template_owner": "tmplOwner",
     "duplicate_window": 120000000000,
     "placement": {
       "cluster": "placementclstr",
@@ -24,7 +30,68 @@
         "ptag2"
       ]
     },
-    "first_seq": 82942
+    "republish": {
+      "src": "rsrc",
+      "dest": "rdest",
+      "headers_only": true
+    },
+    "subject_transform": {
+      "src": "stsrc",
+      "dest": "stdest"
+    },
+    "consumer_limits": {
+      "inactive_threshold": 60000000000,
+      "max_ack_pending": 25
+    },
+    "mirror": {
+      "name": "cfgMirrorName",
+      "opt_start_seq": 1001,
+      "opt_start_time": "2024-01-01T00:00:00Z",
+      "filter_subject": "cfgMirrorFs",
+      "external": {
+        "api": "cfgMirrorApi",
+        "deliver": "cfgMirrorDlvr"
+      },
+      "subject_transforms": [
+        {"src": "cfgMirror_st_src0", "dest": "cfgMirror_st_dest0"},
+        {"src": "cfgMirror_st_src1", "dest": "cfgMirror_st_dest1"}
+      ]
+    },
+    "sources": [
+      {
+        "name": "cfgSourceName",
+        "opt_start_seq": 2002,
+        "opt_start_time": "2024-02-01T00:00:00Z",
+        "filter_subject": "cfgSourceFs",
+        "external": {
+          "api": "cfgSourceApi",
+          "deliver": "cfgSourceDlvr"
+        },
+        "subject_transforms": [
+          {"src": "cfgSource_st_src0", "dest": "cfgSource_st_dest0"},
+          {"src": "cfgSource_st_src1", "dest": "cfgSource_st_dest1"}
+        ]
+      }
+    ],
+    "sealed": true,
+    "allow_rollup_hdrs": true,
+    "allow_direct": true,
+    "mirror_direct": true,
+    "deny_delete": true,
+    "deny_purge": true,
+    "discard_new_per_subject": true,
+    "metadata": {
+      "meta1": "val1",
+      "meta2": "val2"
+    },
+    "first_seq": 82942,
+    "allow_msg_ttl": true,
+    "allow_msg_schedules": true,
+    "allow_msg_counter": true,
+    "allow_atomic": true,
+    "allow_batched": true,
+    "subject_delete_marker_ttl": 300000000000,
+    "persist_mode": "async"
   },
   "created": "2021-01-25T20:09:10.6225191Z",
   "ts": "2023-08-29T19:33:21.163377Z",
