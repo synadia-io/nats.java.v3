@@ -17,7 +17,7 @@ import java.util.function.Predicate;
 
 import static io.nats.json.DateTimeUtils.utcNow;
 
-@SuppressWarnings({"CallToPrintStackTrace", "RedundantMethodOverride"})
+@SuppressWarnings({"CallToPrintStackTrace"})
 public class Listener implements ErrorListener, ConnectionListener {
     public static final int SHORT_VALIDATE_TIMEOUT     =  2000;
     public static final int DEFAULT_VALIDATE_TIMEOUT   =  5000;

@@ -12,7 +12,7 @@ import java.util.Map;
 import static io.synadia.client.utils.ResourceUtils.dataAsString;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ApiConsumerInfoJsonTests {
+public class ConsumerInfoJsonTests {
 
     @Test
     public void testConsumerInfo() {

@@ -12,7 +12,7 @@ import static io.synadia.client.utils.ResourceUtils.dataAsString;
 import static io.synadia.client.utils.TestBase.getDataMessage;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ApiJsonParsingTests {
+public class JsonParsingTests {
     // ====================================================================================================
     // AccountLimits
     // ====================================================================================================

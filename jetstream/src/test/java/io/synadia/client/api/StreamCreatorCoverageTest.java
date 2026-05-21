@@ -1,6 +1,5 @@
-package io.synadia.client.impl;
+package io.synadia.client.api;
 
-import io.synadia.client.api.*;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;

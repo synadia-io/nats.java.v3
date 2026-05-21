@@ -18,7 +18,7 @@ public class ConsumerListReader extends AbstractListReader {
     }
 
     @Override
-    void processItems(List<LazyJsonValue> items) {
+    public void processItems(List<LazyJsonValue> items) {
         for (LazyJsonValue v : items) {
             consumers.add(new ConsumerInfo(v));
         }

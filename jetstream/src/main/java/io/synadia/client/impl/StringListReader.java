@@ -5,7 +5,7 @@ import io.nats.json.LazyJsonValue;
 import java.util.ArrayList;
 import java.util.List;
 
-abstract class StringListReader extends AbstractListReader {
+public abstract class StringListReader extends AbstractListReader {
 
     List<String> strings;
 
@@ -15,7 +15,7 @@ abstract class StringListReader extends AbstractListReader {
     }
 
     @Override
-    void processItems(List<LazyJsonValue> items) {
+    public void processItems(List<LazyJsonValue> items) {
         for (LazyJsonValue v : items) {
             String s = v.getString();
             if (s != null) {

@@ -1,10 +1,11 @@
-package io.synadia.client.impl;
+package io.synadia.client.kv;
 
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamInfo;
-import io.synadia.client.kv.KeyValueConfigurationCreator;
-import io.synadia.client.kv.KeyValueManagement;
-import io.synadia.client.kv.KeyValueStatus;
+import io.synadia.client.impl.JetStream;
+import io.synadia.client.impl.JetStreamApiException;
+import io.synadia.client.impl.JetStreamManagement;
+import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.utils.TestBase;
 
 import java.io.IOException;

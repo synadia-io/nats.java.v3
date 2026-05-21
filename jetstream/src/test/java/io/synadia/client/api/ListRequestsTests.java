@@ -1,8 +1,7 @@
-package io.synadia.client.impl;
+package io.synadia.client.api;
 
 import io.nats.json.DateTimeUtils;
-import io.synadia.client.Message;
-import io.synadia.client.api.*;
+import io.synadia.client.impl.*;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -63,26 +62,14 @@ public class ListRequestsTests extends JetStreamTestBase {
         assertEquals("stream-1", slr.getStreams().get(1).getConfiguration().getName());
     }
 
-    static class TestListRequestEngine extends ListRequestEngine {
-        public int getTotal() { return total; }
-        public int getLimit() { return limit; }
-        public int getLastOffset() { return lastOffset; }
-
-        public TestListRequestEngine() {}
-
-        public TestListRequestEngine(Message msg) throws JetStreamApiException {
-            super(msg);
-        }
-    }
-
     @Test
     public void testListRequestEngine() throws Exception {
-        TestListRequestEngine tlr = new TestListRequestEngine();
+        TestableListRequestEngine tlr = new TestableListRequestEngine();
         assertTrue(tlr.hasMore());
         assertEquals("{\"offset\":0}", new String(tlr.internalNextJson()));
         assertEquals("{\"offset\":0}", new String(tlr.internalNextJson("name", null)));
         assertEquals("{\"offset\":0,\"name\":\"value\"}", new String(tlr.internalNextJson("name", "value")));
-        tlr = new TestListRequestEngine(getDataMessage(dataAsString("ListResponsePage1.json")));
+        tlr = new TestableListRequestEngine(getDataMessage(dataAsString("ListResponsePage1.json")));
         assertEquals(15, tlr.getTotal());
         assertEquals(10, tlr.getLimit());
         assertEquals(0, tlr.getLastOffset());
@@ -90,7 +77,7 @@ public class ListRequestsTests extends JetStreamTestBase {
         assertTrue(tlr.hasMore());
         assertEquals("{\"offset\":10}", new String(tlr.internalNextJson()));
         assertEquals("{\"offset\":10,\"name\":\"value\"}", new String(tlr.internalNextJson("name", "value")));
-        tlr = new TestListRequestEngine(getDataMessage(dataAsString("ListResponsePage2.json")));
+        tlr = new TestableListRequestEngine(getDataMessage(dataAsString("ListResponsePage2.json")));
         assertEquals(15, tlr.getTotal());
         assertEquals(10, tlr.getLimit());
         assertEquals(10, tlr.getLastOffset());
@@ -101,6 +88,6 @@ public class ListRequestsTests extends JetStreamTestBase {
 
         String json = dataAsString("GenericErrorResponse.json");
         NatsMessage m = new NatsMessage("sub", null, json.getBytes(StandardCharsets.US_ASCII));
-        assertThrows(JetStreamApiException.class, () -> new ListRequestEngine(m));
+        assertThrows(JetStreamApiException.class, () -> new TestableListRequestEngine(m));
     }
 }

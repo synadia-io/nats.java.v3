@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Comprehensive content/field-coverage and round-trip tests for the io.synadia.client.api package.
  *
- * <p>This complements {@link ApiEqualityAndHashCodeCoverageTest} (equals/hashCode) and
+ * <p>This complements {@link EqualityAndHashCodeCoverageTest} (equals/hashCode) and
  * {@link StreamCreatorConfigurationTests} (StreamCreator/StreamConfiguration round-trip).
  *
  * <p>All tests work offline — no NATS server needed.

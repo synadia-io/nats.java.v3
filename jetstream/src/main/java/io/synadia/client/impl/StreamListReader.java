@@ -9,23 +9,23 @@ import java.util.List;
 import static io.synadia.client.utils.ApiConstants.STREAMS;
 import static io.synadia.client.utils.ApiConstants.SUBJECT;
 
-class StreamListReader extends AbstractListReader {
+public class StreamListReader extends AbstractListReader {
 
     List<StreamInfo> streams;
 
-    StreamListReader() {
+    public StreamListReader() {
         super(STREAMS, SUBJECT);
         streams = new ArrayList<>();
     }
 
     @Override
-    void processItems(List<LazyJsonValue> items) {
+    public void processItems(List<LazyJsonValue> items) {
         for (LazyJsonValue v : items) {
             streams.add(new StreamInfo(v));
         }
     }
 
-    List<StreamInfo> getStreams() {
+    public List<StreamInfo> getStreams() {
         return streams;
     }
 }

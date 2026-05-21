@@ -14,7 +14,7 @@ import static io.synadia.client.utils.ResourceUtils.dataAsString;
 import static io.synadia.client.utils.TestBase.getDataMessage;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ApiStreamInfoJsonTests {
+public class StreamInfoJsonTests {
     static String STREAM_INFO_JSON = dataAsString("StreamInfo.json");
 
     @Test

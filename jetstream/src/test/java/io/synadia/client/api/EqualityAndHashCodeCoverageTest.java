@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * </ul>
  */
 @SuppressWarnings({"EqualsWithItself", "MisorderedAssertEqualsArguments", "AssertBetweenInconvertibleTypes"})
-public class ApiEqualityAndHashCodeCoverageTest {
+public class EqualityAndHashCodeCoverageTest {
 
     // ----------------------------------------------------------------------------------------------------
     // Helpers
