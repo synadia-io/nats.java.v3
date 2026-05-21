@@ -19,7 +19,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static io.synadia.client.utils.ConnectionUtils.managedConnect;
@@ -33,45 +32,8 @@ import static io.synadia.client.utils.VersionUtils.initVersionServerInfo;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamTestBase extends TestBase {
-    public static final String TestMetaV0 = "$JS.ACK.test-stream.test-consumer.1.2.3.1605139610113260000";
-    public static final String TestMetaV1 = "$JS.ACK.test-stream.test-consumer.1.2.3.1605139610113260000.4";
-    public static final String TestMetaV2 = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.4";
-    public static final String TestMetaVFuture = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.4.dont.care.how.many.more";
-    public static final String InvalidMetaNoAck = "$JS.nope.test-stream.test-consumer.1.2.3.1605139610113260000";
-    public static final String InvalidMetaData = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.not-a-number";
-    public static final String InvalidMetaLt8Tokens = "$JS.ACK.less-than.8-tokens.1.2.3";
-    public static final String InvalidMeta10Tokens = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000";
 
     public static final Duration DEFAULT_TIMEOUT = Duration.ofMillis(1000);
-
-    private static final AtomicInteger MOCK_SID_HOLDER = new AtomicInteger(4273);
-    public static String mockSid() {
-        return "" + MOCK_SID_HOLDER.incrementAndGet();
-    }
-
-    public NatsMessage getTestNatsMessage() {
-        return getTestMessage("replyTo", mockSid());
-    }
-
-    public NatsMessage getTestJsMessage() {
-        return getTestMessage(TestMetaV2, mockSid());
-    }
-
-    public NatsMessage getTestJsMessage(long seq) {
-        return getTestJsMessage(seq, mockSid());
-    }
-
-    public NatsMessage getTestJsMessage(long seq, String sid) {
-        return getTestMessage("$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1." + seq + "." + seq + ".1605139610113260000.4", sid);
-    }
-
-    public NatsMessage getTestMessage(String replyTo) {
-        return new IncomingMessageFactory(mockSid(), "subj", replyTo, 0).getMessage();
-    }
-
-    public NatsMessage getTestMessage(String replyTo, String sid) {
-        return new IncomingMessageFactory(sid, "subj", replyTo, 0).getMessage();
-    }
 
     // ----------------------------------------------------------------------------------------------------
     // Publish / Read
