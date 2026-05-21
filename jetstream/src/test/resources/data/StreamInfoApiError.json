@@ -1,0 +1,8 @@
+{
+  "type": "io.nats.jetstream.api.v1.stream_info_response",
+  "error": {
+    "code": 500,
+    "err_code": 10001,
+    "description": "stream not found"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "type": "io.nats.jetstream.api.v1.account_info_response",
+  "error": {
+    "code": 503,
+    "err_code": 10118,
+    "description": "account not found"
+  }
+}

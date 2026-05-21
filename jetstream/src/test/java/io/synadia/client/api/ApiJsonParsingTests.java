@@ -84,6 +84,23 @@ public class ApiJsonParsingTests {
         assertEquals(0, api.getInFlight());
     }
 
+    @Test
+    public void testAccountStatsImplError() {
+        String json = dataAsString("AccountStatisticsError.json");
+        AccountStatistics as = new AccountStatistics(getDataMessage(json));
+        assertTrue(as.hasError());
+        Error err = as.getErrorObject();
+        assertNotNull(err);
+        assertEquals(503, err.getCode());
+        assertEquals(10118, err.getApiErrorCode());
+        assertEquals("account not found", err.getDescription());
+        assertEquals(503, as.getErrorCode());
+        assertEquals(10118, as.getApiErrorCode());
+        assertEquals("account not found", as.getDescription());
+        assertNotNull(as.getError());
+        assertNotNull(as.toString()); // COVERAGE
+    }
+
     private void validateTier(AccountTier tier, int tierBase, int limitsIdBase) {
         assertNotNull(tier);
         assertEquals(tierBase + 1, tier.getMemoryBytes());
@@ -210,6 +227,20 @@ public class ApiJsonParsingTests {
     }
 
     // ====================================================================================================
+    // ConsumerPauseResponse Error
+    // ====================================================================================================
+    @Test
+    public void testConsumerPauseResponseError() {
+        String json = dataAsString("ConsumerPauseResponseError.json");
+        ConsumerPauseResponse pr = new ConsumerPauseResponse(getDataMessage(json));
+        assertTrue(pr.hasError());
+        assertFalse(pr.isPaused());
+        assertEquals(DateTimeUtils.DEFAULT_TIME, pr.getPauseUntil());
+        assertNull(pr.getPauseRemaining());
+        assertNotNull(pr.toString()); // COVERAGE
+    }
+
+    // ====================================================================================================
     // ConsumerPauseResponse Resume
     // ====================================================================================================
     @Test
@@ -232,13 +263,46 @@ public class ApiJsonParsingTests {
         assertEquals(71, err.getCode());
         assertEquals(72, err.getApiErrorCode());
         assertEquals("error-description", err.getDescription());
-        assertNotNull(err.toString()); // COVERAGE
+        assertEquals("error-description [72]", err.toString());
 
         // optionalInstance: null in -> null out, non-null -> instance
         assertNull(Error.optionalInstance(null));
         Error opt = Error.optionalInstance(LazyJsonParser.parseUnchecked(json));
         assertNotNull(opt);
         assertEquals(71, opt.getCode());
+    }
+
+    @Test
+    public void testErrorApiCodeOnly() {
+        // apiErrorCode set, code NOT_SET -> toString returns description
+        String json = dataAsString("ErrorApiCodeOnly.json");
+        Error err = new Error(LazyJsonParser.parseUnchecked(json));
+        assertEquals(Error.NOT_SET, err.getCode());
+        assertEquals(9001, err.getApiErrorCode());
+        assertEquals("api-only", err.getDescription());
+        assertEquals("api-only", err.toString());
+    }
+
+    @Test
+    public void testErrorCodeOnly() {
+        // code set, apiErrorCode NOT_SET, no description -> default description with code suffix
+        String json = dataAsString("ErrorCodeOnly.json");
+        Error err = new Error(LazyJsonParser.parseUnchecked(json));
+        assertEquals(401, err.getCode());
+        assertEquals(Error.NOT_SET, err.getApiErrorCode());
+        assertEquals("Unknown JetStream Error", err.getDescription());
+        assertEquals("Unknown JetStream Error (401)", err.toString());
+    }
+
+    @Test
+    public void testErrorDescriptionOnly() {
+        // both code and apiErrorCode NOT_SET -> toString returns description
+        String json = dataAsString("ErrorDescriptionOnly.json");
+        Error err = new Error(LazyJsonParser.parseUnchecked(json));
+        assertEquals(Error.NOT_SET, err.getCode());
+        assertEquals(Error.NOT_SET, err.getApiErrorCode());
+        assertEquals("desc-only", err.getDescription());
+        assertEquals("desc-only", err.toString());
     }
 
     // ====================================================================================================
@@ -298,6 +362,21 @@ public class ApiJsonParsingTests {
         assertNotNull(mirror.toString()); // COVERAGE
     }
 
+    @Test
+    public void testMirrorMinimal() {
+        String json = dataAsString("MirrorMinimal.json");
+        Mirror mirror = new Mirror(LazyJsonParser.parseUnchecked(json));
+        assertEquals("minimal-mirror-name", mirror.getStreamName());
+        assertEquals(0, mirror.getStartSequence());
+        assertNull(mirror.getStartTime());
+        assertNull(mirror.getFilterSubject());
+        assertNull(mirror.getExternal());
+        List<SubjectTransform> sts = mirror.getSubjectTransforms();
+        assertNotNull(sts);
+        assertTrue(sts.isEmpty());
+        assertNotNull(mirror.toString()); // COVERAGE
+    }
+
     // ====================================================================================================
     // MirrorInfo
     // ====================================================================================================
@@ -328,6 +407,26 @@ public class ApiJsonParsingTests {
         assertEquals("mi-error", err.getDescription());
 
         assertNotNull(mi.toString()); // COVERAGE
+
+        // optionalInstance: null in -> null out, non-null -> instance
+        assertNull(MirrorInfo.optionalInstance(null));
+        MirrorInfo opt = MirrorInfo.optionalInstance(LazyJsonParser.parseUnchecked(json));
+        assertNotNull(opt);
+        assertEquals("mi-name", opt.getName());
+    }
+
+    @Test
+    public void testMirrorInfoNoError() {
+        String json = dataAsString("MirrorInfoNoError.json");
+        MirrorInfo mi = new MirrorInfo(LazyJsonParser.parseUnchecked(json));
+        assertEquals("mi-no-error-name", mi.getName());
+        assertEquals("mi.no.error.filter", mi.getFilterSubject());
+        assertEquals(181, mi.getLag());
+        assertEquals(Duration.ofNanos(182000000000L), mi.getActive());
+        assertNull(mi.getExternal());
+        assertTrue(mi.getSubjectTransforms().isEmpty());
+        assertNull(mi.getError());
+        assertNotNull(mi.toString()); // COVERAGE
     }
 
     // ====================================================================================================
@@ -347,6 +446,51 @@ public class ApiJsonParsingTests {
         assertEquals("ptag-b", tags.get(1));
         assertEquals("ptag-c", tags.get(2));
 
+        assertNotNull(p.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testPlacementClusterOnly() {
+        String json = dataAsString("PlacementClusterOnly.json");
+        Placement p = new Placement(LazyJsonParser.parseUnchecked(json));
+        assertTrue(p.hasData());
+        assertEquals("only-cluster", p.getCluster());
+        assertNull(p.getTags());
+        assertNotNull(p.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testPlacementEmpty() {
+        String json = dataAsString("PlacementEmpty.json");
+        Placement p = new Placement(LazyJsonParser.parseUnchecked(json));
+        assertFalse(p.hasData());
+        assertNull(p.getCluster());
+        assertNull(p.getTags());
+        assertNotNull(p.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testPlacementEmptyCluster() {
+        String json = dataAsString("PlacementEmptyCluster.json");
+        Placement p = new Placement(LazyJsonParser.parseUnchecked(json));
+        // empty cluster string is stripped to null
+        assertNull(p.getCluster());
+        assertNull(p.getTags());
+        assertFalse(p.hasData());
+        assertNotNull(p.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testPlacementTagsOnly() {
+        String json = dataAsString("PlacementTagsOnly.json");
+        Placement p = new Placement(LazyJsonParser.parseUnchecked(json));
+        assertTrue(p.hasData());
+        assertNull(p.getCluster());
+        List<String> tags = p.getTags();
+        assertNotNull(tags);
+        assertEquals(2, tags.size());
+        assertEquals("only-tag-a", tags.get(0));
+        assertEquals("only-tag-b", tags.get(1));
         assertNotNull(p.toString()); // COVERAGE
     }
 
@@ -387,6 +531,18 @@ public class ApiJsonParsingTests {
         assertTrue(r.isOffline());
         assertEquals(Duration.ofNanos(121000000000L), r.getActive());
         assertEquals(122, r.getLag());
+        assertNotNull(r.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testReplicaMinimal() {
+        String json = dataAsString("ReplicaMinimal.json");
+        Replica r = new Replica(LazyJsonParser.parseUnchecked(json));
+        assertEquals("minimal-replica-name", r.getName());
+        assertFalse(r.isCurrent());
+        assertFalse(r.isOffline());
+        assertEquals(Duration.ZERO, r.getActive());
+        assertEquals(0, r.getLag());
         assertNotNull(r.toString()); // COVERAGE
     }
 
@@ -444,6 +600,21 @@ public class ApiJsonParsingTests {
         assertNotNull(source.toString()); // COVERAGE
     }
 
+    @Test
+    public void testSourceMinimal() {
+        String json = dataAsString("SourceMinimal.json");
+        Source source = new Source(LazyJsonParser.parseUnchecked(json));
+        assertEquals("minimal-source-name", source.getStreamName());
+        assertEquals(0, source.getStartSequence());
+        assertNull(source.getStartTime());
+        assertNull(source.getFilterSubject());
+        assertNull(source.getExternal());
+        List<SubjectTransform> sts = source.getSubjectTransforms();
+        assertNotNull(sts);
+        assertTrue(sts.isEmpty());
+        assertNotNull(source.toString()); // COVERAGE
+    }
+
     // ====================================================================================================
     // SourceInfo
     // ====================================================================================================
@@ -473,6 +644,21 @@ public class ApiJsonParsingTests {
         assertEquals(154, err.getApiErrorCode());
         assertEquals("si-error", err.getDescription());
 
+        assertNotNull(si.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testSourceInfoNoActive() {
+        String json = dataAsString("SourceInfoNoActive.json");
+        SourceInfo si = new SourceInfo(LazyJsonParser.parseUnchecked(json));
+        assertEquals("si-no-active-name", si.getName());
+        assertEquals("si.no.active.filter", si.getFilterSubject());
+        assertEquals(191, si.getLag());
+        // negative active is treated as not present -> null
+        assertNull(si.getActive());
+        assertNull(si.getExternal());
+        assertTrue(si.getSubjectTransforms().isEmpty());
+        assertNull(si.getError());
         assertNotNull(si.toString()); // COVERAGE
     }
 
@@ -531,6 +717,31 @@ public class ApiJsonParsingTests {
         assertTrue(lost.getMessages().contains(175L));
         assertTrue(lost.getMessages().contains(176L));
         assertEquals(Long.valueOf(177L), lost.getBytes());
+
+        assertNotNull(ss.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testStreamStateMinimal() {
+        String json = dataAsString("StreamStateMinimal.json");
+        StreamState ss = new StreamState(LazyJsonParser.parseUnchecked(json));
+        assertEquals(261, ss.getMessageCount());
+        assertEquals(262, ss.getByteCount());
+        assertEquals(263, ss.getFirstSequence());
+        assertEquals(265, ss.getLastSequence());
+        assertEquals(267, ss.getConsumerCount());
+
+        // no subjects key -> empty list and empty map
+        List<Subject> subjects = ss.getSubjects();
+        assertNotNull(subjects);
+        assertTrue(subjects.isEmpty());
+
+        Map<String, Long> subjectMap = ss.getSubjectMap();
+        assertNotNull(subjectMap);
+        assertTrue(subjectMap.isEmpty());
+
+        // no lost key -> null
+        assertNull(ss.getLostStreamData());
 
         assertNotNull(ss.toString()); // COVERAGE
     }

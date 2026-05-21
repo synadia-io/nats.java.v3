@@ -1,0 +1,50 @@
+{
+  "type": "io.nats.jetstream.api.v1.stream_create_response",
+  "did_create": true,
+  "config": {
+    "name": "streamName",
+    "subjects": [
+      "sub0"
+    ],
+    "retention": "limits",
+    "storage": "memory",
+    "num_replicas": 1
+  },
+  "created": "2021-01-25T20:09:10.6225191Z",
+  "state": {
+    "messages": 0,
+    "bytes": 0,
+    "first_seq": 0,
+    "last_seq": 0,
+    "consumer_count": 0
+  },
+  "mirror": {
+    "name": "mname",
+    "filter_subject": "mfs",
+    "lag": 16,
+    "active": 160000000000,
+    "error": {
+      "code": 503,
+      "err_code": 4001,
+      "description": "mirror unavailable"
+    }
+  },
+  "sources": [
+    {
+      "name": "sname17",
+      "filter_subject": "sfs17",
+      "lag": 17,
+      "active": 170000000000,
+      "error": {
+        "code": 504,
+        "err_code": 4002,
+        "description": "source timeout"
+      }
+    },
+    {
+      "name": "sname18",
+      "filter_subject": "sfs18",
+      "lag": 18
+    }
+  ]
+}

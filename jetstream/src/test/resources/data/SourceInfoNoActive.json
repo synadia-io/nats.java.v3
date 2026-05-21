@@ -1,0 +1,6 @@
+{
+  "name": "si-no-active-name",
+  "filter_subject": "si.no.active.filter",
+  "lag": 191,
+  "active": -1
+}

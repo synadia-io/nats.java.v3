@@ -1,11 +1,13 @@
 package io.synadia.client.api;
 
 import io.nats.json.DateTimeUtils;
+import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.synadia.client.utils.ResourceUtils.dataAsString;
@@ -20,6 +22,61 @@ public class ApiStreamInfoJsonTests {
         StreamInfo si = new StreamInfo(getDataMessage(STREAM_INFO_JSON));
         verifyStreamInfo(si);
         assertNotNull(si.toString()); // coverage
+    }
+
+    @Test
+    public void testStreamInfoMirrorAndSourceErrors() {
+        String json = dataAsString("StreamInfoWithMirrorError.json");
+        StreamInfo si = new StreamInfo(getDataMessage(json));
+
+        MirrorInfo mi = si.getMirrorInfo();
+        assertNotNull(mi);
+        Error mirrorError = mi.getError();
+        assertNotNull(mirrorError);
+        assertEquals(503, mirrorError.getCode());
+        assertEquals(4001, mirrorError.getApiErrorCode());
+        assertEquals("mirror unavailable", mirrorError.getDescription());
+
+        List<SourceInfo> sources = si.getSources();
+        assertEquals(2, sources.size());
+
+        Error sourceError = sources.get(0).getError();
+        assertNotNull(sourceError);
+        assertEquals(504, sourceError.getCode());
+        assertEquals(4002, sourceError.getApiErrorCode());
+        assertEquals("source timeout", sourceError.getDescription());
+
+        // second source has no error
+        assertNull(sources.get(1).getError());
+    }
+
+    @Test
+    public void testStreamInfoApiError() {
+        String json = dataAsString("StreamInfoApiError.json");
+        StreamInfo si = new StreamInfo(getDataMessage(json));
+
+        assertTrue(si.hasError());
+        Error errorObject = si.getErrorObject();
+        assertNotNull(errorObject);
+        assertEquals(500, errorObject.getCode());
+        assertEquals(10001, errorObject.getApiErrorCode());
+        assertEquals("stream not found", errorObject.getDescription());
+
+        assertEquals(500, si.getErrorCode());
+        assertEquals(10001, si.getApiErrorCode());
+        assertEquals("stream not found", si.getDescription());
+        assertEquals("stream not found [10001]", si.getError());
+        assertEquals("io.nats.jetstream.api.v1.stream_info_response", si.getType());
+    }
+
+    @Test
+    public void testStreamInfoFromLazyJsonValue() {
+        LazyJsonValue ljv = LazyJsonParser.parseUnchecked(STREAM_INFO_JSON);
+        StreamInfo si = new StreamInfo(ljv);
+
+        assertEquals("io.nats.jetstream.api.v1.stream_create_response", si.getType());
+        assertEquals("streamName", si.getConfiguration().getName());
+        assertEquals(DateTimeUtils.parseDateTime("2021-01-25T20:09:10.6225191Z"), si.getCreateTime());
     }
 
     private void verifyStreamInfo(StreamInfo si) {
