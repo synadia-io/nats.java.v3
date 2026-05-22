@@ -23,22 +23,21 @@ Both resolve to the same property.
 
 ## 3. Constants whose names changed
 
-| Old name                      | New name                          | Current value              | Old value if changed     |
-|-------------------------------|-----------------------------------|----------------------------|--------------------------|
-| `PROP_CONNECTION_CB`          | `PROP_CONNECTION_LISTENER_CLASS`  | `connectionListenerClass`  | `callback.connection`    |
-| `PROP_ERROR_LISTENER`         | `PROP_ERROR_LISTENER_CLASS`       | `errorListenerClass`       | `callback.error`         |
-| `PROP_TIME_TRACE_LOGGER`      | `PROP_TIME_TRACE_LOGGER_CLASS`    | `timeTraceLoggerClass`     | `time.trace`             |
-| `PROP_STATISTICS_COLLECTOR`   | `PROP_STATISTICS_COLLECTOR_CLASS` | `statisticsCollectorClass` | `statisticscollector`    |
-| `PROP_TOKEN_SUPPLIER`         | `PROP_TOKEN_SUPPLIER_CLASS`       | `tokenSupplierClass`       | `token.supplier`         |
-| `PROP_SOCKET_READ_TIMEOUT_MS` | `PROP_SOCKET_READ_TIMEOUT`        | `socketReadTimeout`        | `socket.read.timeout.ms` |
-| `PROP_KEYSTORE`               | `PROP_KEY_STORE`                  | `keyStore`                 |                          |
-| `PROP_KEYSTORE_PASSWORD`      | `PROP_KEY_STORE_PASSWORD`         | `keyStorePassword`         |                          |
-| `PROP_TRUSTSTORE`             | `PROP_TRUST_STORE`                | `trustStore`               |                          |
-| `PROP_TRUSTSTORE_PASSWORD`    | `PROP_TRUST_STORE_PASSWORD`       | `trustStorePassword`       |                          |
-| `PROP_NORANDOMIZE`            | `PROP_NO_RANDOMIZE`               | `noRandomize`              | `norandomize`            |
-| `PROP_NO_NORESPONDERS`        | `PROP_NO_NO_RESPONDERS`           | `noNoResponders`           | `nonoresponders`         |
-| `PROP_OPENTLS`                | `PROP_OPEN_TLS`                   | `openTls`                  | `opentls`                |
-| `PROP_UTF8_SUBJECTS`          | `PROP_SUPPORT_UTF8_SUBJECTS`      | `supportUtf8Subjects`      | `allow.utf8.subjects`    |
+| Old name                      | New name                          | Current value                   | Old value if changed     |
+|-------------------------------|-----------------------------------|---------------------------------|--------------------------|
+| `PROP_CONNECTION_CB`          | `PROP_CONNECTION_LISTENER_CLASS`  | `connectionListenerClass`       | `callback.connection`    |
+| `PROP_ERROR_LISTENER`         | `PROP_ERROR_LISTENER_CLASS`       | `errorListenerClass`            | `callback.error`         |
+| `PROP_STATISTICS_COLLECTOR`   | `PROP_STATISTICS_COLLECTOR_CLASS` | `statisticsCollectorClass`      | `statisticscollector`    |
+| `PROP_TOKEN_SUPPLIER`         | `PROP_TOKEN_SUPPLIER_CLASS`       | `tokenSupplierClass`            | `token.supplier`         |
+| `PROP_SOCKET_READ_TIMEOUT_MS` | `PROP_SOCKET_READ_TIMEOUT`        | `socketReadTimeout`             | `socket.read.timeout.ms` |
+| `PROP_KEYSTORE`               | `PROP_KEY_STORE`                  | `keyStore`                      |                          |
+| `PROP_KEYSTORE_PASSWORD`      | `PROP_KEY_STORE_PASSWORD`         | `keyStorePassword`              |                          |
+| `PROP_TRUSTSTORE`             | `PROP_TRUST_STORE`                | `trustStore`                    |                          |
+| `PROP_TRUSTSTORE_PASSWORD`    | `PROP_TRUST_STORE_PASSWORD`       | `trustStorePassword`            |                          |
+| `PROP_NORANDOMIZE`            | `PROP_NO_RANDOMIZE`               | `noRandomize`                   | `norandomize`            |
+| `PROP_NO_NORESPONDERS`        | `PROP_NO_NO_RESPONDERS`           | Removed. Report is default now. | `nonoresponders`         |
+| `PROP_OPENTLS`                | `PROP_OPEN_TLS`                   | `openTls`                       | `opentls`                |
+| `PROP_UTF8_SUBJECTS`          | `PROP_SUPPORT_UTF8_SUBJECTS`      | `supportUtf8Subjects`           | `allow.utf8.subjects`    |
 
 ## 4. Constants whose values changed (name unchanged)
 
@@ -88,27 +87,34 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 
 ## 5. Constants unchanged (name and value)
 
-| Constant                         | Current value             |
-|----------------------------------|---------------------------|
-| `PROP_PEDANTIC`                  | `pedantic`                |
-| `PROP_VERBOSE`                   | `verbose`                 |
-| `PROP_WRITE_QUEUE_PUSH_TIMEOUT`  | `writeQueuePushTimeout`   |
-| `PROP_HOSTNAME_RESOLVE_MODE`     | `hostnameResolveMode`     |
-| `PROP_NO_SUBJECT_VALIDATION`     | `noSubjectValidation`     |
-| `PROP_STRICT_SUBJECT_VALIDATION` | `strictSubjectValidation` |
-| `PROP_REPORT_NO_RESPONDERS`      | `reportNoResponders`      |
-| `PROP_SERVERS`                   | `servers`                 |
-| `PROP_PASSWORD`                  | `password`                |
-| `PROP_USERNAME`                  | `username`                |
-| `PROP_TOKEN`                     | `token`                   |
-| `PROP_URL`                       | `url`                     |
-| `PROP_SECURE`                    | `secure`                  |
+| Constant                          | Current value             |
+|-----------------------------------|---------------------------|
+| `PROP_PEDANTIC`                   | `pedantic`                |
+| `PROP_VERBOSE`                    | `verbose`                 |
+| `PROP_WRITE_QUEUE_PUSH_TIMEOUT`   | `writeQueuePushTimeout`   |
+| `PROP_HOSTNAME_RESOLVE_MODE`      | `hostnameResolveMode`     |
+| `PROP_NO_SUBJECT_VALIDATION`      | `noSubjectValidation`     |
+| `PROP_STRICT_SUBJECT_VALIDATION`  | `strictSubjectValidation` |
+| `PROP_SERVERS`                    | `servers`                 |
+| `PROP_PASSWORD`                   | `password`                |
+| `PROP_USERNAME`                   | `username`                |
+| `PROP_TOKEN`                      | `token`                   |
+| `PROP_URL`                        | `url`                     |
+| `PROP_SECURE`                     | `secure`                  |
 
-## 6. Prompts for Claude Code
+
+## 6. Constants removed
+
+| Constant                    | Reason                              |
+|-----------------------------|-------------------------------------|
+| `PROP_TIME_TRACE_LOGGER`    | Feature removed                     |
+| `PROP_REPORT_NO_RESPONDERS` | Client always reports No Responders |
+
+## 7. Prompts for Claude Code
 
 Drop this `MIGRATION_GUIDE_OPTIONS.md` file into your project (or pass its path to Claude Code) and use one of the prompts below to migrate.
 
-### 6.1 Convert a properties file
+### 7.1 Convert a properties file
 
 ```
 I have a Java properties file (or files) at <PATH(S)> that uses old NATS Options
@@ -130,7 +136,7 @@ Rules:
 - Report any keys you couldn't map.
 ```
 
-### 6.2 Convert Java code
+### 7.2 Convert Java code
 
 ```
 Update Java source under <PATH> to use the new NATS Options constants per
