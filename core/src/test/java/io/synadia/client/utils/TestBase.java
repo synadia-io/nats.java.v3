@@ -178,7 +178,7 @@ public class TestBase {
     }
 
     // ----------------------------------------------------------------------------------------------------
-    // runners -> own server, not jetstream
+    // runners -> own server
     // ----------------------------------------------------------------------------------------------------
     private static void _runInOwnServer(@NonNull OneConnectionTest oneNcTest) throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {

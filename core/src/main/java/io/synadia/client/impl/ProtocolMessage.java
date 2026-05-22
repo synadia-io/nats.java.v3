@@ -5,7 +5,7 @@ import io.synadia.client.utils.ByteArrayBuilder;
 // ----------------------------------------------------------------------------------------------------
 // Protocol message is a special version of a NatsPublishableMessage extends NatsMessage
 // ----------------------------------------------------------------------------------------------------
-class ProtocolMessage extends NatsPublishableMessage {
+public class ProtocolMessage extends NatsPublishableMessage {
     final boolean filterOnStop;
 
     ProtocolMessage(ByteArrayBuilder babProtocol, boolean filterOnStop) {

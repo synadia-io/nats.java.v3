@@ -8,8 +8,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,8 +19,6 @@ import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 import static io.synadia.client.utils.Validator.*;
 
 public class JetStream extends JetStreamImpl {
-
-    private Charset defaultCharset = StandardCharsets.UTF_8;
 
     public static JetStream instance(NatsConnection connection) throws IOException {
         return new JetStream(connection);
@@ -44,18 +40,13 @@ public class JetStream extends JetStreamImpl {
         super(impl);
     }
 
-    public JetStream defaultCharset(Charset defaultCharset) {
-        this.defaultCharset = defaultCharset;
-        return this;
-    }
-
     // ----------------------------------------------------------------------------------------------------
     // Publish
     // ----------------------------------------------------------------------------------------------------
 
     /**
      * Send a message to the specified subject and waits for a response from
-     * Jetstream. The default publish options will be used.
+     * JetStream. The default publish options will be used.
      * The expected usage with string content is something like:
      *
      * <pre>
@@ -83,7 +74,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject and waits for a response from
-     * Jetstream. The default publish options will be used.
+     * JetStream. The default publish options will be used.
      * The expected usage with string content is something like:
      *
      * <pre>
@@ -115,7 +106,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject and waits for a response from
-     * Jetstream. The expected usage with string content is something like:
+     * JetStream. The expected usage with string content is something like:
      *
      * <pre>
      * nc = Nats.connect()
@@ -145,7 +136,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject and waits for a response from
-     * Jetstream. The expected usage with string content is something like:
+     * JetStream. The expected usage with string content is something like:
      *
      * <pre>
      * nc = Nats.connect()
@@ -177,7 +168,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject and waits for a response from
-     * Jetstream. The default publish options will be used.
+     * JetStream. The default publish options will be used.
      * The expected usage with string content is something like:
      *
      * <pre>
@@ -208,7 +199,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject and waits for a response from
-     * Jetstream. The expected usage with string content is something like:
+     * JetStream. The expected usage with string content is something like:
      *
      * <pre>
      * nc = Nats.connect()
@@ -239,7 +230,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject but does not wait for a response from
-     * Jetstream. The default publish options will be used.
+     * JetStream. The default publish options will be used.
      * The expected usage with string content is something like:
      *
      * <pre>
@@ -270,7 +261,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject but does not wait for a response from
-     * Jetstream. The default publish options will be used.
+     * JetStream. The default publish options will be used.
      * The expected usage with string content is something like:
      *
      * <pre>
@@ -303,7 +294,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject but does not wait for a response from
-     * Jetstream. The expected usage with string content is something like:
+     * JetStream. The expected usage with string content is something like:
      *
      * <pre>
      * nc = Nats.connect()
@@ -334,7 +325,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject but does not wait for a response from
-     * Jetstream. The expected usage with string content is something like:
+     * JetStream. The expected usage with string content is something like:
      *
      * <pre>
      * nc = Nats.connect()
@@ -367,7 +358,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject but does not wait for a response from
-     * Jetstream. The default publish options will be used.
+     * JetStream. The default publish options will be used.
      * The expected usage with string content is something like:
      *
      * <pre>
@@ -397,7 +388,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * Send a message to the specified subject but does not wait for a response from
-     * Jetstream. The expected usage with string content is something like:
+     * JetStream. The expected usage with string content is something like:
      *
      * <pre>
      * nc = Nats.connect()
@@ -429,7 +420,7 @@ public class JetStream extends JetStreamImpl {
         Headers merged = mergePublishOptions(headers, options);
 
         if (data == null && sData != null) {
-            data = sData.getBytes(defaultCharset);
+            data = sData.getBytes(jso.getDefaultCharset());
         }
 
         Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout(), CancelAction.COMPLETE);
@@ -440,7 +431,7 @@ public class JetStream extends JetStreamImpl {
         Headers merged = mergePublishOptions(headers, options);
 
         if (data == null && sData != null) {
-            data = sData.getBytes(defaultCharset);
+            data = sData.getBytes(jso.getDefaultCharset());
         }
 
         CompletableFuture<Message> future = conn.requestAsync(subject, merged, data, null, CancelAction.COMPLETE);

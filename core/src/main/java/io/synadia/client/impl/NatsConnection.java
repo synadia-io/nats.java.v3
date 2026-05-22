@@ -31,8 +31,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class NatsConnection implements AutoCloseable {
 
-    public static final double NANOS_PER_SECOND = 1_000_000_000.0;
-
     protected final Options options;
     protected final boolean forceFlushOnRequest;
 
@@ -94,10 +92,6 @@ public class NatsConnection implements AutoCloseable {
 
     protected final ServerPool serverPool;
     protected final DispatcherFactory dispatcherFactory;
-    protected final @NonNull CancelAction cancelAction;
-
-    protected final boolean trace;
-    protected final TimeTraceLogger timeTraceLogger;
 
     // allows user to opt into the level of subject validation they want
     protected interface SubjectReplyValidator {
@@ -107,19 +101,15 @@ public class NatsConnection implements AutoCloseable {
     protected final SubjectReplyValidator subjectValidator;
     protected final SubjectReplyValidator replyValidator;
 
-    protected String subjectValidate(String subject, boolean required) {
-        return subjectValidator.validate(subject, required);
+    protected String subjectValidate(String subject) {
+        return subjectValidator.validate(subject, true);
     }
 
-    protected String replyValidate(String replyTo, boolean required) {
-        return replyValidator.validate(replyTo, required);
+    protected String replyValidate(String replyTo) {
+        return replyValidator.validate(replyTo, false);
     }
 
     protected NatsConnection(@NonNull Options options) {
-        trace = options.isTraceConnection();
-        timeTraceLogger = options.getTimeTraceLogger();
-        timeTraceLogger.trace("creating connection object");
-
         this.options = options;
         forceFlushOnRequest = options.forceFlushOnRequest();
 
@@ -147,7 +137,6 @@ public class NatsConnection implements AutoCloseable {
         this.serverAuthErrors = new ConcurrentHashMap<>();
 
         this.nextSid = new AtomicLong(1);
-        timeTraceLogger.trace("creating NUID");
         this.nuid = new NUID();
         this.mainInbox = createInbox() + ".*";
 
@@ -162,14 +151,12 @@ public class NatsConnection implements AutoCloseable {
         this.blockPublishForDrain = new AtomicBoolean();
         this.tryingToConnect = new AtomicBoolean();
 
-        timeTraceLogger.trace("creating executors");
         options.incrementExecutorUse();
         this.executor = options.getExecutor();
         this.callbackExecutor = options.getCallbackExecutor();
         this.connectExecutor = options.getConnectExecutor();
         this.scheduledExecutor = options.getScheduledExecutor();
 
-        timeTraceLogger.trace("creating reader and writer");
         this.reader = new NatsConnectionReader(this);
         this.writer = new NatsConnectionWriter(this);
 
@@ -178,10 +165,6 @@ public class NatsConnection implements AutoCloseable {
         serverPool = options.getServerPool() == null ? new NatsServerPool() : options.getServerPool();
         serverPool.initialize(options);
         dispatcherFactory = options.getDispatcherFactory() == null ? new DispatcherFactory() : options.getDispatcherFactory();
-
-        cancelAction = options.isReportNoResponders() ? CancelAction.REPORT : CancelAction.CANCEL;
-
-        timeTraceLogger.trace("connection object created");
 
         switch (options.subjectValidationType()) {
             case None:
@@ -203,6 +186,10 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
+    public void setReadListener(ReadListener rl) {
+        reader.setReadListener(rl);
+    }
+
     // Connect is only called after creation
     protected void connect(boolean reconnectOnConnect) throws InterruptedException, IOException {
         if (!tryingToConnect.get()) {
@@ -221,12 +208,7 @@ public class NatsConnection implements AutoCloseable {
             throw new IllegalArgumentException("No servers provided in options");
         }
 
-        boolean trace = options.isTraceConnection();
-        long start = NatsSystemClock.nanoTime();
-
         this.lastError.set("");
-
-        timeTraceLogger.trace("starting connect loop");
 
         Set<NatsUri> failList = new HashSet<>();
         boolean keepGoing = true;
@@ -250,10 +232,8 @@ public class NatsConnection implements AutoCloseable {
                 }
                 connectError.set(""); // new on each attempt
 
-                timeTraceLogger.trace("setting status to connecting");
                 updateStatus(CONNECTING, resolved, cur);
 
-                timeTraceLogger.trace("trying to connect to %s", cur);
                 tryToConnect(cur, resolved, NatsSystemClock.nanoTime());
 
                 if (isConnected()) {
@@ -262,7 +242,6 @@ public class NatsConnection implements AutoCloseable {
                     break;
                 }
 
-                timeTraceLogger.trace("setting status to disconnected");
                 updateStatus(DISCONNECTED, resolved, cur);
 
                 failList.add(cur);
@@ -278,11 +257,9 @@ public class NatsConnection implements AutoCloseable {
 
         if (!isConnected() && !isClosed()) {
             if (reconnectOnConnect) {
-                timeTraceLogger.trace("trying to reconnect on connect");
                 reconnectImpl(); // call the impl here otherwise the tryingToConnect guard will block the behavior
             }
             else {
-                timeTraceLogger.trace("connection failed, closing to cleanup");
                 close();
 
                 String err = connectError.get();
@@ -291,11 +268,6 @@ public class NatsConnection implements AutoCloseable {
                 }
                 throw new IOException("Unable to connect to NATS servers: " + failList);
             }
-        }
-        else if (trace) {
-            long end = NatsSystemClock.nanoTime();
-            double seconds = ((double) (end - start)) / NANOS_PER_SECOND;
-            timeTraceLogger.trace("connect complete in %.3f seconds", seconds);
         }
     }
 
@@ -470,7 +442,6 @@ public class NatsConnection implements AutoCloseable {
                 }
                 updateStatus(RECONNECTING, resolved, cur);
 
-                timeTraceLogger.trace("reconnecting to server %s", cur);
                 tryToConnect(cur, resolved, NatsSystemClock.nanoTime());
 
                 if (isConnected()) {
@@ -491,42 +462,12 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected long timeCheck(long endNanos, String message) throws TimeoutException {
+    protected long timeCheck(long endNanos) throws TimeoutException {
         long remainingNanos = endNanos - NatsSystemClock.nanoTime();
-        if (trace) {
-            traceTimeCheck(message, remainingNanos);
-        }
         if (remainingNanos < 0) {
             throw new TimeoutException("connection timed out");
         }
         return remainingNanos;
-    }
-
-    protected void traceTimeCheck(String message, long remainingNanos) {
-        if (remainingNanos < 0) {
-            if (remainingNanos > -1_000_000) { // less than -1 ms
-                timeTraceLogger.trace(message + String.format(", %d (ns) beyond timeout", -remainingNanos));
-            }
-            else if (remainingNanos > -1_000_000_000) { // less than -1 second
-                long ms = -remainingNanos / 1_000_000;
-                timeTraceLogger.trace(message + String.format(", %d (ms) beyond timeout", ms));
-            }
-            else {
-                double seconds = ((double) -remainingNanos) / 1_000_000_000.0;
-                timeTraceLogger.trace(message + String.format(", %.3f (s) beyond timeout", seconds));
-            }
-        }
-        else if (remainingNanos < 1_000_000) {
-            timeTraceLogger.trace(message + String.format(", %d (ns) remaining", remainingNanos));
-        }
-        else if (remainingNanos < 1_000_000_000) {
-            long ms = remainingNanos / 1_000_000;
-            timeTraceLogger.trace(message + String.format(", %d (ms) remaining", ms));
-        }
-        else {
-            double seconds = ((double) remainingNanos) / 1_000_000_000.0;
-            timeTraceLogger.trace(message + String.format(", %.3f (s) remaining", seconds));
-        }
     }
 
     // is called from reconnect and connect
@@ -537,9 +478,8 @@ public class NatsConnection implements AutoCloseable {
 
         try {
             Duration connectTimeout = options.getConnectionTimeout();
-            boolean trace = options.isTraceConnection();
             long end = now + connectTimeout.toNanos();
-            timeCheck(end, "starting connection attempt");
+            timeCheck(end);
 
             statusLock.lock();
             try {
@@ -558,21 +498,21 @@ public class NatsConnection implements AutoCloseable {
             this.dataPortFuture = new CompletableFuture<>();
 
             // Make sure the reader and writer are stopped
-            long timeoutNanos = timeCheck(end, "waiting for reader");
+            long timeLeftNanos = timeCheck(end);
             if (reader.isRunning()) {
-                this.reader.stop().get(timeoutNanos, TimeUnit.NANOSECONDS);
+                this.reader.stop().get(timeLeftNanos, TimeUnit.NANOSECONDS);
             }
-            timeoutNanos = timeCheck(end, "waiting for writer");
+            timeLeftNanos = timeCheck(end);
             if (writer.isRunning()) {
-                this.writer.stop().get(timeoutNanos, TimeUnit.NANOSECONDS);
+                this.writer.stop().get(timeLeftNanos, TimeUnit.NANOSECONDS);
             }
 
-            timeCheck(end, "cleaning pong queue");
+            timeCheck(end);
             cleanUpPongQueue();
 
-            timeoutNanos = timeCheck(end, "connecting data port");
+            timeLeftNanos = timeCheck(end);
             DataPort newDataPort = this.options.buildDataPort();
-            newDataPort.connect(this, resolved, timeoutNanos);
+            newDataPort.connect(this, resolved, timeLeftNanos);
 
             // Notify any threads waiting on the sockets
             this.dataPort = newDataPort;
@@ -591,14 +531,7 @@ public class NatsConnection implements AutoCloseable {
                     readInitialInfo();
                     checkVersionRequirements();
                 }
-                long start = NatsSystemClock.nanoTime();
                 upgradeToSecureIfNeeded(resolved);
-                if (trace && options.isTLSRequired()) {
-                    // If the time appears too long, it might be related to
-                    // https://github.com/nats-io/nats.java#linux-platform-note
-                    timeTraceLogger.trace("TLS upgrade took: %.3f (s)",
-                        ((double) (NatsSystemClock.nanoTime() - start)) / NANOS_PER_SECOND);
-                }
                 if (options.isTlsFirst()) {
                     readInitialInfo();
                     checkVersionRequirements();
@@ -606,33 +539,33 @@ public class NatsConnection implements AutoCloseable {
                 return null;
             };
 
-            timeoutNanos = timeCheck(end, "reading info, version and upgrading to secure if necessary");
+            timeLeftNanos = timeCheck(end);
             Future<Object> future = connectExecutor.submit(connectTask);
             try {
-                future.get(timeoutNanos, TimeUnit.NANOSECONDS);
+                future.get(timeLeftNanos, TimeUnit.NANOSECONDS);
             }
             finally {
                 future.cancel(true);
             }
 
             // start the reader and writer after we secured the connection, if necessary
-            timeCheck(end, "starting reader");
+            timeCheck(end);
             this.reader.start(this.dataPortFuture);
-            timeCheck(end, "starting writer");
+            timeCheck(end);
             this.writer.start(this.dataPortFuture);
 
-            timeCheck(end, "sending connect message");
+            timeCheck(end);
             this.sendConnect(resolved);
 
-            timeoutNanos = timeCheck(end, "sending initial ping");
+            timeLeftNanos = timeCheck(end);
             Future<Boolean> pongFuture = sendPing();
 
             if (pongFuture != null) {
-                pongFuture.get(timeoutNanos, TimeUnit.NANOSECONDS);
+                pongFuture.get(timeLeftNanos, TimeUnit.NANOSECONDS);
             }
 
             if (pingTask == null) {
-                timeCheck(end, "starting ping and cleanup timers");
+                timeCheck(end);
                 long pingMillis = this.options.getPingInterval().toMillis();
 
                 if (pingMillis > 0) {
@@ -656,7 +589,7 @@ public class NatsConnection implements AutoCloseable {
             }
 
             // Set connected status
-            timeCheck(end, "updating status to connected");
+            timeCheck(end);
             statusLock.lock();
             try {
                 this.connecting = false;
@@ -672,7 +605,6 @@ public class NatsConnection implements AutoCloseable {
             finally {
                 statusLock.unlock();
             }
-            timeTraceLogger.trace("status updated");
         }
         catch (Exception exp) {
             processException(exp);
@@ -1127,8 +1059,8 @@ public class NatsConnection implements AutoCloseable {
     }
 
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data, boolean flushImmediatelyAfterPublish) {
-        subject = subjectValidate(subject, true);
-        replyTo = replyValidate(replyTo, false);
+        subject = subjectValidate(subject);
+        replyTo = replyValidate(replyTo);
         NatsPublishableMessage npm = new NatsPublishableMessage(subject, replyTo, headers, data, flushImmediatelyAfterPublish);
         if (npm.hasHeaders && !serverInfo.get().isHeadersSupported()) {
             throw new IllegalArgumentException("Headers are not supported by the server, version: " + serverInfo.get().getVersion());
@@ -1166,7 +1098,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public Subscription subscribe(@NonNull String subject) {
-        subjectValidate(subject, true);
+        subjectValidate(subject);
         return createSubscription(subject, null, null, null);
     }
 
@@ -1187,7 +1119,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public Subscription subscribe(@NonNull String subject, @NonNull String queueName) {
-        subjectValidate(subject, true);
+        subjectValidate(subject);
         Validator.validateQueueName(queueName, true);
         return createSubscription(subject, queueName, null, null);
     }
@@ -1404,7 +1336,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @Nullable
     public Message request(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
-        return request(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
+        return request(subject, null, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1421,7 +1353,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @Nullable
     public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
-        return request(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
+        return request(subject, headers, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1441,7 +1373,7 @@ public class NatsConnection implements AutoCloseable {
     @Nullable
     public Message request(@NonNull Message message, @Nullable Duration timeout) throws InterruptedException {
         Validator.validateNotNull(message, "Message");
-        return request(message.getSubject(), message.getHeaders(), message.getData(), timeout, cancelAction, forceFlushOnRequest);
+        return request(message.getSubject(), message.getHeaders(), message.getData(), timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     @Nullable
@@ -1479,7 +1411,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] body) {
-        return requestAsync(subject, null, body, null, cancelAction, forceFlushOnRequest);
+        return requestAsync(subject, null, body, null, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1493,7 +1425,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
-        return requestAsync(subject, headers, body, null, cancelAction, forceFlushOnRequest);
+        return requestAsync(subject, headers, body, null, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1507,7 +1439,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) {
-        return requestAsync(subject, null, body, timeout, cancelAction, forceFlushOnRequest);
+        return requestAsync(subject, null, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1522,7 +1454,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, Duration timeout) {
-        return requestAsync(subject, headers, body, timeout, cancelAction, forceFlushOnRequest);
+        return requestAsync(subject, headers, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1540,7 +1472,7 @@ public class NatsConnection implements AutoCloseable {
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull Message message, @Nullable Duration timeout) {
         Validator.validateNotNull(message, "Message");
-        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), timeout, cancelAction, forceFlushOnRequest);
+        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1557,7 +1489,7 @@ public class NatsConnection implements AutoCloseable {
     @NonNull
     public CompletableFuture<Message> request(@NonNull Message message) {
         Validator.validateNotNull(message, "Message");
-        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), null, cancelAction, forceFlushOnRequest);
+        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), null, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     @NonNull
@@ -2072,10 +2004,7 @@ public class NatsConnection implements AutoCloseable {
             }
 
         }
-//        else {
-//            // Drop messages we don't have a subscriber for (could be extras on an
-//            // auto-unsub for example)
-//        }
+//      else Drop messages we don't have a subscriber for (could be extras on an auto-unsub for example)
     }
 
     protected void processOK() {
@@ -2659,7 +2588,7 @@ public class NatsConnection implements AutoCloseable {
         writer.flushBuffer();
     }
 
-    protected void ensureNotClosing() throws IOException {
+    public void ensureNotClosingAndNotCLosed() throws IOException {
         if (isClosing() || isClosed()) {
             throw new IOException("A JetStream context can't be established during close.");
         }

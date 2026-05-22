@@ -58,7 +58,6 @@ public class Options {
     final boolean noRandomize;
     final HostnameResolveMode hostnameResolveMode;
     final SubjectValidationType subjectValidationType;
-    final boolean reportNoResponders;
     final String connectionName;
     final boolean verbose;
     final boolean pedantic;
@@ -101,14 +100,12 @@ public class Options {
     final ReconnectDelayHandler reconnectDelayHandler;
 
     final ErrorListener errorListener;
-    final TimeTraceLogger timeTraceLogger;
     final ConnectionListener connectionListener;
     final ReadListener readListener;
     final StatisticsCollector statisticsCollector;
     final String dataPortType;
 
     final boolean trackAdvancedStats;
-    final boolean traceConnection;
 
     final ReentrantLock executorsLock;
 
@@ -195,7 +192,6 @@ public class Options {
         this.noRandomize = b.noRandomize;
         this.hostnameResolveMode = b.hostnameResolveMode;
         this.subjectValidationType = b.subjectValidationType;
-        this.reportNoResponders = b.reportNoResponders;
         this.connectionName = b.connectionName;
         this.verbose = b.verbose;
         this.pedantic = b.pedantic;
@@ -226,7 +222,6 @@ public class Options {
         this.clientSideLimitChecks = b.clientSideLimitChecks;
         this.supportUTF8Subjects = b.supportUTF8Subjects;
         this.inboxPrefix = b.inboxPrefix;
-        this.traceConnection = b.traceConnection;
         this.maxMessagesInOutgoingQueue = b.maxMessagesInOutgoingQueue;
         this.discardMessagesWhenOutgoingQueueFull = b.discardMessagesWhenOutgoingQueueFull;
 
@@ -234,7 +229,6 @@ public class Options {
         this.reconnectDelayHandler = b.reconnectDelayHandler;
 
         this.errorListener = b.errorListener;
-        this.timeTraceLogger = b.timeTraceLogger;
         this.connectionListener = b.connectionListener;
         this.readListener = b.readListener;
         this.statisticsCollector = b.statisticsCollector;
@@ -493,16 +487,6 @@ public class Options {
     }
 
     /**
-     * If the user provided a TimeTraceLogger, it's returned here.
-     * If the user set traceConnection but did not supply their own, the original time trace logging will occur
-     * If the user did not provide a TimeTraceLogger and did not set traceConnection, this will be a no-op implementation.
-     * @return the time trace logger
-     */
-    public TimeTraceLogger getTimeTraceLogger() {
-        return this.timeTraceLogger;
-    }
-
-    /**
      * the connection listener, or null, see {@link OptionsBuilder#connectionListener(ConnectionListener) connectionListener()} in the builder doc
      * @return the listener
      */
@@ -624,14 +608,6 @@ public class Options {
     }
 
     /**
-     * should complete with exception futures for requests that get no responders instead of cancelling the future, see {@link OptionsBuilder#reportNoResponders() reportNoResponders()} in the builder doc
-     * @return true if we should report no responders instead of cancelling them
-     */
-    public boolean isReportNoResponders() {
-        return reportNoResponders;
-    }
-
-    /**
      * the connectionName, see {@link OptionsBuilder#connectionName(String) connectionName()} in the builder doc
      * @return the connectionName
      */
@@ -701,14 +677,6 @@ public class Options {
      */
     public boolean isTrackAdvancedStats() {
         return trackAdvancedStats;
-    }
-
-    /**
-     * If isTraceConnection is true, the user provided a TimeTraceLogger or manually called traceConnection in the builder
-     * @return should we trace the connection?
-     */
-    public boolean isTraceConnection() {
-        return traceConnection;
     }
 
     /**
@@ -1039,11 +1007,11 @@ public class Options {
         appendOption(connectString, OPTION_PROTOCOL, "1", false, true);
 
         appendOption(connectString, OPTION_VERBOSE, String.valueOf(this.isVerbose()), false, true);
-        appendOption(connectString, OPTION_PEDANTIC, String.valueOf(this.isPedantic()), false, true);
+        appendOption(connectString, OPTION_PEDANTIC, "false", false, true);
         appendOption(connectString, OPTION_TLS_REQUIRED, String.valueOf(this.isTLSRequired()), false, true);
         appendOption(connectString, OPTION_ECHO, String.valueOf(!this.isNoEcho()), false, true);
-        appendOption(connectString, OPTION_HEADERS, String.valueOf(!this.isNoHeaders()), false, true);
-        appendOption(connectString, OPTION_NORESPONDERS, String.valueOf(!this.isNoNoResponders()), false, true);
+        appendOption(connectString, OPTION_HEADERS, "true", false, true);
+        appendOption(connectString, OPTION_NORESPONDERS, "true", false, true);
 
         if (includeAuth) {
             if (nonce != null && this.getAuthHandler() != null) {

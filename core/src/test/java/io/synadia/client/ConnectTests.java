@@ -11,9 +11,7 @@ import org.junit.jupiter.api.parallel.Isolated;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -270,71 +268,9 @@ public class ConnectTests {
     }
 
     @Test
-    public void testTimeCheckCoverage() throws Exception {
-        List<String> traces = new ArrayList<>();
-        TimeTraceLogger l = (f, a) -> traces.add(String.format(f, a));
-
-        try (NatsTestServer ts = new NatsTestServer()) {
-            Options options = optionsBuilder(ts).traceConnection().build();
-            assertCanConnect(options);
-
-            options = optionsBuilder(ts).timeTraceLogger(l).build();
-            assertCanConnect(options);
-        }
-
-        int i = 0;
-        assertTrue(traces.get(i++).startsWith("creating connection object"));
-        assertTrue(traces.get(i++).startsWith("creating NUID"));
-        assertTrue(traces.get(i++).startsWith("creating executors"));
-        assertTrue(traces.get(i++).startsWith("creating reader and writer"));
-        assertTrue(traces.get(i++).startsWith("connection object created"));
-        assertTrue(traces.get(i++).startsWith("starting connect loop"));
-        assertTrue(traces.get(i++).startsWith("setting status to connecting"));
-        assertTrue(traces.get(i++).startsWith("trying to connect"));
-        assertTrue(traces.get(i++).startsWith("starting connection attempt"));
-        assertTrue(traces.get(i++).startsWith("waiting for reader"));
-        assertTrue(traces.get(i++).startsWith("waiting for writer"));
-        assertTrue(traces.get(i++).startsWith("cleaning pong queue"));
-        assertTrue(traces.get(i++).startsWith("connecting data port"));
-        assertTrue(traces.get(i++).startsWith("reading info"));
-        assertTrue(traces.get(i++).startsWith("starting reader"));
-        assertTrue(traces.get(i++).startsWith("starting writer"));
-        assertTrue(traces.get(i++).startsWith("sending connect message"));
-        assertTrue(traces.get(i++).startsWith("sending initial ping"));
-        assertTrue(traces.get(i++).startsWith("starting ping and cleanup timers"));
-        assertTrue(traces.get(i++).startsWith("updating status to connected"));
-        assertTrue(traces.get(i++).startsWith("status updated"));
-        assertTrue(traces.get(i).startsWith("connect complete"));
-    }
-
-    @Test
-    public void testReconnectLogging() throws Exception {
-        List<String> traces = new ArrayList<>();
-        TimeTraceLogger l = (f, a) -> traces.add(String.format(f, a));
-
-        try (NatsTestServer ts = new NatsTestServer()) {
-            Options options = optionsBuilder(ts)
-                    .traceConnection()
-                    .timeTraceLogger(l)
-                    .reconnectWait(Duration.ofSeconds(1))
-                    .maxReconnects(1)
-                    .connectionTimeout(Duration.ofSeconds(2))
-                    .build();
-
-            try (NatsConnection nc = managedConnect(options)) {
-                assertConnected(nc);
-                ts.close();
-                Thread.sleep(3000);
-            }
-        }
-
-        boolean foundReconnectLog = traces.stream().anyMatch(s -> s.contains("reconnecting to server"));
-        assertTrue(foundReconnectLog, "Reconnect log not found");
-    }
-
-    @Test
     public void testConnectExceptionHasURLS() {
         try {
+            //noinspection resource
             Nats.connect(options("nats://testserver.notnats:4222, nats://testserver.alsonotnats:4223"));
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("testserver.notnats:4222"));

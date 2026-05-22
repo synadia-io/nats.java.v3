@@ -1,5 +1,6 @@
 package io.synadia.client.api;
 
+import io.synadia.client.Consumer;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.impl.NatsDispatcher;
 import org.jspecify.annotations.NullMarked;
@@ -20,8 +21,10 @@ public class SubscribeBehavior {
     private @Nullable NatsDispatcher dispatcher;
     private @Nullable MessageHandler handler;
     private long messageAlarmTime;
-    private long pendingMessageLimit; // Only applicable for non-dispatched (sync) push consumers.
-    private long pendingByteLimit;    // Only applicable for non-dispatched (sync) push consumers.
+
+    // Only applicable for non-dispatched (sync) push consumers.
+    private long pendingMessageLimit = Consumer.DEFAULT_MAX_MESSAGES;
+    private long pendingByteLimit = Consumer.DEFAULT_MAX_BYTES;
 
     /**
      * Construct a SubscribeBehavior with default settings.
@@ -121,24 +124,24 @@ public class SubscribeBehavior {
     /**
      * Set the maximum number of messages that non-dispatched push subscriptions can hold
      * in the internal (pending) message queue. Defaults to 512 * 1024  (Consumer.DEFAULT_MAX_MESSAGES)
-     * ONLY APPLIES TO PUSH CONSUMER
+     * 0 or negative indicates no limit. Only applies to push consumer
      * @param pendingMessageLimit the number of messages.
      * @return the builder
      */
     public SubscribeBehavior pendingMessageLimit(long pendingMessageLimit) {
-        this.pendingMessageLimit = pendingMessageLimit;
+        this.pendingMessageLimit = pendingMessageLimit < 1 ? 0 : pendingMessageLimit;
         return this;
     }
 
     /**
      * Set the maximum number of bytes that non-dispatched push subscriptions can hold
      * in the internal (pending) message queue. Defaults to 64 * 1024 * 1024 (Consumer.DEFAULT_MAX_BYTES)
-     * ONLY APPLIES TO PUSH CONSUMER
+     * 0 or negative indicates no limit. Only applies to push consumer
      * @param pendingByteLimit the number of bytes.
      * @return the builder
      */
     public SubscribeBehavior pendingByteLimit(long pendingByteLimit) {
-        this.pendingByteLimit = pendingByteLimit;
+        this.pendingByteLimit = pendingByteLimit < 1 ? 0 : pendingByteLimit;
         return this;
     }
 

@@ -208,31 +208,31 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
         if (defaultHandler == null) {
             throw new IllegalStateException("Dispatcher was made without a default handler.");
         }
-        connection.subjectValidate(subject, true);
+        connection.subjectValidate(subject);
         this.subscribeImplCore(subject, null, null);
         return this;
     }
 
     NatsSubscription subscribeReturningSubscription(String subject) {
-        connection.subjectValidate(subject, true);
+        connection.subjectValidate(subject);
         return this.subscribeImplCore(subject, null, null);
     }
 
     public Subscription subscribe(String subject, MessageHandler handler) {
-        connection.subjectValidate(subject, true);
+        connection.subjectValidate(subject);
         required(handler, "Handler");
         return this.subscribeImplCore(subject, null, handler);
     }
 
     public Dispatcher subscribe(String subject, String queueName) {
-        connection.subjectValidate(subject, true);
+        connection.subjectValidate(subject);
         validateQueueName(queueName, true);
         this.subscribeImplCore(subject, queueName, null);
         return this;
     }
 
     public Subscription subscribe(String subject, String queueName,  MessageHandler handler) {
-        connection.subjectValidate(subject, true);
+        connection.subjectValidate(subject);
         validateQueueName(queueName, true);
         if (handler == null) {
             throw new IllegalArgumentException("MessageHandler is required in subscribe");

@@ -39,7 +39,8 @@ public class JetStreamImpl implements JetStreamConstants {
     // ----------------------------------------------------------------------------------------------------
     // Create / Init
     // ----------------------------------------------------------------------------------------------------
-    JetStreamImpl(NatsConnection connection, @Nullable JetStreamOptions jsOptions) {
+    JetStreamImpl(NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws IOException {
+        connection.ensureNotClosingAndNotCLosed();
         conn = connection;
 
         // Get a working version of JetStream Options...

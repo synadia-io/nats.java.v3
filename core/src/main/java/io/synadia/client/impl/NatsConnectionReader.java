@@ -57,7 +57,7 @@ public class NatsConnectionReader implements Runnable {
     private final AtomicBoolean running;
 
     private final boolean utf8Mode;
-    private final ReadListener readListener;
+    private ReadListener readListener;
 
     NatsConnectionReader(NatsConnection connection) {
         this.connection = connection;
@@ -74,7 +74,10 @@ public class NatsConnectionReader implements Runnable {
 
         this.utf8Mode = connection.getOptions().supportUTF8Subjects();
 
-        final ReadListener rl = connection.getOptions().getReadListener();
+        setReadListener(connection.getOptions().getReadListener());
+    }
+
+    void setReadListener(ReadListener rl) {
         if (rl == null) {
             readListener = new ReadListener() {};
         }

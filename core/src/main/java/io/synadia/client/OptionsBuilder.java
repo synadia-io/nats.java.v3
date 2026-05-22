@@ -17,8 +17,6 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -61,7 +59,6 @@ public class OptionsBuilder {
     boolean noRandomize = false;
     HostnameResolveMode hostnameResolveMode = HostnameResolveMode.ResolveToAll;
     SubjectValidationType subjectValidationType = SubjectValidationType.Lenient;
-    boolean reportNoResponders = false;
     String connectionName = null; // Useful for debugging -> "test: " + NatsTestServer.currentPort();
     boolean verbose = false;
     boolean pedantic = false;
@@ -88,7 +85,6 @@ public class OptionsBuilder {
     Supplier<char[]> tokenSupplier = new Options.DefaultTokenSupplier();
     int bufferSize = DEFAULT_BUFFER_SIZE;
     boolean trackAdvancedStats = false;
-    boolean traceConnection = false;
     boolean noEcho = false;
     boolean noHeaders = false;
     boolean noNoResponders = false;
@@ -109,7 +105,6 @@ public class OptionsBuilder {
     ReconnectDelayHandler reconnectDelayHandler;
 
     ErrorListener errorListener = null;
-    TimeTraceLogger timeTraceLogger = null;
     ConnectionListener connectionListener = null;
     ReadListener readListener = null;
     StatisticsCollector statisticsCollector = null;
@@ -208,7 +203,6 @@ public class OptionsBuilder {
         booleanProperty(props, PROP_NO_RANDOMIZE, b -> this.noRandomize = b);
         booleanPropertyIfTrue(props, PROP_NO_SUBJECT_VALIDATION, b -> subjectValidationType = SubjectValidationType.None);
         booleanPropertyIfTrue(props, PROP_STRICT_SUBJECT_VALIDATION, b -> subjectValidationType = SubjectValidationType.Strict);
-        booleanProperty(props, PROP_REPORT_NO_RESPONDERS, b -> this.reportNoResponders = b);
 
         stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
         booleanProperty(props, PROP_VERBOSE, b -> this.verbose = b);
@@ -240,7 +234,6 @@ public class OptionsBuilder {
         classnameProperty(props, PROP_CONNECTION_LISTENER_CLASS, o -> this.connectionListener = (ConnectionListener) o);
         classnameProperty(props, PROP_ERROR_LISTENER_CLASS, o -> this.errorListener = (ErrorListener) o);
         classnameProperty(props, PROP_READ_LISTENER_CLASS, o -> this.readListener = (ReadListener) o);
-        classnameProperty(props, PROP_TIME_TRACE_LOGGER_CLASS, o -> this.timeTraceLogger = (TimeTraceLogger) o);
         classnameProperty(props, PROP_STATISTICS_COLLECTOR_CLASS, o -> this.statisticsCollector = (StatisticsCollector) o);
 
         stringProperty(props, PROP_DATA_PORT_TYPE, s -> this.dataPortType = s);
@@ -342,16 +335,6 @@ public class OptionsBuilder {
      */
     public OptionsBuilder subjectValidationType(SubjectValidationType subjectValidationType) {
         this.subjectValidationType = subjectValidationType == null ? SubjectValidationType.Lenient : subjectValidationType;
-        return this;
-    }
-
-    /**
-     * set to report no responders
-     *
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder reportNoResponders() {
-        this.reportNoResponders = true;
         return this;
     }
 
@@ -466,17 +449,6 @@ public class OptionsBuilder {
      */
     public OptionsBuilder turnOnAdvancedStats() {
         this.trackAdvancedStats = true;
-        return this;
-    }
-
-    /**
-     * Enable connection trace messages. Messages are printed to standard out. This option is for very
-     * fine-grained debugging of connection issues.
-     *
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder traceConnection() {
-        this.traceConnection = true;
         return this;
     }
 
@@ -953,17 +925,6 @@ public class OptionsBuilder {
     }
 
     /**
-     * Set the {@link TimeTraceLogger TimeTraceLogger} to receive trace events related to this connection.
-     *
-     * @param logger The new TimeTraceLogger for this connection.
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder timeTraceLogger(TimeTraceLogger logger) {
-        this.timeTraceLogger = logger;
-        return this;
-    }
-
-    /**
      * Set the {@link ConnectionListener ConnectionListener} to receive asynchronous notifications of disconnect
      * events.
      *
@@ -1360,23 +1321,6 @@ public class OptionsBuilder {
             };
         }
 
-        if (timeTraceLogger == null) {
-            if (traceConnection) {
-                timeTraceLogger = (format, args) -> {
-                    String timeStr = DateTimeFormatter.ISO_TIME.format(LocalDateTime.now());
-                    System.out.println("[" + timeStr + "] connect trace: " + String.format(format, args));
-                };
-            }
-            else {
-                timeTraceLogger = (f, a) -> {
-                };
-            }
-        }
-        else {
-            // if the dev provided an impl, we assume they meant to time trace the connection
-            traceConnection = true;
-        }
-
         return new Options(this);
     }
 
@@ -1399,7 +1343,6 @@ public class OptionsBuilder {
         this.noRandomize = o.noRandomize;
         this.hostnameResolveMode = o.hostnameResolveMode;
         this.subjectValidationType = o.subjectValidationType;
-        this.reportNoResponders = o.reportNoResponders;
         this.connectionName = o.connectionName;
         this.verbose = o.verbose;
         this.pedantic = o.pedantic;
@@ -1430,7 +1373,6 @@ public class OptionsBuilder {
         this.clientSideLimitChecks = o.clientSideLimitChecks;
         this.supportUTF8Subjects = o.supportUTF8Subjects;
         this.inboxPrefix = o.inboxPrefix;
-        this.traceConnection = o.traceConnection;
         this.maxMessagesInOutgoingQueue = o.maxMessagesInOutgoingQueue;
         this.discardMessagesWhenOutgoingQueueFull = o.discardMessagesWhenOutgoingQueueFull;
 
@@ -1438,7 +1380,6 @@ public class OptionsBuilder {
         this.reconnectDelayHandler = o.reconnectDelayHandler;
 
         this.errorListener = o.errorListener;
-        this.timeTraceLogger = o.timeTraceLogger;
         this.connectionListener = o.connectionListener;
         this.readListener = o.readListener;
         this.statisticsCollector = o.statisticsCollector;

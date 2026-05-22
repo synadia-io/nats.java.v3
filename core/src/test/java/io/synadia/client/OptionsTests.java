@@ -109,7 +109,7 @@ public class OptionsTests extends TestBase {
         assertTrue(o.isNoRandomize(), "chained norandomize");
         assertTrue(o.isNoEcho(), "chained noecho");
         assertTrue(o.isNoHeaders(), "chained no headers");
-        assertTrue(o.isNoNoResponders(), "chained no noResponders");
+        assertTrue(o.isNoNoResponders(), "chained report noResponders");
         assertTrue(o.isDiscardMessagesWhenOutgoingQueueFull(), "chained discard messages when outgoing queue full");
     }
 

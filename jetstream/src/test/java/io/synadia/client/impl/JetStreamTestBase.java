@@ -501,4 +501,15 @@ public class JetStreamTestBase extends TestBase {
     public static void runInSharedCustom(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
         _runInShared(builder, null, null, null, 0, ctxTest);
     }
+
+    // --------------------------------------------------
+    // Local for debugging
+    // --------------------------------------------------
+    public static void runInLocal(JetStreamTestingContextTest ctxTest) throws Exception {
+        try (NatsConnection nc = Nats.connect()) {
+            try (JetStreamTestingContext ctx = new JetStreamTestingContext(nc, 1)) {
+                ctxTest.test(nc, ctx);
+            }
+        }
+    }
 }

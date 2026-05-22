@@ -136,4 +136,14 @@ public class NatsMessageJetStreamMetaDataTests extends TestBase {
         assertThrows(IllegalArgumentException.class,
             () -> new JetStreamMetaData(getTestMessage("$JS.ACK.test-stream.test-consumer.1.2.3.1605139610113260000.invalid")).getStream());
     }
+
+    @Test
+    public void testMiscMetaDataCoverage() {
+        Message jsMsg = getTestJsMessage();
+        assertTrue(jsMsg.isJetStream());
+
+        // two calls to msg.metaData are for coverage to test lazy initializer
+        assertNotNull(jsMsg.metaData()); // this call takes a different path
+        assertNotNull(jsMsg.metaData()); // this call shows that the lazy will work
+    }
 }

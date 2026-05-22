@@ -5,7 +5,7 @@ import java.time.ZonedDateTime;
 import static io.nats.json.DateTimeUtils.parseDateTimeNanos;
 
 /**
- * Jetstream Metadata about a message, when applicable.
+ * JetStream Metadata about a message, when applicable.
  */
 public class JetStreamMetaData {
 

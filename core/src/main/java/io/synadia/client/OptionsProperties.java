@@ -34,10 +34,6 @@ public interface OptionsProperties {
      */
     String PROP_DATA_PORT_TYPE = PFX + "dataPortType";
     /**
-     * Property used to configure the time trace logger. {@value}
-     */
-    String PROP_TIME_TRACE_LOGGER_CLASS = PFX + "timeTraceLoggerClass";
-    /**
      * Property used to configure the statistics collector. {@value}
      */
     String PROP_STATISTICS_COLLECTOR_CLASS = PFX + "statisticsCollectorClass";
@@ -144,10 +140,6 @@ public interface OptionsProperties {
      * Property used to configure strictSubjectValidation. {@value}
      */
     String PROP_STRICT_SUBJECT_VALIDATION = PFX + "strictSubjectValidation";
-    /**
-     * Property used to configure reportNoResponders. {@value}
-     */
-    String PROP_REPORT_NO_RESPONDERS = PFX + "reportNoResponders";
     /**
      * Property used to configure clientSideLimitChecks. {@value}
      */

@@ -1,5 +1,7 @@
 package io.synadia.client.impl;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 import static io.synadia.client.impl.JetStreamConstants.*;
@@ -22,6 +24,7 @@ public class JetStreamOptions {
     private final Duration requestTimeout;
     private final boolean defaultPrefix;
     private final boolean optOut290ConsumerCreate;
+    private final Charset defaultCharset;
 
     private JetStreamOptions(Builder b) {
         if (b.jsPrefix == null) {
@@ -34,6 +37,7 @@ public class JetStreamOptions {
         }
         this.requestTimeout = b.requestTimeout;
         this.optOut290ConsumerCreate = b.optOut290ConsumerCreate;
+        this.defaultCharset = b.defaultCharset;
     }
 
     /**
@@ -70,6 +74,14 @@ public class JetStreamOptions {
     }
 
     /**
+     * Get the charset to use for conversions of Strings to byte[]
+     * @return the default charset
+     */
+    public Charset getDefaultCharset() {
+        return defaultCharset;
+    }
+
+    /**
      * Creates a builder for the options.
      * @return the builder.
      */
@@ -103,6 +115,7 @@ public class JetStreamOptions {
         private String jsPrefix;
         private Duration requestTimeout;
         private boolean optOut290ConsumerCreate;
+        private Charset defaultCharset = StandardCharsets.UTF_8;
 
         /**
          * Construct a builder
@@ -123,6 +136,7 @@ public class JetStreamOptions {
                 }
                 this.requestTimeout = jso.requestTimeout;
                 this.optOut290ConsumerCreate = jso.optOut290ConsumerCreate;
+                this.defaultCharset = jso.defaultCharset;
             }
         }
 
@@ -169,6 +183,16 @@ public class JetStreamOptions {
          */
         public Builder optOut290ConsumerCreate(boolean optOut) {
             this.optOut290ConsumerCreate = optOut;
+            return this;
+        }
+
+        /**
+         * Set the charset to be used whenever a string must be converted to a byte array
+         * @param defaultCharset the conversion charset
+         * @return the builder
+         */
+        public Builder defaultCharset(Charset defaultCharset) {
+            this.defaultCharset = defaultCharset == null ? StandardCharsets.UTF_8 : defaultCharset;
             return this;
         }
 
