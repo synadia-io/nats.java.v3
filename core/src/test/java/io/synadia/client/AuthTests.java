@@ -136,7 +136,7 @@ public class AuthTests extends TestBase {
             NatsServerRunner.builder().customArgs(customArgs))) {
             // See config file for user/pass
             Options options = optionsBuilder(ts)
-                .userInfo(user, pass)
+                .userInfo(user.toCharArray(), pass.toCharArray())
                 .maxReconnects(0).build();
             assertCanConnect(options);
         }

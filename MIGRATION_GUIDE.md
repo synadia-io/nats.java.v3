@@ -28,6 +28,16 @@ This is the top-level migration guide for moving code from the v2 client (`nats.
   | `PROP_TIME_TRACE_LOGGER`    | `timeTraceLogger(TimeTraceLogger)`, `traceConnection()` | Feature removed (the `TimeTraceLogger` interface is also gone) |
   | `PROP_REPORT_NO_RESPONDERS` | `reportNoResponders()`                              | Client always reports No Responders |
 
+- **`OptionsBuilder.userInfo(String, String)` removed.** The `String`-typed overload is gone — Strings live on the heap until GC and can't be securely cleared. Use the existing `char[]` overload instead:
+
+  | v2 | v3 |
+  |---|---|
+  | `builder.userInfo("user", "password")` | `builder.userInfo("user".toCharArray(), "password".toCharArray())` |
+
+  The `char[]` overload was already present in v2; only the `String` overload is retired in v3. Token-based authentication (`token`, `tokenSupplier`), keystore passwords, and the property-file path were already `char[]`-based — no other credential setters change.
+
+- **`OptionsBuilder.inboxPrefix(null)` / `inboxPrefix("")` no longer throw.** v2's setter would NPE on null (it dereferenced the argument to check for a trailing `"."`). v3 treats null / empty as "re-default at `build()` time" — the resulting `Options` carries `DEFAULT_INBOX_PREFIX`. Code that accidentally passed null now silently gets sensible behavior; code that deliberately passed null was broken in v2 anyway. Non-null, non-empty prefixes behave as before (with `"."` appended if missing).
+
 ---
 
 ## JetStream

@@ -274,7 +274,7 @@ public class NatsMessageTests extends TestBase {
 
             Headers h = new Headers();
             h.put("one", "A");
-            Message m = new NatsMessage(subject, null, h, null);
+            NatsMessage m = new NatsMessage(subject, null, h, null);
             nc.publish(m);
             Message incoming = sub.nextMessage(1000);
             assertEquals(1, incoming.getHeaders().size());

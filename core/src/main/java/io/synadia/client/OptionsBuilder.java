@@ -82,7 +82,7 @@ public class OptionsBuilder {
     long reconnectBufferSize = DEFAULT_RECONNECT_BUF_SIZE;
     char[] username = null;
     char[] password = null;
-    Supplier<char[]> tokenSupplier = new Options.DefaultTokenSupplier();
+    Supplier<char[]> tokenSupplier = null;
     int bufferSize = DEFAULT_BUFFER_SIZE;
     boolean trackAdvancedStats = false;
     boolean noEcho = false;
@@ -90,7 +90,7 @@ public class OptionsBuilder {
     boolean noNoResponders = false;
     boolean clientSideLimitChecks = true;
     boolean supportUTF8Subjects = false;
-    String inboxPrefix = DEFAULT_INBOX_PREFIX;
+    String inboxPrefix = null;
     int maxMessagesInOutgoingQueue = DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE;
     boolean discardMessagesWhenOutgoingQueueFull = DEFAULT_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL;
     boolean ignoreDiscoveredServers = false;
@@ -101,8 +101,8 @@ public class OptionsBuilder {
     ServerPool serverPool = null;
     DispatcherFactory dispatcherFactory = null;
 
-    AuthHandler authHandler;
-    ReconnectDelayHandler reconnectDelayHandler;
+    AuthHandler authHandler = null;
+    ReconnectDelayHandler reconnectDelayHandler = null;
     ReconnectDelayBehavior reconnectDelayBehavior = ReconnectDelayBehavior.BeforeSubsequentRounds;
 
     ErrorListener errorListener = null;
@@ -110,23 +110,23 @@ public class OptionsBuilder {
     ReadListener readListener = null;
     StatisticsCollector statisticsCollector = null;
     String dataPortType = DEFAULT_DATA_PORT_TYPE;
-    ExecutorService userExecutor;
-    ScheduledExecutorService userScheduledExecutor;
-    ExecutorService userConnectExecutor;
-    ExecutorService userCallbackExecutor;
-    ThreadFactory userConnectThreadFactory;
-    ThreadFactory userCallbackThreadFactory;
-    List<java.util.function.Consumer<HttpRequest>> httpRequestInterceptors;
-    Proxy proxy;
+    ExecutorService userExecutor = null;
+    ScheduledExecutorService userScheduledExecutor = null;
+    ExecutorService userConnectExecutor = null;
+    ExecutorService userCallbackExecutor = null;
+    ThreadFactory userConnectThreadFactory = null;
+    ThreadFactory userCallbackThreadFactory = null;
+    List<java.util.function.Consumer<HttpRequest>> httpRequestInterceptors = null;
+    Proxy proxy = null;
 
-    boolean useDefaultTls;
-    boolean useTrustAllTls;
-    String keystore;
-    char[] keystorePassword;
-    String truststore;
-    char[] truststorePassword;
+    boolean useDefaultTls = false;
+    boolean useTrustAllTls = false;
+    String keystore = null;
+    char[] keystorePassword = null;
+    String truststore = null;
+    char[] truststorePassword = null;
     String tlsAlgorithm = DEFAULT_TLS_ALGORITHM;
-    String credentialPath;
+    String credentialPath = null;
 
     /**
      * Constructs a new Builder with the default values.
@@ -410,16 +410,18 @@ public class OptionsBuilder {
 
     /**
      * Set the connection's inbox prefix. All inboxes will start with this string.
+     * Passing {@code null} or empty re-defaults the prefix to {@link OptionsConstants#DEFAULT_INBOX_PREFIX}
+     * at {@link #build()} time. A non-empty prefix that does not end in "." has one appended.
      *
-     * @param prefix prefix to use.
+     * @param prefix prefix to use, or {@code null}/empty to re-default
      * @return the Builder for chaining
      */
     public OptionsBuilder inboxPrefix(String prefix) {
-        this.inboxPrefix = prefix;
-
-        if (!this.inboxPrefix.endsWith(".")) {
-            this.inboxPrefix = this.inboxPrefix + ".";
+        if (prefix == null || prefix.isEmpty()) {
+            this.inboxPrefix = null;
+            return this;
         }
+        this.inboxPrefix = prefix.endsWith(".") ? prefix : prefix + ".";
         return this;
     }
 
@@ -840,25 +842,9 @@ public class OptionsBuilder {
      * Set the username and password for basic authentication.
      * If the user and password are set in the server URL, they will override these values. However, in a clustering situation,
      * these values can be used as a fallback.
-     * use the char[] version instead for better security
      *
      * @param userName a non-empty userName
-     * @param password the password, in plain text
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder userInfo(String userName, String password) {
-        this.username = userName.toCharArray();
-        this.password = password.toCharArray();
-        return this;
-    }
-
-    /**
-     * Set the username and password for basic authentication.
-     * If the user and password are set in the server URL, they will override these values. However, in a clustering situation,
-     * these values can be used as a fallback.
-     *
-     * @param userName a non-empty userName
-     * @param password the password, in plain text
+     * @param password the password
      * @return the Builder for chaining
      */
     public OptionsBuilder userInfo(char[] userName, char[] password) {
@@ -887,7 +873,7 @@ public class OptionsBuilder {
      * @return the Builder for chaining
      */
     public OptionsBuilder tokenSupplier(Supplier<char[]> tokenSupplier) {
-        this.tokenSupplier = tokenSupplier == null ? new Options.DefaultTokenSupplier() : tokenSupplier;
+        this.tokenSupplier = tokenSupplier;
         return this;
     }
 
@@ -1227,12 +1213,18 @@ public class OptionsBuilder {
         // ----------------------------------------------------------------------------------------------------
         // BUILD IMPL
         // ----------------------------------------------------------------------------------------------------
-        if (this.username != null && tokenSupplier.get() != null) {
-            throw new IllegalStateException("Options can't have token and username");
+        // Resolve build-time defaults for sentinel-null fields. These must run before any code
+        // that dereferences the field (e.g. the username/tokenSupplier conflict check below).
+        if (tokenSupplier == null) {
+            tokenSupplier = new Options.DefaultTokenSupplier();
         }
 
         if (inboxPrefix == null) {
             inboxPrefix = DEFAULT_INBOX_PREFIX;
+        }
+
+        if (this.username != null && tokenSupplier.get() != null) {
+            throw new IllegalStateException("Options can't have token and username");
         }
 
         boolean checkUrisForSecure = true;

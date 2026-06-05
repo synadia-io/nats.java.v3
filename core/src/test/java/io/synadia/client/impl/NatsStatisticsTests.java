@@ -42,7 +42,7 @@ public class NatsStatisticsTests extends TestBase {
     public void testInOutOKRequestStats() throws Exception {
         runInSharedOwnNc(optionsBuilder().verbose(), nc -> {
             Dispatcher d = nc.createDispatcher(msg -> {
-                Message m = NatsMessage.builder()
+                NatsMessage m = NatsMessage.builder()
                     .subject(msg.getReplyTo())
                     .data("replyreplyreply!") // 16 bytes
                     .headers(new Headers().put("header", "reply"))
@@ -75,7 +75,7 @@ public class NatsStatisticsTests extends TestBase {
     public void testReadWriteAdvancedStatsEnabled() throws Exception {
         runInSharedOwnNc(optionsBuilder().verbose().turnOnAdvancedStats(), nc -> {
             Dispatcher d = nc.createDispatcher(msg -> {
-                Message m = NatsMessage.builder()
+                NatsMessage m = NatsMessage.builder()
                     .subject(msg.getReplyTo())
                     .data(new byte[16])
                     .headers(new Headers().put("header", "reply"))
@@ -114,7 +114,7 @@ public class NatsStatisticsTests extends TestBase {
     public void testReadWriteAdvancedStatsDisabled() throws Exception {
         runInSharedOwnNc(optionsBuilder().verbose(), nc -> {
             Dispatcher d = nc.createDispatcher(msg -> {
-                Message m = NatsMessage.builder()
+                NatsMessage m = NatsMessage.builder()
                     .subject(msg.getReplyTo())
                     .data(new byte[16])
                     .headers(new Headers().put("header", "reply"))

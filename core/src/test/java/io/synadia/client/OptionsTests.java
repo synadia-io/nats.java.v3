@@ -1328,10 +1328,47 @@ public class OptionsTests extends TestBase {
 
     @Test
     public void testInboxPrefixCoverage() {
+        // Non-empty input: "." appended if missing, preserved if present
         Options o = new OptionsBuilder().inboxPrefix("foo").build();
         assertEquals("foo.", o.getInboxPrefix());
         o = new OptionsBuilder().inboxPrefix("foo.").build();
         assertEquals("foo.", o.getInboxPrefix());
+
+        // No-arg builder re-defaults to DEFAULT_INBOX_PREFIX at build() time
+        o = new OptionsBuilder().build();
+        assertEquals(DEFAULT_INBOX_PREFIX, o.getInboxPrefix());
+
+        // null input → re-default at build()
+        o = new OptionsBuilder().inboxPrefix(null).build();
+        assertEquals(DEFAULT_INBOX_PREFIX, o.getInboxPrefix());
+
+        // empty input → re-default at build()
+        o = new OptionsBuilder().inboxPrefix("").build();
+        assertEquals(DEFAULT_INBOX_PREFIX, o.getInboxPrefix());
+
+        // Setter does not NPE on null (audit-plan risk fix)
+        new OptionsBuilder().inboxPrefix(null);
+    }
+
+    @Test
+    public void testTokenSupplierCoverage() {
+        // No-arg builder: tokenSupplier defaults at build() time, and the
+        // default supplier returns null (no token configured).
+        Options o = new OptionsBuilder().build();
+        assertNull(o.getToken());
+
+        // Explicit null to the setter → falls back to default at build()
+        o = new OptionsBuilder().tokenSupplier(null).build();
+        assertNull(o.getToken());
+
+        // Explicit supplier survives intact
+        Supplier<char[]> mySupplier = () -> "token-value".toCharArray();
+        o = new OptionsBuilder().tokenSupplier(mySupplier).build();
+        assertArrayEquals("token-value".toCharArray(), o.getToken());
+
+        // No NPE on build() despite the username/tokenSupplier conflict check
+        // dereferencing the supplier — the fallback must run first.
+        new OptionsBuilder().build();
     }
 
     @Test
