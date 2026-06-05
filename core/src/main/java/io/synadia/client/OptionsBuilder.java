@@ -103,6 +103,7 @@ public class OptionsBuilder {
 
     AuthHandler authHandler;
     ReconnectDelayHandler reconnectDelayHandler;
+    ReconnectDelayBehavior reconnectDelayBehavior = ReconnectDelayBehavior.BeforeSubsequentRounds;
 
     ErrorListener errorListener = null;
     ConnectionListener connectionListener = null;
@@ -201,8 +202,7 @@ public class OptionsBuilder {
         stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
 
         booleanProperty(props, PROP_NO_RANDOMIZE, b -> this.noRandomize = b);
-        booleanPropertyIfTrue(props, PROP_NO_SUBJECT_VALIDATION, b -> subjectValidationType = SubjectValidationType.None);
-        booleanPropertyIfTrue(props, PROP_STRICT_SUBJECT_VALIDATION, b -> subjectValidationType = SubjectValidationType.Strict);
+        stringProperty(props, PROP_SUBJECT_VALIDATION_TYPE, s -> this.subjectValidationType = SubjectValidationType.get(s));
 
         stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
         booleanProperty(props, PROP_VERBOSE, b -> this.verbose = b);
@@ -218,6 +218,8 @@ public class OptionsBuilder {
         durationProperty(props, PROP_RECONNECT_JITTER, d -> this.reconnectJitter = d);
         durationProperty(props, PROP_RECONNECT_JITTER_TLS, d -> this.reconnectJitterTls = d);
         longProperty(props, PROP_RECONNECT_BUF_SIZE, l -> this.reconnectBufferSize = l);
+        classnameProperty(props, PROP_RECONNECT_DELAY_HANDLER_CLASS, o -> this.reconnectDelayHandler = (ReconnectDelayHandler) o);
+        stringProperty(props, PROP_RECONNECT_DELAY_BEHAVIOR, s -> this.reconnectDelayBehavior = ReconnectDelayBehavior.get(s));
         durationProperty(props, PROP_CONNECTION_TIMEOUT, d -> this.connectionTimeout = d);
         intProperty(props, PROP_SOCKET_READ_TIMEOUT, i -> this.socketReadTimeoutMillis = i);
         durationProperty(props, PROP_SOCKET_WRITE_TIMEOUT, d -> this.socketWriteTimeout = d);
@@ -913,6 +915,22 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set the {@link ReconnectDelayBehavior} that controls when the
+     * {@link ReconnectDelayHandler} is invoked during reconnect attempts. Defaults to
+     * {@link ReconnectDelayBehavior#BeforeSubsequentRounds}. A null value resets to
+     * {@link ReconnectDelayBehavior#BeforeSubsequentRounds}.
+     *
+     * @param reconnectDelayBehavior the behavior
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder reconnectDelayBehavior(ReconnectDelayBehavior reconnectDelayBehavior) {
+        this.reconnectDelayBehavior = reconnectDelayBehavior == null
+            ? ReconnectDelayBehavior.BeforeSubsequentRounds
+            : reconnectDelayBehavior;
+        return this;
+    }
+
+    /**
      * Set the {@link ErrorListener ErrorListener} to receive asynchronous error events related to this
      * connection.
      *
@@ -1317,8 +1335,7 @@ public class OptionsBuilder {
         }
 
         if (errorListener == null) {
-            errorListener = new ErrorListener() {
-            };
+            errorListener = new ErrorListener() {};
         }
 
         return new Options(this);
@@ -1378,6 +1395,7 @@ public class OptionsBuilder {
 
         this.authHandler = o.authHandler;
         this.reconnectDelayHandler = o.reconnectDelayHandler;
+        this.reconnectDelayBehavior = o.reconnectDelayBehavior;
 
         this.errorListener = o.errorListener;
         this.connectionListener = o.connectionListener;

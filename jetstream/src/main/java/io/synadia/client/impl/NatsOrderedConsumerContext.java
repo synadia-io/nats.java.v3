@@ -72,7 +72,7 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @NonNull
-    public FetchConsumer fetchMessages(int maxMessages) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetchMessages(int maxMessages) throws IOException, JetStreamApiException {
         return impl.fetchMessages(maxMessages);
     }
 
@@ -81,7 +81,7 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @NonNull
-    public FetchConsumer fetchBytes(int maxBytes) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetchBytes(int maxBytes) throws IOException, JetStreamApiException {
         return impl.fetchBytes(maxBytes);
     }
 
@@ -90,7 +90,7 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @NonNull
-    public FetchConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException {
         return impl.fetch(fetchConsumeOptions);
     }
 
@@ -99,7 +99,7 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @NonNull
-    public IterableConsumer iterate() throws IOException, JetStreamApiException {
+    public IterableMessageConsumer iterate() throws IOException, JetStreamApiException {
         return impl.iterate();
     }
 
@@ -108,7 +108,7 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @NonNull
-    public IterableConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws IOException, JetStreamApiException {
+    public IterableMessageConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws IOException, JetStreamApiException {
         return impl.iterate(consumeOptions);
     }
 

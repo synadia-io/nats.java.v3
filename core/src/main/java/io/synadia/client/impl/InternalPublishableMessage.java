@@ -1,18 +1,28 @@
 package io.synadia.client.impl;
 
-class NatsPublishableMessage extends NatsMessage {
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+class InternalPublishableMessage extends NatsMessage {
     final boolean hasHeaders;
 
-    public NatsPublishableMessage(boolean hasHeaders) {
-        this.hasHeaders = hasHeaders;
-        flushImmediatelyAfterPublish = false;
+    InternalPublishableMessage() {
+        super(null, null, null, null, false);
+        hasHeaders = false;
     }
 
-    public NatsPublishableMessage(String subject, String replyTo, Headers headers, byte[] data, boolean flushImmediatelyAfterPublish) {
-        super(data);
-        this.flushImmediatelyAfterPublish = flushImmediatelyAfterPublish;
-        this.subject = subject;
-        this.replyTo = replyTo;
+    InternalPublishableMessage(byte @Nullable[] data, @NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, boolean flushImmediatelyAfterPublish) {
+        super(data, subject, replyTo, null, flushImmediatelyAfterPublish);
+        hasHeaders = finishInit(headers);
+    }
+
+    InternalPublishableMessage(@NonNull NatsMessage nm, boolean flushImmediatelyAfterPublish) {
+        super(nm.data, nm.subject, nm.replyTo, null, flushImmediatelyAfterPublish);
+        hasHeaders = finishInit(headers);
+    }
+
+    private boolean finishInit(@Nullable Headers headers) {
+        final boolean hasHeaders;
         if (headers == null || headers.isEmpty()) {
             hasHeaders = false;
         }
@@ -21,10 +31,11 @@ class NatsPublishableMessage extends NatsMessage {
             this.headers = headers.isReadOnly() ? headers : new Headers(headers, true, null);
         }
         super.calculate();
+        return hasHeaders;
     }
 
     @Override
     protected void calculate() {
-        // it's already done in the constructor
+        // it's already done in the constructor/finishInit
     }
 }

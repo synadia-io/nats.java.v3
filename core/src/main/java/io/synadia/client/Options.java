@@ -98,6 +98,7 @@ public class Options {
 
     final AuthHandler authHandler;
     final ReconnectDelayHandler reconnectDelayHandler;
+    final ReconnectDelayBehavior reconnectDelayBehavior;
 
     final ErrorListener errorListener;
     final ConnectionListener connectionListener;
@@ -227,6 +228,7 @@ public class Options {
 
         this.authHandler = b.authHandler;
         this.reconnectDelayHandler = b.reconnectDelayHandler;
+        this.reconnectDelayBehavior = b.reconnectDelayBehavior;
 
         this.errorListener = b.errorListener;
         this.connectionListener = b.connectionListener;
@@ -524,6 +526,15 @@ public class Options {
      */
     public ReconnectDelayHandler getReconnectDelayHandler() {
         return this.reconnectDelayHandler;
+    }
+
+    /**
+     * The reconnect delay behavior. Defaults to {@link ReconnectDelayBehavior#BeforeSubsequentRounds}.
+     * See {@link OptionsBuilder#reconnectDelayBehavior(ReconnectDelayBehavior) reconnectDelayBehavior()} in the builder doc.
+     * @return the behavior, never null
+     */
+    public ReconnectDelayBehavior reconnectDelayBehavior() {
+        return this.reconnectDelayBehavior;
     }
 
     /**

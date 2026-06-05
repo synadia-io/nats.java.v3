@@ -56,6 +56,19 @@ JetStreamManagement jsm     = new JetStreamManagement(nc, jsOptions);
 
 (Both classes live in `io.synadia.client.impl`. Static `instance(...)` factories also exist on `JetStream` if you prefer that style.)
 
+### Simplified consumer renames
+
+The simplified-consumer interfaces and their `Nats*` implementations have been renamed to make their role explicit (they consume `Message`s):
+
+| v2 (`io.nats.client` / `io.nats.client.impl`) | v3 (`io.synadia.client.impl`) |
+|---|---|
+| `IterableConsumer`     | `IterableMessageConsumer` |
+| `NatsIterableConsumer` | `NatsIterableMessageConsumer` |
+| `FetchConsumer`        | `FetchMessageConsumer` |
+| `NatsFetchConsumer`    | `NatsFetchMessageConsumer` |
+
+These continue to extend `MessageConsumer` / `NatsMessageConsumerBase` as before — only the type names changed. Update imports and any explicit type declarations; behavior and method signatures are unchanged.
+
 ---
 
 ## KeyValue

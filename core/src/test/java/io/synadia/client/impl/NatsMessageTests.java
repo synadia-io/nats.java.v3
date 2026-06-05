@@ -227,14 +227,6 @@ public class NatsMessageTests extends TestBase {
         validateProto(new ProtocolMessage(pmFilterOnStop.getProtocolBab(), false), false);
         validateProto(new ProtocolMessage(pmNotFilterOnStop.getProtocolBab(), true), true);
         validateProto(new ProtocolMessage(pmNotFilterOnStop.getProtocolBab(), false), false);
-
-        IncomingMessage scm = new IncomingMessage() {};
-        assertEquals(0, scm.getSizeInBytes());
-        assertThrows(IllegalStateException.class, scm::getProtocolBab);
-        assertThrows(IllegalStateException.class, scm::getProtocolBytes);
-        assertThrows(IllegalStateException.class, scm::getControlLineLength);
-        assertFalse(scm.isProtocol());
-        assertFalse(scm.isFilterOnStop());
     }
 
     private static void validateProto(ProtocolMessage pm, boolean isProtocolFilterOnStop) {
@@ -244,18 +236,6 @@ public class NatsMessageTests extends TestBase {
         assertEquals(2, pm.getControlLineLength());
         assertTrue(pm.isProtocol());
         assertEquals(isProtocolFilterOnStop, pm.isFilterOnStop());
-    }
-
-    @Test
-    public void constructorWithMessage() {
-        NatsMessage m = testMessage();
-
-        NatsMessage copy = new NatsMessage(m);
-        assertEquals(m.getSubject(), copy.getSubject());
-        assertEquals(m.getReplyTo(), copy.getReplyTo());
-        assertEquals(m.getData(), copy.getData());
-        assertEquals(m.getSubject(), copy.getSubject());
-        assertEquals(m.getSubject(), copy.getSubject());
     }
 
     @Test

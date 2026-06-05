@@ -4,9 +4,9 @@ import io.synadia.client.Message;
 import io.synadia.client.Subscription;
 import io.synadia.client.api.Status;
 import io.synadia.client.utils.ByteArrayBuilder;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
@@ -18,6 +18,7 @@ public class NatsMessage implements Message {
 
     protected static final String NOT_A_JET_STREAM_MESSAGE = "Message is not a JetStream message";
 
+    // the real data
     protected String subject;
     protected String replyTo;
     protected byte[] data;
@@ -47,31 +48,25 @@ public class NatsMessage implements Message {
     // ----------------------------------------------------------------------------------------------------
     // Constructors - Prefer to use Builder
     // ----------------------------------------------------------------------------------------------------
-    protected NatsMessage() {
-        this((byte[])null);
+    protected NatsMessage(byte @Nullable[] data) {
+        this(data, null, null, null, false);
     }
 
-    protected NatsMessage(byte[] data) {
+    public NatsMessage(@NonNull String subject, @Nullable String replyTo, byte @Nullable[] data) {
+        this(data, subject, replyTo, null, false);
+    }
+
+    public NatsMessage(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable[] data) {
+        this(data, subject, replyTo, headers, false);
+    }
+
+    protected NatsMessage(byte @Nullable[] data, @Nullable String subject, @Nullable String replyTo, @Nullable Headers headers, boolean flushImmediatelyAfterPublish) {
         this.data = data == null ? EMPTY_BODY : data;
         dataLen = this.data.length;
-    }
-
-    public NatsMessage(String subject, String replyTo, byte[] data) {
-        this(subject, replyTo, null, data);
-    }
-
-    public NatsMessage(String subject, String replyTo, Headers headers, byte[] data) {
-        this(data);
         this.subject = subject;
         this.replyTo = replyTo;
         this.headers = headers;
-    }
-
-    public NatsMessage(Message message) {
-        this(message.getData());
-        this.subject = message.getSubject();
-        this.replyTo = message.getReplyTo();
-        this.headers = message.getHeaders();
+        this.flushImmediatelyAfterPublish = flushImmediatelyAfterPublish;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -411,97 +406,8 @@ public class NatsMessage implements Message {
     // ----------------------------------------------------------------------------------------------------
     // Standard Builder
     // ----------------------------------------------------------------------------------------------------
-    public static Builder builder() {
-        return new Builder();
+    public static NatsMessageBuilder builder() {
+        return new NatsMessageBuilder();
     }
 
-    /**
-     * The builder is for building normal publish/request messages,
-     * as an option for client use developers instead of the normal constructor
-     */
-    public static class Builder {
-        private String subject;
-        private String replyTo;
-        private Headers headers;
-        private byte[] data;
-
-        /**
-         * Set the subject
-         *
-         * @param subject the subject
-         * @return the builder
-         */
-        public Builder subject(final String subject) {
-            this.subject = subject;
-            return this;
-        }
-
-        /**
-         * Set the reply to
-         *
-         * @param replyTo the reply to
-         * @return the builder
-         */
-        public Builder replyTo(final String replyTo) {
-            this.replyTo = replyTo;
-            return this;
-        }
-
-        /**
-         * Set the headers
-         *
-         * @param headers the headers
-         * @return the builder
-         */
-        public Builder headers(final Headers headers) {
-            this.headers = headers;
-            return this;
-        }
-
-        /**
-         * Set the data from a string converting using the
-         * charset StandardCharsets.UTF_8
-         *
-         * @param data    the data string
-         * @return the builder
-         */
-        public Builder data(final String data) {
-            if (data != null) {
-                this.data = data.getBytes(StandardCharsets.UTF_8);
-            }
-            return this;
-        }
-
-        /**
-         * Set the data from a string
-         *
-         * @param data    the data string
-         * @param charset the charset, for example {@code StandardCharsets.UTF_8}
-         * @return the builder
-         */
-        public Builder data(final String data, final Charset charset) {
-            this.data = data.getBytes(charset);
-            return this;
-        }
-
-        /**
-         * Set the data from a byte array. null data changed to empty byte array
-         *
-         * @param data the data
-         * @return the builder
-         */
-        public Builder data(final byte[] data) {
-            this.data = data;
-            return this;
-        }
-
-        /**
-         * Build the {@code NatsMessage} object
-         *
-         * @return the {@code NatsMessage}
-         */
-        public NatsMessage build() {
-            return new NatsMessage(subject, replyTo, headers, data);
-        }
-    }
 }

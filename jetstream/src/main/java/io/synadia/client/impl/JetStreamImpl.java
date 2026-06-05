@@ -195,7 +195,7 @@ public class JetStreamImpl implements JetStreamConstants {
         }
     }
 
-    Message makeInternalRequestResponseRequired(String subject, Headers headers, byte @Nullable [] data, Duration timeout, CancelAction cancelAction) throws IOException {
+    Message makeInternalRequestResponseRequired(String subject, @Nullable Headers headers, byte @Nullable [] data, Duration timeout, CancelAction cancelAction) throws IOException {
         try {
             return responseRequired(conn.request(subject, headers, data, timeout, cancelAction));
         } catch (InterruptedException e) {

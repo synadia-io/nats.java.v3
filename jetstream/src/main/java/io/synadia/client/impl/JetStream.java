@@ -4,7 +4,7 @@ import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
 import io.synadia.client.utils.Validator;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -18,6 +18,7 @@ import static io.synadia.client.utils.JsValidator.validateStreamName;
 import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 import static io.synadia.client.utils.Validator.*;
 
+@NullMarked
 public class JetStream extends JetStreamImpl {
 
     public static JetStream instance(NatsConnection connection) throws IOException {
@@ -32,7 +33,7 @@ public class JetStream extends JetStreamImpl {
         super(connection, null);
     }
 
-    public JetStream(NatsConnection connection, JetStreamOptions jsOptions) throws IOException {
+    public JetStream(NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws IOException {
         super(connection, jsOptions);
     }
 
@@ -44,120 +45,38 @@ public class JetStream extends JetStreamImpl {
     // Publish
     // ----------------------------------------------------------------------------------------------------
 
-    /**
-     * Send a message to the specified subject and waits for a response from
-     * JetStream. The default publish options will be used.
-     * The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * js.publish("destination", "message".getBytes("UTF-8"))
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     *
-     * @param subject the subject to send the message to
-     * @param body the message body
-     * @return The acknowledgement of the publish
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    public PublishAck publish(String subject, byte[] body) throws IOException, JetStreamApiException {
+    public PublishAck publish(String subject) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, null, null, null, null);
+    }
+
+    public PublishAck publish(String subject, byte @Nullable[] body) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, null, body, null, null);
     }
 
-    public PublishAck publish(String subject, String body) throws IOException, JetStreamApiException {
+    public PublishAck publish(String subject, @Nullable String body) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, null, null, body, null);
     }
 
-    /**
-     * Send a message to the specified subject and waits for a response from
-     * JetStream. The default publish options will be used.
-     * The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * Headers h = new Headers().put("foo", "bar");
-     * js.publish("destination", h, "message".getBytes("UTF-8"))
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
-     *
-     * @param subject the subject to send the message to
-     * @param headers Optional headers to publish with the message.
-     * @param body the message body
-     * @return The acknowledgement of the publish
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    public PublishAck publish(String subject, Headers headers, byte[] body) throws IOException, JetStreamApiException {
+    public PublishAck publish(String subject, Headers headers) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, headers, null, null, null);
+    }
+
+    public PublishAck publish(String subject, Headers headers, byte @Nullable[] body) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, headers, body, null, null);
     }
 
-    public PublishAck publish(String subject, Headers headers, String body) throws IOException, JetStreamApiException {
+    public PublishAck publish(String subject, Headers headers, @Nullable String body) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, headers, null, body, null);
     }
 
-    /**
-     * Send a message to the specified subject and waits for a response from
-     * JetStream. The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * js.publish("destination", "message".getBytes("UTF-8"), publishOptions)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
-     *
-     * @param subject the subject to send the message to
-     * @param body the message body
-     * @param options publisher options
-     * @return The acknowledgement of the publish
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    public PublishAck publish(String subject, byte[] body, PublishOptions options) throws IOException, JetStreamApiException {
+    public PublishAck publish(String subject, byte @Nullable [] body, PublishOptions options) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, null, body, null, options);
     }
 
-    public PublishAck publish(String subject, String body, PublishOptions options) throws IOException, JetStreamApiException {
+    public PublishAck publish(String subject, @Nullable String body, PublishOptions options) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, null, null, body, options);
     }
 
-    /**
-     * Send a message to the specified subject and waits for a response from
-     * JetStream. The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * Headers h = new Headers().put("foo", "bar");
-     * js.publish("destination", h, "message".getBytes("UTF-8"), publishOptions)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
-     *
-     * @param subject the subject to send the message to
-     * @param headers Optional headers to publish with the message.
-     * @param body the message body
-     * @param options publisher options
-     * @return The acknowledgement of the publish
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
     public PublishAck publish(String subject, Headers headers, byte[] body, PublishOptions options) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, headers, body, null, options);
     }
@@ -166,63 +85,11 @@ public class JetStream extends JetStreamImpl {
         return publishSyncInternal(subject, headers, null, body, options);
     }
 
-    /**
-     * Send a message to the specified subject and waits for a response from
-     * JetStream. The default publish options will be used.
-     * The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * js.publish(message)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     *
-     * <p>The Message object allows you to set a replyTo, but in publish requests,
-     * the replyTo is reserved for internal use as the address for the
-     * server to respond to the client with the PublishAck.</p>
-     *
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
-     *
-     * @param message the message to send
-     * @return The acknowledgement of the publish
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
     public PublishAck publish(Message message) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
         return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, null);
     }
 
-    /**
-     * Send a message to the specified subject and waits for a response from
-     * JetStream. The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * js.publish(message, publishOptions)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     *
-     * <p>The Message object allows you to set a replyTo, but in publish requests,
-     * the replyTo is reserved for internal use as the address for the
-     * server to respond to the client with the PublishAck.</p>
-     *
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
-     *
-     * @param message the message to send
-     * @param options publisher options
-     * @return The acknowledgement of the publish
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
     public PublishAck publish(Message message, PublishOptions options) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
         return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options);
@@ -416,7 +283,7 @@ public class JetStream extends JetStreamImpl {
         return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options, false);
     }
 
-    private PublishAck publishSyncInternal(String subject, Headers headers, byte[] data, String sData, PublishOptions options) throws IOException, JetStreamApiException {
+    private PublishAck publishSyncInternal(String subject, @Nullable Headers headers, byte @Nullable[] data, @Nullable String sData, @Nullable PublishOptions options) throws IOException, JetStreamApiException {
         Headers merged = mergePublishOptions(headers, options);
 
         if (data == null && sData != null) {
@@ -424,10 +291,10 @@ public class JetStream extends JetStreamImpl {
         }
 
         Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout(), CancelAction.COMPLETE);
-        return processPublishResponse(resp, options);
+        return processPublishResponse(resp);
     }
 
-    private CompletableFuture<PublishAck> publishAsyncInternal(String subject, Headers headers, byte[] data, String sData, PublishOptions options, boolean validateSubjectAndReplyTo) {
+    private CompletableFuture<PublishAck> publishAsyncInternal(String subject, @Nullable Headers headers, byte @Nullable [] data, @Nullable String sData, @Nullable PublishOptions options, boolean validateSubjectAndReplyTo) {
         Headers merged = mergePublishOptions(headers, options);
 
         if (data == null && sData != null) {
@@ -439,21 +306,21 @@ public class JetStream extends JetStreamImpl {
         return future.thenCompose(resp -> {
             try {
                 responseRequired(resp);
-                return CompletableFuture.completedFuture(processPublishResponse(resp, options));
+                return CompletableFuture.completedFuture(processPublishResponse(resp));
             } catch (IOException | JetStreamApiException e) {
                 throw new RuntimeException(e);
             }
         });
     }
 
-    private PublishAck processPublishResponse(Message resp, PublishOptions options) throws IOException, JetStreamApiException {
+    private PublishAck processPublishResponse(Message resp) throws IOException, JetStreamApiException {
         if (resp.isStatusMessage()) {
             throw new IOException("Error Publishing: " + resp.getStatus().getMessageWithCode());
         }
         return new PublishAck(resp);
     }
 
-    private Headers mergePublishOptions(Headers headers, PublishOptions opts) {
+    private @Nullable Headers mergePublishOptions(@Nullable Headers headers, @Nullable PublishOptions opts) {
         if (opts == null) {
             return headers;
         }
@@ -470,15 +337,15 @@ public class JetStream extends JetStreamImpl {
         return mergeString(merged, MSG_TTL_HDR, opts.getMessageTtl());
     }
 
-    private Headers mergeNum(Headers h, String key, long value) {
+    private Headers mergeNum(@Nullable Headers h, String key, long value) {
         return value > -1 ? _merge(h, key, Long.toString(value)): h;
     }
 
-    private Headers mergeString(Headers h, String key, String value) {
+    private Headers mergeString(@Nullable Headers h, String key, String value) {
         return Validator.nullOrEmpty(value) ? h : _merge(h, key, value);
     }
 
-    private Headers _merge(Headers h, String key, String value) {
+    private Headers _merge(@Nullable Headers h, String key, String value) {
         if (h == null) {
             h = new Headers();
         }
@@ -499,17 +366,22 @@ public class JetStream extends JetStreamImpl {
     MessageManagerFactory _pullOrderedMessageManagerFactory = PullOrderedMessageManager::new;
 
 
-    NatsSubscription createSubscription(@NonNull ConsumerInfo consumerInfo,
+    NatsSubscription createSubscription(ConsumerInfo consumerInfo,
                                         @Nullable SubscribeBehavior subscribeBehavior,
                                         @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
                                         @Nullable PullMessageManager pmmInstance)
     {
-        JetStreamSubscribeConfig subConf = new JetStreamSubscribeConfig(consumerInfo, subscribeBehavior, orderedCreator);
-        ConsumerConfiguration cc = subConf.consumerInfo.getConsumerConfiguration();
-        MessageHandler handler = subConf.getHandler();
-        NatsDispatcher dispatcher = subConf.getDispatcher();
-        if (handler != null && dispatcher == null) {
-            subConf.dispatcher(dispatcher = conn.createDispatcher());
+        JetStreamSubscribeConfig jssc = new JetStreamSubscribeConfig(consumerInfo, subscribeBehavior, orderedCreator);
+        ConsumerConfiguration cc = jssc.consumerInfo.getConsumerConfiguration();
+        MessageHandler handler = jssc.getHandler();
+        NatsDispatcher dispatcher = jssc.getDispatcher();
+        if (handler == null) {
+            if (dispatcher != null) {
+                throw new IllegalArgumentException("Dispatcher without a handler cannot receive messages");
+            }
+        }
+        else if (dispatcher == null) {
+            jssc.dispatcher(dispatcher = conn.createDispatcher());
         }
 
         String inbox = cc.getDeliverSubject();
@@ -522,29 +394,29 @@ public class JetStream extends JetStreamImpl {
         NatsSubscriptionFactory subFactory;
         if (isPull) {
             if (pmmInstance == null) {
-                MessageManagerFactory mmFactory = subConf.isOrdered ? _pullOrderedMessageManagerFactory : _pullMessageManagerFactory;
-                mm = mmFactory.createMessageManager(conn, this, subConf);
+                MessageManagerFactory mmFactory = jssc.isOrdered ? _pullOrderedMessageManagerFactory : _pullMessageManagerFactory;
+                mm = mmFactory.createMessageManager(conn, this, jssc);
             }
             else {
                 mm = pmmInstance;
             }
             subFactory = (sid, lSubject, lQgroup, lConn, lDispatcher)
-                -> new JetStreamPullSubscription(sid, lSubject, lConn, lDispatcher, this, subConf, mm);
+                -> new JetStreamPullSubscription(sid, lSubject, lConn, lDispatcher, this, jssc, mm);
         }
         else {
-            MessageManagerFactory mmFactory = subConf.isOrdered ? _pushOrderedMessageManagerFactory : _pushMessageManagerFactory;
-            mm = mmFactory.createMessageManager(conn, this, subConf);
+            MessageManagerFactory mmFactory = jssc.isOrdered ? _pushOrderedMessageManagerFactory : _pushMessageManagerFactory;
+            mm = mmFactory.createMessageManager(conn, this, jssc);
             subFactory = (sid, lSubject, lQgroup, lConn, lDispatcher) -> {
                 JetStreamPushSubscription sub =
-                    new JetStreamPushSubscription(sid, lSubject, lQgroup, lConn, lDispatcher, this, subConf, mm);
+                    new JetStreamPushSubscription(sid, lSubject, lQgroup, lConn, lDispatcher, this, jssc, mm);
                 if (lDispatcher == null) {
-                    sub.setPendingLimits(subConf.getPendingMessageLimit(), subConf.getPendingByteLimit());
+                    sub.setPendingLimits(jssc.getPendingMessageLimit(), jssc.getPendingByteLimit());
                 }
                 return sub;
             };
         }
 
-        if (dispatcher == null) {
+        if (handler == null) {
             return conn.createSubscription(inbox, cc.getDeliverGroup(), null, subFactory);
         }
 
@@ -572,42 +444,42 @@ public class JetStream extends JetStreamImpl {
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
         return (JetStreamPushSubscription) createSubscription(consumerInfo, null, null, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull ConsumerInfo consumerInfo, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPushSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull String stream, @NonNull String consumerName) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName) throws IOException, JetStreamApiException {
         return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull String stream, @NonNull String consumerName, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull String subject) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String subject) throws IOException, JetStreamApiException {
         return pushSubscribe(subject, (SubscribeBehavior)null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         subject = validateSubject(subject, true);
         String stream = lookupStreamBySubject(subject);
         if (stream == null) {
@@ -620,14 +492,14 @@ public class JetStream extends JetStreamImpl {
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull PushConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(PushConsumerCreator creator) throws IOException, JetStreamApiException {
         return pushSubscribe(creator, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull PushConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(PushConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         ConsumerInfo ci = _createConsumer(creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, null, null);
     }
@@ -635,14 +507,14 @@ public class JetStream extends JetStreamImpl {
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
         return pushSubscribe(creator, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(@NonNull PushOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(PushOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         ConsumerInfo ci = _createConsumer(creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, creator, null);
     }
@@ -650,42 +522,42 @@ public class JetStream extends JetStreamImpl {
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(consumerInfo, null, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull ConsumerInfo consumerInfo, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull String stream, @NonNull String consumerName) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull String stream, @NonNull String consumerName, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull String subject) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String subject) throws IOException, JetStreamApiException {
         return pullSubscribe(subject, (SubscribeBehavior)null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         subject = validateSubject(subject, true);
         String stream = lookupStreamBySubject(subject);
         if (stream == null) {
@@ -698,28 +570,28 @@ public class JetStream extends JetStreamImpl {
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(PullConsumerCreator creator) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), null, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull PullConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(PullConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), subscribeBehavior, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), null, creator, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(@NonNull PullOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(PullOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), subscribeBehavior, creator, null);
     }
 
@@ -734,6 +606,15 @@ public class JetStream extends JetStreamImpl {
     public StreamContext getStreamContext(String streamName) throws IOException, JetStreamApiException {
         validateStreamName(streamName, true);
         return getNatsStreamContext(streamName);
+    }
+
+    public ConsumerContext createConsumer(String streamName, String subject) throws IOException, JetStreamApiException {
+        return createConsumer(new PullConsumerCreator(streamName).filterSubject(subject));
+    }
+
+    public ConsumerContext createConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
+        ConsumerInfo ci = _createConsumer(creator, Create);
+        return getNatsStreamContext(creator.getStream()).getConsumerContext(ci.getName());
     }
 
     /**
@@ -754,8 +635,8 @@ public class JetStream extends JetStreamImpl {
         required(consumerName, "Consumer Name");
         return getNatsStreamContext(streamName).getConsumerContext(consumerName);
     }
+
     public ConsumerContext getConsumerContext(ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
-        required(consumerInfo, "Consumer Info");
         return getNatsStreamContext(consumerInfo.getStreamName()).getConsumerContext(consumerInfo);
     }
 

@@ -7,7 +7,7 @@ import io.synadia.client.api.SubscribeBehavior;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class JetStreamSubscribeConfig extends SubscribeBehavior {
+class JetStreamSubscribeConfig extends SubscribeBehavior {
     public final AbstractOrderedConsumerCreator<?> orderedCreator;
     public final ConsumerInfo consumerInfo;
     public final ConsumerConfiguration consumerConf;

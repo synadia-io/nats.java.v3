@@ -651,32 +651,47 @@ public class OptionsTests extends TestBase {
 
     @Test
     public void testPropertiesSubjectValidationType() {
+        // No property set → default Lenient
         Properties props = new Properties();
         Options o = new OptionsBuilder(props).build();
         assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
 
+        // PROP_SUBJECT_VALIDATION_TYPE — case-insensitive enum name match
         props.clear();
-        props.setProperty(PROP_NO_SUBJECT_VALIDATION, "false");
-        o = new OptionsBuilder(props).build();
-        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
-
-        props.clear();
-        props.setProperty(PROP_STRICT_SUBJECT_VALIDATION, "false");
-        o = new OptionsBuilder(props).build();
-        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
-
-        props.clear();
-        props.setProperty(PROP_NO_SUBJECT_VALIDATION, "true");
+        props.setProperty(PROP_SUBJECT_VALIDATION_TYPE, "None");
         o = new OptionsBuilder(props).build();
         assertEquals(SubjectValidationType.None, o.subjectValidationType());
 
         props.clear();
-        props.setProperty(PROP_STRICT_SUBJECT_VALIDATION, "true");
+        props.setProperty(PROP_SUBJECT_VALIDATION_TYPE, "lenient");
+        o = new OptionsBuilder(props).build();
+        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
+
+        props.clear();
+        props.setProperty(PROP_SUBJECT_VALIDATION_TYPE, "STRICT");
         o = new OptionsBuilder(props).build();
         assertEquals(SubjectValidationType.Strict, o.subjectValidationType());
 
+        // Unknown value → default Lenient
+        props.clear();
+        props.setProperty(PROP_SUBJECT_VALIDATION_TYPE, "bogus");
+        o = new OptionsBuilder(props).build();
+        assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
+
         o = new OptionsBuilder().build();
         assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
+    }
+
+    @Test
+    public void testSubjectValidationTypeGet() {
+        assertEquals(SubjectValidationType.Lenient, SubjectValidationType.get(null));
+        assertEquals(SubjectValidationType.Lenient, SubjectValidationType.get(""));
+        assertEquals(SubjectValidationType.Lenient, SubjectValidationType.get("bogus"));
+        assertEquals(SubjectValidationType.None, SubjectValidationType.get("none"));
+        assertEquals(SubjectValidationType.None, SubjectValidationType.get("NONE"));
+        assertEquals(SubjectValidationType.Lenient, SubjectValidationType.get("Lenient"));
+        assertEquals(SubjectValidationType.Strict, SubjectValidationType.get("strict"));
+        assertEquals(SubjectValidationType.Strict, SubjectValidationType.get("STRICT"));
     }
 
     @Test
@@ -1253,6 +1268,62 @@ public class OptionsTests extends TestBase {
 
         assertNotNull(rdhO);
         assertEquals(10, rdhO.getWaitTime(5).getSeconds());
+    }
+
+    @Test
+    public void testReconnectDelayBehavior() {
+        // Default
+        Options o = new OptionsBuilder().build();
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, o.reconnectDelayBehavior());
+
+        // Explicit setter
+        o = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.BeforeAllRounds).build();
+        assertEquals(ReconnectDelayBehavior.BeforeAllRounds, o.reconnectDelayBehavior());
+
+        // null resets to default
+        o = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.BeforeAllRounds)
+                                .reconnectDelayBehavior(null).build();
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, o.reconnectDelayBehavior());
+
+        // Property — case-insensitive
+        Properties props = new Properties();
+        props.setProperty(PROP_RECONNECT_DELAY_BEHAVIOR, "BeforeAllRounds");
+        o = new OptionsBuilder(props).build();
+        assertEquals(ReconnectDelayBehavior.BeforeAllRounds, o.reconnectDelayBehavior());
+
+        props.clear();
+        props.setProperty(PROP_RECONNECT_DELAY_BEHAVIOR, "beforesubsequentrounds");
+        o = new OptionsBuilder(props).build();
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, o.reconnectDelayBehavior());
+
+        // Unknown value → default
+        props.clear();
+        props.setProperty(PROP_RECONNECT_DELAY_BEHAVIOR, "bogus");
+        o = new OptionsBuilder(props).build();
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, o.reconnectDelayBehavior());
+
+        // Copy-constructor preserves the value
+        Options primed = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.BeforeAllRounds).build();
+        Options copy = new OptionsBuilder(primed).build();
+        assertEquals(ReconnectDelayBehavior.BeforeAllRounds, copy.reconnectDelayBehavior());
+
+        // Static factory direct coverage
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, ReconnectDelayBehavior.get(null));
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, ReconnectDelayBehavior.get(""));
+        assertEquals(ReconnectDelayBehavior.BeforeAllRounds, ReconnectDelayBehavior.get("beforeallrounds"));
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, ReconnectDelayBehavior.get("bogus"));
+    }
+
+    @Test
+    public void testPropertyReconnectDelayHandlerClass() {
+        Properties props = new Properties();
+        props.setProperty(PROP_RECONNECT_DELAY_HANDLER_CLASS,
+                          CoverageReconnectDelayHandler.class.getCanonicalName());
+
+        Options o = new OptionsBuilder(props).build();
+        ReconnectDelayHandler handler = o.getReconnectDelayHandler();
+        assertNotNull(handler);
+        assertEquals(7, handler.getWaitTime(7).toMillis());
     }
 
     @Test

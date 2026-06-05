@@ -3,13 +3,13 @@ package io.synadia.client.impl;
 import io.synadia.client.utils.ByteArrayBuilder;
 
 // ----------------------------------------------------------------------------------------------------
-// Protocol message is a special version of a NatsPublishableMessage extends NatsMessage
+// Protocol message is a special version of a InternalPublishableMessage extends NatsMessage
 // ----------------------------------------------------------------------------------------------------
-public class ProtocolMessage extends NatsPublishableMessage {
+public class ProtocolMessage extends InternalPublishableMessage {
     final boolean filterOnStop;
 
     ProtocolMessage(ByteArrayBuilder babProtocol, boolean filterOnStop) {
-        super(false);
+        super();
         protocolBab = babProtocol;
         sizeInBytes = controlLineLength = protocolBab.length() + 2; // CRLF, protocol doesn't have data
         this.filterOnStop = filterOnStop;

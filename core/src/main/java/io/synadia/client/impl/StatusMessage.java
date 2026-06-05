@@ -6,6 +6,7 @@ public class StatusMessage extends IncomingMessage {
     private final Status status;
 
     StatusMessage(Status status) {
+        super(null);
         this.status = status;
     }
 

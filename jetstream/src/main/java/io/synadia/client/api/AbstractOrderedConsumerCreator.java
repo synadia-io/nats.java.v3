@@ -25,7 +25,7 @@ public abstract class AbstractOrderedConsumerCreator<T extends AbstractOrderedCo
     protected AbstractOrderedConsumerCreator(AbstractOrderedConsumerCreator<?> creator, long lastStreamSeq) {
         super(creator);
         commonInit();
-        namePrefix(creator.namePrefix); // this is called because the base class doesn't know about namePrefix 
+        namePrefix(creator.namePrefix); // this is called because the base class doesn't know about namePrefix
         if (lastStreamSeq > 0) {
             // if the last stream seq is > 0, this means to set the policy
             creator
@@ -41,7 +41,9 @@ public abstract class AbstractOrderedConsumerCreator<T extends AbstractOrderedCo
         _ackWait(Duration.ofHours(22));
         _memStorage(true);
         _numReplicas(1);
-        _idleHeartbeat(DEFAULT_ORDERED_HEARTBEAT);
+        if (isPush) {
+            _idleHeartbeat(DEFAULT_ORDERED_HEARTBEAT);
+        }
     }
 
     /**

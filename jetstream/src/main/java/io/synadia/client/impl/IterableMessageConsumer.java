@@ -7,7 +7,7 @@ import java.time.Duration;
 /**
  * A simplified consumer that does endless consume on the style of an iterator
  */
-public interface IterableConsumer extends MessageConsumer {
+public interface IterableMessageConsumer extends MessageConsumer {
     /**
      * Read the next message. Return null if the calls times out.
      * Use a timeout of 0 to wait indefinitely. This could still be interrupted if

@@ -10,7 +10,7 @@ import static io.synadia.client.impl.BaseConsumeOptions.MIN_EXPIRES_MILLS;
 import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
-class NatsFetchConsumer extends NatsMessageConsumerBase implements FetchConsumer {
+class NatsFetchMessageConsumer extends NatsMessageConsumerBase implements FetchMessageConsumer {
     private final boolean isNoWaitNoExpires;
     private final long maxWaitNanos;
     private final String pullSubject;
@@ -20,9 +20,9 @@ class NatsFetchConsumer extends NatsMessageConsumerBase implements FetchConsumer
     private long pendingReceivedBytes;
     private boolean noReceivedArePending;
 
-    NatsFetchConsumer(SimplifiedSubscriptionMaker subscriptionMaker,
-                      ConsumerInfo cachedConsumerInfo,
-                      FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException
+    NatsFetchMessageConsumer(SimplifiedSubscriptionMaker subscriptionMaker,
+                             ConsumerInfo cachedConsumerInfo,
+                             FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException
     {
         super(cachedConsumerInfo);
 

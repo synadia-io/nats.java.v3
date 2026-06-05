@@ -93,8 +93,6 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 | `PROP_VERBOSE`                    | `verbose`                 |
 | `PROP_WRITE_QUEUE_PUSH_TIMEOUT`   | `writeQueuePushTimeout`   |
 | `PROP_HOSTNAME_RESOLVE_MODE`      | `hostnameResolveMode`     |
-| `PROP_NO_SUBJECT_VALIDATION`      | `noSubjectValidation`     |
-| `PROP_STRICT_SUBJECT_VALIDATION`  | `strictSubjectValidation` |
 | `PROP_SERVERS`                    | `servers`                 |
 | `PROP_PASSWORD`                   | `password`                |
 | `PROP_USERNAME`                   | `username`                |
@@ -105,10 +103,12 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 
 ## 6. Constants removed
 
-| Constant                    | Reason                              |
-|-----------------------------|-------------------------------------|
-| `PROP_TIME_TRACE_LOGGER`    | Feature removed                     |
-| `PROP_REPORT_NO_RESPONDERS` | Client always reports No Responders |
+| Constant                          | Reason                                                                                  |
+|-----------------------------------|-----------------------------------------------------------------------------------------|
+| `PROP_TIME_TRACE_LOGGER`          | Feature removed                                                                         |
+| `PROP_REPORT_NO_RESPONDERS`       | Client always reports No Responders                                                     |
+| `PROP_NO_SUBJECT_VALIDATION`      | Use `PROP_SUBJECT_VALIDATION_TYPE` (value `None`) instead of the legacy boolean         |
+| `PROP_STRICT_SUBJECT_VALIDATION`  | Use `PROP_SUBJECT_VALIDATION_TYPE` (value `Strict`) instead of the legacy boolean       |
 
 ## 7. Prompts for Claude Code
 

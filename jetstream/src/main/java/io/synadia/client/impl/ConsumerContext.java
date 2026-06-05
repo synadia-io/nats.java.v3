@@ -21,7 +21,7 @@ public interface ConsumerContext extends BaseConsumerContext {
      * @throws JetStreamApiException the request had an error related to the data
      */
     @NonNull
-    ConsumerInfo fetchConsumerInfo() throws IOException, JetStreamApiException;
+    ConsumerInfo retrieveConsumerInfo() throws IOException, JetStreamApiException;
 
     /**
      * Gets information about the consumer behind this subscription.

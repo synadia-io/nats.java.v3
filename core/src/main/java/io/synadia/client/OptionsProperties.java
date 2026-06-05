@@ -100,6 +100,17 @@ public interface OptionsProperties {
      */
     String PROP_RECONNECT_JITTER_TLS = PFX + "reconnectJitterTls";
     /**
+     * Property used to set the class name for the {@link ReconnectDelayHandler} implementation. {@value}
+     * The class must have a public no-arg constructor.
+     */
+    String PROP_RECONNECT_DELAY_HANDLER_CLASS = PFX + "reconnectDelayHandlerClass";
+    /**
+     * Property used to set the {@link ReconnectDelayBehavior}. {@value} The value is the case-insensitive
+     * name of a {@link ReconnectDelayBehavior} constant (e.g. {@code BeforeSubsequentRounds}, {@code BeforeAllRounds}).
+     * Unrecognized or missing values fall back to {@link ReconnectDelayBehavior#BeforeSubsequentRounds}.
+     */
+    String PROP_RECONNECT_DELAY_BEHAVIOR = PFX + "reconnectDelayBehavior";
+    /**
      * Property used to configure pedantic mode. {@value}
      */
     String PROP_PEDANTIC = PFX + "pedantic";
@@ -133,13 +144,11 @@ public interface OptionsProperties {
      */
     String PROP_HOSTNAME_RESOLVE_MODE = PFX + "hostnameResolveMode";
     /**
-     * Property used to configure noSubjectValidation. {@value}
+     * Property used to set the {@link SubjectValidationType}. {@value} The value is the case-insensitive
+     * name of a {@link SubjectValidationType} constant (e.g. {@code None}, {@code Lenient}, {@code Strict}).
+     * Unrecognized or missing values fall back to {@link SubjectValidationType#Lenient}.
      */
-    String PROP_NO_SUBJECT_VALIDATION = PFX + "noSubjectValidation";
-    /**
-     * Property used to configure strictSubjectValidation. {@value}
-     */
-    String PROP_STRICT_SUBJECT_VALIDATION = PFX + "strictSubjectValidation";
+    String PROP_SUBJECT_VALIDATION_TYPE = PFX + "subjectValidationType";
     /**
      * Property used to configure clientSideLimitChecks. {@value}
      */

@@ -75,6 +75,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
             if (optionalInactiveThreshold != null) {
                 creator.inactiveThreshold(optionalInactiveThreshold);
             }
+
             ci = streamCtx.js._createConsumer(creator, ConsumerCreateRequest.Action.Create);
             cachedConsumerInfo.set(ci);
             consumerName.set(ci.getName());
@@ -131,7 +132,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public ConsumerInfo fetchConsumerInfo() throws IOException, JetStreamApiException {
+    public ConsumerInfo retrieveConsumerInfo() throws IOException, JetStreamApiException {
         ConsumerInfo ci = streamCtx.jsm.getConsumerInfo(streamCtx.streamName, consumerName.get());
         cachedConsumerInfo.set(ci);
         consumerName.set(ci.getName());
@@ -207,7 +208,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public FetchConsumer fetchMessages(int maxMessages) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetchMessages(int maxMessages) throws IOException, JetStreamApiException {
         return fetch(FetchConsumeOptions.builder().maxMessages(maxMessages).build());
     }
 
@@ -216,7 +217,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public FetchConsumer fetchBytes(int maxBytes) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetchBytes(int maxBytes) throws IOException, JetStreamApiException {
         return fetch(FetchConsumeOptions.builder().maxBytes(maxBytes).build());
     }
 
@@ -225,13 +226,13 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public FetchConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException {
         required(fetchConsumeOptions, "Fetch Consume Options");
         try {
             stateLock.lock();
             checkState();
             checkNotPinned("Fetch");
-            return (FetchConsumer)trackConsume(new NatsFetchConsumer(this, cachedConsumerInfo.get(), fetchConsumeOptions));
+            return (FetchMessageConsumer)trackConsume(new NatsFetchMessageConsumer(this, cachedConsumerInfo.get(), fetchConsumeOptions));
         }
         finally {
             stateLock.unlock();
@@ -243,7 +244,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public IterableConsumer iterate() throws IOException, JetStreamApiException {
+    public IterableMessageConsumer iterate() throws IOException, JetStreamApiException {
         return iterate(DEFAULT_CONSUME_OPTIONS);
     }
 
@@ -252,12 +253,12 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public IterableConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws IOException, JetStreamApiException {
+    public IterableMessageConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws IOException, JetStreamApiException {
         required(consumeOptions, "Consume Options");
         try {
             stateLock.lock();
             checkState();
-            return (IterableConsumer) trackConsume(new NatsIterableConsumer(this, cachedConsumerInfo.get(), consumeOptions));
+            return (IterableMessageConsumer) trackConsume(new NatsIterableMessageConsumer(this, cachedConsumerInfo.get(), consumeOptions));
         }
         finally {
             stateLock.unlock();
@@ -321,7 +322,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
         if (name == null) {
             ConsumerInfo ci = cachedConsumerInfo.get();
             if (ci == null) {
-                ci = fetchConsumerInfo();
+                ci = retrieveConsumerInfo();
             }
             name = ci.getName();
         }

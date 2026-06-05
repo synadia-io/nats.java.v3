@@ -17,4 +17,22 @@ public enum SubjectValidationType {
      * Strict Subject Validation
      */
     Strict;
+
+    /**
+     * Resolve a {@link SubjectValidationType} from a string (case-insensitive name match).
+     * Returns {@link #Lenient} if the value is null or does not match any constant.
+     *
+     * @param value the string value
+     * @return the matching type, or {@link #Lenient} as the default
+     */
+    public static SubjectValidationType get(String value) {
+        if (value != null) {
+            for (SubjectValidationType svt : SubjectValidationType.values()) {
+                if (svt.name().equalsIgnoreCase(value)) {
+                    return svt;
+                }
+            }
+        }
+        return Lenient;
+    }
 }

@@ -1298,7 +1298,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
             context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
             //noinspection resource
-            FetchConsumer fc = context.fetch(FetchConsumeOptions.builder().maxMessages(1).raiseStatusWarnings(false).build());
+            FetchMessageConsumer fc = context.fetch(FetchConsumeOptions.builder().maxMessages(1).raiseStatusWarnings(false).build());
             validate1026(fc.nextMessage(), listener, true); // we said not to raise status warnings in the FetchConsumeOptions
 
             context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
@@ -1307,12 +1307,12 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             validate1026(fc.nextMessage(), listener, false); // we said raise status warnings in the FetchConsumeOptions
 
             context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
-            try (IterableConsumer ic = context.iterate(ConsumeOptions.builder().raiseStatusWarnings(false).build())) {
+            try (IterableMessageConsumer ic = context.iterate(ConsumeOptions.builder().raiseStatusWarnings(false).build())) {
                 validate1026(ic.nextMessage(1000), listener, true); // we said not to raise status warnings in the ConsumeOptions
             }
 
             context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
-            try (IterableConsumer ic = context.iterate(ConsumeOptions.builder().raiseStatusWarnings().build())) {
+            try (IterableMessageConsumer ic = context.iterate(ConsumeOptions.builder().raiseStatusWarnings().build())) {
                 validate1026(ic.nextMessage(1000), listener, false); // we said raise status warnings in the ConsumeOptions
             }
 

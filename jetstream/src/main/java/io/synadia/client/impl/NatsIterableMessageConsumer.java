@@ -6,9 +6,9 @@ import io.synadia.client.api.ConsumerInfo;
 import java.io.IOException;
 import java.time.Duration;
 
-class NatsIterableConsumer extends NatsMessageConsumer implements IterableConsumer {
+class NatsIterableMessageConsumer extends NatsMessageConsumer implements IterableMessageConsumer {
 
-    NatsIterableConsumer(SimplifiedSubscriptionMaker subscriptionMaker, ConsumerInfo cachedConsumerInfo, ConsumeOptions opts) throws IOException, JetStreamApiException {
+    NatsIterableMessageConsumer(SimplifiedSubscriptionMaker subscriptionMaker, ConsumerInfo cachedConsumerInfo, ConsumeOptions opts) throws IOException, JetStreamApiException {
         super(subscriptionMaker, cachedConsumerInfo, opts, null, null);
     }
 

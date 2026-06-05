@@ -66,6 +66,12 @@ public interface StreamContext {
     @NonNull
     PurgeResponse purge(PurgeOptions options) throws IOException, JetStreamApiException;
 
+    @NonNull
+    ConsumerContext createConsumer(@NonNull String subject) throws IOException, JetStreamApiException;
+
+    @NonNull
+    ConsumerContext createConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
+
     /**
      * Get a consumer context for the context's stream and specific named consumer.
      * Verifies that the consumer exists.

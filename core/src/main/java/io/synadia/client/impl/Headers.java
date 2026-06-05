@@ -19,13 +19,13 @@ import static io.synadia.client.utils.Validator.nullOrEmpty;
  */
 public class Headers {
 
-	private static final String KEY_CANNOT_BE_EMPTY_OR_NULL = "Header key cannot be null.";
+	private static final String KEY_CANNOT_BE_EMPTY = "Header key cannot be null or empty.";
 	private static final String KEY_INVALID_CHARACTER = "Header key has invalid character: 0x";
 	private static final String VALUE_INVALID_CHARACTERS = "Header value has invalid character: 0x";
 
 	private final Map<String, List<String>> valuesMap;
 	private final Map<String, Integer> lengthMap;
-	private final boolean readOnly;
+	private boolean readOnly;
 	private byte[] serialized;
 	private int dataLength;
 
@@ -59,31 +59,29 @@ public class Headers {
 	 * @param readOnly flag to indicate that whether the new Headers should be marked as read-only
 	 * @param keysNotToCopy an array of keys that should not be copied
 	 */
-	public Headers(@Nullable Headers headers, boolean readOnly, String @Nullable [] keysNotToCopy) {
-		Map<String, List<String>> tempValuesMap = new HashMap<>();
-		Map<String, Integer> tempLengthMap = new HashMap<>();
-		if (headers != null) {
-			tempValuesMap.putAll(headers.valuesMap);
-			tempLengthMap.putAll(headers.lengthMap);
-			dataLength = headers.dataLength;
-			if (keysNotToCopy != null) {
-				for (String key : keysNotToCopy) {
-					if (key != null) {
-						if (tempValuesMap.remove(key) != null) {
-							dataLength -= tempLengthMap.remove(key);
-						}
-					}
+	public Headers(@Nullable Headers headers, boolean readOnly, @NonNull String @Nullable [] keysNotToCopy) {
+		this.readOnly = readOnly;
+
+		if (headers == null) {
+			this.valuesMap = readOnly ? Collections.emptyMap() : new HashMap<>();
+			this.lengthMap = readOnly ? Collections.emptyMap() : new HashMap<>();
+			return;
+		}
+
+		// Copy-construct: pre-sizes and skips per-entry afterNodeInsertion vs new + putAll.
+		// No Collections.unmodifiableMap wrapper necessary: every public mutator
+		// (add/put/remove/clear) already short-circuits on `readOnly` before
+		// touching the map, and the map is never exposed by reference.
+		this.valuesMap = new HashMap<>(headers.valuesMap);
+		this.lengthMap = new HashMap<>(headers.lengthMap);
+		this.dataLength = headers.dataLength;
+
+		if (keysNotToCopy != null) {
+			for (String key : keysNotToCopy) {
+				if (this.valuesMap.remove(key) != null) {
+					this.dataLength -= this.lengthMap.remove(key);
 				}
 			}
-		}
-		this.readOnly = readOnly;
-		if (readOnly) {
-			valuesMap = Collections.unmodifiableMap(tempValuesMap);
-			lengthMap = Collections.unmodifiableMap(tempLengthMap);
-		}
-		else {
-			valuesMap = tempValuesMap;
-			lengthMap = tempLengthMap;
 		}
 	}
 
@@ -97,7 +95,7 @@ public class Headers {
 	 * @throws IllegalArgumentException if the key is null or empty or contains invalid characters
 	 *         -or- if any value contains invalid characters
 	 */
-	public Headers add(String key, String... values) {
+	public Headers add(@NonNull String key, String... values) {
 		if (readOnly) {
 			throw new UnsupportedOperationException();
 		}
@@ -117,7 +115,7 @@ public class Headers {
 	 * @throws IllegalArgumentException if the key is null or empty or contains invalid characters
 	 *         -or- if any value contains invalid characters
 	 */
-	public Headers add(String key, Collection<String> values) {
+	public Headers add(@NonNull String key, Collection<String> values) {
 		if (readOnly) {
 			throw new UnsupportedOperationException();
 		}
@@ -128,7 +126,7 @@ public class Headers {
 	}
 
 	// the add delegate
-	private Headers _add(String key, @NonNull Collection<String> values) {
+	private Headers _add(@NonNull String key, @NonNull Collection<String> values) {
 		ValuesAndLength collected = validateKeyAndCollect(key, values);
 		if (collected != null) {
 			// get values by key or compute empty if absent
@@ -154,7 +152,7 @@ public class Headers {
 	 * @throws IllegalArgumentException if the key is null or empty or contains invalid characters
 	 *         -or- if any value contains invalid characters
 	 */
-	public Headers put(String key, String... values) {
+	public Headers put(@NonNull String key, String... values) {
 		if (readOnly) {
 			throw new UnsupportedOperationException();
 		}
@@ -174,7 +172,7 @@ public class Headers {
 	 * @throws IllegalArgumentException if the key is null or empty or contains invalid characters
 	 *         -or- if any value contains invalid characters
 	 */
-	public Headers put(String key, Collection<String> values) {
+	public Headers put(@NonNull String key, Collection<String> values) {
 		if (readOnly) {
 			throw new UnsupportedOperationException();
 		}
@@ -209,7 +207,7 @@ public class Headers {
 	}
 
 	// the put delegate
-	private Headers _put(String key, Collection<String> values) {
+	private Headers _put(@NonNull String key, Collection<String> values) {
 		ValuesAndLength collected = validateKeyAndCollect(key, values);
 		if (collected != null) {
 			// update the data length removing the old length adding the new length
@@ -232,9 +230,9 @@ public class Headers {
 		}
 	}
 
-	static ValuesAndLength validateKeyAndCollect(String key, Collection<String> values) {
-		if (key == null || key.isEmpty()) {
-			throw new IllegalArgumentException(KEY_CANNOT_BE_EMPTY_OR_NULL);
+	static ValuesAndLength validateKeyAndCollect(@NonNull String key, Collection<String> values) {
+		if (key.isEmpty()) {
+			throw new IllegalArgumentException(KEY_CANNOT_BE_EMPTY);
 		}
 		// Check the key to ensure it matches the specification for keys.
 		int keyLen = key.length();
@@ -454,11 +452,17 @@ public class Headers {
 
 	/**
 	 * Returns a read-only view of the underlying map.
+	 * Both the map and each {@code List<String>} value are unmodifiable.
 	 * @return an unmodifiable map of header keys to their list of values
 	 */
 	@NonNull
 	public Map<String, List<String>> toMap() {
-		return Collections.unmodifiableMap(valuesMap);
+		if (valuesMap.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		Map<String, List<String>> result = new HashMap<>((int)(valuesMap.size() / 0.75f) + 1);
+		valuesMap.forEach((k, v) -> result.put(k, Collections.unmodifiableList(v)));
+		return Collections.unmodifiableMap(result);
 	}
 
 	/**
@@ -535,6 +539,9 @@ public class Headers {
 		return readOnly;
 	}
 
+	public void freeze() {
+		readOnly = true;
+	}
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;

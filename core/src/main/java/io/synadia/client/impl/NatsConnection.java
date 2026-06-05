@@ -423,6 +423,9 @@ public class NatsConnection implements AutoCloseable {
         while ((cur = serverPool.nextServer()) != null) {
             if (first == null) {
                 first = cur;
+                if (options.reconnectDelayBehavior() == ReconnectDelayBehavior.BeforeAllRounds) {
+                    invokeReconnectDelayHandler(0);
+                }
             }
             else if (first.equals(cur)) {
                 // went around the pool an entire time
@@ -934,30 +937,12 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    /**
-     * Send a message to the specified subject. The message body <strong>will
-     * not</strong> be copied. The expected usage with string content is something
-     * like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * nc.publish("destination", "message".getBytes("UTF-8"))
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, String, byte[]) publish()} for more details on
-     * publish during reconnect.
-     *
-     * @param subject the subject to send the message to
-     * @param body the message body
-     * @throws IllegalStateException if the reconnect buffer is exceeded
-     */
-    public void publish(@NonNull String subject, byte @Nullable [] body) {
-        publish(subject, null, null, body, false);
+    public void publish(@NonNull String subject, byte @Nullable [] data) {
+        publish(subject, null, null, data, false);
     }
 
     /**
-     * Send a message to the specified subject. The message body <strong>will
+     * Send a message to the specified subject. The message data <strong>will
      * not</strong> be copied. The expected usage with string content is something
      * like:
      *
@@ -973,16 +958,16 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param subject the subject to send the message to
      * @param headers Optional headers to publish with the message.
-     * @param body the message body
+     * @param data the message data
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    public void publish(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
-        publish(subject, null, headers, body, false);
+    public void publish(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data) {
+        publish(subject, null, headers, data, false);
     }
 
     /**
      * Send a request to the specified subject, providing a replyTo subject. The
-     * message body <strong>will not</strong> be copied. The expected usage with
+     * message data <strong>will not</strong> be copied. The expected usage with
      * string content is something like:
      *
      * <pre>
@@ -1000,72 +985,50 @@ public class NatsConnection implements AutoCloseable {
      * </p>
      * @param subject the subject to send the message to
      * @param replyTo the subject the receiver should send any response to
-     * @param body the message body
+     * @param data the message data
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    public void publish(@NonNull String subject, @Nullable String replyTo, byte @Nullable [] body) {
-        publish(subject, replyTo, null, body, false);
+    public void publish(@NonNull String subject, @Nullable String replyTo, byte @Nullable [] data) {
+        publish(subject, replyTo, null, data, false);
     }
 
     /**
-     * Send a request to the specified subject, providing a replyTo subject. The
-     * message body <strong>will not</strong> be copied. The expected usage with
-     * string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * Headers h = new Headers().put("key", "value");
-     * nc.publish("destination", "reply-to", h, "message".getBytes("UTF-8"))
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * <p>
-     * During reconnect the client will try to buffer messages. The buffer size is set
-     * in the connect options, see {@link OptionsBuilder#reconnectBufferSize(long) reconnectBufferSize()}
-     * with a default value of {@link OptionsConstants#DEFAULT_RECONNECT_BUF_SIZE 8 * 1024 * 1024} bytes.
-     * If the buffer is exceeded an IllegalStateException is thrown. Applications should use
-     * this exception as a signal to wait for reconnect before continuing.
-     * </p>
      * @param subject the subject to send the message to
      * @param replyTo the subject the receiver should send any response to
      * @param headers Optional headers to publish with the message.
-     * @param body the message body
+     * @param data the message data
      * @throws IllegalStateException if the reconnect buffer is exceeded
      */
-    public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] body) {
-        publish(subject, replyTo, headers, body, false);
-    }
-
-    /**
-     * Send a message to the specified subject. The message body <strong>will
-     * not</strong> be copied. The expected usage with string content is something
-     * like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * nc.publish(NatsMessage.builder()...build())
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, String, byte[]) publish()} for more details on
-     * publish during reconnect.
-     *
-     * @param message the message
-     * @throws IllegalStateException if the reconnect buffer is exceeded
-     */
-    public void publish(@NonNull Message message) {
-        Validator.validateNotNull(message, "Message");
-        publish(message.getSubject(), message.getReplyTo(), message.getHeaders(), message.getData(), false);
+    public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data) {
+        subject = subjectValidate(subject);
+        replyTo = replyValidate(replyTo);
+        _publish(new InternalPublishableMessage(data, subject, replyTo, headers, false));
     }
 
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data, boolean flushImmediatelyAfterPublish) {
         subject = subjectValidate(subject);
         replyTo = replyValidate(replyTo);
-        NatsPublishableMessage npm = new NatsPublishableMessage(subject, replyTo, headers, data, flushImmediatelyAfterPublish);
-        if (npm.hasHeaders && !serverInfo.get().isHeadersSupported()) {
+        _publish(new InternalPublishableMessage(data, subject, replyTo, headers, flushImmediatelyAfterPublish));
+    }
+
+    public void publish(@NonNull NatsMessage message) {
+        Validator.validateNotNull(message, "Message");
+        subjectValidate(message.getSubject());
+        replyValidate(message.getReplyTo());
+        _publish(new InternalPublishableMessage(message, false));
+    }
+
+    public void publish(@NonNull NatsMessage message, boolean flushImmediatelyAfterPublish) {
+        Validator.validateNotNull(message, "Message");
+        subjectValidate(message.getSubject());
+        replyValidate(message.getReplyTo());
+        _publish(new InternalPublishableMessage(message, flushImmediatelyAfterPublish));
+    }
+
+    private void _publish(InternalPublishableMessage ipm) {
+        if (ipm.hasHeaders && !serverInfo.get().isHeadersSupported()) {
             throw new IllegalArgumentException("Headers are not supported by the server, version: " + serverInfo.get().getVersion());
         }
-
         if (isClosed()) {
             throw new IllegalStateException("NatsConnection is Closed");
         }
@@ -1074,12 +1037,12 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if ((status == RECONNECTING || status == DISCONNECTED)
-            && !this.writer.canQueueDuringReconnect(npm)) {
+            && !this.writer.canQueueDuringReconnect(ipm)) {
             throw new IllegalStateException(
                 "Unable to queue any more messages during reconnect, max buffer is " + options.getReconnectBufferSize());
         }
 
-        queueOutgoing(npm);
+        queueOutgoing(ipm);
     }
 
     /**
@@ -1329,14 +1292,14 @@ public class NatsConnection implements AutoCloseable {
      * the timeout and handling the ExecutionException and TimeoutException.
      *
      * @param subject the subject for the service that will handle the request
-     * @param body the content of the message
+     * @param data the content of the message
      * @param timeout the time to wait for a response
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Nullable
-    public Message request(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
-        return request(subject, null, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public Message request(@NonNull String subject, byte @Nullable [] data, @Nullable Duration timeout) throws InterruptedException {
+        return request(subject, null, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1346,14 +1309,14 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param subject the subject for the service that will handle the request
      * @param headers Optional headers to publish with the message.
-     * @param body the content of the message
+     * @param data the content of the message
      * @param timeout the time to wait for a response
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Nullable
-    public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, @Nullable Duration timeout) throws InterruptedException {
-        return request(subject, headers, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, @Nullable Duration timeout) throws InterruptedException {
+        return request(subject, headers, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1406,12 +1369,12 @@ public class NatsConnection implements AutoCloseable {
      * response comes back.
      *
      * @param subject the subject for the service that will handle the request
-     * @param body the content of the message
+     * @param data the content of the message
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] body) {
-        return requestAsync(subject, null, body, null, CancelAction.REPORT, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] data) {
+        return requestAsync(subject, null, data, null, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1420,12 +1383,12 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param subject the subject for the service that will handle the request
      * @param headers Optional headers to publish with the message.
-     * @param body the content of the message
+     * @param data the content of the message
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body) {
-        return requestAsync(subject, headers, body, null, CancelAction.REPORT, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data) {
+        return requestAsync(subject, headers, data, null, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1433,13 +1396,13 @@ public class NatsConnection implements AutoCloseable {
      * response comes back.
      *
      * @param subject the subject for the service that will handle the request
-     * @param body the content of the message
+     * @param data the content of the message
      * @param timeout the time to wait for a response. If not supplied a default will be used.
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] body, @Nullable Duration timeout) {
-        return requestAsync(subject, null, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] data, @Nullable Duration timeout) {
+        return requestAsync(subject, null, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1447,14 +1410,14 @@ public class NatsConnection implements AutoCloseable {
      * response comes back.
      *
      * @param subject the subject for the service that will handle the request
-     * @param body the content of the message
+     * @param data the content of the message
      * @param headers Optional headers to publish with the message.
      * @param timeout the time to wait for a response
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] body, Duration timeout) {
-        return requestAsync(subject, headers, body, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, Duration timeout) {
+        return requestAsync(subject, headers, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1495,26 +1458,19 @@ public class NatsConnection implements AutoCloseable {
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject,
                                                    @Nullable Headers headers,
-                                                   byte @Nullable [] body,
+                                                   byte @Nullable [] data,
                                                    @Nullable Duration futureTimeout,
                                                    @NonNull CancelAction cancelAction) {
-        return requestAsync(subject, headers, body, futureTimeout, cancelAction, forceFlushOnRequest);
+        return requestAsync(subject, headers, data, futureTimeout, cancelAction, forceFlushOnRequest);
     }
 
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject,
                                                    @Nullable Headers headers,
-                                                   byte @Nullable [] body,
+                                                   byte @Nullable [] data,
                                                    @Nullable Duration futureTimeout,
                                                    @NonNull CancelAction cancelAction,
                                                    boolean flushImmediatelyAfterPublish) {
-        if (isClosed()) {
-            throw new IllegalStateException("NatsConnection is Closed");
-        }
-        else if (isDraining()) {
-            throw new IllegalStateException("NatsConnection is Draining");
-        }
-
         if (inboxDispatcher.get() == null) {
             inboxDispatcherLock.lock();
             try {
@@ -1543,7 +1499,8 @@ public class NatsConnection implements AutoCloseable {
         responsesAwaiting.put(responseToken, future);
         statistics.incrementOutstandingRequests();
 
-        publish(subject, responseInbox, headers, body, flushImmediatelyAfterPublish);
+        _publish(new InternalPublishableMessage(data, subject, responseInbox, headers, flushImmediatelyAfterPublish));
+
         statistics.incrementRequestsSent();
 
         return future;

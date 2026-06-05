@@ -6,7 +6,7 @@ import io.synadia.client.Message;
  * A fetch consumer gets messages by calling nextMessage.
  * nextMessage returns null when there are no more messages
  */
-public interface FetchConsumer extends MessageConsumer {
+public interface FetchMessageConsumer extends MessageConsumer {
     /**
      * Read the next message. Return null if the fetch has been fulfilled either
      * because max messages or bytes max bytes have been reached,
