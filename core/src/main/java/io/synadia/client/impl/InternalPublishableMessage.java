@@ -12,13 +12,15 @@ class InternalPublishableMessage extends NatsMessage {
     }
 
     InternalPublishableMessage(byte @Nullable[] data, @NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, boolean flushImmediatelyAfterPublish) {
+        // headers handled by finishInit, not sent to super avoiding wasted assignment
         super(data, subject, replyTo, null, flushImmediatelyAfterPublish);
         hasHeaders = finishInit(headers);
     }
 
     InternalPublishableMessage(@NonNull NatsMessage nm, boolean flushImmediatelyAfterPublish) {
+        // headers handled by finishInit, not sent to super avoiding wasted assignment
         super(nm.data, nm.subject, nm.replyTo, null, flushImmediatelyAfterPublish);
-        hasHeaders = finishInit(headers);
+        hasHeaders = finishInit(nm.headers);
     }
 
     private boolean finishInit(@Nullable Headers headers) {

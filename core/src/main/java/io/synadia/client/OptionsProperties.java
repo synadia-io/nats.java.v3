@@ -84,7 +84,7 @@ public interface OptionsProperties {
      */
     String PROP_RECONNECT_BUF_SIZE = PFX + "reconnectBufSize";
     /**
-     * Property used to configure reconnect wait. {@value}
+     * Property used to configure reconnect wait, in milliseconds (plain integer). {@value}
      */
     String PROP_RECONNECT_WAIT = PFX + "reconnectWait";
     /**
@@ -92,11 +92,11 @@ public interface OptionsProperties {
      */
     String PROP_MAX_RECONNECT = PFX + "maxReconnect";
     /**
-     * Property used to configure reconnect jitter. {@value}
+     * Property used to configure reconnect jitter, in milliseconds (plain integer). {@value}
      */
     String PROP_RECONNECT_JITTER = PFX + "reconnectJitter";
     /**
-     * Property used to configure reconnect jitter for TLS. {@value}
+     * Property used to configure reconnect jitter for TLS, in milliseconds (plain integer). {@value}
      */
     String PROP_RECONNECT_JITTER_TLS = PFX + "reconnectJitterTls";
     /**
@@ -123,17 +123,9 @@ public interface OptionsProperties {
      */
     String PROP_NO_ECHO = PFX + "noEcho";
     /**
-     * Property used to configure noHeaders. {@value}
-     */
-    String PROP_NO_HEADERS = PFX + "noHeaders";
-    /**
      * Property used to configure connection name. {@value}
      */
     String PROP_CONNECTION_NAME = PFX + "connectionName";
-    /**
-     * Property used to configure noNoResponders. {@value}
-     */
-    String PROP_NO_NO_RESPONDERS = PFX + "noNoResponders";
     /**
      * Property used to configure noRandomize. {@value}
      */
@@ -353,6 +345,16 @@ public interface OptionsProperties {
         String value = getPropertyValue(props, key);
         if (value != null) {
             consumer.accept(Long.parseLong(value));
+        }
+    }
+
+    static void longGtEqZeroProperty(Properties props, String key, java.util.function.Consumer<Long> consumer) {
+        String value = getPropertyValue(props, key);
+        if (value != null) {
+            long l = Long.parseLong(value);
+            if (l >= 0) {
+                consumer.accept(l);
+            }
         }
     }
 

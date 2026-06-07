@@ -34,9 +34,7 @@ The property loader accepts each key with or without the `io.nats.client.` prefi
 | pedantic                              | Configure pedantic.                                                                  |
 | verbose                               | Configure verbose.                                                                   |
 | noEcho                                | Configure noEcho.                                                                    |
-| noHeaders                             | Configure noHeaders.                                                                 |
 | connectionName                        | Configure connectionName.                                                            |
-| doNotReportNoResponders               | Configure doNotReportNoResponders.                                                   |
 | noRandomize                           | Configure noRandomize.                                                               |
 | hostnameResolveMode                   | Configure the hostname resolution mode (replaces the legacy noResolveHostnames and fast.fallback flags). |
 | noSubjectValidation                   | Set subject validation to none.                                                      |

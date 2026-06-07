@@ -64,9 +64,9 @@ public class Options {
     final SSLContext sslContext;
     final int maxReconnect;
     final int maxControlLine;
-    final Duration reconnectWait;
-    final Duration reconnectJitter;
-    final Duration reconnectJitterTls;
+    final long reconnectWait;
+    final long reconnectJitter;
+    final long reconnectJitterTls;
     final Duration connectionTimeout;
     final int socketReadTimeoutMillis;
     final Duration socketWriteTimeout;
@@ -84,8 +84,6 @@ public class Options {
     final String inboxPrefix;
     final int bufferSize;
     final boolean noEcho;
-    final boolean noHeaders;
-    final boolean noNoResponders;
     final boolean clientSideLimitChecks;
     final boolean supportUTF8Subjects;
     final int maxMessagesInOutgoingQueue;
@@ -218,8 +216,6 @@ public class Options {
         this.maxControlLine = b.maxControlLine;
         this.bufferSize = b.bufferSize;
         this.noEcho = b.noEcho;
-        this.noHeaders = b.noHeaders;
-        this.noNoResponders = b.noNoResponders;
         this.clientSideLimitChecks = b.clientSideLimitChecks;
         this.supportUTF8Subjects = b.supportUTF8Subjects;
         this.inboxPrefix = b.inboxPrefix;
@@ -521,8 +517,9 @@ public class Options {
     }
 
     /**
-     * the reconnection delay handler, or null, see {@link OptionsBuilder#reconnectDelayHandler(ReconnectDelayHandler) reconnectDelayHandler()} in the builder doc
-     * @return the handler
+     * the reconnection delay handler. Never null — defaults to {@link io.synadia.client.impl.DefaultReconnectDelayHandler#INSTANCE}
+     * when no custom handler is supplied via {@link OptionsBuilder#reconnectDelayHandler(ReconnectDelayHandler) reconnectDelayHandler()}.
+     * @return the handler, never null
      */
     public ReconnectDelayHandler getReconnectDelayHandler() {
         return this.reconnectDelayHandler;
@@ -643,22 +640,6 @@ public class Options {
     }
 
     /**
-     * are headers disabled, see {@link OptionsBuilder#noHeaders() noHeaders()} in the builder doc
-     * @return true if headers are disabled
-     */
-    public boolean isNoHeaders() {
-        return noHeaders;
-    }
-
-    /**
-     * is NoResponders ignored disabled, see {@link OptionsBuilder#noNoResponders() noNoResponders()} in the builder doc
-     * @return true if no no-responders
-     */
-    public boolean isNoNoResponders() {
-        return noNoResponders;
-    }
-
-    /**
      * clientSideLimitChecks
      * @return true if the client will perform limit checks
      */
@@ -724,26 +705,26 @@ public class Options {
     }
 
     /**
-     * the reconnectWait, used between reconnect attempts, see {@link OptionsBuilder#reconnectWait(Duration) reconnectWait()} in the builder doc
-     * @return the reconnectWait
+     * the reconnect wait in milliseconds, used between reconnect attempts, see {@link OptionsBuilder#reconnectWait(long) reconnectWait()} in the builder doc
+     * @return the reconnect wait in milliseconds
      */
-    public Duration getReconnectWait() {
+    public long getReconnectWaitMillis() {
         return reconnectWait;
     }
 
     /**
-     * the reconnectJitter, used between reconnect attempts to vary the reconnect wait, see {@link OptionsBuilder#reconnectJitter(Duration) reconnectJitter()} in the builder doc
-     * @return the reconnectJitter
+     * the reconnect jitter in milliseconds, used between reconnect attempts to vary the reconnect wait, see {@link OptionsBuilder#reconnectJitter(long) reconnectJitter()} in the builder doc
+     * @return the reconnect jitter in milliseconds
      */
-    public Duration getReconnectJitter() {
+    public long getReconnectJitterMillis() {
         return reconnectJitter;
     }
 
     /**
-     * the reconnectJitterTls, used between reconnect attempts to vary the reconnect wait whe using tls/secure, see {@link OptionsBuilder#reconnectJitterTls(Duration) reconnectJitterTls()} in the builder doc
-     * @return the reconnectJitterTls
+     * the reconnect jitter in milliseconds for tls/secure connections, used between reconnect attempts to vary the reconnect wait, see {@link OptionsBuilder#reconnectJitterTls(long) reconnectJitterTls()} in the builder doc
+     * @return the reconnect jitter in milliseconds for tls/secure
      */
-    public Duration getReconnectJitterTls() {
+    public long getReconnectJitterTlsMillis() {
         return reconnectJitterTls;
     }
 
@@ -1018,7 +999,7 @@ public class Options {
         appendOption(connectString, OPTION_PROTOCOL, "1", false, true);
 
         appendOption(connectString, OPTION_VERBOSE, String.valueOf(this.isVerbose()), false, true);
-        appendOption(connectString, OPTION_PEDANTIC, "false", false, true);
+        appendOption(connectString, OPTION_PEDANTIC, String.valueOf(this.isPedantic()), false, true);
         appendOption(connectString, OPTION_TLS_REQUIRED, String.valueOf(this.isTLSRequired()), false, true);
         appendOption(connectString, OPTION_ECHO, String.valueOf(!this.isNoEcho()), false, true);
         appendOption(connectString, OPTION_HEADERS, "true", false, true);

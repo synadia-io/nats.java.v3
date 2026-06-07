@@ -8,7 +8,6 @@ import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.synadia.client.utils.ConnectionUtils.*;
@@ -59,7 +58,7 @@ public class AuthAndConnectTests extends TestBase {
             Options options = Options.builder()
                     .server(ts.getServerUri())
                     .maxReconnects(-1)
-                    .reconnectWait(Duration.ZERO)
+                    .reconnectWait(0L)
                     .errorListener(noopErrorListener)
                     .build();
 

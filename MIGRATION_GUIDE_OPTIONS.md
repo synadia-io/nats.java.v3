@@ -35,7 +35,6 @@ Both resolve to the same property.
 | `PROP_TRUSTSTORE`             | `PROP_TRUST_STORE`                | `trustStore`                    |                          |
 | `PROP_TRUSTSTORE_PASSWORD`    | `PROP_TRUST_STORE_PASSWORD`       | `trustStorePassword`            |                          |
 | `PROP_NORANDOMIZE`            | `PROP_NO_RANDOMIZE`               | `noRandomize`                   | `norandomize`            |
-| `PROP_NO_NORESPONDERS`        | `PROP_NO_NO_RESPONDERS`           | Removed. Report is default now. | `nonoresponders`         |
 | `PROP_OPENTLS`                | `PROP_OPEN_TLS`                   | `openTls`                       | `opentls`                |
 | `PROP_UTF8_SUBJECTS`          | `PROP_SUPPORT_UTF8_SUBJECTS`      | `supportUtf8Subjects`           | `allow.utf8.subjects`    |
 
@@ -47,7 +46,6 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 |--------------------------------------------------|----------------------------------------|-------------------------------------|
 | `PROP_DATA_PORT_TYPE`                            | `dataPortType`                         | `dataport.type`                     |
 | `PROP_NO_ECHO`                                   | `noEcho`                               | `noecho`                            |
-| `PROP_NO_HEADERS`                                | `noHeaders`                            | `noheaders`                         |
 | `PROP_MAX_PINGS`                                 | `maxPings`                             | `maxpings`                          |
 | `PROP_PING_INTERVAL`                             | `pingInterval`                         | `pinginterval`                      |
 | `PROP_CLEANUP_INTERVAL`                          | `cleanupInterval`                      | `cleanupinterval`                   |
@@ -109,6 +107,8 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 | `PROP_REPORT_NO_RESPONDERS`       | Client always reports No Responders                                                     |
 | `PROP_NO_SUBJECT_VALIDATION`      | Use `PROP_SUBJECT_VALIDATION_TYPE` (value `None`) instead of the legacy boolean         |
 | `PROP_STRICT_SUBJECT_VALIDATION`  | Use `PROP_SUBJECT_VALIDATION_TYPE` (value `Strict`) instead of the legacy boolean       |
+| `PROP_NO_HEADERS`                 | v3 always advertises headers support; the toggle was no longer wired                    |
+| `PROP_NO_NO_RESPONDERS`           | v3 always advertises no-responders support; the toggle was no longer wired              |
 
 ## 7. Prompts for Claude Code
 

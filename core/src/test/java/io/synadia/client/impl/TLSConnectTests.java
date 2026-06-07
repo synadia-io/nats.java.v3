@@ -266,7 +266,7 @@ public class TLSConnectTests extends TestBase {
                 .maxReconnects(-1)
                 .sslContext(ctx)
                 .connectionListener(listener)
-                .reconnectWait(Duration.ofMillis(10))
+                .reconnectWait(10L)
                 .build();
             ncRef.set((NatsConnection) managedConnect(options));
             assertInstanceOf(SocketDataPort.class, ncRef.get().getDataPort(), "Correct data port class");

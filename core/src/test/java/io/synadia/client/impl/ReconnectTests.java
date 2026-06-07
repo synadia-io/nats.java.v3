@@ -64,7 +64,7 @@ public class ReconnectTests {
         try (NatsTestServer ts = new NatsTestServer(nsrb)) {
             OptionsBuilder builder = optionsBuilder() // server intentionally not set
                 .maxReconnects(-1)
-                .reconnectWait(Duration.ofMillis(1000))
+                .reconnectWait(1000L)
                 .connectionListener(listener);
             optSetter.accept(ts, builder);
             Options options = builder.build();
@@ -129,7 +129,7 @@ public class ReconnectTests {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts)
                 .maxReconnects(-1)
-                .reconnectWait(Duration.ofMillis(20))
+                .reconnectWait(20L)
                 .connectionListener(listener)
                 .build();
             port = ts.getPort();
@@ -186,7 +186,7 @@ public class ReconnectTests {
             Options options = optionsBuilder(ts)
                 .maxReconnects(-1)
                 .userInfo("stephen".toCharArray(), "password".toCharArray())
-                .reconnectWait(Duration.ofMillis(1000))
+                .reconnectWait(1000L)
                 .connectionListener(listener)
                 .build();
             nc = (NatsConnection) managedConnect(options);
@@ -256,7 +256,7 @@ public class ReconnectTests {
             Options options = optionsBuilder(ts)
                 .maxReconnects(1)
                 .connectionListener(listener)
-                .reconnectWait(Duration.ofMillis(10))
+                .reconnectWait(10L)
                 .build();
             nc = managedConnect(options);
             listener.queueConnectionEvent(ConnectionEvents.CLOSED);
@@ -326,7 +326,7 @@ public class ReconnectTests {
                     .connectionListener(listener)
                     .maxReconnects(-1)
                     .connectionTimeout(Duration.ofSeconds(5))
-                    .reconnectWait(Duration.ofSeconds(1))
+                    .reconnectWait(1_000L)
                     .build();
                 nc = standardConnect(options);
                 assertEquals(mockTs2.getServerUri(), nc.getConnectedUrl());
@@ -350,7 +350,7 @@ public class ReconnectTests {
             Options options = optionsBuilder(ts)
                 .connectionListener(listener)
                 .reconnectBufferSize(4*512)
-                .reconnectWait(Duration.ofSeconds(480))
+                .reconnectWait(480_000L)
                 .build();
             nc = managedConnect(options);
         }
@@ -376,7 +376,7 @@ public class ReconnectTests {
                 .maxReconnects(5)
                 .connectionListener(listener)
                 .reconnectBufferSize(-1)
-                .reconnectWait(Duration.ofSeconds(30))
+                .reconnectWait(30_000L)
                 .build();
             nc = managedConnect(options);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
@@ -399,7 +399,7 @@ public class ReconnectTests {
         NatsConnection nc;
         Listener listener = new Listener();
         int port = NatsTestServer.nextPort();
-        Duration reconnectWait = Duration.ofMillis(100); // thrash
+        long reconnectWait = 100L; // thrash, ms
         int thrashCount = 5;
         CompletableFuture<Boolean> gotSub = new CompletableFuture<>();
         AtomicReference<CompletableFuture<Boolean>> subRef = new AtomicReference<>(gotSub);
@@ -537,7 +537,7 @@ public class ReconnectTests {
                 .secure()
                 .connectionListener(listener)
                 .maxReconnects(20)
-                .reconnectWait(Duration.ofMillis(100))
+                .reconnectWait(100L)
                 .connectionTimeout(Duration.ofSeconds(5))
                 .noRandomize()
                 .build();
@@ -601,7 +601,7 @@ public class ReconnectTests {
             Options options = optionsBuilder(ts)
                 .maxReconnects(-1)
                 .connectionTimeout(Duration.ofSeconds(1))
-                .reconnectWait(Duration.ofMillis(250))
+                .reconnectWait(250L)
                 .connectionListener(listener)
                 .build();
 

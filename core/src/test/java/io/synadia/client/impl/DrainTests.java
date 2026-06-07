@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -378,13 +379,13 @@ public class DrainTests {
             CompletableFuture<Message> response = subCon.requestAsync(reply, null);
             subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
             assertNotNull(response.get(1, TimeUnit.SECONDS));
-
             subCon.drain(Duration.ofSeconds(1));
 
             Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
             assertNotNull(msg);
-
-            assertThrows(IllegalStateException.class, () -> subCon.requestAsync(reply, null));
+            CompletableFuture<Message> cancelled = subCon.requestAsync(reply, null);
+            CancellationException ce = assertThrows(CancellationException.class, () -> cancelled.get(20, TimeUnit.SECONDS));
+            assertTrue(ce.getMessage().contains("Future cancelled, connection closing"));
         });
     }
 

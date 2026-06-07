@@ -49,9 +49,7 @@ public class AuthViolationDuringReconnectOnFlushTimeoutTest {
                     .maxMessagesInOutgoingQueue(NUMBER_OF_SUBS )
                     .reconnectBufferSize(NUMBER_OF_SUBS * 100)
                     .connectionTimeout(Duration.ofMillis(10))
-                    .reconnectWait(Duration.ofMillis(2000))
-//                    .connectionListener((conn, e) ->
-//                            System.out.printf("Tid: %d, NATS: connection event - %s, connected url: %s. servers: %s %n", Thread.currentThread().getId(), e, conn.getConnectedUrl(), conn.getServers()))
+                    .reconnectWait(2000L)
                     .errorListener(ctx.errorListener)
                     .build();
 

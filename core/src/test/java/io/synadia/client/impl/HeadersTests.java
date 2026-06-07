@@ -236,15 +236,15 @@ public class HeadersTests {
     @Test
     public void keyCannotBeNullOrEmpty() {
         Headers headers = new Headers();
-        assertThrows(IllegalArgumentException.class, () -> headers.put(null, VAL1));
-        assertThrows(IllegalArgumentException.class, () -> headers.put(null, VAL1, VAL2));
-        assertThrows(IllegalArgumentException.class, () -> headers.put(null, Collections.singletonList(VAL1)));
+        assertThrows(NullPointerException.class, () -> headers.put(null, VAL1));
+        assertThrows(NullPointerException.class, () -> headers.put(null, VAL1, VAL2));
+        assertThrows(NullPointerException.class, () -> headers.put(null, Collections.singletonList(VAL1)));
         assertThrows(IllegalArgumentException.class, () -> headers.put(EMPTY, VAL1));
         assertThrows(IllegalArgumentException.class, () -> headers.put(EMPTY, VAL1, VAL2));
         assertThrows(IllegalArgumentException.class, () -> headers.put(EMPTY, Collections.singletonList(VAL1)));
-        assertThrows(IllegalArgumentException.class, () -> headers.add(null, VAL1));
-        assertThrows(IllegalArgumentException.class, () -> headers.add(null, VAL1, VAL2));
-        assertThrows(IllegalArgumentException.class, () -> headers.add(null, Collections.singletonList(VAL1)));
+        assertThrows(NullPointerException.class, () -> headers.add(null, VAL1));
+        assertThrows(NullPointerException.class, () -> headers.add(null, VAL1, VAL2));
+        assertThrows(NullPointerException.class, () -> headers.add(null, Collections.singletonList(VAL1)));
         assertThrows(IllegalArgumentException.class, () -> headers.add(EMPTY, VAL1));
         assertThrows(IllegalArgumentException.class, () -> headers.add(EMPTY, VAL1, VAL2));
         assertThrows(IllegalArgumentException.class, () -> headers.add(EMPTY, Collections.singletonList(VAL1)));

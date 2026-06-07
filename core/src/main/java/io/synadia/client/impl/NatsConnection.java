@@ -51,6 +51,7 @@ public class NatsConnection implements AutoCloseable {
     protected NatsUri currentServer;
     protected NatsUri lastServer;
     protected CompletableFuture<Boolean> reconnectWaiter;
+    private volatile boolean lameDuckTriggered = false;
     protected final ConcurrentHashMap<NatsUri, String> serverAuthErrors;
 
     protected NatsConnectionReader reader;
@@ -417,19 +418,17 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void reconnectImplConnect() {
-        int totalRounds = 0;
+        long round = 0;
         NatsUri first = null;
         NatsUri cur;
         while ((cur = serverPool.nextServer()) != null) {
             if (first == null) {
                 first = cur;
-                if (options.reconnectDelayBehavior() == ReconnectDelayBehavior.BeforeAllRounds) {
-                    invokeReconnectDelayHandler(0);
-                }
+                invokeReconnectDelayHandler(++round);   // round becomes 1
             }
             else if (first.equals(cur)) {
                 // went around the pool an entire time
-                invokeReconnectDelayHandler(++totalRounds);
+                invokeReconnectDelayHandler(++round);
             }
 
             // let server list provider resolve hostnames
@@ -1002,12 +1001,14 @@ public class NatsConnection implements AutoCloseable {
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data) {
         subject = subjectValidate(subject);
         replyTo = replyValidate(replyTo);
+        validateNotClosed();
         _publish(new InternalPublishableMessage(data, subject, replyTo, headers, false));
     }
 
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data, boolean flushImmediatelyAfterPublish) {
         subject = subjectValidate(subject);
         replyTo = replyValidate(replyTo);
+        validateNotClosed();
         _publish(new InternalPublishableMessage(data, subject, replyTo, headers, flushImmediatelyAfterPublish));
     }
 
@@ -1015,6 +1016,7 @@ public class NatsConnection implements AutoCloseable {
         Validator.validateNotNull(message, "Message");
         subjectValidate(message.getSubject());
         replyValidate(message.getReplyTo());
+        validateNotClosed();
         _publish(new InternalPublishableMessage(message, false));
     }
 
@@ -1022,18 +1024,14 @@ public class NatsConnection implements AutoCloseable {
         Validator.validateNotNull(message, "Message");
         subjectValidate(message.getSubject());
         replyValidate(message.getReplyTo());
+        validateNotClosed();
         _publish(new InternalPublishableMessage(message, flushImmediatelyAfterPublish));
     }
 
+    // MUST CALL validateNotClosed(); BEFORE CALLING THIS
     private void _publish(InternalPublishableMessage ipm) {
         if (ipm.hasHeaders && !serverInfo.get().isHeadersSupported()) {
             throw new IllegalArgumentException("Headers are not supported by the server, version: " + serverInfo.get().getVersion());
-        }
-        if (isClosed()) {
-            throw new IllegalStateException("NatsConnection is Closed");
-        }
-        else if (blockPublishForDrain.get()) {
-            throw new IllegalStateException("NatsConnection is Draining"); // Ok to publish while waiting on subs
         }
 
         if ((status == RECONNECTING || status == DISCONNECTED)
@@ -1043,6 +1041,15 @@ public class NatsConnection implements AutoCloseable {
         }
 
         queueOutgoing(ipm);
+    }
+
+    private void validateNotClosed() {
+        if (isClosed()) {
+            throw new IllegalStateException("NatsConnection is Closed");
+        }
+        else if (blockPublishForDrain.get()) {
+            throw new IllegalStateException("NatsConnection is Draining"); // Ok to publish while waiting on subs
+        }
     }
 
     /**
@@ -1470,7 +1477,11 @@ public class NatsConnection implements AutoCloseable {
                                                    byte @Nullable [] data,
                                                    @Nullable Duration futureTimeout,
                                                    @NonNull CancelAction cancelAction,
-                                                   boolean flushImmediatelyAfterPublish) {
+                                                   boolean flushImmediatelyAfterPublish)
+    {
+        validateNotClosed();
+        subjectValidate(subject);
+
         if (inboxDispatcher.get() == null) {
             inboxDispatcherLock.lock();
             try {
@@ -1900,6 +1911,7 @@ public class NatsConnection implements AutoCloseable {
 
         if (serverInfo.isLameDuckMode()) {
             processConnectionEvent(ConnectionEvents.LAME_DUCK, uriDetail(currentServer));
+            this.lameDuckTriggered = true;
         }
     }
 
@@ -2319,39 +2331,25 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void invokeReconnectDelayHandler(long totalRounds) {
-        long currentWaitNanos = 0;
+    protected void invokeReconnectDelayHandler(long round) {
+        boolean ldt = lameDuckTriggered;
+        lameDuckTriggered = false;
 
-        ReconnectDelayHandler handler = options.getReconnectDelayHandler();
-        if (handler == null) {
-            Duration dur = options.getReconnectWait();
-            if (dur != null) {
-                currentWaitNanos = dur.toNanos();
-                dur = serverPool.hasSecureServer() ? options.getReconnectJitterTls() : options.getReconnectJitter();
-                if (dur != null) {
-                    currentWaitNanos += ThreadLocalRandom.current().nextLong(dur.toNanos());
-                }
-            }
-        }
-        else {
-            Duration waitTime = handler.getWaitTime(totalRounds);
-            if (waitTime != null) {
-                currentWaitNanos = waitTime.toNanos();
-            }
-        }
+        long currentWaitMillis = options.getReconnectDelayHandler()
+            .getWaitTimeMillis(round, options, serverPool.hasSecureServer(), ldt);
 
         this.reconnectWaiter = new CompletableFuture<>();
 
         long start = NatsSystemClock.nanoTime();
-        while (currentWaitNanos > 0 && !isDisconnectingOrClosed() && !isConnected() && !this.reconnectWaiter.isDone()) {
+        while (currentWaitMillis > 0 && !isDisconnectingOrClosed() && !isConnected() && !this.reconnectWaiter.isDone()) {
             try {
-                this.reconnectWaiter.get(currentWaitNanos, TimeUnit.NANOSECONDS);
+                this.reconnectWaiter.get(currentWaitMillis, TimeUnit.MILLISECONDS);
             } catch (Exception exp) {
                 // ignore, try to loop again
             }
-            long now = NatsSystemClock.nanoTime();
-            currentWaitNanos = currentWaitNanos - (now - start);
-            start = now;
+            long elapsedMillis = (NatsSystemClock.nanoTime() - start) / 1_000_000L;
+            currentWaitMillis -= elapsedMillis;
+            start = NatsSystemClock.nanoTime();
         }
 
         this.reconnectWaiter.complete(Boolean.TRUE);

@@ -156,7 +156,8 @@ public class ConnectTests {
     public void testFailWithMissingLineFeedAfterInfo() throws Exception {
         String badInfo = "{\"server_id\":\"test\", \"version\":\"9.9.99\"}\rmore stuff";
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(null, badInfo)) {
-            Options options = optionsBuilder(mockTs).reconnectWait(Duration.ofDays(1)).build();
+            // 86_400_000L == 1 day == really long
+            Options options = optionsBuilder(mockTs).reconnectWait(86_400_000L).build();
             assertThrows(IOException.class, () -> Nats.connect(options));
         }
     }
@@ -165,7 +166,8 @@ public class ConnectTests {
     public void testFailWithStuffAfterInitialInfo() throws Exception {
         String badInfo = "{\"server_id\":\"test\", \"version\":\"9.9.99\"}\r\nmore stuff";
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(null, badInfo)) {
-            Options options = optionsBuilder(mockTs).reconnectWait(Duration.ofDays(1)).build();
+            // 86_400_000L == 1 day == really long
+            Options options = optionsBuilder(mockTs).reconnectWait(86_400_000L).build();
             assertThrows(IOException.class, () -> Nats.connect(options));
         }
     }
@@ -175,7 +177,8 @@ public class ConnectTests {
         String badInfo = "PING {\"server_id\":\"test\", \"version\":\"9.9.99\"}\r\n"; // wrong op code
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(null, badInfo)) {
             mockTs.useCustomInfoAsFullInfo();
-            Options options = optionsBuilder(mockTs).reconnectWait(Duration.ofDays(1)).build();
+            // 86_400_000L == 1 day == really long
+            Options options = optionsBuilder(mockTs).reconnectWait(86_400_000L).build();
             assertThrows(IOException.class, () -> Nats.connect(options));
         }
     }
@@ -184,7 +187,8 @@ public class ConnectTests {
     public void testIncompleteInitialInfo() throws Exception {
         String badInfo = "{\"server_id\"\r\n";
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(null, badInfo)) {
-            Options options = optionsBuilder(mockTs).reconnectWait(Duration.ofDays(1)).build();
+            // 86_400_000L == 1 day == really long
+            Options options = optionsBuilder(mockTs).reconnectWait(86_400_000L).build();
             assertThrows(IOException.class, () -> Nats.connect(options));
         }
     }
@@ -210,7 +214,7 @@ public class ConnectTests {
         Listener listener = new Listener();
         int port = NatsTestServer.nextPort();
         Options options = optionsBuilder(port).maxReconnects(-1)
-                .reconnectWait(Duration.ofMillis(100)).connectionListener(listener).build();
+                .reconnectWait(100L).connectionListener(listener).build();
 
         Nats.connectAsynchronously(options, true);
 
@@ -385,7 +389,7 @@ public class ConnectTests {
             .dataPortType("io.synadia.client.impl.SimulateSocketDataPortException")
             .connectionListener(listener)
             .errorListener(el)
-            .reconnectDelayHandler(l -> Duration.ofSeconds(1))
+            .reconnectDelayHandler((l, o, s, d) -> 1000L)
             .build();
 
         NatsConnection connection = null;

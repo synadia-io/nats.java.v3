@@ -1,5 +1,6 @@
 package io.synadia.client;
 
+import io.synadia.client.impl.DefaultReconnectDelayHandler;
 import io.synadia.client.impl.DispatcherFactory;
 import io.synadia.client.impl.SSLContextFactory;
 import io.synadia.client.impl.SSLContextFactoryProperties;
@@ -66,9 +67,9 @@ public class OptionsBuilder {
     SSLContextFactory sslContextFactory = null;
     int maxControlLine = DEFAULT_MAX_CONTROL_LINE;
     int maxReconnect = DEFAULT_MAX_RECONNECT;
-    Duration reconnectWait = DEFAULT_RECONNECT_WAIT;
-    Duration reconnectJitter = DEFAULT_RECONNECT_JITTER;
-    Duration reconnectJitterTls = DEFAULT_RECONNECT_JITTER_TLS;
+    long reconnectWait = DEFAULT_RECONNECT_WAIT_MILLIS;
+    long reconnectJitter = DEFAULT_RECONNECT_JITTER_MILLIS;
+    long reconnectJitterTls = DEFAULT_RECONNECT_JITTER_TLS_MILLIS;
     Duration connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
     int socketReadTimeoutMillis = 0;
     Duration socketWriteTimeout = DEFAULT_SOCKET_WRITE_TIMEOUT;
@@ -86,8 +87,6 @@ public class OptionsBuilder {
     int bufferSize = DEFAULT_BUFFER_SIZE;
     boolean trackAdvancedStats = false;
     boolean noEcho = false;
-    boolean noHeaders = false;
-    boolean noNoResponders = false;
     boolean clientSideLimitChecks = true;
     boolean supportUTF8Subjects = false;
     String inboxPrefix = null;
@@ -103,7 +102,7 @@ public class OptionsBuilder {
 
     AuthHandler authHandler = null;
     ReconnectDelayHandler reconnectDelayHandler = null;
-    ReconnectDelayBehavior reconnectDelayBehavior = ReconnectDelayBehavior.BeforeSubsequentRounds;
+    ReconnectDelayBehavior reconnectDelayBehavior = ReconnectDelayBehavior.LameDuckAware;
 
     ErrorListener errorListener = null;
     ConnectionListener connectionListener = null;
@@ -207,17 +206,15 @@ public class OptionsBuilder {
         stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
         booleanProperty(props, PROP_VERBOSE, b -> this.verbose = b);
         booleanProperty(props, PROP_NO_ECHO, b -> this.noEcho = b);
-        booleanProperty(props, PROP_NO_HEADERS, b -> this.noHeaders = b);
-        booleanProperty(props, PROP_NO_NO_RESPONDERS, b -> this.noNoResponders = b);
         booleanProperty(props, PROP_CLIENT_SIDE_LIMIT_CHECKS, b -> this.clientSideLimitChecks = b);
         booleanProperty(props, PROP_SUPPORT_UTF8_SUBJECTS, b -> this.supportUTF8Subjects = b);
         booleanProperty(props, PROP_PEDANTIC, b -> this.pedantic = b);
 
         intProperty(props, PROP_MAX_RECONNECT, i -> this.maxReconnect = i);
-        durationProperty(props, PROP_RECONNECT_WAIT, d -> this.reconnectWait = d);
-        durationProperty(props, PROP_RECONNECT_JITTER, d -> this.reconnectJitter = d);
-        durationProperty(props, PROP_RECONNECT_JITTER_TLS, d -> this.reconnectJitterTls = d);
-        longProperty(props, PROP_RECONNECT_BUF_SIZE, l -> this.reconnectBufferSize = l);
+        longGtEqZeroProperty(props, PROP_RECONNECT_WAIT, l -> this.reconnectWait = l);
+        longGtEqZeroProperty(props, PROP_RECONNECT_JITTER, l -> this.reconnectJitter = l);
+        longGtEqZeroProperty(props, PROP_RECONNECT_JITTER_TLS, l -> this.reconnectJitterTls = l);
+        longGtEqZeroProperty(props, PROP_RECONNECT_BUF_SIZE, l -> this.reconnectBufferSize = l);
         classnameProperty(props, PROP_RECONNECT_DELAY_HANDLER_CLASS, o -> this.reconnectDelayHandler = (ReconnectDelayHandler) o);
         stringProperty(props, PROP_RECONNECT_DELAY_BEHAVIOR, s -> this.reconnectDelayBehavior = ReconnectDelayBehavior.get(s));
         durationProperty(props, PROP_CONNECTION_TIMEOUT, d -> this.connectionTimeout = d);
@@ -349,27 +346,6 @@ public class OptionsBuilder {
      */
     public OptionsBuilder noEcho() {
         this.noEcho = true;
-        return this;
-    }
-
-    /**
-     * Turn off header support. Some versions of the server don't support it.
-     * It's also not required if you don't use headers
-     *
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder noHeaders() {
-        this.noHeaders = true;
-        return this;
-    }
-
-    /**
-     * Turn off noresponder support. Some versions of the server don't support it.
-     *
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder noNoResponders() {
-        this.noNoResponders = true;
         return this;
     }
 
@@ -604,42 +580,42 @@ public class OptionsBuilder {
     }
 
     /**
-     * Set the time to wait between reconnect attempts to the same server. This setting is only used
+     * Set the time, in milliseconds, to wait between reconnect attempts to the same server. This setting is only used
      * by the client when the same server appears twice in the reconnect attempts, either because it is the
      * only known server or by random chance. Note, the randomization of the server list doesn't occur per
      * attempt, it is performed once at the start, so if there are 2 servers in the list you will never encounter
      * the reconnect wait.
      *
-     * @param time the time to wait
+     * @param millis the time to wait, in milliseconds
      * @return the Builder for chaining
      */
-    public OptionsBuilder reconnectWait(Duration time) {
-        this.reconnectWait = time;
+    public OptionsBuilder reconnectWait(long millis) {
+        this.reconnectWait = millis;
         return this;
     }
 
     /**
-     * Set the jitter time to wait between reconnect attempts to the same server. This setting is used to vary
+     * Set the jitter time, in milliseconds, to wait between reconnect attempts to the same server. This setting is used to vary
      * the reconnect wait to avoid multiple clients trying to reconnect to servers at the same time.
      *
-     * @param time the time to wait
+     * @param millis the time to wait, in milliseconds
      * @return the Builder for chaining
      */
-    public OptionsBuilder reconnectJitter(Duration time) {
-        this.reconnectJitter = time;
+    public OptionsBuilder reconnectJitter(long millis) {
+        this.reconnectJitter = millis;
         return this;
     }
 
     /**
-     * Set the jitter time for a tls/secure connection to wait between reconnect attempts to the same server.
+     * Set the jitter time, in milliseconds, for a tls/secure connection to wait between reconnect attempts to the same server.
      * This setting is used to vary the reconnect wait to avoid multiple clients trying to reconnect to
      * servers at the same time.
      *
-     * @param time the time to wait
+     * @param millis the time to wait, in milliseconds
      * @return the Builder for chaining
      */
-    public OptionsBuilder reconnectJitterTls(Duration time) {
-        this.reconnectJitterTls = time;
+    public OptionsBuilder reconnectJitterTls(long millis) {
+        this.reconnectJitterTls = millis;
         return this;
     }
 
@@ -911,7 +887,7 @@ public class OptionsBuilder {
      */
     public OptionsBuilder reconnectDelayBehavior(ReconnectDelayBehavior reconnectDelayBehavior) {
         this.reconnectDelayBehavior = reconnectDelayBehavior == null
-            ? ReconnectDelayBehavior.BeforeSubsequentRounds
+            ? ReconnectDelayBehavior.LameDuckAware
             : reconnectDelayBehavior;
         return this;
     }
@@ -1223,6 +1199,10 @@ public class OptionsBuilder {
             inboxPrefix = DEFAULT_INBOX_PREFIX;
         }
 
+        if (reconnectDelayHandler == null) {
+            reconnectDelayHandler = DefaultReconnectDelayHandler.INSTANCE;
+        }
+
         if (this.username != null && tokenSupplier.get() != null) {
             throw new IllegalStateException("Options can't have token and username");
         }
@@ -1377,8 +1357,6 @@ public class OptionsBuilder {
         this.maxControlLine = o.maxControlLine;
         this.bufferSize = o.bufferSize;
         this.noEcho = o.noEcho;
-        this.noHeaders = o.noHeaders;
-        this.noNoResponders = o.noNoResponders;
         this.clientSideLimitChecks = o.clientSideLimitChecks;
         this.supportUTF8Subjects = o.supportUTF8Subjects;
         this.inboxPrefix = o.inboxPrefix;

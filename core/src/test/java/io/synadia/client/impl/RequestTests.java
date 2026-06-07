@@ -278,56 +278,6 @@ public class RequestTests extends TestBase {
     }
 
     @Test
-    public void testRequireCleanupOnTimeoutNoNoResponders() throws Exception {
-        try (NatsTestServer ts = new NatsTestServer()) {
-            Options options = optionsBuilder(ts)
-                    .requestCleanupInterval(Duration.ofHours(1))
-                    .noNoResponders().build();
-
-            NatsConnection nc = Nats.connect(options);
-            try {
-                assertConnected(nc);
-
-                assertThrows(TimeoutException.class,
-                        () -> nc.requestAsync(random(), null).get(100, TimeUnit.MILLISECONDS));
-
-                assertEquals(1, nc.getStatistics().getOutstandingRequests());
-            } finally {
-                nc.close();
-                assertClosed(nc);
-            }
-        }
-    }
-
-    @Test
-    public void testRequireCleanupOnTimeoutCleanCompletable() throws Exception {
-        try (NatsTestServer ts = new NatsTestServer()) {
-
-            long cleanupInterval = 100;
-
-            Options options = optionsBuilder(ts)
-                    .requestCleanupInterval(Duration.ofMillis(cleanupInterval))
-                    .noNoResponders().build();
-
-            NatsConnection nc = (NatsConnection) Nats.connect(options);
-            try {
-                assertConnected(nc);
-                NatsMessage nm = NatsMessage.builder().subject(random()).data(dataBytes(2)).build();
-                CompletableFuture<Message> future = nc.requestAsync(nm, Duration.ofMillis(cleanupInterval));
-                
-                Thread.sleep(2 * cleanupInterval + DEFAULT_CONNECTION_TIMEOUT.toMillis());
-
-                assertTrue(future.isCompletedExceptionally());
-                assertEquals(0, nc.getStatistics().getOutstandingRequests());
-
-            } finally {
-                nc.close();
-                assertClosed(nc);
-            }
-        }
-    }
-
-    @Test
     public void testSimpleRequestWithTimeout() throws Exception {
 
         try (NatsTestServer ts = new NatsTestServer())
@@ -412,64 +362,15 @@ public class RequestTests extends TestBase {
     }
 
     @Test
-    public void testRequireCleanupOnCancelFromNoResponders() throws Exception {
-        try (NatsTestServer ts = new NatsTestServer()) {
-            Options options = optionsBuilder(ts)
-                    .requestCleanupInterval(Duration.ofHours(1)).build();
-
-            NatsConnection nc = Nats.connect(options);
-            try {
-                assertConnected(nc);
-                assertThrows(CancellationException.class, () -> nc.requestAsync(random(), null).get(100, TimeUnit.MILLISECONDS));
-
-                assertEquals(0, nc.getStatistics().getOutstandingRequests());
-            } finally {
-                nc.close();
-                assertClosed(nc);
-            }
-
-        }
-    }
-
-    @Test
-    public void testRequireCleanupWithTimeoutNoResponders() throws Exception {
-        try (NatsTestServer ts = new NatsTestServer()) {
-            Options options = optionsBuilder(ts)
-                    .requestCleanupInterval(Duration.ofHours(1)).build();
-
-            NatsConnection nc = Nats.connect(options);
-            try {
-                assertConnected(nc);
-                assertThrows(CancellationException.class, () -> nc.requestAsync(random(), null, Duration.ofMillis(100)).get(100, TimeUnit.MILLISECONDS));
-                assertEquals(0, nc.getStatistics().getOutstandingRequests());
-            } finally {
-                nc.close();
-                assertClosed(nc);
-            }
-
-        }
-    }
-
-    @Test
-    public void testRequireCleanupWithTimeoutNoNoResponders() throws Exception {
-        try (NatsTestServer ts = new NatsTestServer()) {
-            Options options = optionsBuilder(ts)
-                    .requestCleanupInterval(Duration.ofHours(1))
-                    .noNoResponders().build();
-
-            NatsConnection nc = Nats.connect(options);
-            try {
-                assertConnected(nc);
-
-                assertConnected(nc);
-                assertThrows(TimeoutException.class, () -> nc.requestAsync(random(), null, Duration.ofMillis(100)).get(100, TimeUnit.MILLISECONDS));
-                assertEquals(1, nc.getStatistics().getOutstandingRequests());
-
-            } finally {
-                nc.close();
-                assertClosed(nc);
-            }
-        }
+    public void testNoResponders() throws Exception {
+        OptionsBuilder optionsBuilder = optionsBuilder().requestCleanupInterval(Duration.ofHours(1));
+        runInSharedOwnNc(optionsBuilder, nc -> {
+            assertConnected(nc);
+            ExecutionException ee = assertThrows(ExecutionException.class,
+                () -> nc.requestAsync(random(), null).get(100, TimeUnit.MILLISECONDS));
+            assertInstanceOf(StatusException.class, ee.getCause());
+            assertEquals(0, nc.getStatistics().getOutstandingRequests());
+        });
     }
 
     @Test
@@ -695,7 +596,6 @@ public class RequestTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = Options.builder()
                     .server(ts.getServerUri())
-                    .noNoResponders()
                     .requestCleanupInterval(Duration.ofSeconds(10))
                     .build();
             NatsConnection nc = (NatsConnection) Nats.connect(options);

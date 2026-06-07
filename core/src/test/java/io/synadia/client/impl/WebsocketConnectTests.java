@@ -10,7 +10,6 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -166,7 +165,7 @@ public class WebsocketConnectTests extends TestBase {
                 .sslContext(ctx)
                 .connectionListener(listener)
                 .errorListener(NOOP_EL)
-                .reconnectWait(Duration.ofMillis(10))
+                .reconnectWait(10L)
                 .build();
 
             listener.queueConnectionEvent(CONNECTED);

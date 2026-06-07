@@ -61,7 +61,7 @@ public class ConnectionListenerTests extends TestBase {
         Listener listener = new Listener();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts)
-                .reconnectWait(Duration.ofMillis(100))
+                .reconnectWait(100L)
                 .maxReconnects(-1)
                 .connectionListener(listener)
                 .build();

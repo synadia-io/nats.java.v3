@@ -43,7 +43,7 @@ public class ValidateIssue1426Test {
                 .maxMessagesInOutgoingQueue(NUMBER_OF_SUBS )
                 .reconnectBufferSize(NUMBER_OF_SUBS * 100)
                 .connectionTimeout(Duration.ofSeconds(1))
-                .reconnectWait(Duration.ofSeconds(2))
+                .reconnectWait(2_000L)
                 .errorListener(errorListener)
                 .build();
 

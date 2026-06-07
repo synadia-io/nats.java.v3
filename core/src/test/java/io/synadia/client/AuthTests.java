@@ -575,7 +575,7 @@ public class AuthTests extends TestBase {
                     .noRandomize()
                     .maxReconnects(-1)
                     .connectionTimeout(Duration.ofSeconds(5))
-                    .reconnectWait(Duration.ofSeconds(1)) // wait a tad to allow restarts
+                    .reconnectWait(1_000L) // wait a tad to allow restarts
                     .authHandler(getUserCredsAuthHander())
                     .build();
                 NatsConnection nc = managedConnect(options);

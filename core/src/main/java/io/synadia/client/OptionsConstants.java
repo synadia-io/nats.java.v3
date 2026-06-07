@@ -34,17 +34,17 @@ public interface OptionsConstants {
      * Default wait time before attempting reconnection to the same server.
      * This property is defined as 2000 milliseconds (2 seconds).
      */
-    Duration DEFAULT_RECONNECT_WAIT = Duration.ofMillis(2000);
+    long DEFAULT_RECONNECT_WAIT_MILLIS = 2_000L;
 
     /**
      * Default reconnect jitter. Defined as 100 milliseconds.
      */
-    Duration DEFAULT_RECONNECT_JITTER = Duration.ofMillis(100);
+    long DEFAULT_RECONNECT_JITTER_MILLIS = 100L;
 
     /**
      * Default reconnect jitter for TLS. Defined as 1000 milliseconds (1 second).
      */
-    Duration DEFAULT_RECONNECT_JITTER_TLS = Duration.ofMillis(1000);
+    long DEFAULT_RECONNECT_JITTER_TLS_MILLIS = 1_000L;
 
     /**
      * Default connection timeout. Defined as 2 seconds.
