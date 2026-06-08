@@ -53,6 +53,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
                 .sealed(false)
                 .compressionOption(S2)
                 .allowMessageCounter(false)
+                .allowMessageSchedules(false)
                 .persistMode(null);
             validateTestStreamConfiguration(ctx.createOrReplaceStream(sc).getConfiguration(), true, ctx.stream);
         });

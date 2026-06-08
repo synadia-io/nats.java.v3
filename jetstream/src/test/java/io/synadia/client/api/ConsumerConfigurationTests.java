@@ -455,7 +455,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals(Duration.ofHours(22), cc.getAckWait());
         assertTrue(cc.isMemStorage());
         assertEquals(1, cc.getNumReplicas());
-        assertEquals(Duration.ofMillis(AbstractOrderedConsumerCreator.DEFAULT_ORDERED_HEARTBEAT), cc.getIdleHeartbeat());
+        assertEquals(null, cc.getIdleHeartbeat());
 
         assertNull(cc.getNamePrefix());
         assertNotNull(cc.getName());
@@ -541,38 +541,6 @@ public class ConsumerConfigurationTests extends TestBase {
 
         cc.deliverSubject(DELIVER_SUBJECT);
         assertEquals(DELIVER_SUBJECT, cc.getDeliverSubject());
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // SubscribeBehavior
-    // ----------------------------------------------------------------------------------------------------
-
-    @Test
-    public void testSubscribeBehavior() {
-        SubscribeBehavior sb = new SubscribeBehavior();
-
-        assertNull(sb.getDispatcher());
-        assertNull(sb.getHandler());
-        assertEquals(0, sb.getMessageAlarmTime());
-        assertEquals(0, sb.getPendingMessageLimit());
-        assertEquals(0, sb.getPendingByteLimit());
-
-        sb.messageAlarmTime(5000);
-        assertEquals(5000, sb.getMessageAlarmTime());
-
-        sb.pendingMessageLimit(100);
-        assertEquals(100, sb.getPendingMessageLimit());
-
-        sb.pendingByteLimit(2048);
-        assertEquals(2048, sb.getPendingByteLimit());
-
-        SubscribeBehavior sb2 = new SubscribeBehavior();
-        sb2.subscribeBehavior(sb);
-        assertEquals(5000, sb2.getMessageAlarmTime());
-        assertEquals(100, sb2.getPendingMessageLimit());
-        assertEquals(2048, sb2.getPendingByteLimit());
-
-        assertNotNull(SubscribeBehavior.DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 
     // ----------------------------------------------------------------------------------------------------

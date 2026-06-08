@@ -3,6 +3,7 @@ package io.synadia.client.api;
 import io.nats.json.DateTimeUtils;
 import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
+import io.synadia.client.Consumer;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.NatsMessage;
@@ -2164,8 +2165,8 @@ public class ApiFieldsTest {
         assertNull(sb.getDispatcher());
         assertNull(sb.getHandler());
         assertEquals(0L, sb.getMessageAlarmTime());
-        assertEquals(0L, sb.getPendingMessageLimit());
-        assertEquals(0L, sb.getPendingByteLimit());
+        assertEquals(Consumer.DEFAULT_MAX_MESSAGES, sb.getPendingMessageLimit());
+        assertEquals(Consumer.DEFAULT_MAX_BYTES, sb.getPendingByteLimit());
 
         MessageHandler handler = m -> { /* no-op */ };
 
@@ -2182,5 +2183,10 @@ public class ApiFieldsTest {
         // Copy via subscribeBehavior
         SubscribeBehavior copy = new SubscribeBehavior().subscribeBehavior(sb);
         assertEquals(sb, copy);
+        assertEquals(123L, copy.getMessageAlarmTime());
+        assertEquals(456L, copy.getPendingMessageLimit());
+        assertEquals(789L, copy.getPendingByteLimit());
+
+        assertNotNull(SubscribeBehavior.DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 }
