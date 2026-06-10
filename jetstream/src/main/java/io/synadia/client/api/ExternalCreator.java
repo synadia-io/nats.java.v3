@@ -20,9 +20,12 @@ public class ExternalCreator implements JsonSerializable {
     private @Nullable String deliver;
 
     /**
-     * Construct an empty ExternalCreator
+     * Construct an ExternalCreator with api and deliver
+     * @param api the api prefix
      */
-    public ExternalCreator() {}
+    public ExternalCreator(String api) {
+        this.api = Validator.required(api, "api");
+    }
 
     /**
      * Construct an ExternalCreator with api and deliver

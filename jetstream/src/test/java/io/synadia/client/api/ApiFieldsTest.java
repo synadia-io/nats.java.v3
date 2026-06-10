@@ -10,6 +10,7 @@ import io.synadia.client.impl.NatsMessage;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -55,6 +56,11 @@ public class ApiFieldsTest {
 
     @Test
     public void testConsumerLimitsCreator() {
+        // ---- defaults (constructor only, no setters) ----
+        ConsumerLimitsCreator dflt = new ConsumerLimitsCreator();
+        assertNull(dflt.getInactiveThreshold());
+        assertEquals(-1L, dflt.getMaxAckPending());
+
         // ---- construct + creator getters + round trip ----
         ConsumerLimitsCreator creator = new ConsumerLimitsCreator()
             .inactiveThreshold(Duration.ofSeconds(45))
@@ -124,10 +130,13 @@ public class ApiFieldsTest {
 
     @Test
     public void testExternalCreator() {
+        // ---- defaults (constructor only, no setters) ----
+        ExternalCreator creator = new ExternalCreator("api-prefix");
+        assertEquals("api-prefix", creator.getApi());
+        assertNull(creator.getDeliver());
+
         // ---- construct + creator getters + JSON round trip ----
-        ExternalCreator creator = new ExternalCreator()
-            .api("api-prefix")
-            .deliver("deliver-subject");
+        creator = new ExternalCreator("api-prefix", "deliver-subject");
         assertEquals("api-prefix", creator.getApi());
         assertEquals("deliver-subject", creator.getDeliver());
 
@@ -152,17 +161,30 @@ public class ApiFieldsTest {
         assertEquals(original.getDeliver(), round.getDeliver());
 
         // ---- null-reset coverage ----
-        ExternalCreator c = new ExternalCreator().api("v1").deliver("v2");
-        assertEquals("v1", c.getApi());
-        assertEquals("v2", c.getDeliver());
+        ExternalCreator c = new ExternalCreator("a", "d");
+        assertEquals("a", c.getApi());
+        assertEquals("d", c.getDeliver());
         //noinspection DataFlowIssue
         assertThrows(IllegalArgumentException.class, () -> c.api(null));
         c.deliver(null);
         assertNull(c.getDeliver());
+
+        // ---- default string coverage ----
+        External e = new External(lj("{}"));
+        assertEquals("", e.getApi());
     }
 
     @Test
     public void testMirrorCreator() {
+        // ---- defaults (constructor only, no setters) ----
+        MirrorCreator dflt = new MirrorCreator("dflt-mirror");
+        assertEquals("dflt-mirror", dflt.getStreamName());
+        assertEquals(0L, dflt.getStartSequence());
+        assertNull(dflt.getStartTime());
+        assertNull(dflt.getFilterSubject());
+        assertNull(dflt.getExternalCreator());
+        assertTrue(dflt.getSubjectTransformCreators().isEmpty());
+
         // ---- construct + creator getters + round trip ----
         MirrorCreator creator = new MirrorCreator("mirror-stream")
             .startSequence(99)
@@ -185,6 +207,9 @@ public class ApiFieldsTest {
         assertEquals(99, mirror.getStartSequence());
         assertEquals(ZDT_A, mirror.getStartTime());
         assertEquals("filter.>", mirror.getFilterSubject());
+
+        Mirror empty = new Mirror(lj("{}"));
+        assertEquals("", empty.getStreamName());
 
         External ext = mirror.getExternal();
         assertNotNull(ext);
@@ -261,6 +286,12 @@ public class ApiFieldsTest {
 
     @Test
     public void testPlacementCreator() {
+        // ---- defaults (constructor only, no setters) ----
+        PlacementCreator dflt = new PlacementCreator();
+        assertNull(dflt.getCluster());
+        assertTrue(dflt.getTags().isEmpty());
+        assertFalse(dflt.hasData());
+
         // ---- construct + creator getters + JSON round trip ----
         PlacementCreator creator = new PlacementCreator()
             .cluster("east-1")
@@ -316,6 +347,44 @@ public class ApiFieldsTest {
 
     @Test
     public void testPullConsumerCreator() {
+        // ---- defaults (constructor only, no setters) ----
+        PullConsumerCreator dflt = new PullConsumerCreator();
+        assertFalse(dflt.isPush());
+        assertEquals(ConsumerCreator.DEFAULT_DELIVER_POLICY, dflt.getDeliverPolicy());
+        assertEquals(ConsumerCreator.DEFAULT_ACK_POLICY, dflt.getAckPolicy());
+        assertEquals(ConsumerCreator.DEFAULT_REPLAY_POLICY, dflt.getReplayPolicy());
+        assertEquals(ConsumerCreator.DEFAULT_PRIORITY_POLICY, dflt.getPriorityPolicy());
+        assertNull(dflt.getDescription());
+        assertNull(dflt.getDurable());
+        assertNull(dflt.getName());
+        assertNull(dflt.getDeliverSubject());
+        assertNull(dflt.getDeliverGroup());
+        assertNull(dflt.getSampleFrequency());
+        assertNull(dflt.getStartTime());
+        assertNull(dflt.getAckWait());
+        assertNull(dflt.getIdleHeartbeat());
+        assertNull(dflt.getMaxExpires());
+        assertNull(dflt.getInactiveThreshold());
+        assertNull(dflt.getPauseUntil());
+        assertNull(dflt.getPriorityTimeout());
+        assertEquals(0L, dflt.getStartSequence());
+        assertEquals(0L, dflt.getRateLimit());
+        assertEquals(-1L, dflt.getMaxDeliver());
+        assertEquals(-1L, dflt.getMaxAckPending());
+        assertEquals(-1L, dflt.getMaxPullWaiting());
+        assertEquals(-1L, dflt.getMaxBatch());
+        assertEquals(-1L, dflt.getMaxBytes());
+        assertEquals(-1L, dflt.getNumReplicas());
+        assertFalse(dflt.isFlowControl());
+        assertFalse(dflt.isHeadersOnly());
+        assertFalse(dflt.isMemStorage());
+        assertNull(dflt.getFilterSubject());
+        assertTrue(dflt.getFilterSubjects().isEmpty());
+        assertFalse(dflt.hasMultipleFilterSubjects());
+        assertTrue(dflt.getBackoff().isEmpty());
+        assertTrue(dflt.getMetadata().isEmpty());
+        assertTrue(dflt.getPriorityGroups().isEmpty());
+
         // ---- construct + creator-side setters + JSON round trip ----
         PullConsumerCreator creator = new PullConsumerCreator()
             .durable("dur-1")
@@ -640,6 +709,21 @@ public class ApiFieldsTest {
         // The setters exercised here are pull-ordered-only; they delegate to the
         // same protected setters already covered by testPullConsumerCreator, so
         // we focus on overload coverage rather than re-asserting reset semantics.
+
+        // ---- defaults (constructor only, no setters) ----
+        // The ordered creator's constructor seeds a fixed policy set via commonInit().
+        PullOrderedConsumerCreator dflt = new PullOrderedConsumerCreator();
+        assertFalse(dflt.isPush());
+        assertNull(dflt.getNamePrefix());
+        assertNotNull(dflt.getName()); // auto-generated random name
+        assertEquals(AckPolicy.None, dflt.getAckPolicy());
+        assertEquals(1L, dflt.getMaxDeliver());
+        assertEquals(Duration.ofHours(22), dflt.getAckWait());
+        assertTrue(dflt.isMemStorage());
+        assertEquals(1L, dflt.getNumReplicas());
+        assertNull(dflt.getIdleHeartbeat()); // heartbeat default is push-ordered only
+        assertEquals(ConsumerCreator.DEFAULT_DELIVER_POLICY, dflt.getDeliverPolicy());
+
         PullOrderedConsumerCreator c = new PullOrderedConsumerCreator()
             .namePrefix("pfx")
             .maxExpires(Duration.ofSeconds(60))
@@ -689,6 +773,24 @@ public class ApiFieldsTest {
 
     @Test
     public void testPushConsumerCreator() {
+        // ---- defaults (constructor only, no setters) ----
+        PushConsumerCreator dflt = new PushConsumerCreator();
+        assertTrue(dflt.isPush());
+        assertEquals(ConsumerCreator.DEFAULT_DELIVER_POLICY, dflt.getDeliverPolicy());
+        assertEquals(ConsumerCreator.DEFAULT_ACK_POLICY, dflt.getAckPolicy());
+        assertNull(dflt.getDurable());
+        assertNull(dflt.getName());
+        assertNull(dflt.getDeliverSubject());
+        assertNull(dflt.getDeliverGroup());
+        assertNull(dflt.getStartTime());
+        assertNull(dflt.getIdleHeartbeat());
+        assertFalse(dflt.isFlowControl());
+        assertFalse(dflt.isHeadersOnly());
+        assertEquals(0L, dflt.getStartSequence());
+        assertEquals(-1L, dflt.getMaxAckPending());
+        assertEquals(-1L, dflt.getNumReplicas());
+        assertTrue(dflt.getMetadata().isEmpty());
+
         // ---- construct + creator setters + round trip ----
         Map<String, String> meta = new HashMap<>();
         meta.put("k1", "v1");
@@ -776,6 +878,10 @@ public class ApiFieldsTest {
         assertEquals("dest.>", republish.getDestination());
         assertTrue(republish.isHeadersOnly());
 
+        Republish empty = new Republish(lj("{}"));
+        assertEquals("", empty.getSource());
+        assertEquals("", empty.getDestination());
+
         // ---- 2-arg constructor (headersOnly defaults to false) ----
         RepublishCreator creator2 = new RepublishCreator("s.>", "d.>");
         assertFalse(creator2.isHeadersOnly());
@@ -805,6 +911,15 @@ public class ApiFieldsTest {
 
     @Test
     public void testSourceCreator() {
+        // ---- defaults (constructor only, no setters) ----
+        SourceCreator dflt = new SourceCreator("dflt-source");
+        assertEquals("dflt-source", dflt.getStreamName());
+        assertEquals(0L, dflt.getStartSequence());
+        assertNull(dflt.getStartTime());
+        assertNull(dflt.getFilterSubject());
+        assertNull(dflt.getExternalCreator());
+        assertTrue(dflt.getSubjectTransformCreators().isEmpty());
+
         // ---- construct + creator getters + round trip ----
         SourceCreator creator = new SourceCreator("source-stream")
             .startSequence(123)
@@ -900,6 +1015,41 @@ public class ApiFieldsTest {
         assertEquals(StreamCreator.DEFAULT_DISCARD_POLICY, dflt.getDiscardPolicy());
         // persistMode default at the Creator level is null (server fills in DEFAULT_PERSIST_MODE)
         assertNull(dflt.getPersistMode());
+        // remaining constructor defaults (no setters called)
+        assertEquals("defaults-stream", dflt.getName());
+        assertNull(dflt.getDescription());
+        assertTrue(dflt.getSubjects().isEmpty());
+        assertEquals(-1L, dflt.getMaxConsumers());
+        assertEquals(-1L, dflt.getMaxMessages());
+        assertEquals(-1L, dflt.getMaxMessagesPerSubject());
+        assertEquals(-1L, dflt.getMaxBytes());
+        assertEquals(-1, dflt.getMaxMessageSize());
+        assertNull(dflt.getMaxAge());
+        assertEquals(1, dflt.getReplicas());
+        assertFalse(dflt.getNoAck());
+        assertNull(dflt.getTemplateOwner());
+        assertNull(dflt.getDuplicateWindow());
+        assertNull(dflt.getPlacementCreator());
+        assertNull(dflt.getRepublishCreator());
+        assertNull(dflt.getSubjectTransformCreator());
+        assertNull(dflt.getConsumerLimitsCreator());
+        assertNull(dflt.getMirrorCreator());
+        assertTrue(dflt.getSourceCreators().isEmpty());
+        assertFalse(dflt.getSealed());
+        assertFalse(dflt.getAllowRollup());
+        assertFalse(dflt.getAllowDirect());
+        assertFalse(dflt.getMirrorDirect());
+        assertFalse(dflt.getDenyDelete());
+        assertFalse(dflt.getDenyPurge());
+        assertFalse(dflt.isDiscardNewPerSubject());
+        assertTrue(dflt.getMetadata().isEmpty());
+        assertEquals(1L, dflt.getFirstSequence());
+        assertNull(dflt.getSubjectDeleteMarkerTtl());
+        assertFalse(dflt.getAllowMessageTtl());
+        assertFalse(dflt.getAllowMessageSchedules());
+        assertFalse(dflt.getAllowMessageCounter());
+        assertFalse(dflt.getAllowAtomicPublish());
+        assertFalse(dflt.getAllowBatched());
 
         StreamConfiguration dfltCfg = new StreamConfiguration(lj(dflt.toJson()));
         assertEquals(StreamCreator.DEFAULT_RETENTION_POLICY, dfltCfg.getRetentionPolicy());
@@ -1080,7 +1230,9 @@ public class ApiFieldsTest {
         assertEquals(original.getSource(), round.getSource());
         assertEquals(original.getDestination(), round.getDestination());
 
-        // SubjectTransformCreator has no nullable setters (all fields are final).
+        SubjectTransform empty = new SubjectTransform(lj("{}"));
+        assertEquals("", empty.getSource());
+        assertEquals("", empty.getDestination());
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -1297,8 +1449,8 @@ public class ApiFieldsTest {
 
         // defaults / not present
         AccountLimits empty = new AccountLimits(lj("{}"));
-        assertEquals(0L, empty.getMaxMemory());
-        assertEquals(0L, empty.getMaxStorage());
+        assertEquals(-1L, empty.getMaxMemory());
+        assertEquals(-1L, empty.getMaxStorage());
         assertFalse(empty.isMaxBytesRequired());
     }
 
@@ -1478,6 +1630,10 @@ public class ApiFieldsTest {
         assertEquals(7L, info.getLag());
         assertEquals(Duration.ofSeconds(5), info.getActive());
 
+        MirrorInfo empty = new MirrorInfo(lj("{}"));
+        assertEquals("", empty.getName());
+        assertEquals(Duration.ZERO, empty.getActive());
+
         External ext = info.getExternal();
         assertNotNull(ext);
         assertEquals("api1", ext.getApi());
@@ -1495,12 +1651,9 @@ public class ApiFieldsTest {
 
         assertNotNull(info.toString());
 
-        // missing name throws
-        MirrorInfo noName = new MirrorInfo(lj("{}"));
-        assertThrows(IllegalStateException.class, noName::getName);
         // negative active returns null
         MirrorInfo neg = new MirrorInfo(lj("{\"name\":\"n\",\"active\":-1}"));
-        assertNull(neg.getActive());
+        assertEquals(Duration.ZERO, neg.getActive());
         assertNull(neg.getExternal());
         assertTrue(neg.getSubjectTransforms().isEmpty());
         assertNull(neg.getError());
@@ -1523,6 +1676,9 @@ public class ApiFieldsTest {
         assertEquals("g", minimal.getGroup());
         assertNull(minimal.getPinnedClientId());
         assertNull(minimal.getPinnedTime());
+
+        PriorityGroupState empty = new PriorityGroupState(lj("{}"));
+        assertEquals("", empty.getGroup());
     }
 
     @Test
@@ -1547,6 +1703,11 @@ public class ApiFieldsTest {
         assertEquals("n", r2.getName());
         assertEquals(Duration.ZERO, r2.getActive());
         assertEquals(0L, r2.getLag());
+
+        // no active -> Duration.ZERO
+        Replica empty = new Replica(lj("{}"));
+        assertEquals("", empty.getName());
+        assertEquals(Duration.ZERO, empty.getActive());
     }
 
     @Test
@@ -1600,13 +1761,9 @@ public class ApiFieldsTest {
         assertEquals("clstr-x", sa.getCluster());
         assertNotNull(sa.toString());
 
-        // missing name should throw
-        StreamAlternate noName = new StreamAlternate(lj("{\"cluster\":\"c\"}"));
-        assertThrows(IllegalStateException.class, noName::getName);
-
-        // missing cluster should throw
-        StreamAlternate noCluster = new StreamAlternate(lj("{\"name\":\"n\"}"));
-        assertThrows(IllegalStateException.class, noCluster::getCluster);
+        StreamAlternate empty = new StreamAlternate(lj("{}"));
+        assertEquals("", empty.getName());
+        assertEquals("", empty.getCluster());
     }
 
     @Test
@@ -1664,14 +1821,27 @@ public class ApiFieldsTest {
 
         assertNotNull(state.toString());
 
-        // empty
+        // empty — uint64 fields default to 0 (not -1; see UINT64_AUDIT.md)
         StreamState empty = new StreamState(lj("{}"));
         assertEquals(0L, empty.getMessageCount());
+        assertEquals(BigInteger.ZERO, empty.getMessageCountAsBigInteger());
         assertNull(empty.getFirstTime());
         assertTrue(empty.getDeleted().isEmpty());
         assertTrue(empty.getSubjects().isEmpty());
         assertTrue(empty.getSubjectMap().isEmpty());
         assertNull(empty.getLostStreamData());
+
+        // top-half uint64 (> Long.MAX_VALUE): the long getter returns the two's-complement bit
+        // pattern (negative), the BigInteger getter returns the true non-negative value. This is
+        // the case the old readLong path silently dropped to the default. See UINT64_AUDIT.md.
+        BigInteger uint64Max = new BigInteger("18446744073709551615"); // 2^64 - 1
+        BigInteger twoPow63 = new BigInteger("9223372036854775808");  // 2^63 (smallest top-half)
+        StreamState topHalf = new StreamState(lj(
+            "{\"messages\":18446744073709551615,\"first_seq\":9223372036854775808}"));
+        assertEquals(-1L, topHalf.getMessageCount());                    // 2^64-1 as signed long
+        assertEquals(uint64Max, topHalf.getMessageCountAsBigInteger());
+        assertEquals(Long.MIN_VALUE, topHalf.getFirstSequence());       // 2^63 as signed long
+        assertEquals(twoPow63, topHalf.getFirstSequenceAsBigInteger());
     }
 
     @Test

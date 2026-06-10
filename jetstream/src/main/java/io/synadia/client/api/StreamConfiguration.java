@@ -4,6 +4,7 @@ import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -303,10 +304,20 @@ public class StreamConfiguration extends LazyApiObject {
 
     /**
      * The first sequence used in the stream.
+     * <p>The server value is an unsigned 64-bit number (default {@code 1}).
      * @return the first sequence
      */
     public long getFirstSequence() {
-        return readLong(ljv, FIRST_SEQ, 1);
+        return readUnsignedLong(ljv, FIRST_SEQ, 1L);
+    }
+
+    /**
+     * The first sequence used in the stream as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getFirstSequence()}.
+     * @return the first sequence, or {@link BigInteger#ONE} if absent
+     */
+    public BigInteger getFirstSequenceAsBigInteger() {
+        return readUnsignedBigInteger(ljv, FIRST_SEQ, BigInteger.ONE);
     }
 
     /**

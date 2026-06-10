@@ -4,10 +4,11 @@ import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import static io.nats.json.LazyJsonValueUtils.readLong;
+import java.math.BigInteger;
+
 import static io.nats.json.LazyJsonValueUtils.readMapObjectOrEmpty;
 import static io.synadia.client.utils.ApiConstants.*;
-import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
+import static io.synadia.client.utils.ApiUtils.*;
 
 /**
  * Represents the JetStream Account Tier
@@ -22,34 +23,74 @@ public class AccountTier extends LazyApiObject {
 
     /**
      * Memory Storage being used for Stream Message storage in this tier.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the memory storage in bytes
      */
     public long getMemoryBytes() {
-        return readLongOrMinusOne(ljv, MEMORY);
+        return readUnsignedLongOrZero(ljv, MEMORY);
+    }
+
+    /**
+     * Memory Storage being used for Stream Message storage in this tier, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getMemoryBytes()}.
+     * @return the memory storage in bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getMemoryBytesAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, MEMORY);
     }
 
     /**
      * File Storage being used for Stream Message storage in this tier.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the storage in bytes
      */
     public long getStorageBytes() {
-        return readLongOrMinusOne(ljv, STORAGE);
+        return readUnsignedLongOrZero(ljv, STORAGE);
     }
 
     /**
-     * Bytes that is reserved for memory usage by this account on the server
+     * File Storage being used for Stream Message storage in this tier, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getStorageBytes()}.
+     * @return the storage in bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getStorageBytesAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, STORAGE);
+    }
+
+    /**
+     * Bytes that is reserved for memory usage by this account on the server.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the memory usage in bytes
      */
     public long getReservedMemoryBytes() {
-        return readLong(ljv, RESERVED_MEMORY, 0);
+        return readUnsignedLongOrZero(ljv, RESERVED_MEMORY);
     }
 
     /**
-     * Bytes that is reserved for disk usage by this account on the server
+     * Bytes that is reserved for memory usage by this account on the server, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getReservedMemoryBytes()}.
+     * @return the memory usage in bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getReservedMemoryBytesAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, RESERVED_MEMORY);
+    }
+
+    /**
+     * Bytes that is reserved for disk usage by this account on the server.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the disk usage in bytes
      */
     public long getReservedStorageBytes() {
-        return readLong(ljv, RESERVED_STORAGE, 0);
+        return readUnsignedLongOrZero(ljv, RESERVED_STORAGE);
+    }
+
+    /**
+     * Bytes that is reserved for disk usage by this account on the server, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getReservedStorageBytes()}.
+     * @return the disk usage in bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getReservedStorageBytesAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, RESERVED_STORAGE);
     }
 
     /**

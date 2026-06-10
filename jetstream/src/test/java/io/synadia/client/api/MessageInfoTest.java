@@ -6,6 +6,7 @@ import io.synadia.client.impl.MessageInfo;
 import io.synadia.client.impl.NatsMessage;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigInteger;
 import java.util.Base64;
 
 import static io.nats.json.DateTimeUtils.DEFAULT_TIME;
@@ -152,5 +153,37 @@ public class MessageInfoTest {
         assertFalse(testInfo.isEobStatus());
         assertFalse(testInfo.isErrorStatus());
         assertFalse(testInfo.hasError());
+    }
+
+    @Test
+    public void testUnsignedSequences() {
+        BigInteger twoPow63 = new BigInteger("9223372036854775808"); // 2^63, smallest top-half uint64
+
+        // JSON path (readUnsignedLong): seq in the top half of the uint64 range
+        String json = beginJson()
+            .append("\"message\":{\"subject\":\"s\",\"seq\":9223372036854775808}")
+            .append("}").toString();
+        MessageInfo jsonMi = new MessageInfo(new NatsMessage("r", null, null, json.getBytes()), "stream", false);
+        assertEquals(Long.MIN_VALUE, jsonMi.getSequence());           // two's-complement bit pattern
+        assertEquals(twoPow63, jsonMi.getSequenceAsBigInteger());     // true non-negative value
+
+        // direct header path (safeParseLong -> Long.parseUnsignedLong fallback)
+        Headers h = new Headers();
+        h.put(NATS_SEQUENCE, "9223372036854775808");      // 2^63
+        h.put(NATS_LAST_SEQUENCE, "9223372036854775808"); // 2^63
+        h.put(NATS_NUM_PENDING, "6");
+        MessageInfo mi = new MessageInfo(new NatsMessage("s", null, h, new byte[0]), "stream", true);
+        assertEquals(Long.MIN_VALUE, mi.getSequence());
+        assertEquals(twoPow63, mi.getSequenceAsBigInteger());
+        assertEquals(Long.MIN_VALUE, mi.getLastSequence());
+        assertEquals(twoPow63, mi.getLastSequenceAsBigInteger());
+        assertEquals(5L, mi.getNumPending());                        // header (6) - 1
+        assertEquals(BigInteger.valueOf(5), mi.getNumPendingAsBigInteger());
+
+        // -1 "not known" sentinel preserved by the BigInteger companions
+        MessageInfo status = new MessageInfo(new Status(404, "Not Found"), "stream");
+        assertEquals(BigInteger.valueOf(-1), status.getSequenceAsBigInteger());
+        assertEquals(BigInteger.valueOf(-1), status.getLastSequenceAsBigInteger());
+        assertEquals(BigInteger.valueOf(-1), status.getNumPendingAsBigInteger());
     }
 }

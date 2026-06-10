@@ -4,12 +4,14 @@ import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.ZonedDateTime;
 import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
+import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.utils.ApiConstants.*;
-import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
+import static io.synadia.client.utils.ApiUtils.*;
 
 /**
  * Represents a stream source or mirror returned from the server.
@@ -31,11 +33,21 @@ abstract class StreamSource extends LazyApiObject {
     }
 
     /**
-     * Get the configured start sequence
+     * Get the configured start sequence.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the start sequence
      */
     public long getStartSequence() {
-        return readLong(ljv, OPT_START_SEQ, 0);
+        return readUnsignedLongOrZero(ljv, OPT_START_SEQ);
+    }
+
+    /**
+     * Get the configured start sequence as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getStartSequence()}.
+     * @return the start sequence, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getStartSequenceAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, OPT_START_SEQ);
     }
 
     /**

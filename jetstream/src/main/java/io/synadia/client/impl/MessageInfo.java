@@ -9,6 +9,7 @@ import io.synadia.client.utils.IncomingHeadersProcessor;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.ZonedDateTime;
 
 import static io.nats.json.JsonWriteUtils.*;
@@ -24,7 +25,7 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
 
     private final @Nullable String subject;
     private final long seq;
-    private final byte @Nullable [] data;
+    private final byte @Nullable[] data;
     private final @Nullable ZonedDateTime time;
     private final @Nullable Headers headers;
     private final @Nullable String stream;
@@ -45,6 +46,7 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
         // working vars because the object vars are final
         String _subject = null;
         long _seq = -1;
+        //noinspection DataFlowIssue the ide is wrong in flagging this, _data can be null
         byte[] _data = null;
         ZonedDateTime _time = null;
         Headers _headers = null;
@@ -63,10 +65,12 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
                 _stream = msgHeaders.getLast(NATS_STREAM);
                 String temp = msgHeaders.getLast(NATS_SEQUENCE);
                 if (temp != null) {
+                    // safeParseLong will handle it this happens to be in the unsigned range
                     _seq = safeParseLong(temp, -1);
                 }
                 temp = msgHeaders.getLast(NATS_LAST_SEQUENCE);
                 if (temp != null) {
+                    // safeParseLong will handle it this happens to be in the unsigned range
                     _lastSeq = safeParseLong(temp, -1);
                 }
                 temp = msgHeaders.getLast(NATS_NUM_PENDING);
@@ -85,9 +89,11 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
         else if (!hasError()) {
             LazyJsonValue mjv = readValue(ljv, MESSAGE);
             _subject = readString(mjv, SUBJECT);
+            //noinspection DataFlowIssue the ide is wrong in flagging this, _data can be null
             _data = readBase64Basic(mjv, DATA);
-            _seq = readLong(mjv, SEQ, 0);
+            _seq = readUnsignedLong(mjv, SEQ, 0);
             _time = readDate(mjv, TIME);
+            //noinspection DataFlowIssue the ide is wrong in flagging this, hdrBytes can be null
             byte[] hdrBytes = readBase64Basic(mjv, HDRS);
             _headers = hdrBytes == null ? null : new IncomingHeadersProcessor(hdrBytes).getHeaders();
         }
@@ -130,11 +136,21 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
     }
 
     /**
-     * Get the message sequence
+     * Get the message sequence.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the sequence number
      */
     public long getSequence() {
         return seq;
+    }
+
+    /**
+     * Get the message sequence as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getSequence()}.
+     * @return the sequence number, or {@code -1} if not known
+     */
+    public BigInteger getSequenceAsBigInteger() {
+        return asUnsignedBigInteger(seq);
     }
 
     /**
@@ -174,6 +190,7 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
 
     /**
      * Get the sequence number of the last message in the stream. Not always set.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the last sequence or -1 if the value is not known.
      */
     public long getLastSequence() {
@@ -181,11 +198,38 @@ public class MessageInfo extends ApiResponse<MessageInfo> {
     }
 
     /**
+     * Get the sequence number of the last message in the stream as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getLastSequence()}.
+     * @return the last sequence, or {@code -1} if not known
+     */
+    public BigInteger getLastSequenceAsBigInteger() {
+        return asUnsignedBigInteger(lastSeq);
+    }
+
+    /**
      * Amount of pending messages that can be requested with a subsequent batch request.
+     * <p>The server value is an unsigned 64-bit number.
      * @return number of pending messages
      */
     public long getNumPending() {
         return numPending;
+    }
+
+    /**
+     * Amount of pending messages as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getNumPending()}.
+     * @return number of pending messages, or {@code -1} if not known
+     */
+    public BigInteger getNumPendingAsBigInteger() {
+        return asUnsignedBigInteger(numPending);
+    }
+
+    /**
+     * Convert a stored uint64 value to its non-negative unsigned magnitude, preserving the
+     * {@code -1} "not known" sentinel that the long getters return when a field was absent.
+     */
+    private static BigInteger asUnsignedBigInteger(long v) {
+        return v == -1 ? BigInteger.valueOf(-1) : new BigInteger(Long.toUnsignedString(v));
     }
 
     /**

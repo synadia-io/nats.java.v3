@@ -6,6 +6,7 @@ import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -13,9 +14,10 @@ import java.util.Map;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.api.ConsumerCreator.*;
-import static io.synadia.client.impl.JetStreamApiUtils.ULONG_UNSET;
 import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readUnsignedBigIntegerOrZero;
+import static io.synadia.client.utils.ApiUtils.readUnsignedLongOrZero;
 import static io.synadia.client.utils.NatsConstants.UNDEFINED;
 
 /**
@@ -85,9 +87,14 @@ public class ConsumerConfiguration extends LazyApiObject {
         return DeliverPolicy.get(readString(ljv, DELIVER_POLICY), DEFAULT_DELIVER_POLICY);
     }
 
-    /** @return the start sequence. */
+    /** @return the start sequence. The server value is an unsigned 64-bit number. */
     public long getStartSequence() {
-        return readLong(ljv, OPT_START_SEQ, ULONG_UNSET);
+        return readUnsignedLongOrZero(ljv, OPT_START_SEQ);
+    }
+
+    /** @return the start sequence as a non-negative unsigned {@link BigInteger}; companion to {@link #getStartSequence()}. */
+    public BigInteger getStartSequenceAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, OPT_START_SEQ);
     }
 
     /** @return the start time. */
@@ -148,9 +155,14 @@ public class ConsumerConfiguration extends LazyApiObject {
         return ReplayPolicy.get(readString(ljv, REPLAY_POLICY), DEFAULT_REPLAY_POLICY);
     }
 
-    /** @return the rate limit in bits per second */
+    /** @return the rate limit in bits per second. The server value is an unsigned 64-bit number. */
     public long getRateLimit() {
-        return readLong(ljv, RATE_LIMIT_BPS, ULONG_UNSET);
+        return readUnsignedLongOrZero(ljv, RATE_LIMIT_BPS);
+    }
+
+    /** @return the rate limit as a non-negative unsigned {@link BigInteger}; companion to {@link #getRateLimit()}. */
+    public BigInteger getRateLimitAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, RATE_LIMIT_BPS);
     }
 
     /** @return maximum ack pending. */

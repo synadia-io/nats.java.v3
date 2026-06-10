@@ -4,6 +4,7 @@ import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.util.List;
 
@@ -40,11 +41,21 @@ abstract class StreamSourceInfo extends LazyApiObject {
     }
 
     /**
-     * How many uncommitted operations this peer is behind the leader
+     * How many uncommitted operations this peer is behind the leader.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the lag
      */
     public long getLag() {
-        return readLongOrMinusOne(ljv, LAG);
+        return readUnsignedLongOrZero(ljv, LAG);
+    }
+
+    /**
+     * How many uncommitted operations this peer is behind the leader, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getLag()}.
+     * @return the lag, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getLagAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, LAG);
     }
 
     /**

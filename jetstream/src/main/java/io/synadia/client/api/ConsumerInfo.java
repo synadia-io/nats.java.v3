@@ -5,13 +5,15 @@ import io.synadia.client.Message;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
+import static io.nats.json.LazyJsonValueUtils.readBoolean;
 import static io.synadia.client.utils.ApiConstants.*;
-import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
+import static io.synadia.client.utils.ApiUtils.*;
 
 /**
  * The ConsumerInfo class returns information about a JetStream consumer.
@@ -106,11 +108,21 @@ public class ConsumerInfo extends ApiResponse<ConsumerInfo> {
     }
 
     /**
-     * The number of messages left unconsumed in this Consumer
+     * The number of messages left unconsumed in this Consumer.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the number of pending messages
      */
     public long getNumPending() {
-        return readLongOrMinusOne(ljv, NUM_PENDING);
+        return readUnsignedLongOrZero(ljv, NUM_PENDING);
+    }
+
+    /**
+     * The number of messages left unconsumed in this Consumer as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getNumPending()}.
+     * @return the number of pending messages, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getNumPendingAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, NUM_PENDING);
     }
 
     /**

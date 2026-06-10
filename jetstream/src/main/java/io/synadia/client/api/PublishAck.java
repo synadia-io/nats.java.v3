@@ -6,6 +6,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
@@ -22,7 +23,7 @@ public class PublishAck extends ApiResponse<PublishAck> {
     private final boolean duplicate;
     private final @Nullable String val;
     private final @Nullable String batchId;
-    private final int batchSize;
+    private final long batchSize;
 
     /**
      *
@@ -38,7 +39,8 @@ public class PublishAck extends ApiResponse<PublishAck> {
         if (stream.isEmpty()) {
             throw new IOException("Invalid JetStream ack.");
         }
-        seq = readLong(ljv, SEQ, -1);
+        // seq is an unsigned 64-bit value; read full-range. -1 remains the "absent/invalid" sentinel.
+        seq = readUnsignedLong(ljv, SEQ, -1);
         if (seq < 0) {
             throw new IOException("Invalid JetStream ack.");
         }
@@ -46,15 +48,26 @@ public class PublishAck extends ApiResponse<PublishAck> {
         duplicate = readBoolean(ljv, DUPLICATE, false);
         val = readString(ljv, VAL);
         batchId = readString(ljv, BATCH);
-        batchSize = readInteger(ljv, COUNT, -1);
+        // count is an unsigned 64-bit value; -1 remains the "not a batch publish" sentinel.
+        batchSize = readUnsignedLong(ljv, COUNT, -1);
     }
 
     /**
      * Get the stream sequence number for the corresponding published message.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the sequence number for the stored message.
      */
     public long getSequenceNumber() {
         return seq;
+    }
+
+    /**
+     * Get the stream sequence number as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getSequenceNumber()}.
+     * @return the sequence number for the stored message.
+     */
+    public BigInteger getSequenceNumberAsBigInteger() {
+        return asUnsignedBigInteger(seq);
     }
 
     /**
@@ -102,9 +115,27 @@ public class PublishAck extends ApiResponse<PublishAck> {
 
     /**
      * Gets the batch size. Only populated for batch publishes.
-     * @return the size of the batch
+     * <p>The server value is an unsigned 64-bit number.
+     * @return the size of the batch, or -1 if not a batch publish
      */
-    public int getBatchSize() {
+    public long getBatchSize() {
         return batchSize;
+    }
+
+    /**
+     * Gets the batch size as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getBatchSize()}.
+     * @return the size of the batch, or -1 if not a batch publish
+     */
+    public BigInteger getBatchSizeAsBigInteger() {
+        return asUnsignedBigInteger(batchSize);
+    }
+
+    /**
+     * Convert a stored uint64 value to its non-negative unsigned magnitude, preserving the
+     * {@code -1} sentinel the long getters return for an absent field.
+     */
+    private static BigInteger asUnsignedBigInteger(long v) {
+        return v == -1 ? BigInteger.valueOf(-1) : new BigInteger(Long.toUnsignedString(v));
     }
 }

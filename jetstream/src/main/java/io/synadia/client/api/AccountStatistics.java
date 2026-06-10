@@ -5,6 +5,7 @@ import io.synadia.client.Message;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +40,7 @@ public class AccountStatistics extends ApiResponse<AccountStatistics> {
     /**
      * Gets the amount of memory storage used by the JetStream deployment.
      * If the account has tiers, this will represent a rollup.
+     * <p>The server value is an unsigned 64-bit number.
      * @return bytes
      */
     public long getMemory() {
@@ -46,8 +48,18 @@ public class AccountStatistics extends ApiResponse<AccountStatistics> {
     }
 
     /**
+     * Gets the amount of memory storage used by the JetStream deployment, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getMemory()}.
+     * @return bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getMemoryAsBigInteger() {
+        return getRollupTier().getMemoryBytesAsBigInteger();
+    }
+
+    /**
      * Gets the amount of file storage used by the JetStream deployment.
      * If the account has tiers, this will represent a rollup.
+     * <p>The server value is an unsigned 64-bit number.
      * @return bytes
      */
     public long getStorage() {
@@ -55,7 +67,17 @@ public class AccountStatistics extends ApiResponse<AccountStatistics> {
     }
 
     /**
-     * Bytes that is reserved for memory usage by this account on the server
+     * Gets the amount of file storage used by the JetStream deployment, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getStorage()}.
+     * @return bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getStorageAsBigInteger() {
+        return getRollupTier().getStorageBytesAsBigInteger();
+    }
+
+    /**
+     * Bytes that is reserved for memory usage by this account on the server.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the memory usage in bytes
      */
     public long getReservedMemory() {
@@ -63,11 +85,30 @@ public class AccountStatistics extends ApiResponse<AccountStatistics> {
     }
 
     /**
-     * Bytes that is reserved for disk usage by this account on the server
+     * Bytes that is reserved for memory usage by this account on the server, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getReservedMemory()}.
+     * @return the memory usage in bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getReservedMemoryAsBigInteger() {
+        return getRollupTier().getReservedMemoryBytesAsBigInteger();
+    }
+
+    /**
+     * Bytes that is reserved for disk usage by this account on the server.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the disk usage in bytes
      */
     public long getReservedStorage() {
         return getRollupTier().getReservedStorageBytes();
+    }
+
+    /**
+     * Bytes that is reserved for disk usage by this account on the server, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getReservedStorage()}.
+     * @return the disk usage in bytes, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getReservedStorageAsBigInteger() {
+        return getRollupTier().getReservedStorageBytesAsBigInteger();
     }
 
     /**

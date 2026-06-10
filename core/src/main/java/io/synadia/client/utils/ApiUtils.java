@@ -5,6 +5,7 @@ import io.synadia.client.NUID;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -155,6 +156,47 @@ public abstract class ApiUtils {
      */
     public static long readLongOrMinusOne(@NonNull LazyJsonValue ljv, @NonNull String key) {
         return LazyJsonValueUtils.readLong(ljv, key, -1L);
+    }
+
+    /**
+     * Read a long, returning {@code 0} when absent. {@code 0} is the codebase-wide
+     * "missing required numeric" sentinel for an unsigned 64 bit value
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the long value, or {@code -1} if absent
+     */
+    public static long readLongOrZero(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        return LazyJsonValueUtils.readLong(ljv, key, 0L);
+    }
+
+    /**
+     * Read an <b>unsigned 64-bit</b> value into a {@code long}, returning {@code 0} when absent.
+     * Unlike {@link #readLongOrZero}, this reads the full {@code 0 .. 2^64-1} range: a value above
+     * {@code Long.MAX_VALUE} (parsed as a {@code BigInteger}) is returned as its low 64 bits, i.e.
+     * the two's-complement bit pattern, which reads as a <i>negative</i> {@code long}. For such
+     * values interpret the result with {@link Long#toUnsignedString(long)} /
+     * {@link Long#compareUnsigned(long, long)}, or use {@link #readUnsignedBigIntegerOrZero} for a
+     * non-negative value. (For NATS these fields are always far below {@code Long.MAX_VALUE}.)
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the unsigned long bit pattern, or {@code 0} if absent
+     */
+    public static long readUnsignedLongOrZero(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        return LazyJsonValueUtils.readUnsignedLong(ljv, key, 0L);
+    }
+
+    /**
+     * Read an <b>unsigned 64-bit</b> value as a non-negative {@link BigInteger}, returning
+     * {@link BigInteger#ZERO} when absent. This is the sign-unambiguous companion to
+     * {@link #readUnsignedLongOrZero} for values that could exceed {@code Long.MAX_VALUE}.
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the value as a non-negative BigInteger, or {@link BigInteger#ZERO} if absent
+     */
+    @NonNull
+    public static BigInteger readUnsignedBigIntegerOrZero(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        BigInteger bi = LazyJsonValueUtils.readUnsignedBigInteger(ljv, key, BigInteger.ZERO);
+        return bi == null ? BigInteger.ZERO : bi;
     }
 
     /**

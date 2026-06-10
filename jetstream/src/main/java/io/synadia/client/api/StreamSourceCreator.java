@@ -113,7 +113,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      */
     public T domain(String domain) {
         String prefix = convertDomainToPrefix(domain);
-        externalCreator = prefix == null ? null : new ExternalCreator().api(prefix);
+        externalCreator = prefix == null ? null : new ExternalCreator(prefix);
         return (T) this;
     }
 

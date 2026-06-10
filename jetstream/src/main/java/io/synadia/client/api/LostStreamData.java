@@ -4,10 +4,10 @@ import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.util.List;
 
-import static io.nats.json.LazyJsonValueUtils.readLong;
-import static io.nats.json.LazyJsonValueUtils.readLongListOrEmpty;
+import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.utils.ApiConstants.BYTES;
 import static io.synadia.client.utils.ApiConstants.MSGS;
 
@@ -35,12 +35,23 @@ public class LostStreamData extends LazyApiObject {
     }
 
     /**
-     * Get the number of bytes that were lost
-     * @return the number of lost bytes
+     * Get the number of bytes that were lost.
+     * <p>The server value is an unsigned 64-bit number.
+     * @return the number of lost bytes, or {@code null} if absent
      */
     @Nullable
     public Long getBytes() {
-        return readLong(ljv, BYTES);
+        return readUnsignedLong(ljv, BYTES);
+    }
+
+    /**
+     * Get the number of bytes that were lost as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getBytes()}.
+     * @return the number of lost bytes, or {@code null} if absent
+     */
+    @Nullable
+    public BigInteger getBytesAsBigInteger() {
+        return readUnsignedBigInteger(ljv, BYTES);
     }
 
     @Override

@@ -3,13 +3,12 @@ package io.synadia.client.api;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 
+import java.math.BigInteger;
 import java.time.Duration;
 
 import static io.nats.json.LazyJsonValueUtils.readBoolean;
-import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.synadia.client.utils.ApiConstants.*;
-import static io.synadia.client.utils.ApiUtils.readDurationOrZero;
-import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
+import static io.synadia.client.utils.ApiUtils.*;
 
 /**
  * Server peer information
@@ -54,11 +53,21 @@ abstract class PeerInfo extends LazyApiObject {
     }
 
     /**
-     * How many uncommitted operations this peer is behind the leader
+     * How many uncommitted operations this peer is behind the leader.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the lag
      */
     public long getLag() {
-        return readLong(ljv, LAG, 0);
+        return readUnsignedLongOrZero(ljv, LAG);
+    }
+
+    /**
+     * How many uncommitted operations this peer is behind the leader, as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getLag()}.
+     * @return the lag, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getLagAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, LAG);
     }
 
     @Override

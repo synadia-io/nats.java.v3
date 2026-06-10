@@ -4,14 +4,16 @@ import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.nats.json.LazyJsonValueUtils.*;
+import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.synadia.client.utils.ApiConstants.*;
-import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
+import static io.synadia.client.utils.ApiUtils.*;
 
 /**
  * Object representing the state of a stream
@@ -33,27 +35,57 @@ public class StreamState extends LazyApiObject {
 
     /**
      * Gets the message count of the stream.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the message count
      */
     public long getMessageCount() {
-        return readLongOrMinusOne(ljv, MESSAGES);
+        return readUnsignedLongOrZero(ljv, MESSAGES);
+    }
+
+    /**
+     * Gets the message count of the stream as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getMessageCount()}.
+     * @return the message count, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getMessageCountAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, MESSAGES);
     }
 
     /**
      * Gets the byte count of the stream.
+     * <p>The server value is an unsigned 64-bit number.
      * @return the byte count
      */
     public long getByteCount() {
-        return readLongOrMinusOne(ljv, BYTES);
+        return readUnsignedLongOrZero(ljv, BYTES);
     }
 
     /**
-     * Gets the first sequence number of the stream. May be 0 if there are no messages,
-     * or -1 if the field is missing from the response.
+     * Gets the byte count of the stream as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getByteCount()}.
+     * @return the byte count, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getByteCountAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, BYTES);
+    }
+
+    /**
+     * Gets the first sequence number of the stream. May be 0 if there are no messages
+     * or if the field is missing from the response.
+     * <p>The server value is an unsigned 64-bit number.
      * @return a sequence number
      */
     public long getFirstSequence() {
-        return readLongOrMinusOne(ljv, FIRST_SEQ);
+        return readUnsignedLongOrZero(ljv, FIRST_SEQ);
+    }
+
+    /**
+     * Gets the first sequence number of the stream as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getFirstSequence()}.
+     * @return a sequence number, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getFirstSequenceAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, FIRST_SEQ);
     }
 
     /**
@@ -66,11 +98,21 @@ public class StreamState extends LazyApiObject {
     }
 
     /**
-     * Gets the last sequence of a message in the stream
+     * Gets the last sequence of a message in the stream.
+     * <p>The server value is an unsigned 64-bit number.
      * @return a sequence number
      */
     public long getLastSequence() {
-        return readLongOrMinusOne(ljv, LAST_SEQ);
+        return readUnsignedLongOrZero(ljv, LAST_SEQ);
+    }
+
+    /**
+     * Gets the last sequence of a message in the stream as a non-negative unsigned value.
+     * The {@link BigInteger} companion to {@link #getLastSequence()}.
+     * @return a sequence number, or {@link BigInteger#ZERO} if absent
+     */
+    public BigInteger getLastSequenceAsBigInteger() {
+        return readUnsignedBigIntegerOrZero(ljv, LAST_SEQ);
     }
 
     /**
