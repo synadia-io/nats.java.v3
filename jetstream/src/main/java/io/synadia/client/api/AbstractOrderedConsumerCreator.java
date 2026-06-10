@@ -16,22 +16,24 @@ public abstract class AbstractOrderedConsumerCreator<T extends AbstractOrderedCo
 
     protected @Nullable String namePrefix;
 
-    protected AbstractOrderedConsumerCreator(String stream, boolean isPush) {
-        super(stream, isPush);
+    protected AbstractOrderedConsumerCreator(boolean isPush) {
+        super(isPush);
         commonInit();
         namePrefix(null);
     }
 
-    protected AbstractOrderedConsumerCreator(AbstractOrderedConsumerCreator<?> creator, long lastStreamSeq) {
+    protected AbstractOrderedConsumerCreator(AbstractOrderedConsumerCreator<?> creator, long lastStreamSeq, @Nullable Long inactiveThreshold) {
         super(creator);
         commonInit();
         namePrefix(creator.namePrefix); // this is called because the base class doesn't know about namePrefix
         if (lastStreamSeq > 0) {
             // if the last stream seq is > 0, this means to set the policy
-            creator
-                .deliverPolicy(DeliverPolicy.ByStartSequence)
+            deliverPolicy(DeliverPolicy.ByStartSequence)
                 .startSequence(lastStreamSeq + 1)
                 .startTime(null); // clear start time in case it was originally set
+        }
+        if (inactiveThreshold != null) {
+            inactiveThreshold(inactiveThreshold);
         }
     }
 

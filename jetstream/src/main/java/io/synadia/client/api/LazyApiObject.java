@@ -13,6 +13,10 @@ import org.jspecify.annotations.Nullable;
  * <p>
  * Subclasses expose typed accessors on top of the wrapped {@code ljv} field; because
  * every accessor is derived from {@code ljv}, comparing {@code ljv} alone is exhaustive.
+ * <p>
+ * Optimistic required-field readers live as static helpers on {@link io.synadia.client.utils.ApiUtils}
+ * ({@code readStringOrEmpty}, {@code readLongOrMinusOne}, {@code readIntegerOrMinusOne},
+ * {@code readDurationOrZero}, {@code readDateOrDefault}); see {@code REQUIRED_FIELDS_POLICY.md}.
  */
 @NullMarked
 public abstract class LazyApiObject implements JsonSerializable {

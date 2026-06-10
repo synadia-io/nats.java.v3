@@ -17,12 +17,12 @@ public class PullOrderedConsumerCreator extends AbstractOrderedConsumerCreator<P
      * It supports chaining and will create a default set of options if
      * no methods are calls, including setting the filter subject to &gt;
      */
-    public PullOrderedConsumerCreator(String stream) {
-        super(stream, false);
+    public PullOrderedConsumerCreator() {
+        super(false);
     }
 
-    public PullOrderedConsumerCreator(PullOrderedConsumerCreator creator, long lastStreamSeq) {
-        super(creator, lastStreamSeq);
+    public PullOrderedConsumerCreator(PullOrderedConsumerCreator creator, long lastStreamSeq, @Nullable Long inactiveThreshold) {
+        super(creator, lastStreamSeq, inactiveThreshold);
     }
 
     // ----------------------------------------------------------------------------------------------------

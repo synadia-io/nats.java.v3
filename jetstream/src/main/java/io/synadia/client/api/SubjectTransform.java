@@ -6,10 +6,10 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
-import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
 import static io.synadia.client.utils.ApiConstants.DEST;
 import static io.synadia.client.utils.ApiConstants.SRC;
+import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**
  * SubjectTransform returned from the server.
@@ -35,8 +35,7 @@ public class SubjectTransform extends LazyApiObject {
      * @return the source
      */
     public String getSource() {
-        //noinspection DataFlowIssue we know this will not be null
-        return readString(ljv, SRC);
+        return readStringOrEmpty(ljv, SRC);
     }
 
     /**
@@ -44,8 +43,7 @@ public class SubjectTransform extends LazyApiObject {
      * @return the destination
      */
     public String getDestination() {
-        //noinspection DataFlowIssue we know this will not be null
-        return readString(ljv, DEST);
+        return readStringOrEmpty(ljv, DEST);
     }
 
     @Override

@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import static io.nats.json.DateTimeUtils.ZONE_ID_UTC;
 import static io.synadia.client.OptionsConstants.DEFAULT_INBOX_PREFIX;
@@ -472,9 +471,8 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     @Test
     public void testPushCreatorAutomaticallyAddsDeliverSubject() throws Exception {
         runInShared((nc, ctx) -> {
-            PushConsumerCreator cc = new PushConsumerCreator(ctx.stream)
-                .durable(ctx.consumerName());
-            ConsumerInfo ci = ctx.jsm.addOrUpdateConsumer(cc);
+            PushConsumerCreator cc = new PushConsumerCreator().durable(ctx.consumerName());
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
             assertNotNull(ci.getConsumerConfiguration().getDeliverSubject());
             assertTrue(ci.getConsumerConfiguration().getDeliverSubject().contains(DEFAULT_INBOX_PREFIX));
         });
@@ -562,19 +560,19 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
             // durable and name can both be null
 
-            PushConsumerCreator pushCreator = new PushConsumerCreator(ctx.stream);
-            ConsumerInfo ci = ctx.jsm.addOrUpdateConsumer(pushCreator);
+            PushConsumerCreator pushCreator = new PushConsumerCreator();
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, pushCreator);
             assertNotNull(ci.getName());
 
-            PullConsumerCreator pullCreator = new PullConsumerCreator(ctx.stream);
-            ci = ctx.jsm.addOrUpdateConsumer(pullCreator);
+            PullConsumerCreator pullCreator = new PullConsumerCreator();
+            ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, pullCreator);
             assertNotNull(ci.getName());
 
             // threshold can be set for durable
-            pushCreator = new PushConsumerCreator(ctx.stream)
+            pushCreator = new PushConsumerCreator()
                 .durable(random())
                 .inactiveThreshold(10000L);
-            ci = ctx.jsm.addOrUpdateConsumer(pushCreator);
+            ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, pushCreator);
             assertNotNull(ci.getName());
             Duration duration = ci.getConsumerConfiguration().getInactiveThreshold();
             assertNotNull(duration);
@@ -592,15 +590,16 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             // with and w/o deliver subject for push/pull
             String dur1 = random();
             String dur = dur1;
-            addConsumer(ctx.jsm, atLeast2dot9, dur, null, null, new PushConsumerCreator(ctx.stream)
-                .durable(dur));
+            addConsumer(ctx.jsm, atLeast2dot9, dur, null, null, ctx.stream,
+                new PushConsumerCreator().durable(dur));
 
             String dur2 = random();
             dur = dur2;
             String deliver = random();
-            addConsumer(ctx.jsm, atLeast2dot9, dur, deliver, null, new PushConsumerCreator(ctx.stream)
-                .durable(dur)
-                .deliverSubject(deliver));
+            addConsumer(ctx.jsm, atLeast2dot9, dur, deliver, null, ctx.stream,
+                new PushConsumerCreator()
+                    .durable(dur)
+                    .deliverSubject(deliver));
 
             // test delete here
             List<String> consumers = ctx.jsm.getConsumerNames(ctx.stream);
@@ -616,52 +615,60 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             // some testing of new name
             if (atLeast2dot9) {
                 dur = random();
-                addConsumer(ctx.jsm, true, dur, null, null, new PullConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .name(dur));
+                addConsumer(ctx.jsm, true, dur, null, null, ctx.stream,
+                    new PullConsumerCreator()
+                        .durable(dur)
+                        .name(dur));
 
                 dur = random();
                 deliver = random();
-                addConsumer(ctx.jsm, true, dur, deliver, null, new PushConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .name(dur)
-                    .deliverSubject(deliver));
+                addConsumer(ctx.jsm, true, dur, deliver, null, ctx.stream,
+                    new PushConsumerCreator()
+                        .durable(dur)
+                        .name(dur)
+                        .deliverSubject(deliver));
 
                 dur = random();
-                addConsumer(ctx.jsm, true, dur, null, ">", new PullConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .filterSubject(">"));
-
-                dur = random();
-                deliver = random();
-                addConsumer(ctx.jsm, true, dur, deliver, ">", new PushConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .deliverSubject(deliver)
-                    .filterSubject(">"));
-
-                dur = random();
-                addConsumer(ctx.jsm, true, dur, null, subjectGt(subject), new PullConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .filterSubject(subjectGt(subject)));
+                addConsumer(ctx.jsm, true, dur, null, ">", ctx.stream,
+                    new PullConsumerCreator()
+                        .durable(dur)
+                        .filterSubject(">"));
 
                 dur = random();
                 deliver = random();
-                addConsumer(ctx.jsm, true, dur, deliver, subjectGt(subject), new PushConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .deliverSubject(deliver)
-                    .filterSubject(subjectGt(subject)));
+                addConsumer(ctx.jsm, true, dur, deliver, ">", ctx.stream,
+                    new PushConsumerCreator()
+                        .durable(dur)
+                        .deliverSubject(deliver)
+                        .filterSubject(">"));
 
                 dur = random();
-                addConsumer(ctx.jsm, true, dur, null, subjectDot(subject, "foo"), new PullConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .filterSubject(subjectDot(subject, "foo")));
+                addConsumer(ctx.jsm, true, dur, null, subjectGt(subject), ctx.stream,
+                    new PullConsumerCreator()
+                        .durable(dur)
+                        .filterSubject(subjectGt(subject)));
 
                 dur = random();
                 deliver = random();
-                addConsumer(ctx.jsm, true, dur, deliver, subjectDot(subject, "foo"), new PushConsumerCreator(ctx.stream)
-                    .durable(dur)
-                    .deliverSubject(deliver)
-                    .filterSubject(subjectDot(subject, "foo")));
+                addConsumer(ctx.jsm, true, dur, deliver, subjectGt(subject), ctx.stream,
+                    new PushConsumerCreator()
+                        .durable(dur)
+                        .deliverSubject(deliver)
+                        .filterSubject(subjectGt(subject)));
+
+                dur = random();
+                addConsumer(ctx.jsm, true, dur, null, subjectDot(subject, "foo"), ctx.stream,
+                    new PullConsumerCreator()
+                        .durable(dur)
+                        .filterSubject(subjectDot(subject, "foo")));
+
+                dur = random();
+                deliver = random();
+                addConsumer(ctx.jsm, true, dur, deliver, subjectDot(subject, "foo"), ctx.stream,
+                    new PushConsumerCreator()
+                        .durable(dur)
+                        .deliverSubject(deliver)
+                        .filterSubject(subjectDot(subject, "foo")));
             }
         });
     }
@@ -673,12 +680,12 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertEquals(0, list.size());
 
             ZonedDateTime pauseUntil = ZonedDateTime.now(ZONE_ID_UTC).plusMinutes(2);
-            PushConsumerCreator cc = new PushConsumerCreator(ctx.stream)
+            PushConsumerCreator cc = new PushConsumerCreator()
                     .durable(ctx.consumerName())
                     .pauseUntil(pauseUntil);
 
             // Consumer should be paused on creation.
-            ConsumerInfo ci = ctx.jsm.addOrUpdateConsumer(cc);
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
             assertTrue(ci.getPaused());
             assertNotNull(ci.getPauseRemaining());
             assertTrue(ci.getPauseRemaining().toMillis() > 60_000);
@@ -692,8 +699,8 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             List<ConsumerInfo> list = ctx.jsm.getConsumers(ctx.stream);
             assertEquals(0, list.size());
 
-            PushConsumerCreator cc = new PushConsumerCreator(ctx.stream).durable(ctx.consumerName());
-            ConsumerInfo ci = ctx.jsm.addOrUpdateConsumer(cc);
+            PushConsumerCreator cc = new PushConsumerCreator().durable(ctx.consumerName());
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
             assertNotNull(ci.getName());
 
             // pause consumer
@@ -728,8 +735,9 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         });
     }
 
-    private static void addConsumer(JetStreamManagement jsm, boolean atLeast2dot9, String name, String deliver, String fs, ConsumerCreator<?> cc) throws IOException, JetStreamApiException {
-        ConsumerInfo ci = jsm.addOrUpdateConsumer(cc);
+    private static void addConsumer(JetStreamManagement jsm, boolean atLeast2dot9, String name, String deliver, String fs,
+                                    String stream, ConsumerCreator<?> cc) throws IOException, JetStreamApiException {
+        ConsumerInfo ci = jsm.createOrUpdateConsumer(stream, cc);
         assertEquals(name, ci.getName());
         if (atLeast2dot9) {
             assertEquals(name, ci.getConsumerConfiguration().getName());
@@ -752,27 +760,27 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
             PushConsumerCreator creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, null);
             creator = new PushConsumerCreator(creator).deliverSubject(random());
-            assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
+            assertValidAddOrUpdate(ctx.jsm, ctx.stream, creator);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
             creator = new PushConsumerCreator(creator).ackWait(Duration.ofSeconds(5));
-            assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
+            assertValidAddOrUpdate(ctx.jsm, ctx.stream, creator);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
             creator = new PushConsumerCreator(creator).rateLimit(100L);
-            assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
+            assertValidAddOrUpdate(ctx.jsm, ctx.stream, creator);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
             creator = new PushConsumerCreator(creator).maxAckPending(100L);
-            assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
+            assertValidAddOrUpdate(ctx.jsm, ctx.stream, creator);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
             creator = new PushConsumerCreator(creator).maxDeliver(4);
-            assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
+            assertValidAddOrUpdate(ctx.jsm, ctx.stream, creator);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
             creator = new PushConsumerCreator(creator).filterSubject(subjectStar(subject));
-            assertValidAddOrUpdate(ctx.jsm, creator, ctx.stream);
+            assertValidAddOrUpdate(ctx.jsm, ctx.stream, creator);
         });
     }
 
@@ -785,11 +793,11 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
             PushConsumerCreator creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, null);
             creator = new PushConsumerCreator(creator).deliverPolicy(DeliverPolicy.New);
-            assertInvalidConsumerUpdate(ctx.jsm, creator);
+            assertInvalidConsumerUpdate(ctx.jsm, ctx.stream, creator);
 
             creator = prepForUpdateTest(ctx.jsm, ctx.stream, subjectGt, creator.getDurable());
             creator = new PushConsumerCreator(creator).idleHeartbeat(Duration.ofMillis(111));
-            assertInvalidConsumerUpdate(ctx.jsm, creator);
+            assertInvalidConsumerUpdate(ctx.jsm, ctx.stream, creator);
         });
     }
 
@@ -800,24 +808,24 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             }
         }
         catch (Exception e) { /* ignore */ }
-        PushConsumerCreator creator = new PushConsumerCreator(stream)
+        PushConsumerCreator creator = new PushConsumerCreator()
             .durable(random())
             .ackPolicy(AckPolicy.Explicit)
             .deliverSubject(random())
             .maxDeliver(3)
             .filterSubject(subjectGt);
-        assertValidAddOrUpdate(jsm, creator, stream);
+        assertValidAddOrUpdate(jsm, stream, creator);
         return creator;
     }
 
-    private void assertInvalidConsumerUpdate(JetStreamManagement jsm, PushConsumerCreator creator) {
-        JetStreamApiException e = assertThrows(JetStreamApiException.class, () -> jsm.addOrUpdateConsumer(creator));
+    private void assertInvalidConsumerUpdate(JetStreamManagement jsm, String stream, PushConsumerCreator creator) {
+        JetStreamApiException e = assertThrows(JetStreamApiException.class, () -> jsm.createOrUpdateConsumer(stream, creator));
         assertEquals(10012, e.getApiErrorCode());
         assertEquals(500, e.getErrorCode());
     }
 
-    private void assertValidAddOrUpdate(JetStreamManagement jsm, PushConsumerCreator creator, String stream) throws IOException, JetStreamApiException {
-        ConsumerInfo ci = jsm.addOrUpdateConsumer(creator);
+    private void assertValidAddOrUpdate(JetStreamManagement jsm, String stream, PushConsumerCreator creator) throws IOException, JetStreamApiException {
+        ConsumerInfo ci = jsm.createOrUpdateConsumer(stream, creator);
         ConsumerConfiguration cicc = ci.getConsumerConfiguration();
         assertEquals(creator.getDurable(), ci.getName());
         assertEquals(creator.getDurable(), cicc.getDurable());
@@ -835,11 +843,11 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         runInShared((nc, ctx) -> {
             Map<String, String> metaData = new HashMap<>(); metaData.put(META_KEY, META_VALUE);
 
-            PushConsumerCreator cc = new PushConsumerCreator(ctx.stream)
+            PushConsumerCreator cc = new PushConsumerCreator()
                 .durable(random())
                 .metadata(metaData);
 
-            ConsumerInfo ci = ctx.jsm.addOrUpdateConsumer(cc);
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
             assertMetaData(ci.getConsumerConfiguration().getMetadata());
         });
     }
@@ -850,34 +858,34 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             String subject = ctx.subject();
 
             // plain subject
-            PushConsumerCreator creator = new PushConsumerCreator(ctx.stream).durable(random());
-            ctx.jsm.addOrUpdateConsumer(creator.filterSubject(subject));
+            PushConsumerCreator creator = new PushConsumerCreator().durable(random());
+            ctx.jsm.createOrUpdateConsumer(ctx.stream, creator.filterSubject(subject));
             List<ConsumerInfo> cis = ctx.jsm.getConsumers(ctx.stream);
             assertEquals(subject, cis.get(0).getConsumerConfiguration().getFilterSubject());
 
             if (nc.getServerInfo().isSameOrNewerThanVersion("2.10")) {
                 // 2.10 and later you can set the filter to something that does not match
-                ctx.jsm.addOrUpdateConsumer(creator.filterSubject(subjectDot(subject, "two-ten-allows-not-matching")));
+                ctx.jsm.createOrUpdateConsumer(ctx.stream, creator.filterSubject(subjectDot(subject, "two-ten-allows-not-matching")));
                 cis = ctx.jsm.getConsumers(ctx.stream);
                 assertEquals(subjectDot(subject, "two-ten-allows-not-matching"), cis.get(0).getConsumerConfiguration().getFilterSubject());
             }
             else {
                 assertThrows(JetStreamApiException.class,
-                    () -> ctx.jsm.addOrUpdateConsumer(creator.filterSubject(subjectDot(subject, "not-match"))));
+                    () -> ctx.jsm.createOrUpdateConsumer(ctx.stream, creator.filterSubject(subjectDot(subject, "not-match"))));
             }
 
             // wildcard subject
             ctx.createOrReplaceStream(subjectStar(subject));
 
             String subjectA = subjectDot(subject, "A");
-            ctx.jsm.addOrUpdateConsumer(creator.filterSubject(subjectA));
+            ctx.jsm.createOrUpdateConsumer(ctx.stream, creator.filterSubject(subjectA));
             cis = ctx.jsm.getConsumers(ctx.stream);
             assertEquals(subjectA, cis.get(0).getConsumerConfiguration().getFilterSubject());
 
             // gt subject
             ctx.createOrReplaceStream(subjectGt(subject));
 
-            ctx.jsm.addOrUpdateConsumer(creator.filterSubject(subjectA));
+            ctx.jsm.createOrUpdateConsumer(ctx.stream, creator.filterSubject(subjectA));
             cis = ctx.jsm.getConsumers(ctx.stream);
             assertEquals(subjectA, cis.get(0).getConsumerConfiguration().getFilterSubject());
         });
@@ -887,8 +895,8 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     public void testGetConsumerInfo() throws Exception {
         runInShared((nc, ctx) -> {
             assertThrows(JetStreamApiException.class, () -> ctx.jsm.getConsumerInfo(ctx.stream, ctx.consumerName()));
-            PushConsumerCreator creator = new PushConsumerCreator(ctx.stream).durable(ctx.consumerName());
-            ConsumerInfo ci = ctx.jsm.addOrUpdateConsumer(creator);
+            PushConsumerCreator creator = new PushConsumerCreator().durable(ctx.consumerName());
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, creator);
             assertEquals(ctx.stream, ci.getStreamName());
             assertEquals(ctx.consumerName(), ci.getName());
             ci = ctx.jsm.getConsumerInfo(ctx.stream, ctx.consumerName());
@@ -920,9 +928,8 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         for (int x = 1; x <= count; x++) {
             boolean pull = x % 2 == 0;
             String dur = base + "-" + x;
-            ConsumerInfo ci = jsm.addOrUpdateConsumer(pull
-                ? new PullConsumerCreator(stream).durable(dur)
-                : new PushConsumerCreator(stream).durable(dur)
+            ConsumerInfo ci = jsm.createOrUpdateConsumer(stream,
+                pull ? new PullConsumerCreator().durable(dur) : new PushConsumerCreator().durable(dur)
             );
             assertEquals(dur, ci.getName());
             assertEquals(dur, ci.getConsumerConfiguration().getDurable());
@@ -1016,16 +1023,16 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     @Test
     public void testConsumerReplica() throws Exception {
         runInShared((nc, ctx) -> {
-            final PushConsumerCreator cc0 = new PushConsumerCreator(ctx.stream)
+            final PushConsumerCreator cc0 = new PushConsumerCreator()
                 .durable(ctx.consumerName());
-            ConsumerInfo ci = ctx.jsm.addOrUpdateConsumer(cc0);
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, cc0);
             // server returns 0 when value is not set
             assertEquals(0, ci.getConsumerConfiguration().getNumReplicas());
 
-            final PushConsumerCreator cc1 = new PushConsumerCreator(ctx.stream)
+            final PushConsumerCreator cc1 = new PushConsumerCreator()
                 .durable(ctx.consumerName())
                 .numReplicas(1);
-            ci = ctx.jsm.addOrUpdateConsumer(cc1);
+            ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, cc1);
             assertEquals(1, ci.getConsumerConfiguration().getNumReplicas());
         });
     }
@@ -1169,24 +1176,24 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             String subject = random();
             createMemoryStream(jsmNew, stream1, subject + ".*");
 
-            PushConsumerCreator cc11 = new PushConsumerCreator(stream1).name(name);
+            PushConsumerCreator cc11 = new PushConsumerCreator().name(name);
 
             // update no good when not exist
-            JetStreamApiException e = assertThrows(JetStreamApiException.class, () -> jsmNew.updateConsumer(cc11));
+            JetStreamApiException e = assertThrows(JetStreamApiException.class, () -> jsmNew.updateConsumer(stream1, cc11));
             assertEquals(10149, e.getApiErrorCode());
 
             // initial create ok
-            ConsumerInfo ci = jsmNew.createConsumer(cc11);
+            ConsumerInfo ci = jsmNew.createConsumer(stream1, cc11);
             assertEquals(name, ci.getName());
             assertNull(ci.getConsumerConfiguration().getFilterSubject());
 
             // any other create no good
-            e = assertThrows(JetStreamApiException.class, () -> jsmNew.createConsumer(cc11));
+            e = assertThrows(JetStreamApiException.class, () -> jsmNew.createConsumer(stream1, cc11));
             assertEquals(10148, e.getApiErrorCode());
 
             // update ok when exists
-            PushConsumerCreator cc12 = new PushConsumerCreator(stream1).name(name).description(random());
-            ci = jsmNew.updateConsumer(cc12);
+            PushConsumerCreator cc12 = new PushConsumerCreator().name(name).description(random());
+            ci = jsmNew.updateConsumer(stream1, cc12);
             assertEquals(name, ci.getName());
             assertNull(ci.getConsumerConfiguration().getFilterSubject());
 
@@ -1200,24 +1207,24 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             String fs2 = subject + ".B";
             createMemoryStream(jsmNew, stream2, subject + ".*");
 
-            PushConsumerCreator cc21 = new PushConsumerCreator(stream2).name(name).filterSubject(fs1);
+            PushConsumerCreator cc21 = new PushConsumerCreator().name(name).filterSubject(fs1);
 
             // update no good when not exist
-            e = assertThrows(JetStreamApiException.class, () -> jsmNew.updateConsumer(cc21));
+            e = assertThrows(JetStreamApiException.class, () -> jsmNew.updateConsumer(stream2, cc21));
             assertEquals(10149, e.getApiErrorCode());
 
             // initial create ok
-            ci = jsmNew.createConsumer(cc21);
+            ci = jsmNew.createConsumer(stream2, cc21);
             assertEquals(name, ci.getName());
             assertEquals(fs1, ci.getConsumerConfiguration().getFilterSubject());
 
             // any other create no good
-            e = assertThrows(JetStreamApiException.class, () -> jsmNew.createConsumer(cc21));
+            e = assertThrows(JetStreamApiException.class, () -> jsmNew.createConsumer(stream2, cc21));
             assertEquals(10148, e.getApiErrorCode());
 
             // update ok when exists
-            PushConsumerCreator cc22 = new PushConsumerCreator(stream2).name(name).filterSubjects(fs2);
-            ci = jsmNew.updateConsumer(cc22);
+            PushConsumerCreator cc22 = new PushConsumerCreator().name(name).filterSubjects(fs2);
+            ci = jsmNew.updateConsumer(stream2, cc22);
             assertEquals(name, ci.getName());
             assertEquals(fs2, ci.getConsumerConfiguration().getFilterSubject());
 
@@ -1232,28 +1239,28 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             String fs3 = subject + ".C";
             createMemoryStream(jsmPre290, stream3, subject + ".*");
 
-            PushConsumerCreator cc31 = new PushConsumerCreator(stream3).durable(name).filterSubject(fs1);
+            PushConsumerCreator cc31 = new PushConsumerCreator().durable(name).filterSubject(fs1);
 
             // update no good when not exist
-            e = assertThrows(JetStreamApiException.class, () -> jsmPre290.updateConsumer(cc31));
+            e = assertThrows(JetStreamApiException.class, () -> jsmPre290.updateConsumer(stream3, cc31));
             assertEquals(10149, e.getApiErrorCode());
 
             // initial create ok
-            ci = jsmPre290.createConsumer(cc31);
+            ci = jsmPre290.createConsumer(stream3, cc31);
             assertEquals(name, ci.getName());
             assertEquals(fs1, ci.getConsumerConfiguration().getFilterSubject());
 
             // opt out of 209, create on existing ok
             // This is not exactly the same behavior as with the new consumer create api, but it's what the server does
-            jsmPre290.createConsumer(cc31);
+            jsmPre290.createConsumer(stream3, cc31);
 
-            PushConsumerCreator cc32 = new PushConsumerCreator(stream3).durable(name).filterSubject(fs2);
-            e = assertThrows(JetStreamApiException.class, () -> jsmPre290.createConsumer(cc32));
+            PushConsumerCreator cc32 = new PushConsumerCreator().durable(name).filterSubject(fs2);
+            e = assertThrows(JetStreamApiException.class, () -> jsmPre290.createConsumer(stream3, cc32));
             assertEquals(10148, e.getApiErrorCode());
 
             // update ok when exists
-            PushConsumerCreator cc33 = new PushConsumerCreator(stream3).durable(name).filterSubjects(fs3);
-            ci = jsmPre290.updateConsumer(cc33);
+            PushConsumerCreator cc33 = new PushConsumerCreator().durable(name).filterSubjects(fs3);
+            ci = jsmPre290.updateConsumer(stream3, cc33);
             assertEquals(name, ci.getName());
             assertEquals(fs3, ci.getConsumerConfiguration().getFilterSubject());
 
@@ -1266,14 +1273,14 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             fs1 = subject + ".A";
             createMemoryStream(jsmPre290, stream4, subject + ".*");
 
-            PushConsumerCreator cc4 = new PushConsumerCreator(stream4).filterSubject(fs1);
+            PushConsumerCreator cc4 = new PushConsumerCreator().filterSubject(fs1);
 
             // update no good when not exist
-            e = assertThrows(JetStreamApiException.class, () -> jsmPre290.updateConsumer(cc4));
+            e = assertThrows(JetStreamApiException.class, () -> jsmPre290.updateConsumer(stream4, cc4));
             assertEquals(10149, e.getApiErrorCode());
 
             // initial create ok
-            ci = jsmPre290.createConsumer(cc4);
+            ci = jsmPre290.createConsumer(stream4, cc4);
             assertEquals(fs1, ci.getConsumerConfiguration().getFilterSubject());
         });
     }
@@ -1355,7 +1362,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     }
 
     private static ConsumerInfo create1026Consumer(JetStreamManagement jsm, String stream, String subject) throws IOException, JetStreamApiException {
-        return jsm.addOrUpdateConsumer(new PullConsumerCreator(stream)
+        return jsm.createOrUpdateConsumer(stream, new PullConsumerCreator()
             .durable(random())
             .filterSubject(subject));
     }
@@ -1426,47 +1433,5 @@ public class JetStreamManagementTests extends JetStreamTestBase {
                 .persistMode(PersistMode.Async));
             assertSame(PersistMode.Async, si.getConfiguration().getPersistMode());
         });
-    }
-    // Stream names that validateStreamName rejects (mirrors the canonical list in JsValidatorTests
-    // plus slash variants implied by the validator name: validatePrintableExceptWildDotGtSlashes).
-    private static final String[] INVALID_STREAMS = {
-        null,
-        "",
-        HAS_SPACE,
-        HAS_DOT,
-        STAR_NOT_SEGMENT,
-        GT_NOT_SEGMENT,
-        HAS_FWD_SLASH,
-        HAS_BACK_SLASH,
-        HAS_LOW,
-        HAS_127
-    };
-
-    @Test
-    public void testPushConsumerCreatorRejectsInvalidStream() {
-        assertRejectsAll("PushConsumerCreator", PushConsumerCreator::new);
-    }
-
-    @Test
-    public void testPullConsumerCreatorRejectsInvalidStream() {
-        assertRejectsAll("PullConsumerCreator", PullConsumerCreator::new);
-    }
-
-    @Test
-    public void testPushOrderedConsumerCreatorRejectsInvalidStream() {
-        assertRejectsAll("PushOrderedConsumerCreator", PushOrderedConsumerCreator::new);
-    }
-
-    @Test
-    public void testPullOrderedConsumerCreatorRejectsInvalidStream() {
-        assertRejectsAll("PullOrderedConsumerCreator", PullOrderedConsumerCreator::new);
-    }
-
-    private static void assertRejectsAll(String creatorName, Function<String, ?> factory) {
-        for (String invalid : INVALID_STREAMS) {
-            assertThrows(IllegalArgumentException.class,
-                () -> factory.apply(invalid),
-                creatorName + " must reject invalid stream: " + invalid);
-        }
     }
 }

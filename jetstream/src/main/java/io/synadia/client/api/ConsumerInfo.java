@@ -11,6 +11,7 @@ import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
 
 /**
  * The ConsumerInfo class returns information about a JetStream consumer.
@@ -109,7 +110,7 @@ public class ConsumerInfo extends ApiResponse<ConsumerInfo> {
      * @return the number of pending messages
      */
     public long getNumPending() {
-        return readLong(ljv, NUM_PENDING, 0);
+        return readLongOrMinusOne(ljv, NUM_PENDING);
     }
 
     /**
@@ -117,7 +118,7 @@ public class ConsumerInfo extends ApiResponse<ConsumerInfo> {
      * @return the number of waiting messages
      */
     public long getNumWaiting() {
-        return readLong(ljv, NUM_WAITING, 0);
+        return readLongOrMinusOne(ljv, NUM_WAITING);
     }
 
     /**
@@ -125,7 +126,7 @@ public class ConsumerInfo extends ApiResponse<ConsumerInfo> {
      * @return the number of messages
      */
     public long getNumAckPending() {
-        return readLong(ljv, NUM_ACK_PENDING, 0);
+        return readLongOrMinusOne(ljv, NUM_ACK_PENDING);
     }
 
     /**
@@ -133,7 +134,7 @@ public class ConsumerInfo extends ApiResponse<ConsumerInfo> {
      * @return the number of redeliveries
      */
     public long getRedelivered() {
-        return readLong(ljv, NUM_REDELIVERED, 0);
+        return readLongOrMinusOne(ljv, NUM_REDELIVERED);
     }
 
     /**

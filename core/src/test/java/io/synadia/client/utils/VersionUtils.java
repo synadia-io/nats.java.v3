@@ -24,10 +24,6 @@ public abstract class VersionUtils {
         return si.isNewerVersionThan("2.9.99");
     }
 
-    public static boolean atLeast2_10_3(ServerInfo si) {
-        return si.isSameOrNewerThanVersion("2.10.3");
-    }
-
     public static boolean atLeast2_10_26(ServerInfo si) {
         return si.isSameOrNewerThanVersion("2.10.26");
     }

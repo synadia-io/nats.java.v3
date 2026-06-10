@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.utils.ApiConstants.API;
 import static io.synadia.client.utils.ApiConstants.DELIVER;
+import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**
  * External configuration referencing a stream source in another account.
@@ -28,9 +29,8 @@ public class External extends LazyApiObject {
      * The subject prefix that imports the other account <code>$JS.API.CONSUMER.&gt; subjects</code>
      * @return the api prefix
      */
-    @Nullable
     public String getApi() {
-        return readString(ljv, API);
+        return readStringOrEmpty(ljv, API);
     }
 
     /**

@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
 
 /**
  * Object representing the state of a stream
@@ -35,7 +36,7 @@ public class StreamState extends LazyApiObject {
      * @return the message count
      */
     public long getMessageCount() {
-        return readLong(ljv, MESSAGES, 0);
+        return readLongOrMinusOne(ljv, MESSAGES);
     }
 
     /**
@@ -43,15 +44,16 @@ public class StreamState extends LazyApiObject {
      * @return the byte count
      */
     public long getByteCount() {
-        return readLong(ljv, BYTES, 0);
+        return readLongOrMinusOne(ljv, BYTES);
     }
 
     /**
-     * Gets the first sequence number of the stream. May be 0 if there are no messages.
+     * Gets the first sequence number of the stream. May be 0 if there are no messages,
+     * or -1 if the field is missing from the response.
      * @return a sequence number
      */
     public long getFirstSequence() {
-        return readLong(ljv, FIRST_SEQ, 0);
+        return readLongOrMinusOne(ljv, FIRST_SEQ);
     }
 
     /**
@@ -68,7 +70,7 @@ public class StreamState extends LazyApiObject {
      * @return a sequence number
      */
     public long getLastSequence() {
-        return readLong(ljv, LAST_SEQ, 0);
+        return readLongOrMinusOne(ljv, LAST_SEQ);
     }
 
     /**
@@ -85,7 +87,7 @@ public class StreamState extends LazyApiObject {
      * @return the consumer count
      */
     public long getConsumerCount() {
-        return readLong(ljv, CONSUMER_COUNT, 0);
+        return readLongOrMinusOne(ljv, CONSUMER_COUNT);
     }
 
     /**

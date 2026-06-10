@@ -14,10 +14,9 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
 
     /**
      * Construct the creator
-     * @param stream the stream name
      */
-    public PullConsumerCreator(String stream) {
-        super(stream, false);
+    public PullConsumerCreator() {
+        super(false);
     }
 
     public PullConsumerCreator(PullConsumerCreator creator) {

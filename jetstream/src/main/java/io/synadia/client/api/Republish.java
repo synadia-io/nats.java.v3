@@ -5,8 +5,8 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import static io.nats.json.LazyJsonValueUtils.readBoolean;
-import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**
  * Republish Configuration returned from the server.
@@ -28,8 +28,7 @@ public class Republish extends LazyApiObject {
      * @return the source
      */
     public String getSource() {
-        //noinspection DataFlowIssue
-        return readString(ljv, SRC);
+        return readStringOrEmpty(ljv, SRC);
     }
 
     /**
@@ -37,8 +36,7 @@ public class Republish extends LazyApiObject {
      * @return the destination
      */
     public String getDestination() {
-        //noinspection DataFlowIssue
-        return readString(ljv, DEST);
+        return readStringOrEmpty(ljv, DEST);
     }
 
     /**

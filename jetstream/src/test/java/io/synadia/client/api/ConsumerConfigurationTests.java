@@ -142,6 +142,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertTrue(cc.isMemStorage());
         assertEquals(List.of(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(3)), cc.getBackoff());
         verifyAckFields(cc.getAckWait(), cc.getMaxAckPending());
+        verifyFilterSubjects(cc.getFilterSubject(), cc.getFilterSubjects(), cc.hasMultipleFilterSubjects(), multipleFilterSubjects);
     }
 
     static void verifyPullSpecificFields(ConsumerConfiguration cc) {
@@ -192,7 +193,7 @@ public class ConsumerConfigurationTests extends TestBase {
     @Test
     public void testConsumerFields() {
         // FilterSubject variant via pull
-        PullConsumerCreator pull = new PullConsumerCreator(STREAM);
+        PullConsumerCreator pull = new PullConsumerCreator();
         setConsumerCreatorFields(pull, false);
         setAbstractEphemeralFields(pull);
         setPullSpecificFields(pull);
@@ -201,7 +202,7 @@ public class ConsumerConfigurationTests extends TestBase {
         verifyPullSpecificFields(pull);
 
         // FilterSubjects variant via push
-        PushConsumerCreator push = new PushConsumerCreator(STREAM);
+        PushConsumerCreator push = new PushConsumerCreator();
         setConsumerCreatorFields(push, true);
         setAbstractEphemeralFields(push);
         verifyConsumerCreatorFields(push, true);
@@ -224,7 +225,7 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals(PriorityPolicy.None, def.getPriorityPolicy());
 
         // FilterSubject variant - set, verify, round trip via json, verify
-        PullConsumerCreator creator1 = new PullConsumerCreator(STREAM);
+        PullConsumerCreator creator1 = new PullConsumerCreator();
         setConsumerCreatorFields(creator1, false);
         setAbstractEphemeralFields(creator1);
         setPullSpecificFields(creator1);
@@ -249,7 +250,7 @@ public class ConsumerConfigurationTests extends TestBase {
         verifyPushSpecificFields(fromFile1);
 
         // FilterSubjects variant - set, verify, round trip via json, verify
-        PullConsumerCreator creator2 = new PullConsumerCreator(STREAM);
+        PullConsumerCreator creator2 = new PullConsumerCreator();
         setConsumerCreatorFields(creator2, true);
         setAbstractEphemeralFields(creator2);
         setPullSpecificFields(creator2);
@@ -286,9 +287,7 @@ public class ConsumerConfigurationTests extends TestBase {
 
     @Test
     public void testPullConsumerCreator() {
-        PullConsumerCreator cc = new PullConsumerCreator(STREAM);
-        assertEquals(STREAM, cc.getStream());
-
+        PullConsumerCreator cc = new PullConsumerCreator();
         setConsumerCreatorFields(cc, true);
         verifyConsumerCreatorFields(cc, true);
         setAbstractEphemeralFields(cc);
@@ -344,9 +343,7 @@ public class ConsumerConfigurationTests extends TestBase {
 
     @Test
     public void testPushConsumerCreator() {
-        PushConsumerCreator cc = new PushConsumerCreator(STREAM);
-        assertEquals(STREAM, cc.getStream());
-
+        PushConsumerCreator cc = new PushConsumerCreator();
         setConsumerCreatorFields(cc, true);
         verifyConsumerCreatorFields(cc, true);
         setAbstractEphemeralFields(cc);
@@ -373,8 +370,7 @@ public class ConsumerConfigurationTests extends TestBase {
 
     @Test
     public void testPullEphemeralConsumerCreator() {
-        PullConsumerCreator cc = new PullConsumerCreator(STREAM);
-        assertEquals(STREAM, cc.getStream());
+        PullConsumerCreator cc = new PullConsumerCreator();
         assertNull(cc.getDurable());
 
         setConsumerCreatorFields(cc, true);
@@ -424,9 +420,7 @@ public class ConsumerConfigurationTests extends TestBase {
 
     @Test
     public void testPushEphemeralConsumerCreator() {
-        PushConsumerCreator cc = new PushConsumerCreator(STREAM);
-        assertEquals(STREAM, cc.getStream());
-
+        PushConsumerCreator cc = new PushConsumerCreator();
         setConsumerCreatorFields(cc, true);
         verifyConsumerCreatorFields(cc, true);
         setAbstractEphemeralFields(cc);
@@ -447,15 +441,13 @@ public class ConsumerConfigurationTests extends TestBase {
 
     @Test
     public void testPullOrderedConsumerCreator() {
-        PullOrderedConsumerCreator cc = new PullOrderedConsumerCreator(STREAM);
-        assertEquals(STREAM, cc.getStream());
-
+        PullOrderedConsumerCreator cc = new PullOrderedConsumerCreator();
         assertEquals(AckPolicy.None, cc.getAckPolicy());
         assertEquals(1, cc.getMaxDeliver());
         assertEquals(Duration.ofHours(22), cc.getAckWait());
         assertTrue(cc.isMemStorage());
         assertEquals(1, cc.getNumReplicas());
-        assertEquals(null, cc.getIdleHeartbeat());
+        assertNull(cc.getIdleHeartbeat());
 
         assertNull(cc.getNamePrefix());
         assertNotNull(cc.getName());
@@ -514,9 +506,7 @@ public class ConsumerConfigurationTests extends TestBase {
 
     @Test
     public void testPushOrderedConsumerCreator() {
-        PushOrderedConsumerCreator cc = new PushOrderedConsumerCreator(STREAM);
-        assertEquals(STREAM, cc.getStream());
-
+        PushOrderedConsumerCreator cc = new PushOrderedConsumerCreator();
         assertEquals(AckPolicy.None, cc.getAckPolicy());
         assertEquals(1, cc.getMaxDeliver());
         assertEquals(Duration.ofHours(22), cc.getAckWait());
@@ -549,22 +539,22 @@ public class ConsumerConfigurationTests extends TestBase {
 
     @Test
     public void testChainingReturnTypes() {
-        PullConsumerCreator pull = new PullConsumerCreator(STREAM);
+        PullConsumerCreator pull = new PullConsumerCreator();
         assertSame(pull, pull.description("d").deliverPolicy(DeliverPolicy.New).name("dur").durable("dur"));
 
-        PushConsumerCreator push = new PushConsumerCreator(STREAM);
+        PushConsumerCreator push = new PushConsumerCreator();
         assertSame(push, push.description("d").deliverPolicy(DeliverPolicy.New).name("dur").durable("dur"));
 
-        PullConsumerCreator pullEph = new PullConsumerCreator(STREAM);
+        PullConsumerCreator pullEph = new PullConsumerCreator();
         assertSame(pullEph, pullEph.description("d").deliverPolicy(DeliverPolicy.New).name("n"));
 
-        PushConsumerCreator pushEph = new PushConsumerCreator(STREAM);
+        PushConsumerCreator pushEph = new PushConsumerCreator();
         assertSame(pushEph, pushEph.description("d").deliverPolicy(DeliverPolicy.New).name("n"));
 
-        PullOrderedConsumerCreator pullOrd = new PullOrderedConsumerCreator(STREAM);
+        PullOrderedConsumerCreator pullOrd = new PullOrderedConsumerCreator();
         assertSame(pullOrd, pullOrd.description("d").deliverPolicy(DeliverPolicy.New).namePrefix("p"));
 
-        PushOrderedConsumerCreator pushOrd = new PushOrderedConsumerCreator(STREAM);
+        PushOrderedConsumerCreator pushOrd = new PushOrderedConsumerCreator();
         assertSame(pushOrd, pushOrd.description("d").deliverPolicy(DeliverPolicy.New).namePrefix("p"));
     }
 }

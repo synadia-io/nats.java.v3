@@ -42,14 +42,14 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
         dispatcher = js.conn.createDispatcher();
 
         PullOrderedConsumerCreator creator =
-            new PullOrderedConsumerCreator(fb.getStreamName())
+            new PullOrderedConsumerCreator()
                 .namePrefix(consumerNamePrefix)
                 .deliverPolicy(deliverPolicy)
                 .startSequence(fromRevision)
                 .headersOnly(headersOnly)
                 .filterSubjects(subscribeSubjects);
         SubscribeBehavior sb = new SubscribeBehavior().handler(handler).dispatcher(dispatcher);
-        sub = js.pullSubscribe(creator, sb);
+        sub = js.pullSubscribe(fb.getStreamName(), creator, sb);
         if (!handler.endOfDataSent) {
             long pending = sub.getConsumerInfo().getCalculatedPending();
             if (pending == 0) {

@@ -12,6 +12,7 @@ import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
 import static io.synadia.client.utils.ApiConstants.CLUSTER;
 import static io.synadia.client.utils.ApiConstants.TAGS;
+import static io.synadia.client.utils.Validator.emptyAsNull;
 
 /**
  * PlacementCreator is used to create placement directives for use in a StreamCreator.
@@ -34,7 +35,7 @@ public class PlacementCreator implements JsonSerializable {
      * @param tags the list of tags, may be null
      */
     public PlacementCreator(@Nullable String cluster, @Nullable List<String> tags) {
-        this.cluster = cluster == null || cluster.isEmpty() ? null : cluster;
+        this.cluster = emptyAsNull(cluster);
         this.tags = new ArrayList<>();
         replaceAllStrings(this.tags, tags);
     }
@@ -52,8 +53,8 @@ public class PlacementCreator implements JsonSerializable {
      * @param cluster the cluster
      * @return this instance for chaining
      */
-    public PlacementCreator cluster(String cluster) {
-        this.cluster = cluster;
+    public PlacementCreator cluster(@Nullable String cluster) {
+        this.cluster = emptyAsNull(cluster);
         return this;
     }
 

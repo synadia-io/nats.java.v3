@@ -1,6 +1,7 @@
 package io.synadia.client.api;
 
 import io.nats.json.JsonSerializable;
+import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -15,7 +16,7 @@ import static io.synadia.client.utils.ApiConstants.DELIVER;
  */
 @NullMarked
 public class ExternalCreator implements JsonSerializable {
-    private @Nullable String api;
+    private String api;
     private @Nullable String deliver;
 
     /**
@@ -28,8 +29,8 @@ public class ExternalCreator implements JsonSerializable {
      * @param api the api prefix
      * @param deliver the delivery subject
      */
-    public ExternalCreator(@Nullable String api, @Nullable String deliver) {
-        this.api = api;
+    public ExternalCreator(String api, @Nullable String deliver) {
+        this.api = Validator.required(api, "api");
         this.deliver = deliver;
     }
 
@@ -47,7 +48,7 @@ public class ExternalCreator implements JsonSerializable {
      * @return this instance for chaining
      */
     public ExternalCreator api(String api) {
-        this.api = api;
+        this.api = Validator.required(api, "api");
         return this;
     }
 
@@ -56,7 +57,7 @@ public class ExternalCreator implements JsonSerializable {
      * @param deliver the deliver
      * @return this instance for chaining
      */
-    public ExternalCreator deliver(String deliver) {
+    public ExternalCreator deliver(@Nullable String deliver) {
         this.deliver = deliver;
         return this;
     }
@@ -65,7 +66,6 @@ public class ExternalCreator implements JsonSerializable {
      * The subject prefix that imports the other account <code>$JS.API.CONSUMER.&gt; subjects</code>
      * @return the api prefix
      */
-    @Nullable
     public String getApi() {
         return api;
     }

@@ -5,8 +5,11 @@ import org.jspecify.annotations.NullMarked;
 
 import java.time.Duration;
 
-import static io.nats.json.LazyJsonValueUtils.*;
+import static io.nats.json.LazyJsonValueUtils.readBoolean;
+import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readDurationOrZero;
+import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**
  * Server peer information
@@ -23,8 +26,7 @@ abstract class PeerInfo extends LazyApiObject {
      * @return the name
      */
     public String getName() {
-        //noinspection DataFlowIssue
-        return readString(ljv, NAME);
+        return readStringOrEmpty(ljv, NAME);
     }
 
     /**
@@ -48,8 +50,7 @@ abstract class PeerInfo extends LazyApiObject {
      * @return the active time
      */
     public Duration getActive() {
-        Duration d = readNanosAsDuration(ljv, ACTIVE);
-        return d == null ? Duration.ZERO : d;
+        return readDurationOrZero(ljv, ACTIVE);
     }
 
     /**

@@ -68,15 +68,13 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
         ConsumerInfo ci;
         if (isOrdered) {
             NatsMessageConsumerBase lastCon = lastConsumer.get();
+            long lastStreamSeq = 0;
             if (lastCon != null) {
-                highestSeq.set(Math.max(highestSeq.get(), lastCon.pmm.getLastStreamSequence()));
+                lastStreamSeq = Math.max(highestSeq.get(), lastCon.pmm.getLastStreamSequence());
+                highestSeq.set(lastStreamSeq);
             }
-            ConsumerCreator<?> creator = new PullOrderedConsumerCreator(initialPocc, highestSeq.get());
-            if (optionalInactiveThreshold != null) {
-                creator.inactiveThreshold(optionalInactiveThreshold);
-            }
-
-            ci = streamCtx.js._createConsumer(creator, ConsumerCreateRequest.Action.Create);
+            ConsumerCreator<?> creator = new PullOrderedConsumerCreator(initialPocc, lastStreamSeq, optionalInactiveThreshold);
+            ci = streamCtx.js._createConsumer(streamCtx.streamName, creator, ConsumerCreateRequest.Action.Create);
             cachedConsumerInfo.set(ci);
             consumerName.set(ci.getName());
         }

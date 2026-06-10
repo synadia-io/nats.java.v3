@@ -2,10 +2,15 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 
+import java.io.Serial;
+
 /**
  * Consume Options are provided to customize the consume operation.
  */
 public class ConsumeOptions extends BaseConsumeOptions {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     /**
      * An instance of ConsumeOptions representing the default consume options
      */

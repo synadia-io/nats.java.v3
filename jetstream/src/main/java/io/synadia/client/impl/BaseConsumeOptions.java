@@ -7,6 +7,9 @@ import io.nats.json.JsonValue;
 import io.synadia.client.api.PriorityPolicy;
 import org.jspecify.annotations.NonNull;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
@@ -15,7 +18,10 @@ import static io.synadia.client.utils.ApiConstants.*;
  * Base Consume Options are provided to customize the way the consume and
  * fetch operate. It is the base class for ConsumeOptions and FetchConsumeOptions.
  */
-public class BaseConsumeOptions implements JsonSerializable {
+public class BaseConsumeOptions implements JsonSerializable, Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     /** constant for default message count */
     public static final int DEFAULT_MESSAGE_COUNT = 500;
     /** constant for default message count when bytes */

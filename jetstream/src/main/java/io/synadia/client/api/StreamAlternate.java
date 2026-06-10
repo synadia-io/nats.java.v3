@@ -9,6 +9,7 @@ import java.util.List;
 import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**
  * The Stream Alternate
@@ -29,11 +30,7 @@ public class StreamAlternate extends LazyApiObject {
      * @return the name
      */
     public String getName() {
-        String name = readString(ljv, NAME);
-        if (name == null) {
-            throw new IllegalStateException("StreamAlternate does not have required name.");
-        }
-        return name;
+        return readStringOrEmpty(ljv, NAME);
     }
 
     /**
@@ -50,11 +47,7 @@ public class StreamAlternate extends LazyApiObject {
      * @return the cluster
      */
     public String getCluster() {
-        String cluster = readString(ljv, CLUSTER);
-        if (cluster == null) {
-            throw new IllegalStateException("StreamAlternate does not have required cluster name.");
-        }
-        return cluster;
+        return readStringOrEmpty(ljv, CLUSTER);
     }
 
     @Override

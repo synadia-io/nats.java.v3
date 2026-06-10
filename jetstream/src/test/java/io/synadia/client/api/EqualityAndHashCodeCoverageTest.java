@@ -63,7 +63,6 @@ public class EqualityAndHashCodeCoverageTest {
     private static void assertEqualsContract(Object a, Object b, Object different) {
         assertNotNull(a);
         assertNotNull(b);
-        assertNotNull(different);
 
         // reflexive
         assertEquals(a, a);
@@ -74,8 +73,10 @@ public class EqualityAndHashCodeCoverageTest {
         assertEquals(a.hashCode(), b.hashCode());
 
         // not equal to a distinct-value instance
-        assertNotEquals(a, different);
-        assertNotEquals(different, a);
+        if (different != null) {
+            assertNotEquals(a, different);
+            assertNotEquals(different, a);
+        }
 
         // null parameter
         assertNotEquals(a, null);
@@ -487,41 +488,39 @@ public class EqualityAndHashCodeCoverageTest {
 
     @Test
     public void testPullConsumerCreator_equalsAndHashCode() {
-        PullConsumerCreator a = new PullConsumerCreator("S1");
-        PullConsumerCreator b = new PullConsumerCreator("S1");
-        PullConsumerCreator c = new PullConsumerCreator("S2");
-        assertEqualsContract(a, b, c);
+        PullConsumerCreator a = new PullConsumerCreator();
+        PullConsumerCreator b = new PullConsumerCreator();
+        assertEqualsContract(a, b, null);
 
         // Same stream, different durable name
-        PullConsumerCreator d = new PullConsumerCreator("S1").durable("d1");
-        PullConsumerCreator e = new PullConsumerCreator("S1").durable("d1");
-        PullConsumerCreator f = new PullConsumerCreator("S1").durable("d2");
+        PullConsumerCreator d = new PullConsumerCreator().durable("d1");
+        PullConsumerCreator e = new PullConsumerCreator().durable("d1");
+        PullConsumerCreator f = new PullConsumerCreator().durable("d2");
         assertEqualsContract(d, e, f);
 
         // Same stream, different filter subject and max batch
-        PullConsumerCreator g = new PullConsumerCreator("S1").filterSubject("x.>").maxBatch(10L);
-        PullConsumerCreator h = new PullConsumerCreator("S1").filterSubject("x.>").maxBatch(10L);
-        PullConsumerCreator i = new PullConsumerCreator("S1").filterSubject("y.>").maxBatch(10L);
+        PullConsumerCreator g = new PullConsumerCreator().filterSubject("x.>").maxBatch(10L);
+        PullConsumerCreator h = new PullConsumerCreator().filterSubject("x.>").maxBatch(10L);
+        PullConsumerCreator i = new PullConsumerCreator().filterSubject("y.>").maxBatch(10L);
         assertEqualsContract(g, h, i);
 
         // Same stream, different boolean (headersOnly)
-        PullConsumerCreator j = new PullConsumerCreator("S1").headersOnly(true);
-        PullConsumerCreator k = new PullConsumerCreator("S1").headersOnly(true);
-        PullConsumerCreator l = new PullConsumerCreator("S1").headersOnly(false);
+        PullConsumerCreator j = new PullConsumerCreator().headersOnly(true);
+        PullConsumerCreator k = new PullConsumerCreator().headersOnly(true);
+        PullConsumerCreator l = new PullConsumerCreator().headersOnly(false);
         assertEqualsContract(j, k, l);
     }
 
     @Test
     public void testPushConsumerCreator_equalsAndHashCode() {
-        PushConsumerCreator a = new PushConsumerCreator("S1");
-        PushConsumerCreator b = new PushConsumerCreator("S1");
-        PushConsumerCreator c = new PushConsumerCreator("S2");
-        assertEqualsContract(a, b, c);
+        PushConsumerCreator a = new PushConsumerCreator();
+        PushConsumerCreator b = new PushConsumerCreator();
+        assertEqualsContract(a, b, null);
 
         // Same stream, different deliver subject
-        PushConsumerCreator d = new PushConsumerCreator("S1").deliverSubject("ds1");
-        PushConsumerCreator e = new PushConsumerCreator("S1").deliverSubject("ds1");
-        PushConsumerCreator f = new PushConsumerCreator("S1").deliverSubject("ds2");
+        PushConsumerCreator d = new PushConsumerCreator().deliverSubject("ds1");
+        PushConsumerCreator e = new PushConsumerCreator().deliverSubject("ds1");
+        PushConsumerCreator f = new PushConsumerCreator().deliverSubject("ds2");
         assertEqualsContract(d, e, f);
     }
 
@@ -529,8 +528,8 @@ public class EqualityAndHashCodeCoverageTest {
     public void testConsumerCreator_pushVsPullNotEqual() {
         // ConsumerCreator.equals uses getClass() != o.getClass() — different concrete classes
         // are never equal, even with the same stream.
-        PullConsumerCreator pull = new PullConsumerCreator("S1");
-        PushConsumerCreator push = new PushConsumerCreator("S1");
+        PullConsumerCreator pull = new PullConsumerCreator();
+        PushConsumerCreator push = new PushConsumerCreator();
         assertNotEquals(pull, push);
         assertNotEquals(push, pull);
     }
@@ -541,26 +540,20 @@ public class EqualityAndHashCodeCoverageTest {
         // generates a random underlying `name` via _name(), so two freshly-constructed
         // instances have different `name` fields and are not equal. We manually align the
         // `name` field (package-protected access) to test the equals/hashCode contract.
-        PullOrderedConsumerCreator a = new PullOrderedConsumerCreator("S1");
-        PullOrderedConsumerCreator b = new PullOrderedConsumerCreator("S1");
-        //noinspection DataFlowIssue // we know name is set in ordered
+        PullOrderedConsumerCreator a = new PullOrderedConsumerCreator();
+        PullOrderedConsumerCreator b = new PullOrderedConsumerCreator();
         b._name(a.getName()); // align names b/c they are internally randomly generated
         b.namePrefix = a.namePrefix; // align prefix (package-private field via same-package access)
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
-
-        PullOrderedConsumerCreator c = new PullOrderedConsumerCreator("S2");
-        assertNotEquals(a, c);
-        assertNotEquals(a, null);
         //noinspection AssertEqualsBetweenInconvertibleTypes
         assertNotEquals(a, "foreign");
         assertEquals(a, a);
 
         // Different namePrefix branch in AbstractOrderedConsumerCreator.equals
         // Start from aligned state, then diverge ONLY namePrefix
-        PullOrderedConsumerCreator d = new PullOrderedConsumerCreator("S1");
-        PullOrderedConsumerCreator e = new PullOrderedConsumerCreator("S1");
-        //noinspection DataFlowIssue // we know name is set in ordered
+        PullOrderedConsumerCreator d = new PullOrderedConsumerCreator();
+        PullOrderedConsumerCreator e = new PullOrderedConsumerCreator();
         e._name(d.getName()); // align name so only namePrefix differs
         d.namePrefix = "prefix1";
         e.namePrefix = "prefix2";
@@ -569,24 +562,18 @@ public class EqualityAndHashCodeCoverageTest {
 
     @Test
     public void testPushOrderedConsumerCreator_equalsAndHashCode() {
-        PushOrderedConsumerCreator a = new PushOrderedConsumerCreator("S1");
-        PushOrderedConsumerCreator b = new PushOrderedConsumerCreator("S1");
-        //noinspection DataFlowIssue // we know name is set in ordered
+        PushOrderedConsumerCreator a = new PushOrderedConsumerCreator();
+        PushOrderedConsumerCreator b = new PushOrderedConsumerCreator();
         b._name(a.getName()); // align names b/c they are internally randomly generated
         b.namePrefix = a.namePrefix;
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
-
-        PushOrderedConsumerCreator c = new PushOrderedConsumerCreator("S2");
-        assertNotEquals(a, c);
-        assertNotEquals(a, null);
         //noinspection AssertEqualsBetweenInconvertibleTypes
         assertNotEquals(a, "foreign");
 
         // Different namePrefix branch
-        PushOrderedConsumerCreator d = new PushOrderedConsumerCreator("S1");
-        PushOrderedConsumerCreator e = new PushOrderedConsumerCreator("S1");
-        //noinspection DataFlowIssue // we know name is set in ordered
+        PushOrderedConsumerCreator d = new PushOrderedConsumerCreator();
+        PushOrderedConsumerCreator e = new PushOrderedConsumerCreator();
         e._name(d.getName()); // align name so only namePrefix differs
         d.namePrefix = "p1";
         e.namePrefix = "p2";
@@ -597,8 +584,8 @@ public class EqualityAndHashCodeCoverageTest {
     public void testOrderedConsumerCreators_pullVsPushNotEqual() {
         // Different concrete classes (PullOrdered vs PushOrdered) must never be equal,
         // even with identical configuration. ConsumerCreator equals uses getClass().
-        PullOrderedConsumerCreator pull = new PullOrderedConsumerCreator("S1");
-        PushOrderedConsumerCreator push = new PushOrderedConsumerCreator("S1");
+        PullOrderedConsumerCreator pull = new PullOrderedConsumerCreator();
+        PushOrderedConsumerCreator push = new PushOrderedConsumerCreator();
         assertNotEquals(pull, push);
         assertNotEquals(push, pull);
     }
@@ -608,9 +595,8 @@ public class EqualityAndHashCodeCoverageTest {
         // Verify AbstractOrderedConsumerCreator.equals exercises both branches:
         // 1. super.equals returns false -> short-circuits to false
         // 2. super.equals returns true; namePrefix differs -> overall false
-        PullOrderedConsumerCreator a = new PullOrderedConsumerCreator("S1");
-        PullOrderedConsumerCreator b = new PullOrderedConsumerCreator("S1");
-        //noinspection DataFlowIssue // we know name is set in ordered
+        PullOrderedConsumerCreator a = new PullOrderedConsumerCreator();
+        PullOrderedConsumerCreator b = new PullOrderedConsumerCreator();
         b._name(a.getName()); // align names b/c they are internally randomly generated
         b.namePrefix = a.namePrefix;
         assertEquals(a, b);
@@ -620,13 +606,12 @@ public class EqualityAndHashCodeCoverageTest {
         assertNotEquals(a, b);
 
         // Trigger super.equals false branch: different stream -> super.equals=false
-        PullOrderedConsumerCreator c = new PullOrderedConsumerCreator("S99");
+        PullOrderedConsumerCreator c = new PullOrderedConsumerCreator();
         assertNotEquals(a, c);
 
         // Identical namePrefix produces equal hashCode
-        PullOrderedConsumerCreator d = new PullOrderedConsumerCreator("S1");
-        PullOrderedConsumerCreator e = new PullOrderedConsumerCreator("S1");
-        //noinspection DataFlowIssue // we know name is set in ordered
+        PullOrderedConsumerCreator d = new PullOrderedConsumerCreator();
+        PullOrderedConsumerCreator e = new PullOrderedConsumerCreator();
         e._name(d.getName()); // align names b/c they are internally randomly generated
         d.namePrefix = "same";
         e.namePrefix = "same";

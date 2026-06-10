@@ -89,7 +89,7 @@ public class ApiFieldsTest {
         assertEquals(50L, c.getMaxAckPending());
 
         // inactiveThreshold(null) -> null (uses normalizeDuration with dftl=null)
-        c.inactiveThreshold((Duration) null);
+        c.inactiveThreshold(null);
         assertNull(c.getInactiveThreshold());
         // inactiveThreshold(Duration.ZERO) -> null
         c.inactiveThreshold(Duration.ofSeconds(5));
@@ -155,8 +155,8 @@ public class ApiFieldsTest {
         ExternalCreator c = new ExternalCreator().api("v1").deliver("v2");
         assertEquals("v1", c.getApi());
         assertEquals("v2", c.getDeliver());
-        c.api(null);
-        assertNull(c.getApi());
+        //noinspection DataFlowIssue
+        assertThrows(IllegalArgumentException.class, () -> c.api(null));
         c.deliver(null);
         assertNull(c.getDeliver());
     }
@@ -317,7 +317,7 @@ public class ApiFieldsTest {
     @Test
     public void testPullConsumerCreator() {
         // ---- construct + creator-side setters + JSON round trip ----
-        PullConsumerCreator creator = new PullConsumerCreator("pull-stream")
+        PullConsumerCreator creator = new PullConsumerCreator()
             .durable("dur-1")
             .description("desc-1")
             .deliverPolicy(DeliverPolicy.New)
@@ -345,7 +345,6 @@ public class ApiFieldsTest {
             .priorityTimeout(Duration.ofSeconds(20))
             .name("dur-1");
 
-        assertEquals("pull-stream", creator.getStream());
         assertFalse(creator.isPush());
         assertEquals("dur-1", creator.getName());
         assertTrue(creator.isHeadersOnly());
@@ -386,7 +385,7 @@ public class ApiFieldsTest {
         assertEquals(Duration.ofSeconds(20), cc.getPriorityTimeout());
 
         // ---- multiple filter subjects ----
-        PullConsumerCreator multi = new PullConsumerCreator("ms-stream")
+        PullConsumerCreator multi = new PullConsumerCreator()
             .filterSubjects("a.>", "b.>", "c.>");
         assertTrue(multi.hasMultipleFilterSubjects());
         ConsumerConfiguration multiCc = new ConsumerConfiguration(lj(multi.toJson()));
@@ -404,7 +403,7 @@ public class ApiFieldsTest {
         assertEquals("desc-1", copy.getDescription());
 
         // ---- null-reset / numeric-reset coverage ----
-        PullConsumerCreator c = new PullConsumerCreator("nr-stream")
+        PullConsumerCreator c = new PullConsumerCreator()
             .description("d")
             .durable("dur")
             .ackWait(Duration.ofSeconds(5))
@@ -641,7 +640,7 @@ public class ApiFieldsTest {
         // The setters exercised here are pull-ordered-only; they delegate to the
         // same protected setters already covered by testPullConsumerCreator, so
         // we focus on overload coverage rather than re-asserting reset semantics.
-        PullOrderedConsumerCreator c = new PullOrderedConsumerCreator("ordered-stream")
+        PullOrderedConsumerCreator c = new PullOrderedConsumerCreator()
             .namePrefix("pfx")
             .maxExpires(Duration.ofSeconds(60))
             .maxPullWaiting(64L)
@@ -651,9 +650,9 @@ public class ApiFieldsTest {
             .priorityPolicy(PriorityPolicy.PinnedClient)
             .priorityTimeout(Duration.ofSeconds(10));
 
-        assertEquals("ordered-stream", c.getStream());
         assertFalse(c.isPush());
         assertEquals("pfx", c.getNamePrefix());
+        assertNotNull(c.getName());
         assertTrue(c.getName().startsWith("pfx-"));
         assertEquals(Duration.ofSeconds(60), c.getMaxExpires());
         assertEquals(64L, c.getMaxPullWaiting());
@@ -667,7 +666,7 @@ public class ApiFieldsTest {
         c.maxExpires(45000L);
         assertEquals(Duration.ofMillis(45000), c.getMaxExpires());
 
-        c.maxBytes((Long) null);
+        c.maxBytes(null);
         assertEquals(-1L, c.getMaxBytes());
 
         c.priorityGroups(Arrays.asList("g3", "g4"));
@@ -681,11 +680,11 @@ public class ApiFieldsTest {
         assertEquals(ConsumerCreator.DEFAULT_PRIORITY_POLICY, c.getPriorityPolicy());
 
         // ---- copy constructor with lastStreamSeq ----
-        PullOrderedConsumerCreator copy = new PullOrderedConsumerCreator(c, 100L);
+        PullOrderedConsumerCreator copy = new PullOrderedConsumerCreator(c, 100L, null);
         assertNotNull(copy);
         // lastStreamSeq > 0 mutates the *source* creator's start policy
-        assertEquals(DeliverPolicy.ByStartSequence, c.getDeliverPolicy());
-        assertEquals(101L, c.getStartSequence());
+        assertEquals(DeliverPolicy.ByStartSequence, copy.getDeliverPolicy());
+        assertEquals(101L, copy.getStartSequence());
     }
 
     @Test
@@ -695,7 +694,7 @@ public class ApiFieldsTest {
         meta.put("k1", "v1");
         meta.put("k2", "v2");
 
-        PushConsumerCreator creator = new PushConsumerCreator("push-stream")
+        PushConsumerCreator creator = new PushConsumerCreator()
             .durable("push-dur")
             .deliverSubject("deliver.here")
             .deliverGroup("group-1")
@@ -706,7 +705,6 @@ public class ApiFieldsTest {
             .metadata(meta)
             .name("push-dur");
 
-        assertEquals("push-stream", creator.getStream());
         assertTrue(creator.isPush());
         assertEquals("push-dur", creator.getName());
         assertTrue(creator.isFlowControl());
@@ -733,7 +731,7 @@ public class ApiFieldsTest {
         assertEquals("deliver.here", copy.getDeliverSubject());
 
         // ---- null-reset coverage ----
-        PushConsumerCreator c = new PushConsumerCreator("nr-push")
+        PushConsumerCreator c = new PushConsumerCreator()
             .durable("dur")
             .deliverSubject("ds")
             .deliverGroup("dg")
@@ -1153,7 +1151,7 @@ public class ApiFieldsTest {
         // ConsumerCreator is abstract; PullConsumerCreator exposes all collection setters.
 
         // ---- filterSubjects ----
-        PullConsumerCreator c = new PullConsumerCreator("s");
+        PullConsumerCreator c = new PullConsumerCreator();
         assertNotNull(c.getFilterSubjects());
         assertTrue(c.getFilterSubjects().isEmpty());
         c.filterSubjects("a.>", "b.>");
@@ -1170,7 +1168,7 @@ public class ApiFieldsTest {
 
         // ---- backoff (both Duration... and long... varargs overloads exist; no-arg
         // form would be ambiguous, so we clear via empty typed arrays) ----
-        c = new PullConsumerCreator("s");
+        c = new PullConsumerCreator();
         assertNotNull(c.getBackoff());
         assertTrue(c.getBackoff().isEmpty());
         c.backoff(Duration.ofSeconds(1), Duration.ofSeconds(2));
@@ -1184,7 +1182,7 @@ public class ApiFieldsTest {
         assertTrue(c.getBackoff().isEmpty());
 
         // ---- metadata ----
-        c = new PullConsumerCreator("s");
+        c = new PullConsumerCreator();
         assertNotNull(c.getMetadata());
         assertTrue(c.getMetadata().isEmpty());
         Map<String, String> m = new HashMap<>();
@@ -1199,7 +1197,7 @@ public class ApiFieldsTest {
         assertTrue(c.getMetadata().isEmpty());
 
         // ---- priorityGroups ----
-        c = new PullConsumerCreator("s");
+        c = new PullConsumerCreator();
         assertNotNull(c.getPriorityGroups());
         assertTrue(c.getPriorityGroups().isEmpty());
         c.priorityGroups("g1", "g2");

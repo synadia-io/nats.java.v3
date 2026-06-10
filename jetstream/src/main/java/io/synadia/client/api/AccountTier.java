@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.nats.json.LazyJsonValueUtils.readMapObjectOrEmpty;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
 
 /**
  * Represents the JetStream Account Tier
@@ -24,7 +25,7 @@ public class AccountTier extends LazyApiObject {
      * @return the memory storage in bytes
      */
     public long getMemoryBytes() {
-        return readLong(ljv, MEMORY, 0);
+        return readLongOrMinusOne(ljv, MEMORY);
     }
 
     /**
@@ -32,7 +33,7 @@ public class AccountTier extends LazyApiObject {
      * @return the storage in bytes
      */
     public long getStorageBytes() {
-        return readLong(ljv, STORAGE, 0);
+        return readLongOrMinusOne(ljv, STORAGE);
     }
 
     /**
@@ -56,7 +57,7 @@ public class AccountTier extends LazyApiObject {
      * @return the number of streams
      */
     public long getStreams() {
-        return readLong(ljv, STREAMS, 0);
+        return readLongOrMinusOne(ljv, STREAMS);
     }
 
     /**
@@ -64,7 +65,7 @@ public class AccountTier extends LazyApiObject {
      * @return the number of consumers
      */
     public long getConsumers() {
-        return readLong(ljv, CONSUMERS, 0);
+        return readLongOrMinusOne(ljv, CONSUMERS);
     }
 
     /**

@@ -3,6 +3,8 @@ package io.synadia.client.impl;
 import io.nats.json.JsonValue;
 import io.synadia.client.Message;
 
+import java.io.Serial;
+
 import static io.nats.json.JsonValueUtils.readBoolean;
 import static io.nats.json.JsonValueUtils.readLong;
 import static io.nats.json.JsonWriteUtils.addField;
@@ -14,6 +16,9 @@ import static io.synadia.client.utils.ApiConstants.NO_WAIT;
  * Fetch Consume Options are provided to customize the fetch operation.
  */
 public class FetchConsumeOptions extends BaseConsumeOptions {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     /**
      * An instance of FetchConsumeOptions representing the default fetch options
      */

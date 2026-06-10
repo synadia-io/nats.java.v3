@@ -38,7 +38,7 @@ public abstract class AbstractBucketFeature {
         this.streamName = toStreamName(bucketName);
     }
 
-    protected AbstractBucketFeature(String bucketName, AbstractBucketFeature existing) throws IOException {
+    protected AbstractBucketFeature(String bucketName, AbstractBucketFeature existing) {
         this.nc = existing.nc;
         this.fo = existing.fo;
         this.js = existing.js;
@@ -88,18 +88,18 @@ public abstract class AbstractBucketFeature {
     protected void visitSubject(List<String> subjects, DeliverPolicy deliverPolicy, boolean headersOnly, boolean ordered, MessageHandler handler) throws IOException, JetStreamApiException, InterruptedException {
         JetStreamPushSubscription sub;
         if (ordered) {
-            PushOrderedConsumerCreator creator = new PushOrderedConsumerCreator(streamName)
+            PushOrderedConsumerCreator creator = new PushOrderedConsumerCreator()
                 .deliverPolicy(deliverPolicy)
                 .headersOnly(headersOnly)
                 .filterSubjects(subjects);
-            sub = js.pushSubscribe(creator);
+            sub = js.pushSubscribe(streamName, creator);
         }
         else {
-            PushConsumerCreator creator = new PushConsumerCreator(streamName)
+            PushConsumerCreator creator = new PushConsumerCreator()
                 .deliverPolicy(deliverPolicy)
                 .headersOnly(headersOnly)
                 .filterSubjects(subjects);
-            sub = js.pushSubscribe(creator);
+            sub = js.pushSubscribe(streamName, creator);
         }
 
         Duration timeout = js.getTimeout();

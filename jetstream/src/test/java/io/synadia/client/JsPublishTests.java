@@ -41,8 +41,8 @@ public class JsPublishTests extends JetStreamTestBase {
             for (String s : noSpacesUtfSubjects) {
                 String data = random() + " " + s;
                 js.publish(s, data);
-                PushConsumerCreator creator = new PushConsumerCreator(streamName).filterSubject(s);
-                ConsumerInfo ci = jsm.createConsumer(creator);
+                PushConsumerCreator creator = new PushConsumerCreator().filterSubject(s);
+                ConsumerInfo ci = jsm.createConsumer(streamName, creator);
                 JetStreamPushSubscription sub = js.pushSubscribe(ci);
                 Message m = sub.nextMessage(1000);
                 assertEquals(data, new String(m.getData(), StandardCharsets.UTF_8));

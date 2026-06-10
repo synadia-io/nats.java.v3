@@ -2,6 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.Options;
+import io.synadia.client.api.PublishAck;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamCreator;
 import io.synadia.client.utils.ConnectionUtils;
@@ -18,10 +19,60 @@ import static org.junit.jupiter.api.Assertions.*;
 public class JetStreamGeneralTests extends JetStreamTestBase {
 
     @Test
-    public void testJetStreamContextCreate() throws Exception {
+    public void testJetStreamGeneral() throws Exception {
         runInShared((nc, ctx) -> {
             ctx.jsm.getAccountStatistics(); // another management
-            ctx.js.publish(ctx.subject(), dataBytes(1));
+
+            String subject = ctx.subject();
+
+            // distinct headers for each variation that carries them
+            String hk3 = random();
+            String hv3 = random();
+            Headers h3 = new Headers().put(hk3, hv3);
+
+            String hk4 = random();
+            String hv4 = random();
+            Headers h4 = new Headers().put(hk4, hv4);
+
+            String hk5 = random();
+            String hv5 = random();
+            Headers h5 = new Headers().put(hk5, hv5);
+
+            // all the publish variations, new data for each, never a null body.
+            // it's a new stream, so the stream sequence starts at 1 and increments.
+            PublishAck pa1 = ctx.js.publish(subject, dataBytes(1));      // publish(subject, byte[])
+            PublishAck pa2 = ctx.js.publish(subject, data(2));          // publish(subject, String)
+            PublishAck pa3 = ctx.js.publish(subject, h3, dataBytes(3)); // publish(subject, headers, byte[])
+            PublishAck pa4 = ctx.js.publish(subject, h4, data(4));      // publish(subject, headers, String)
+            PublishAck pa5 = ctx.js.publish(NatsMessage.builder()       // publish(message)
+                .subject(subject).headers(h5).data(dataBytes(5)).build());
+
+            assertEquals(1, pa1.getSequenceNumber());
+            assertEquals(2, pa2.getSequenceNumber());
+            assertEquals(3, pa3.getSequenceNumber());
+            assertEquals(4, pa4.getSequenceNumber());
+            assertEquals(5, pa5.getSequenceNumber());
+
+            // read them all back, validating the data and headers that were sent
+            JetStreamPushSubscription sub = ctx.js.pushSubscribe(subject);
+            nc.flush(Duration.ofSeconds(1));
+            List<Message> msgs = readMessagesAck(sub, Duration.ofSeconds(1), 5);
+            assertEquals(5, msgs.size());
+
+            assertEquals(data(1), new String(msgs.get(0).getData()));
+            assertFalse(msgs.get(0).hasHeaders());
+
+            assertEquals(data(2), new String(msgs.get(1).getData()));
+            assertFalse(msgs.get(1).hasHeaders());
+
+            assertEquals(data(3), new String(msgs.get(2).getData()));
+            assertEquals(hv3, msgs.get(2).getHeaders().getFirst(hk3));
+
+            assertEquals(data(4), new String(msgs.get(3).getData()));
+            assertEquals(hv4, msgs.get(3).getHeaders().getFirst(hk4));
+
+            assertEquals(data(5), new String(msgs.get(4).getData()));
+            assertEquals(hv5, msgs.get(4).getHeaders().getFirst(hk5));
         });
     }
 
@@ -36,10 +87,12 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
     }
 
     @Test
-    public void testExceptionsAndCoverage() throws Exception {
+    public void testCoverageIncludingExceptions() throws Exception {
         runInSharedOwnNc(nc -> {
-            new JetStreamManagement(nc).jetStream();
-            new JetStream(nc);
+            JetStreamManagement jsm = new JetStreamManagement(nc);
+            JetStream js = new JetStream(nc);
+            jsm = js.jetStreamManagement();
+            js = jsm.jetStream();
 
             JetStreamOptions jso = JetStreamOptions.builder().build();
             new JetStreamManagement(nc, jso).jetStream();
@@ -48,6 +101,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             nc.close();
             assertThrows(IOException.class, () -> new JetStreamManagement(nc));
             assertThrows(IOException.class, () -> new JetStream(nc));
+
         });
     }
 

@@ -11,10 +11,9 @@ public class PushConsumerCreator extends AbstractEphemeralConsumerCreator<PushCo
 
     /**
      * Construct the creator
-     * @param stream the stream name
      */
-    public PushConsumerCreator(String stream) {
-        super(stream, true);
+    public PushConsumerCreator() {
+        super(true);
     }
 
     public PushConsumerCreator(PushConsumerCreator creator) {

@@ -7,8 +7,10 @@ import org.jspecify.annotations.Nullable;
 import java.time.Duration;
 import java.util.List;
 
-import static io.nats.json.LazyJsonValueUtils.*;
+import static io.nats.json.LazyJsonValueUtils.readString;
+import static io.nats.json.LazyJsonValueUtils.readValue;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.*;
 
 /**
  * Information about a stream being sourced
@@ -25,11 +27,7 @@ abstract class StreamSourceInfo extends LazyApiObject {
      * @return the name
      */
     public String getName() {
-        String name = readString(ljv, NAME);
-        if (name == null) {
-            throw new IllegalStateException(getClass().getSimpleName() + " does not have required name.");
-        }
-        return name;
+        return readStringOrEmpty(ljv, NAME);
     }
 
     /**
@@ -46,17 +44,15 @@ abstract class StreamSourceInfo extends LazyApiObject {
      * @return the lag
      */
     public long getLag() {
-        return readLong(ljv, LAG, 0);
+        return readLongOrMinusOne(ljv, LAG);
     }
 
     /**
-     * Time since this peer was last seen, or null if there is no information
-     * @return the time
+     * Time since this peer was last seen
+     * @return the time, or {@link Duration#ZERO} if absent
      */
-    @Nullable
     public Duration getActive() {
-        Long l = readLong(ljv, ACTIVE);
-        return l == null || l < 0 ? null : Duration.ofNanos(l);
+        return readDurationOrZero(ljv, ACTIVE);
     }
 
     /**

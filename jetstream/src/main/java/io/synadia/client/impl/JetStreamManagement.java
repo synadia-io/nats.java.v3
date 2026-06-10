@@ -34,6 +34,10 @@ public class JetStreamManagement extends JetStreamImpl {
         super(connection, jsOptions);
     }
 
+    JetStreamManagement(JetStreamImpl impl) {
+        super(impl);
+    }
+
     /**
      * Gets a JetStream context using the same connection and JetStreamOptions as the management.
      * @return a JetStream instance.
@@ -171,18 +175,6 @@ public class JetStreamManagement extends JetStreamImpl {
     }
 
     /**
-     * Loads or creates a consumer.
-     * @param creator the consumer creator to use.
-     * @return consumer information.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
-     */
-    public ConsumerInfo addOrUpdateConsumer(ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
-        return _createConsumer(creator, ConsumerCreateRequest.Action.CreateOrUpdate);
-    }
-
-    /**
      * Creates a consumer. Must not already exist.
      * @param creator the consumer creator to use.
      * @return consumer information.
@@ -190,8 +182,8 @@ public class JetStreamManagement extends JetStreamImpl {
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data such as the consumer already exists
      */
-    public ConsumerInfo createConsumer(ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
-        return _createConsumer(creator, ConsumerCreateRequest.Action.Create);
+    public ConsumerInfo createConsumer(String stream, ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
+        return _createConsumer(stream, creator, ConsumerCreateRequest.Action.Create);
     }
 
     /**
@@ -202,8 +194,20 @@ public class JetStreamManagement extends JetStreamImpl {
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data such as the consumer does not already exist
      */
-    public ConsumerInfo updateConsumer(ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
-        return _createConsumer(creator, ConsumerCreateRequest.Action.Update);
+    public ConsumerInfo updateConsumer(String stream, ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
+        return _createConsumer(stream, creator, ConsumerCreateRequest.Action.Update);
+    }
+
+    /**
+     * Loads or creates a consumer.
+     * @param creator the consumer creator to use.
+     * @return consumer information.
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     */
+    public ConsumerInfo createOrUpdateConsumer(String stream, ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
+        return _createConsumer(stream, creator, ConsumerCreateRequest.Action.CreateOrUpdate);
     }
 
     /**

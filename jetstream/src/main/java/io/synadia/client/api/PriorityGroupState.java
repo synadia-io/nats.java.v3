@@ -11,6 +11,7 @@ import static io.nats.json.LazyJsonValueUtils.readDate;
 import static io.nats.json.LazyJsonValueUtils.readString;
 import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**
  * Status of a specific consumer priority group
@@ -30,8 +31,7 @@ public class PriorityGroupState extends LazyApiObject {
      * @return the group
      */
     public String getGroup() {
-        //noinspection DataFlowIssue
-        return readString(ljv, GROUP);
+        return readStringOrEmpty(ljv, GROUP);
     }
 
     /**

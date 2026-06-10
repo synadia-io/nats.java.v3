@@ -10,14 +10,13 @@ import org.jspecify.annotations.Nullable;
 public class PushOrderedConsumerCreator extends AbstractOrderedConsumerCreator<PushOrderedConsumerCreator> implements PushDeliverSubjectInterface {
     /**
      * Construct a PushOrderedConsumerCreator instance
-     * @param stream the stream name
      */
-    public PushOrderedConsumerCreator(String stream) {
-        super(stream, true);
+    public PushOrderedConsumerCreator() {
+        super(true);
     }
 
-    public PushOrderedConsumerCreator(PushOrderedConsumerCreator creator, long lastStreamSeq) {
-        super(creator, lastStreamSeq);
+    public PushOrderedConsumerCreator(PushOrderedConsumerCreator creator, long lastStreamSeq, @Nullable Long inactiveThreshold) {
+        super(creator, lastStreamSeq, inactiveThreshold);
     }
 
     // ----------------------------------------------------------------------------------------------------

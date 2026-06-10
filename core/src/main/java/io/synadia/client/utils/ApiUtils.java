@@ -6,6 +6,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.function.Function;
 
@@ -123,5 +124,73 @@ public abstract class ApiUtils {
     public static long readLong(@NonNull JsonValue jv, @NonNull String key, long dflt) {
         Long l = JsonValueUtils.readLong(jv, key);
         return l == null ? dflt : l;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Optimistic required-field readers. See REQUIRED_FIELDS_POLICY.md.
+    // Pattern: read the schema-required scalar; return a sensible-empty sentinel
+    // when the JSON is missing rather than throw. "" / -1 / Duration.ZERO /
+    // DateTimeUtils.DEFAULT_TIME are the per-type defaults.
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Read a String, returning {@code ""} when absent. Use for schema-required strings.
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the string value, or {@code ""} if absent
+     */
+    @NonNull
+    public static String readStringOrEmpty(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        String s = LazyJsonValueUtils.readString(ljv, key);
+        return s == null ? "" : s;
+    }
+
+    /**
+     * Read a long, returning {@code -1} when absent. {@code -1} is the codebase-wide
+     * "missing required numeric" sentinel (matches {@code Error.NOT_SET},
+     * {@code PublishAck.seq}, {@code StreamConfiguration} max-limits).
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the long value, or {@code -1} if absent
+     */
+    public static long readLongOrMinusOne(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        return LazyJsonValueUtils.readLong(ljv, key, -1L);
+    }
+
+    /**
+     * Read an int, returning {@code -1} when absent. See {@link #readLongOrMinusOne}.
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the int value, or {@code -1} if absent
+     */
+    public static int readIntegerOrMinusOne(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        return LazyJsonValueUtils.readInteger(ljv, key, -1);
+    }
+
+    /**
+     * Read a nanos-encoded Duration, returning {@link Duration#ZERO} when absent or
+     * negative.
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the Duration, or {@code Duration.ZERO} if absent / negative
+     */
+    @NonNull
+    public static Duration readDurationOrZero(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        Duration d = LazyJsonValueUtils.readNanosAsDuration(ljv, key);
+        return d == null || d.isNegative() ? Duration.ZERO : d;
+    }
+
+    /**
+     * Read a date, returning {@link DateTimeUtils#DEFAULT_TIME} when absent.
+     * {@code DEFAULT_TIME} is the codebase-wide "absent timestamp" sentinel and is
+     * skipped by {@code JsonWriteUtils} on emit, preserving round-trip.
+     * @param ljv the value to read from
+     * @param key the JSON key
+     * @return the date, or {@code DateTimeUtils.DEFAULT_TIME} if absent
+     */
+    @NonNull
+    public static ZonedDateTime readDateOrDefault(@NonNull LazyJsonValue ljv, @NonNull String key) {
+        ZonedDateTime zdt = LazyJsonValueUtils.readDate(ljv, key);
+        return zdt == null ? DateTimeUtils.DEFAULT_TIME : zdt;
     }
 }

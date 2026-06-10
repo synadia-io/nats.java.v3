@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.synadia.client.impl.JetStreamApiUtils.generateConsumerName;
 import static io.synadia.client.utils.JetStreamClientError.JsConsumerCreate290NotAvailable;
 import static io.synadia.client.utils.JetStreamClientError.JsMultipleFilterSubjects210NotAvailable;
+import static io.synadia.client.utils.JsValidator.validateStreamName;
 import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 
 @NullMarked
@@ -92,7 +93,8 @@ public class JetStreamImpl implements JetStreamConstants {
         }
     }
 
-    ConsumerInfo _createConsumer(ConsumerCreator<?> creator, ConsumerCreateRequest.Action action) throws IOException, JetStreamApiException {
+    ConsumerInfo _createConsumer(String stream, ConsumerCreator<?> creator, ConsumerCreateRequest.Action action) throws IOException, JetStreamApiException {
+        validateStreamName(stream, true);
         // ConsumerConfiguration validates that name and durable are the same if both are supplied.
         String consumerName = creator.getName();
         if (consumerName != null && !consumerCreate290Available) {
@@ -114,7 +116,6 @@ public class JetStreamImpl implements JetStreamConstants {
             }
         }
 
-        String streamName = creator.getStream();
         String durable = creator.getDurable();
         String subj;
         // new consumer create not available before 290 and can't be used with multiple filter subjects
@@ -125,20 +126,20 @@ public class JetStreamImpl implements JetStreamConstants {
             }
             String fs = creator.getFilterSubject(); // we've already determined there are not more than 1 filter subjects, so this gives us one or null
             if (fs == null || fs.equals(GREATER_THAN)) {
-                subj = String.format(JSAPI_CONSUMER_CREATE_V290, streamName, consumerName);
+                subj = String.format(JSAPI_CONSUMER_CREATE_V290, stream, consumerName);
             }
             else {
-                subj = String.format(JSAPI_CONSUMER_CREATE_V290_W_FILTER, streamName, consumerName, fs);
+                subj = String.format(JSAPI_CONSUMER_CREATE_V290_W_FILTER, stream, consumerName, fs);
             }
         }
         else if (durable == null) {
-            subj = String.format(JSAPI_CONSUMER_CREATE, streamName);
+            subj = String.format(JSAPI_CONSUMER_CREATE, stream);
         }
         else {
-            subj = String.format(JSAPI_DURABLE_CREATE, streamName, durable);
+            subj = String.format(JSAPI_DURABLE_CREATE, stream, durable);
         }
 
-        ConsumerCreateRequest ccr = new ConsumerCreateRequest(streamName, creator, action);
+        ConsumerCreateRequest ccr = new ConsumerCreateRequest(stream, creator, action);
         Message resp = makeRequestResponseRequired(subj, ccr.serialize(), getTimeout());
         return new ConsumerInfo(resp).throwOnHasError();
     }

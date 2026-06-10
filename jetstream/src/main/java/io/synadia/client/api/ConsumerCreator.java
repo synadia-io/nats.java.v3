@@ -57,7 +57,6 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      */
     public static final long MIN_IDLE_HEARTBEAT_MILLIS = MIN_IDLE_HEARTBEAT.toMillis();
 
-    protected final String stream;
     protected final boolean isPush;
 
     protected DeliverPolicy deliverPolicy;
@@ -105,8 +104,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     // CONSTRUCTORS
     // ----------------------------------------------------------------------------------------------------
 
-    protected ConsumerCreator(String stream, boolean isPush) {
-        this.stream = validateStreamName(stream, true);
+    protected ConsumerCreator(boolean isPush) {
         this.isPush = isPush;
 
         deliverPolicy = DEFAULT_DELIVER_POLICY;
@@ -131,7 +129,6 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     protected ConsumerCreator(ConsumerCreator<?> creator) {
-        this.stream = creator.stream;
         this.isPush = creator.isPush;
         this.deliverPolicy = creator.deliverPolicy;
         this.ackPolicy = creator.ackPolicy;
@@ -219,14 +216,6 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     // ----------------------------------------------------------------------------------------------------
     // GETTERS
     // ----------------------------------------------------------------------------------------------------
-
-    /**
-     * The stream the consumer will operate on.
-     * @return the stream
-     */
-    public String getStream() {
-        return stream;
-    }
 
     /**
      * Whether this creator is for a push consumer
@@ -720,7 +709,6 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
             && flowControl == that.flowControl
             && headersOnly == that.headersOnly
             && memStorage == that.memStorage
-            && stream.equals(that.stream)
             && deliverPolicy.equals(that.deliverPolicy)
             && ackPolicy.equals(that.ackPolicy)
             && replayPolicy.equals(that.replayPolicy)
@@ -746,8 +734,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
 
     @Override
     public int hashCode() {
-        int result = stream.hashCode();
-        result = 31 * result + Boolean.hashCode(isPush);
+        int result = Boolean.hashCode(isPush);
         result = 31 * result + deliverPolicy.hashCode();
         result = 31 * result + ackPolicy.hashCode();
         result = 31 * result + replayPolicy.hashCode();

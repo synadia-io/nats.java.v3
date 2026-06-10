@@ -476,6 +476,7 @@ public class TestBase {
     public static byte[] dataBytes() {
         return data(random()).getBytes(StandardCharsets.US_ASCII);
     }
+
     public static byte[] dataBytes(Object variant) {
         return data(variant).getBytes(StandardCharsets.US_ASCII);
     }

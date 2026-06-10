@@ -6,6 +6,7 @@ import org.jspecify.annotations.NullMarked;
 import static io.nats.json.LazyJsonValueUtils.readInteger;
 import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
 
 /**
  * Represents the JetStream Account Api Stats
@@ -30,7 +31,7 @@ public class ApiStats extends LazyApiObject {
      * @return the total requests
      */
     public long getTotal() {
-        return readLong(ljv, TOTAL, 0);
+        return readLongOrMinusOne(ljv, TOTAL);
     }
 
     /**
@@ -38,7 +39,7 @@ public class ApiStats extends LazyApiObject {
      * @return the error count
      */
     public long getErrors() {
-        return readLong(ljv, ERRORS, 0);
+        return readLongOrMinusOne(ljv, ERRORS);
     }
 
     /**

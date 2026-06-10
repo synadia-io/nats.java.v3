@@ -7,8 +7,8 @@ import org.jspecify.annotations.Nullable;
 import java.time.ZonedDateTime;
 
 import static io.nats.json.LazyJsonValueUtils.readDate;
-import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
 
 /**
  * This class holds the sequence numbers for a consumer and
@@ -31,7 +31,7 @@ public class SequenceInfo extends LazyApiObject {
      * @return sequence number.
      */
     public long getConsumerSequence() {
-        return readLong(ljv, CONSUMER_SEQ, 0);
+        return readLongOrMinusOne(ljv, CONSUMER_SEQ);
     }
 
     /**
@@ -39,7 +39,7 @@ public class SequenceInfo extends LazyApiObject {
      * @return sequence number.
      */
     public long getStreamSequence() {
-        return readLong(ljv, STREAM_SEQ, 0);
+        return readLongOrMinusOne(ljv, STREAM_SEQ);
     }
 
     /**

@@ -6,6 +6,7 @@ import org.jspecify.annotations.NullMarked;
 import static io.nats.json.LazyJsonValueUtils.readBoolean;
 import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readLongOrMinusOne;
 
 /**
  * Represents the JetStream Account Limits
@@ -22,7 +23,7 @@ public class AccountLimits extends LazyApiObject {
      * @return bytes
      */
     public long getMaxMemory() {
-        return readLong(ljv, MAX_MEMORY, 0);
+        return readLongOrMinusOne(ljv, MAX_MEMORY);
     }
 
     /**
@@ -30,7 +31,7 @@ public class AccountLimits extends LazyApiObject {
      * @return bytes
      */
     public long getMaxStorage() {
-        return readLong(ljv, MAX_STORAGE, 0);
+        return readLongOrMinusOne(ljv, MAX_STORAGE);
     }
 
     /**
@@ -38,7 +39,7 @@ public class AccountLimits extends LazyApiObject {
      * @return stream maximum count
      */
     public long getMaxStreams() {
-        return readLong(ljv, MAX_STREAMS, 0);
+        return readLongOrMinusOne(ljv, MAX_STREAMS);
     }
 
     /**
@@ -46,7 +47,7 @@ public class AccountLimits extends LazyApiObject {
      * @return consumer maximum count
      */
     public long getMaxConsumers() {
-        return readLong(ljv, MAX_CONSUMERS, 0);
+        return readLongOrMinusOne(ljv, MAX_CONSUMERS);
     }
 
     /**

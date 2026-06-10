@@ -42,7 +42,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param basis the source base the copy on for all the other fields
      */
     public StreamSourceCreator(String newName, StreamSourceCreator<?> basis) {
-        this.streamName = newName;
+        this.streamName = validateStreamName(newName, true);
         this.startSequence = basis.startSequence;
         this.startTime = basis.startTime;
         this.filterSubject = basis.filterSubject;

@@ -9,6 +9,7 @@ import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**
  * Represents a stream source or mirror returned from the server.
@@ -26,11 +27,7 @@ abstract class StreamSource extends LazyApiObject {
      * @return the source name
      */
     public String getStreamName() {
-        String name = readString(ljv, NAME);
-        if (name == null) {
-            throw new IllegalStateException(getClass().getSimpleName() + " does not have required name.");
-        }
-        return name;
+        return readStringOrEmpty(ljv, NAME);
     }
 
     /**

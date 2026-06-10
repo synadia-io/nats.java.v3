@@ -20,7 +20,7 @@ class NatsStreamContext implements StreamContext {
     NatsStreamContext(String streamName, @Nullable JetStream js, NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws IOException, JetStreamApiException {
         this.streamName = streamName;
         this.js = js == null ? new JetStream(connection, jsOptions) : js;
-        jsm = new JetStreamManagement(connection, jsOptions);
+        jsm = this.js.jetStreamManagement();
         jsm.getStreamInfo(streamName); // this is just verifying that the stream exists
     }
 
@@ -90,7 +90,15 @@ class NatsStreamContext implements StreamContext {
      */
     @Override
     public ConsumerContext createConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
-        return js.createConsumer(creator);
+        return new NatsConsumerContext(this, jsm.createConsumer(streamName, creator), null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ConsumerContext updateConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
+        return new NatsConsumerContext(this, jsm.updateConsumer(streamName, creator), null);
     }
 
     /**
@@ -98,15 +106,15 @@ class NatsStreamContext implements StreamContext {
      */
     @Override
     public ConsumerContext createOrUpdateConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
-        return new NatsConsumerContext(this, jsm.addOrUpdateConsumer(creator), null);
+        return new NatsConsumerContext(this, jsm.createOrUpdateConsumer(streamName, creator), null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public OrderedConsumerContext createOrderedConsumer(PullOrderedConsumerCreator config) throws IOException, JetStreamApiException {
-        return new NatsOrderedConsumerContext(this, config);
+    public OrderedConsumerContext createOrderedConsumer(PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+        return new NatsOrderedConsumerContext(this, creator);
     }
 
     /**

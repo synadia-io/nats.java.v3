@@ -15,10 +15,10 @@ public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemer
 
     /**
      * Construct an AbstractEphemeralConsumerCreator instance
-     * @param stream the stream name
+     * @param isPush is this for a push consumer
      */
-    protected AbstractEphemeralConsumerCreator(String stream, boolean isPush) {
-        super(stream, isPush);
+    protected AbstractEphemeralConsumerCreator(boolean isPush) {
+        super(isPush);
     }
 
     protected AbstractEphemeralConsumerCreator(ConsumerCreator<?> creator) {

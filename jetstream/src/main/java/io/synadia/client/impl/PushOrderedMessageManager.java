@@ -71,9 +71,9 @@ public class PushOrderedMessageManager extends PushMessageManager {
             // 2. consumerCreatorForOrdered understands everything necessary to make a new creator from the old
             PushOrderedConsumerCreator creator =
                 new PushOrderedConsumerCreator(
-                    (PushOrderedConsumerCreator)subConf.orderedCreator, lastStreamSeq);
+                    (PushOrderedConsumerCreator)subConf.orderedCreator, lastStreamSeq, null);
             creator.deliverSubject(newDeliverSubject);
-            js._createConsumer(creator, ConsumerCreateRequest.Action.Create); // this can fail when a server is down.
+            js._createConsumer(subConf.consumerInfo.getStreamName(), creator, ConsumerCreateRequest.Action.Create); // this can fail when a server is down.
 
             // 3. restart the manager.
             startup(sub);

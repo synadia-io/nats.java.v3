@@ -20,6 +20,8 @@ import static io.synadia.client.utils.Validator.*;
 
 @NullMarked
 public class JetStream extends JetStreamImpl {
+    @Nullable
+    private JetStreamManagement jsm; // this is lazy init'ed
 
     public static JetStream instance(NatsConnection connection) throws IOException {
         return new JetStream(connection);
@@ -37,8 +39,15 @@ public class JetStream extends JetStreamImpl {
         super(connection, jsOptions);
     }
 
-    public JetStream(JetStreamImpl impl) {
+    JetStream(JetStreamImpl impl) {
         super(impl);
+    }
+
+    public JetStreamManagement jetStreamManagement() {
+        if (jsm == null) {
+            jsm = new JetStreamManagement(this);
+        }
+        return jsm;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -49,40 +58,40 @@ public class JetStream extends JetStreamImpl {
         return publishSyncInternal(subject, null, null, null, null);
     }
 
-    public PublishAck publish(String subject, byte @Nullable[] body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, body, null, null);
+    public PublishAck publish(String subject, byte @Nullable[] data) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, null, data, null, null);
     }
 
-    public PublishAck publish(String subject, @Nullable String body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, null, body, null);
+    public PublishAck publish(String subject, @Nullable String data) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, null, null, data, null);
     }
 
     public PublishAck publish(String subject, Headers headers) throws IOException, JetStreamApiException {
         return publishSyncInternal(subject, headers, null, null, null);
     }
 
-    public PublishAck publish(String subject, Headers headers, byte @Nullable[] body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, body, null, null);
+    public PublishAck publish(String subject, Headers headers, byte @Nullable[] data) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, headers, data, null, null);
     }
 
-    public PublishAck publish(String subject, Headers headers, @Nullable String body) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, null, body, null);
+    public PublishAck publish(String subject, Headers headers, @Nullable String data) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, headers, null, data, null);
     }
 
-    public PublishAck publish(String subject, byte @Nullable [] body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, body, null, options);
+    public PublishAck publish(String subject, byte @Nullable [] data, PublishOptions options) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, null, data, null, options);
     }
 
-    public PublishAck publish(String subject, @Nullable String body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, null, null, body, options);
+    public PublishAck publish(String subject, @Nullable String data, PublishOptions options) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, null, null, data, options);
     }
 
-    public PublishAck publish(String subject, Headers headers, byte[] body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, body, null, options);
+    public PublishAck publish(String subject, Headers headers, byte[] data, PublishOptions options) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, headers, data, null, options);
     }
 
-    public PublishAck publish(String subject, Headers headers, String body, PublishOptions options) throws IOException, JetStreamApiException {
-        return publishSyncInternal(subject, headers, null, body, options);
+    public PublishAck publish(String subject, Headers headers, String data, PublishOptions options) throws IOException, JetStreamApiException {
+        return publishSyncInternal(subject, headers, null, data, options);
     }
 
     public PublishAck publish(Message message) throws IOException, JetStreamApiException {
@@ -485,37 +494,37 @@ public class JetStream extends JetStreamImpl {
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PushConsumerCreator creator = new PushConsumerCreator(stream).filterSubject(subject);
-        return pushSubscribe(creator, subscribeBehavior);
+        PushConsumerCreator creator = new PushConsumerCreator().filterSubject(subject);
+        return pushSubscribe(stream, creator, subscribeBehavior);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(PushConsumerCreator creator) throws IOException, JetStreamApiException {
-        return pushSubscribe(creator, null);
+    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator) throws IOException, JetStreamApiException {
+        return pushSubscribe(stream, creator, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(PushConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
-        ConsumerInfo ci = _createConsumer(creator, Create);
+    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, null, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
-        return pushSubscribe(creator, null);
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+        return pushSubscribe(stream, creator, null);
     }
 
     /**
      * pushSubscribe
      */
-    public JetStreamPushSubscription pushSubscribe(PushOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
-        ConsumerInfo ci = _createConsumer(creator, Create);
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, creator, null);
     }
 
@@ -563,36 +572,36 @@ public class JetStream extends JetStreamImpl {
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PullConsumerCreator creator = new PullConsumerCreator(stream).filterSubject(subject);
-        return pullSubscribe(creator, subscribeBehavior);
+        PullConsumerCreator creator = new PullConsumerCreator().filterSubject(subject);
+        return pullSubscribe(stream, creator, subscribeBehavior);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(PullConsumerCreator creator) throws IOException, JetStreamApiException {
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), null, null, null);
+    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator) throws IOException, JetStreamApiException {
+        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(PullConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), subscribeBehavior, null, null);
+    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), null, creator, null);
+    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, creator, null);
     }
 
     /**
      * pullSubscribe
      */
-    public JetStreamPullSubscription pullSubscribe(PullOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(creator, Create), subscribeBehavior, creator, null);
+    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
     }
 
     /**
@@ -608,13 +617,13 @@ public class JetStream extends JetStreamImpl {
         return getNatsStreamContext(streamName);
     }
 
-    public ConsumerContext createConsumer(String streamName, String subject) throws IOException, JetStreamApiException {
-        return createConsumer(new PullConsumerCreator(streamName).filterSubject(subject));
+    public ConsumerContext createConsumer(String stream, String subject) throws IOException, JetStreamApiException {
+        return createConsumer(stream, new PullConsumerCreator().filterSubject(subject));
     }
 
-    public ConsumerContext createConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
-        ConsumerInfo ci = _createConsumer(creator, Create);
-        return getNatsStreamContext(creator.getStream()).getConsumerContext(ci.getName());
+    public ConsumerContext createConsumer(String stream, PullConsumerCreator creator) throws IOException, JetStreamApiException {
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return getNatsStreamContext(stream).getConsumerContext(ci.getName());
     }
 
     /**

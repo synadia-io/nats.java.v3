@@ -69,9 +69,6 @@ public interface StreamContext {
     @NonNull
     ConsumerContext createConsumer(@NonNull String subject) throws IOException, JetStreamApiException;
 
-    @NonNull
-    ConsumerContext createConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
-
     /**
      * Get a consumer context for the context's stream and specific named consumer.
      * Verifies that the consumer exists.
@@ -86,6 +83,12 @@ public interface StreamContext {
     ConsumerContext getConsumerContext(@NonNull String consumerName) throws IOException, JetStreamApiException;
 
     ConsumerContext getConsumerContext(@NonNull ConsumerInfo ci) throws IOException, JetStreamApiException;
+
+    @NonNull
+    ConsumerContext createConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
+
+    @NonNull
+    ConsumerContext updateConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
 
     /**
      * Management function to create or update a consumer on this stream.
