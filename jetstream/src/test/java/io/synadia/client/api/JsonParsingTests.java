@@ -61,16 +61,16 @@ public class JsonParsingTests {
         assertNotNull(as.toString()); // COVERAGE
 
         as = new AccountStatistics(getDataMessage("{}"));
-        assertEquals(0, as.getMemory());
-        assertEquals(0, as.getStorage());
-        assertEquals(0, as.getStreams());
-        assertEquals(0, as.getConsumers());
+        assertEquals(0, as.getMemory());   // uint64 -> 0 when absent
+        assertEquals(0, as.getStorage());  // uint64 -> 0 when absent
+        assertEquals(-1, as.getStreams());   // signed count -> -1 when absent
+        assertEquals(-1, as.getConsumers()); // signed count -> -1 when absent
 
         AccountLimits al = as.getLimits();
-        assertEquals(0, al.getMaxMemory());
-        assertEquals(0, al.getMaxStorage());
-        assertEquals(0, al.getMaxStreams());
-        assertEquals(0, al.getMaxConsumers());
+        assertEquals(-1, al.getMaxMemory());    // -1 = unlimited/unset
+        assertEquals(-1, al.getMaxStorage());
+        assertEquals(-1, al.getMaxStreams());
+        assertEquals(-1, al.getMaxConsumers());
         assertEquals(0, al.getMaxAckPending());
         assertEquals(0, al.getMemoryMaxStreamBytes());
         assertEquals(0, al.getStorageMaxStreamBytes());
@@ -654,8 +654,8 @@ public class JsonParsingTests {
         assertEquals("si-no-active-name", si.getName());
         assertEquals("si.no.active.filter", si.getFilterSubject());
         assertEquals(191, si.getLag());
-        // negative active is treated as not present -> null
-        assertNull(si.getActive());
+        // absent/negative active -> Duration.ZERO (readDurationOrZero)
+        assertEquals(Duration.ZERO, si.getActive());
         assertNull(si.getExternal());
         assertTrue(si.getSubjectTransforms().isEmpty());
         assertNull(si.getError());

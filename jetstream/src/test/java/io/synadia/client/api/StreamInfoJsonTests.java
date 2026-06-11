@@ -314,7 +314,7 @@ public class StreamInfoJsonTests {
             assertEquals(Duration.ofNanos(id * 10000000000L), streamSourceInfo.getActive());
         }
         else {
-            assertNull(streamSourceInfo.getActive());
+            assertEquals(Duration.ZERO, streamSourceInfo.getActive());
         }
         validateExternal(streamSourceInfo.getExternal(), id);
         StreamCreatorConfigurationTests.validateSubjectTransforms(streamSourceInfo.getSubjectTransforms(), 2, "" + id);

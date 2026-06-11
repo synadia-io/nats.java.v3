@@ -149,6 +149,7 @@ class ConsumerFieldsSetterCoverageTest {
             if (m.getParameterCount() == 0
                 && !Modifier.isStatic(m.getModifiers())
                 && (m.getName().startsWith("get") || m.getName().startsWith("is") || m.getName().startsWith("has"))
+                && !m.getName().endsWith("AsBigInteger") // read-only unsigned companion; no Creator counterpart
                 && m.getReturnType() != void.class
                 && m.getDeclaringClass() != Object.class)
             {

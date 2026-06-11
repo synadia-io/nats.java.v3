@@ -110,6 +110,7 @@ class StreamCreatorCoverageTest {
             if (Modifier.isPublic(m.getModifiers())
                 && m.getParameterCount() == 0
                 && (m.getName().startsWith("get") || m.getName().startsWith("is") || m.getName().startsWith("has"))
+                && !m.getName().endsWith("AsBigInteger") // read-only unsigned companion; no Creator counterpart
                 && m.getReturnType() != void.class
                 && !IGNORED.contains(sig))
             {
