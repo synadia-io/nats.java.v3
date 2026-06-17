@@ -1453,7 +1453,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertEquals(20, ci.getNumPending());
             assertEquals(0, ci.getNumAckPending());
 
-            ConsumerContext cc = ctx.js.getConsumerContext(ctx.stream, consumer);
+            ConsumerContext cc = ctx.js.getConsumerContext(ci);
             try (FetchMessageConsumer fc = cc.fetch(FetchConsumeOptions.builder().maxMessages(20).build())) {
                 int seq = 1;
                 Message m = fc.nextMessage();
