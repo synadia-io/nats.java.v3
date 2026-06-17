@@ -548,4 +548,36 @@ public class JetStreamManagement extends JetStreamImpl {
         Message resp = makeRequestResponseRequired(subj, payload, getTimeout());
         return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
     }
+
+    /**
+     * Reset a consumer
+     * @param streamName name of the stream
+     * @param consumerName name of consumer
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @return the current consumer after the reset
+     */
+    public ConsumerInfo resetConsumer(String streamName, String consumerName) throws IOException, JetStreamApiException {
+        return resetConsumer(streamName, consumerName, -1);
+    }
+
+    /**
+     * Reset a consumer
+     * @param streamName name of the stream
+     * @param consumerName name of consumer
+     * @param sequence ack floor stream sequence
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @return the current consumer after the reset
+     */
+    public ConsumerInfo resetConsumer(String streamName, String consumerName, long sequence) throws IOException, JetStreamApiException {
+        validateNotNull(streamName, "Stream Name");
+        validateNotNull(consumerName, "Consumer Name");
+        String subj = String.format(JSAPI_CONSUMER_RESET, streamName, consumerName);
+        byte[] payload = (sequence < 1 ? "{}" : String.format("{\"seq\":%d}", sequence)).getBytes(StandardCharsets.ISO_8859_1);
+        Message resp = makeRequestResponseRequired(subj, payload, getTimeout());
+        return new ConsumerInfo(resp).throwOnHasError();
+    }
 }

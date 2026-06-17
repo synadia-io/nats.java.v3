@@ -1434,4 +1434,85 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertSame(PersistMode.Async, si.getConfiguration().getPersistMode());
         });
     }
+
+    @Test
+    public void testResetConsumer() throws Exception {
+        runInShared(VersionUtils::atLeast2_14, (nc, ctx) -> {
+            String subject = ctx.subject();
+            String consumer = ctx.consumerName();
+
+            for (int i = 1; i <= 20; i++) {
+                ctx.js.publish(subject);
+            }
+
+            ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream,
+                new PullConsumerCreator()
+                    .durable(consumer)
+                    .filterSubject(subject)
+                    .ackWait(Duration.ofSeconds(60)));
+            assertEquals(20, ci.getNumPending());
+            assertEquals(0, ci.getNumAckPending());
+
+            ConsumerContext cc = ctx.js.getConsumerContext(ctx.stream, consumer);
+            try (FetchMessageConsumer fc = cc.fetch(FetchConsumeOptions.builder().maxMessages(20).build())) {
+                int seq = 1;
+                Message m = fc.nextMessage();
+                while (m != null) {
+                    assertEquals(seq, m.metaData().streamSequence());
+                    if (seq++ <= 5) {
+                        m.ackSync(Duration.ofSeconds(1));
+                    }
+                    m = fc.nextMessage();
+                }
+            }
+
+            sleep(200); // just give slow CI time to be in-sync
+
+            ci = ctx.jsm.getConsumerInfo(ctx.stream, consumer);
+            assertEquals(0, ci.getNumPending());
+            assertEquals(15, ci.getNumAckPending());
+
+            // reset just to the start of items not acked
+            ci = ctx.jsm.resetConsumer(ctx.stream, consumer);
+            assertEquals(15, ci.getNumPending());
+            assertEquals(0, ci.getNumAckPending());
+
+            try (FetchMessageConsumer fc = cc.fetch(FetchConsumeOptions.builder().maxMessages(15).build())) {
+                int seq = 6;
+                Message m = fc.nextMessage();
+                while (m != null) {
+                    assertEquals(seq, m.metaData().streamSequence());
+                    if (seq++ <= 10) {
+                        m.ackSync(Duration.ofSeconds(1));
+                    }
+                    m = fc.nextMessage();
+                }
+            }
+
+            sleep(200); // just give slow CI time to be in-sync
+            ci = ctx.jsm.getConsumerInfo(ctx.stream, consumer);
+            assertEquals(0, ci.getNumPending());
+            assertEquals(10, ci.getNumAckPending());
+
+            // reset all the way back to start
+            ci = ctx.jsm.resetConsumer(ctx.stream, consumer, 1);
+            assertEquals(20, ci.getNumPending());
+            assertEquals(0, ci.getNumAckPending());
+
+            try (FetchMessageConsumer fc = cc.fetch(FetchConsumeOptions.builder().maxMessages(20).build())) {
+                int seq = 1;
+                Message m = fc.nextMessage();
+                while (m != null) {
+                    assertEquals(seq++, m.metaData().streamSequence());
+                    m.ackSync(Duration.ofSeconds(1));
+                    m = fc.nextMessage();
+                }
+            }
+
+            sleep(200); // just give slow CI time to be in-sync
+            ci = ctx.jsm.getConsumerInfo(ctx.stream, consumer);
+            assertEquals(0, ci.getNumPending());
+            assertEquals(0, ci.getNumAckPending());
+        });
+    }
 }
