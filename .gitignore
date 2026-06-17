@@ -1,4 +1,3 @@
-
 # NATS / custom #
 #################
 gnatsd.log
@@ -6,6 +5,7 @@ gnatsd.log
 z-claude-done
 examples/**/Z*.java
 **/Debug*.java
+.claude/**
 
 # Compiled source #
 ###################
