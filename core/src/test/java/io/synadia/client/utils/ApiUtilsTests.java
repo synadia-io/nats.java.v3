@@ -140,9 +140,9 @@ public class ApiUtilsTests {
         assertEquals(dflt, normalizeDuration((Duration) null, dflt));
         //noinspection ConstantValue
         assertNull(normalizeDuration((Duration) null, null));
-        // zero / negative -> null
-        assertNull(normalizeDuration(Duration.ZERO, dflt));
-        assertNull(normalizeDuration(Duration.ofMillis(-1), dflt));
+        // zero / negative -> default
+        assertEquals(dflt, normalizeDuration(Duration.ZERO, dflt));
+        assertEquals(dflt, normalizeDuration(Duration.ofMillis(-1), dflt));
         // positive -> kept
         Duration d = Duration.ofSeconds(5);
         assertEquals(d, normalizeDuration(d, dflt));

@@ -82,7 +82,7 @@ public abstract class ApiUtils {
     }
 
     public static Duration normalizeDuration(Duration d, Duration dftl) {
-        return d == null ? dftl : d.toNanos() <= 0 ? null : d;
+        return d == null ? dftl : d.toNanos() <= 0 ? dftl : d;
     }
 
     public static Duration normalizeDuration(Long millis, Duration dftl) {

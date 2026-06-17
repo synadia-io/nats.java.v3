@@ -1,9 +1,10 @@
 package io.synadia.client.impl;
 
 import io.nats.json.DateTimeUtils;
-import io.synadia.client.Message;
-import io.synadia.client.MessageHandler;
+import io.synadia.client.*;
 import io.synadia.client.api.*;
+import io.synadia.client.utils.ConnectionUtils;
+import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 
@@ -13,11 +14,13 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.client.impl.BaseConsumeOptions.*;
 import static io.synadia.client.utils.ApiUtils.ULONG_UNSET;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -158,23 +161,17 @@ public class SimplificationTests extends JetStreamTestBase {
 
     @Test
     public void testFetchEphemeral() throws Exception {
-        runInShared((nc, ctx) -> {
-            _testFetch(ctx, FETCH_EPHEMERAL);
-        });
+        runInShared((nc, ctx) -> _testFetch(ctx, FETCH_EPHEMERAL));
     }
 
     @Test
     public void testFetchDurable() throws Exception {
-        runInShared((nc, ctx) -> {
-            _testFetch(ctx, FETCH_DURABLE);
-        });
+        runInShared((nc, ctx) -> _testFetch(ctx, FETCH_DURABLE));
     }
 
     @Test
     public void testFetchOrdered() throws Exception {
-        runInShared((nc, ctx) -> {
-            _testFetch(ctx, FETCH_ORDERED);
-        });
+        runInShared((nc, ctx) -> _testFetch(ctx, FETCH_ORDERED));
     }
 
     private void _testFetch(JetStreamTestingContext ctx, int testType) throws Exception {
@@ -701,7 +698,7 @@ public class SimplificationTests extends JetStreamTestBase {
     }
 
     @Test
-    public void testConsumeOptionsBuilder() throws IOException, ClassNotFoundException {
+    public void testConsumeOptionsBuilder() {
         ConsumeOptions co = ConsumeOptions.builder().build();
         check_default_values(co);
 
@@ -1273,7 +1270,7 @@ public class SimplificationTests extends JetStreamTestBase {
     }
 
     @Test
-    public void testOrderedConsumerBuilder() throws IOException, ClassNotFoundException {
+    public void testOrderedConsumerBuilder() {
         PullOrderedConsumerCreator occ = new PullOrderedConsumerCreator();
         check_default_values(occ);
 
@@ -1338,333 +1335,333 @@ public class SimplificationTests extends JetStreamTestBase {
         assertTrue(occ.isHeadersOnly());
     }
 
-//    @Test
-//    public void testOverflowFetch() throws Exception {
-//        runInShared((nc, ctx) -> {
-//            jsPublish(ctx.js, ctx.subject(), 100);
-//
-//            // Testing min ack pending
-//            String group = random();
-//            String cname = random();
-//
-//            ConsumerConfiguration cc = ConsumerConfiguration.builder()
-//                .name(cname)
-//                .priorityPolicy(PriorityPolicy.Overflow)
-//                .priorityGroups(group)
-//                .ackWait(10_000)
-//                .filterSubjects(ctx.subject()).build();
-//            ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
-//
-//            ConsumerContext ctxPrime = nc.getConsumer(ctx.stream, cname);
-//            ConsumerContext ctxOver = nc.getConsumer(ctx.stream, cname);
-//
-//            FetchConsumeOptions fcoNoMin = FetchConsumeOptions.builder()
-//                .maxMessages(5).expiresIn(1000).group(group)
-//                .build();
-//
-//            FetchConsumeOptions fcoOverA = FetchConsumeOptions.builder()
-//                .maxMessages(5).expiresIn(1000).group(group).minAckPending(5)
-//                .build();
-//
-//            FetchConsumeOptions fcoOverB = FetchConsumeOptions.builder()
-//                .maxMessages(5).expiresIn(1000).group(group).minAckPending(10)
-//                .build();
-//
-//            _overflowFetch(cname, ctxPrime, fcoNoMin, true, 5, 0);
-//            _overflowFetch(cname, ctxOver, fcoNoMin, true, 5, 0);
-//
-//            _overflowFetch(cname, ctxPrime, fcoNoMin, false, 5, 5);
-//            _overflowFetch(cname, ctxOver, fcoOverA, true, 5, 5);
-//            _overflowFetch(cname, ctxOver, fcoOverB, true, 0, 5);
-//        });
-//    }
-//
-//    private void _overflowFetch(String cname, ConsumerContext cctx, FetchConsumeOptions fco, boolean ack, int expected, int ackPendingWhenDone) throws Exception {
-//        try (FetchMessageConsumer fc = cctx.fetch(fco)) {
-//            validateConsumerName(cctx, fc, cname);
-//            int count = 0;
-//            Message m = fc.nextMessage();
-//            while (m != null) {
-//                count++;
-//                if (ack) {
-//                    m.ack();
-//                }
-//                m = fc.nextMessage();
-//            }
-//            assertEquals(expected, count);
-//            if (ack) {
-//                sleep(50); // give the server time to process acks given
-//            }
-//            assertEquals(ackPendingWhenDone, cctx.fetchConsumerInfo().getNumAckPending());
-//        }
-//    }
-//
-//    @Test
-//    public void testOverflowIterate() throws Exception {
-//        runInShared(VersionUtils::atLeast2_11, (nc, ctx) -> {
-//            jsPublish(ctx.js, ctx.subject(), 100);
-//
-//            // Testing min ack pending
-//            String group = random();
-//            String cname = random();
-//
-//            ConsumerConfiguration cc = ConsumerConfiguration.builder()
-//                .name(cname)
-//                .priorityPolicy(PriorityPolicy.Overflow)
-//                .priorityGroups(group)
-//                .ackWait(30_000)
-//                .filterSubjects(ctx.subject()).build();
-//            ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
-//
-//            ConsumerContext ctxPrime = nc.getConsumer(ctx.stream, cname);
-//            ConsumerContext ctxOver = nc.getConsumer(ctx.stream, cname);
-//            validateConsumerName(ctxPrime, null, cname);
-//            validateConsumerName(ctxOver, null, cname);
-//
-//            ConsumeOptions coPrime = ConsumeOptions.builder()
-//                .group(group)
-//                .build();
-//
-//            ConsumeOptions coOver = ConsumeOptions.builder()
-//                .group(group)
-//                .minAckPending(101)
-//                .build();
-//
-//            // start the overflow consumer
-//            AtomicLong primeCount = new AtomicLong();
-//            AtomicLong overCount = new AtomicLong();
-//            AtomicLong left = new AtomicLong(100);
-//
-//            Thread tOver = new Thread(() -> {
-//                try {
-//                    IterableMessageConsumer ic = ctxOver.iterate(coOver);
-//                    validateConsumerName(ctxOver, ic, cname);
-//                    while (left.get() > 0 && !Thread.currentThread().isInterrupted()) {
-//                        Message m = ic.nextMessage(100);
-//                        if (m != null) {
-//                            m.ack();
-//                            overCount.incrementAndGet();
-//                            left.decrementAndGet();
-//                        }
-//                    }
-//                }
-//                catch (InterruptedException ignore) {
-//                }
-//                catch (Exception e) {
-//                    fail(e);
-//                }
-//            });
-//            tOver.start();
-//
-//            Thread tPrime = new Thread(() -> {
-//                try {
-//                    IterableMessageConsumer ic = ctxPrime.iterate(coPrime);
-//                    validateConsumerName(ctxPrime, ic, cname);
-//                    while (left.get() > 0 && !Thread.currentThread().isInterrupted()) {
-//                        Message m = ic.nextMessage(100);
-//                        if (m != null) {
-//                            m.ack();
-//                            primeCount.incrementAndGet();
-//                            left.decrementAndGet();
-//                        }
-//                    }
-//                }
-//                catch (InterruptedException ignore) {
-//                }
-//                catch (Exception e) {
-//                    fail(e);
-//                }
-//            });
-//            tPrime.start();
-//
-//            tPrime.join();
-//            tOver.join();
-//            assertEquals(100, primeCount.get());
-//            assertEquals(0, overCount.get());
-//        });
-//    }
-//
-//    @Test
-//    public void testOverflowConsume() throws Exception {
-//        runInShared(VersionUtils::atLeast2_11, (nc, ctx) -> {
-//            jsPublish(ctx.js, ctx.subject(), 1000);
-//
-//            // Testing min ack pending
-//            String group = random();
-//            String cname = random();
-//
-//            ConsumerConfiguration cc = ConsumerConfiguration.builder()
-//                .name(cname)
-//                .priorityPolicy(PriorityPolicy.Overflow)
-//                .priorityGroups(group)
-//                .ackWait(30_000)
-//                .filterSubjects(ctx.subject()).build();
-//            ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
-//
-//            ConsumerContext ctxPrime = nc.getConsumer(ctx.stream, cname);
-//            ConsumerContext ctxOver = nc.getConsumer(ctx.stream, cname);
-//            validateConsumerName(ctxPrime, null, cname);
-//            validateConsumerName(ctxOver, null, cname);
-//
-//            ConsumeOptions coPrime = ConsumeOptions.builder()
-//                .group(group)
-//                .build();
-//
-//            ConsumeOptions coOver = ConsumeOptions.builder()
-//                .group(group)
-//                .minAckPending(1001)
-//                .build();
-//
-//            // start the overflow consumer
-//            AtomicLong primeCount = new AtomicLong();
-//            AtomicLong overCount = new AtomicLong();
-//            AtomicLong left = new AtomicLong(500);
-//
-//            MessageHandler overHandler = m -> {
-//                m.ack();
-//                overCount.incrementAndGet();
-//                left.decrementAndGet();
-//            };
-//
-//            MessageHandler primeHandler = m -> {
-//                m.ack();
-//                primeCount.incrementAndGet();
-//                left.decrementAndGet();
-//            };
-//
-//            try (MessageConsumer mcOver = ctxOver.consume(coOver, overHandler);
-//                 MessageConsumer mcPrime = ctxPrime.consume(coPrime, primeHandler)) {
-//                validateConsumerName(ctxPrime, mcPrime, cname);
-//                validateConsumerName(ctxOver, mcOver, cname);
-//                while (left.get() > 0) {
-//                    sleep(100);
-//                }
-//                mcOver.stop();
-//                mcPrime.stop();
-//            }
-//
-//            assertTrue(primeCount.get() > 0);
-//            assertEquals(0, overCount.get());
-//        });
-//    }
-//
-//    @Test
-//    public void testFinishEmptyStream() throws Exception {
-//        runInShared((nc, ctx) -> {
-//            String name = random();
-//            ConsumerConfiguration cc = ConsumerConfiguration.builder()
-//                .name(name)
-//                .filterSubjects(ctx.subject()).build();
-//            ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
-//
-//            ConsumerContext cctx = nc.getConsumer(ctx.stream, name);
-//
-//            MessageHandler handler = Message::ack;
-//
-//            ConsumeOptions co = ConsumeOptions.builder().expiresIn(1000).build();
-//            try (MessageConsumer mc = cctx.consume(co, handler)) {
-//                mc.stop();
-//                sleep(1200); // more than the expires period for the consume
-//                assertTrue(mc.isFinished());
-//            }
-//        });
-//    }
-//
-//    @Test
-//    public void testReconnectOverOrdered() throws Exception {
-//        // ------------------------------------------------------------
-//        // The idea here is...
-//        // 1. connect with an ordered consumer and start consuming
-//        // 2. stop the server then restart it causing a disconnect,
-//        //    but reconnect before the idle heartbeat alarm kicks in
-//        // 3. stop the server but wait a little before restarting
-//        //    so the alarm goes off but still disconnected
-//        //    to make sure the consumer continues after that condition
-//        // ------------------------------------------------------------
-//        String stream = random();
-//        String subject = random();
-//
-//        AtomicBoolean allInOrder = new AtomicBoolean(true);
-//        AtomicInteger messageCount = new AtomicInteger();
-//        AtomicLong nextExpectedSequence = new AtomicLong(0);
-//
-//        MessageHandler handler = msg -> {
-//            if (msg.metaData().streamSequence() != nextExpectedSequence.incrementAndGet()) {
-//                allInOrder.set(false);
-//            }
-//            msg.ack();
-//            messageCount.incrementAndGet();
-//            sleep(50); // simulate some work and to slow the endless consume
-//        };
-//
-//        StreamCreator sc = new StreamCreator(stream)
-//            .storageType(StorageType.File) // file since we are killing the server and bringing it back up.
-//            .subjects(subject);
-//
-//        NatsTestServer ts = new NatsTestServer(NatsTestServer.builder().jetstream());
-//        /* start server */
-//        Listener listener = new Listener();
-//        Options options = optionsBuilder(ts)
-//            .connectionListener(listener)
-//            .errorListener(listener)
-//            .build();
-//        NatsConnection nc = (NatsConnection) ConnectionUtils.managedConnect(options);
-//        JetStreamManagement jsm = new JetStreamManagement(nc);
-//        JetStream js = jsm.jetStream();
-//        jsm.addStream(sc);
-//
-//        for (int x = 0; x < 2000; x++) {
-//            js.publish(subject, null);
-//        }
-//
-//        ConsumeOptions consumeOptions = ConsumeOptions.builder()
-//            .batchSize(100) // small batch size means more round trips
-//            .expiresIn(1000) // idle heartbeat is half of this, alarm time is 3 times
-//            .build();
-//
-//        PullOrderedConsumerCreator ocConfig = new PullOrderedConsumerCreator().filterSubjects(subject);
-//        StreamContext streamContext = nc.getStreamContext(stream);
-//        OrderedConsumerContext orderedConsumerContext = streamContext.createOrderedConsumer(ocConfig);
-//        assertNull(orderedConsumerContext.getConsumerName());
-//        MessageConsumer mcon = orderedConsumerContext.consume(consumeOptions, handler);
-//        validateConsumerNameForOrdered(orderedConsumerContext, mcon, null);
-//        sleep(500); // time enough to get some messages
-//
-//        /* close server */ ts.close();
-//
-//        validateOverOrdered(messageCount, allInOrder, nextExpectedSequence);
-//
-//        // reconnect and get some more messages
-//        messageCount.set(0);
-//        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
-//        /* start server */ ts.start();
-//        listener.validate(); // reconnected
-//        listener.queueHeartbeat();
-//        sleep(3500); // long enough to get messages and for the hb alarm to have tripped
-//        /* close server */ ts.close();
-//
-//        listener.validate(); // heartbeat
-//        validateOverOrdered(messageCount, allInOrder, nextExpectedSequence);
-//
-//        // wait enough time to get more heartbeats, then reconnect and get some more messages
-//        listener.queueHeartbeat();
-//        sleep(3500);
-//        listener.validate(); // heartbeat
-//
-//        messageCount.set(0);
-//        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
-//        /* start server */ ts.start();
-//        listener.validate(); // reconnected
-//        listener.queueHeartbeat();
-//        sleep(3500); // long enough to get messages and for the hb alarm to have tripped
-//        /* close server */ ts.close();
-//        listener.validate(); // heartbeat
-//        validateOverOrdered(messageCount, allInOrder, nextExpectedSequence);
-//    }
-//
-//    private static void validateOverOrdered(AtomicInteger atomicCount, AtomicBoolean allInOrder, AtomicLong nextExpectedSequence) {
-//        int count = atomicCount.get();
-//        assertTrue(allInOrder.get());
-//        assertTrue(count > 0);
-//    }
+    @Test
+    public void testOverflowFetch() throws Exception {
+        runInShared((nc, ctx) -> {
+            jsPublish(ctx.js, ctx.subject(), 100);
+
+            // Testing min ack pending
+            String group = random();
+            String cname = random();
+
+            PullConsumerCreator pcc = new PullConsumerCreator()
+                .name(cname)
+                .priorityPolicy(PriorityPolicy.Overflow)
+                .priorityGroups(group)
+                .ackWait(10_000)
+                .filterSubjects(ctx.subject());
+            ctx.jsm.createOrUpdateConsumer(ctx.stream, pcc);
+
+            ConsumerContext ctxPrime = ctx.js.getConsumerContext(ctx.stream, cname);
+            ConsumerContext ctxOver = ctx.js.getConsumerContext(ctx.stream, cname);
+
+            FetchConsumeOptions fcoNoMin = FetchConsumeOptions.builder()
+                .maxMessages(5).expiresIn(1000).group(group)
+                .build();
+
+            FetchConsumeOptions fcoOverA = FetchConsumeOptions.builder()
+                .maxMessages(5).expiresIn(1000).group(group).minAckPending(5)
+                .build();
+
+            FetchConsumeOptions fcoOverB = FetchConsumeOptions.builder()
+                .maxMessages(5).expiresIn(1000).group(group).minAckPending(10)
+                .build();
+
+            _overflowFetch(cname, ctxPrime, fcoNoMin, true, 5, 0);
+            _overflowFetch(cname, ctxOver, fcoNoMin, true, 5, 0);
+
+            _overflowFetch(cname, ctxPrime, fcoNoMin, false, 5, 5);
+            _overflowFetch(cname, ctxOver, fcoOverA, true, 5, 5);
+            _overflowFetch(cname, ctxOver, fcoOverB, true, 0, 5);
+        });
+    }
+
+    private void _overflowFetch(String cname, ConsumerContext cctx, FetchConsumeOptions fco, boolean ack, int expected, int ackPendingWhenDone) throws Exception {
+        try (FetchMessageConsumer fc = cctx.fetch(fco)) {
+            validateConsumerName(cctx, fc, cname);
+            int count = 0;
+            Message m = fc.nextMessage();
+            while (m != null) {
+                count++;
+                if (ack) {
+                    m.ack();
+                }
+                m = fc.nextMessage();
+            }
+            assertEquals(expected, count);
+            if (ack) {
+                sleep(50); // give the server time to process acks given
+            }
+            assertEquals(ackPendingWhenDone, cctx.retrieveConsumerInfo().getNumAckPending());
+        }
+    }
+
+    @Test
+    public void testOverflowIterate() throws Exception {
+        runInShared(VersionUtils::atLeast2_11, (nc, ctx) -> {
+            jsPublish(ctx.js, ctx.subject(), 100);
+
+            // Testing min ack pending
+            String group = random();
+            String cname = random();
+
+            PullConsumerCreator pcc = new PullConsumerCreator()
+                .name(cname)
+                .priorityPolicy(PriorityPolicy.Overflow)
+                .priorityGroups(group)
+                .ackWait(30_000)
+                .filterSubjects(ctx.subject());
+            ctx.jsm.createOrUpdateConsumer(ctx.stream, pcc);
+
+            ConsumerContext ctxPrime = ctx.js.getConsumerContext(ctx.stream, cname);
+            ConsumerContext ctxOver = ctx.js.getConsumerContext(ctx.stream, cname);
+            validateConsumerName(ctxPrime, null, cname);
+            validateConsumerName(ctxOver, null, cname);
+
+            ConsumeOptions coPrime = ConsumeOptions.builder()
+                .group(group)
+                .build();
+
+            ConsumeOptions coOver = ConsumeOptions.builder()
+                .group(group)
+                .minAckPending(101)
+                .build();
+
+            // start the overflow consumer
+            AtomicLong primeCount = new AtomicLong();
+            AtomicLong overCount = new AtomicLong();
+            AtomicLong left = new AtomicLong(100);
+
+            Thread tOver = new Thread(() -> {
+                try {
+                    IterableMessageConsumer ic = ctxOver.iterate(coOver);
+                    validateConsumerName(ctxOver, ic, cname);
+                    while (left.get() > 0 && !Thread.currentThread().isInterrupted()) {
+                        Message m = ic.nextMessage(100);
+                        if (m != null) {
+                            m.ack();
+                            overCount.incrementAndGet();
+                            left.decrementAndGet();
+                        }
+                    }
+                }
+                catch (InterruptedException ignore) {
+                }
+                catch (Exception e) {
+                    fail(e);
+                }
+            });
+            tOver.start();
+
+            Thread tPrime = new Thread(() -> {
+                try {
+                    IterableMessageConsumer ic = ctxPrime.iterate(coPrime);
+                    validateConsumerName(ctxPrime, ic, cname);
+                    while (left.get() > 0 && !Thread.currentThread().isInterrupted()) {
+                        Message m = ic.nextMessage(100);
+                        if (m != null) {
+                            m.ack();
+                            primeCount.incrementAndGet();
+                            left.decrementAndGet();
+                        }
+                    }
+                }
+                catch (InterruptedException ignore) {
+                }
+                catch (Exception e) {
+                    fail(e);
+                }
+            });
+            tPrime.start();
+
+            tPrime.join();
+            tOver.join();
+            assertEquals(100, primeCount.get());
+            assertEquals(0, overCount.get());
+        });
+    }
+
+    @Test
+    public void testOverflowConsume() throws Exception {
+        runInShared(VersionUtils::atLeast2_11, (nc, ctx) -> {
+            jsPublish(ctx.js, ctx.subject(), 1000);
+
+            // Testing min ack pending
+            String group = random();
+            String cname = random();
+
+            PullConsumerCreator pcc = new PullConsumerCreator()
+                .name(cname)
+                .priorityPolicy(PriorityPolicy.Overflow)
+                .priorityGroups(group)
+                .ackWait(30_000)
+                .filterSubjects(ctx.subject());
+            ctx.jsm.createOrUpdateConsumer(ctx.stream, pcc);
+
+            ConsumerContext ctxPrime = ctx.js.getConsumerContext(ctx.stream, cname);
+            ConsumerContext ctxOver = ctx.js.getConsumerContext(ctx.stream, cname);
+            validateConsumerName(ctxPrime, null, cname);
+            validateConsumerName(ctxOver, null, cname);
+
+            ConsumeOptions coPrime = ConsumeOptions.builder()
+                .group(group)
+                .build();
+
+            ConsumeOptions coOver = ConsumeOptions.builder()
+                .group(group)
+                .minAckPending(1001)
+                .build();
+
+            // start the overflow consumer
+            AtomicLong primeCount = new AtomicLong();
+            AtomicLong overCount = new AtomicLong();
+            AtomicLong left = new AtomicLong(500);
+
+            MessageHandler overHandler = m -> {
+                m.ack();
+                overCount.incrementAndGet();
+                left.decrementAndGet();
+            };
+
+            MessageHandler primeHandler = m -> {
+                m.ack();
+                primeCount.incrementAndGet();
+                left.decrementAndGet();
+            };
+
+            try (MessageConsumer mcOver = ctxOver.consume(coOver, overHandler);
+                 MessageConsumer mcPrime = ctxPrime.consume(coPrime, primeHandler)) {
+                validateConsumerName(ctxPrime, mcPrime, cname);
+                validateConsumerName(ctxOver, mcOver, cname);
+                while (left.get() > 0) {
+                    sleep(100);
+                }
+                mcOver.stop();
+                mcPrime.stop();
+            }
+
+            assertTrue(primeCount.get() > 0);
+            assertEquals(0, overCount.get());
+        });
+    }
+
+    @Test
+    public void testFinishEmptyStream() throws Exception {
+        runInShared((nc, ctx) -> {
+            String name = random();
+            PullConsumerCreator pcc = new PullConsumerCreator()
+                .name(name)
+                .filterSubjects(ctx.subject());
+            ctx.jsm.createOrUpdateConsumer(ctx.stream, pcc);
+
+            ConsumerContext cctx = ctx.js.getConsumerContext(ctx.stream, name);
+
+            MessageHandler handler = Message::ack;
+
+            ConsumeOptions co = ConsumeOptions.builder().expiresIn(1000).build();
+            try (MessageConsumer mc = cctx.consume(co, handler)) {
+                mc.stop();
+                sleep(1200); // more than the expires period for the consume
+                assertTrue(mc.isFinished());
+            }
+        });
+    }
+
+    @Test
+    public void testReconnectOverOrdered() throws Exception {
+        // ------------------------------------------------------------
+        // The idea here is...
+        // 1. connect with an ordered consumer and start consuming
+        // 2. stop the server then restart it causing a disconnect,
+        //    but reconnect before the idle heartbeat alarm kicks in
+        // 3. stop the server but wait a little before restarting
+        //    so the alarm goes off but still disconnected
+        //    to make sure the consumer continues after that condition
+        // ------------------------------------------------------------
+        String stream = random();
+        String subject = random();
+
+        AtomicBoolean allInOrder = new AtomicBoolean(true);
+        AtomicInteger messageCount = new AtomicInteger();
+        AtomicLong nextExpectedSequence = new AtomicLong(0);
+
+        MessageHandler handler = msg -> {
+            if (msg.metaData().streamSequence() != nextExpectedSequence.incrementAndGet()) {
+                allInOrder.set(false);
+            }
+            msg.ack();
+            messageCount.incrementAndGet();
+            sleep(50); // simulate some work and to slow the endless consume
+        };
+
+        StreamCreator sc = new StreamCreator(stream)
+            .storageType(StorageType.File) // file since we are killing the server and bringing it back up.
+            .subjects(subject);
+
+        NatsTestServer ts = new NatsTestServer(NatsTestServer.builder().jetstream());
+        /* start server */
+        Listener listener = new Listener();
+        Options options = optionsBuilder(ts)
+            .connectionListener(listener)
+            .errorListener(listener)
+            .build();
+        NatsConnection nc = ConnectionUtils.managedConnect(options);
+        JetStreamManagement jsm = new JetStreamManagement(nc);
+        JetStream js = jsm.jetStream();
+        jsm.addStream(sc);
+
+        for (int x = 0; x < 2000; x++) {
+            js.publish(subject);
+        }
+
+        ConsumeOptions consumeOptions = ConsumeOptions.builder()
+            .batchSize(100) // small batch size means more round trips
+            .expiresIn(1000) // idle heartbeat is half of this, alarm time is 3 times
+            .build();
+
+        PullOrderedConsumerCreator ocConfig = new PullOrderedConsumerCreator().filterSubjects(subject);
+        StreamContext streamContext = js.getStreamContext(stream);
+        OrderedConsumerContext orderedConsumerContext = streamContext.createOrderedConsumer(ocConfig);
+        assertNull(orderedConsumerContext.getConsumerName());
+        MessageConsumer mcon = orderedConsumerContext.consume(consumeOptions, handler);
+        validateConsumerNameForOrdered(orderedConsumerContext, mcon, null);
+        sleep(500); // time enough to get some messages
+
+        /* close server */ ts.close();
+
+        validateOverOrdered(messageCount, allInOrder);
+
+        // reconnect and get some more messages
+        messageCount.set(0);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+        /* start server */ ts.start();
+        listener.validate(); // reconnected
+        listener.queueHeartbeat();
+        sleep(3500); // long enough to get messages and for the hb alarm to have tripped
+        /* close server */ ts.close();
+
+        listener.validate(); // heartbeat
+        validateOverOrdered(messageCount, allInOrder);
+
+        // wait enough time to get more heartbeats, then reconnect and get some more messages
+        listener.queueHeartbeat();
+        sleep(3500);
+        listener.validate(); // heartbeat
+
+        messageCount.set(0);
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+        /* start server */ ts.start();
+        listener.validate(); // reconnected
+        listener.queueHeartbeat();
+        sleep(3500); // long enough to get messages and for the hb alarm to have tripped
+        /* close server */ ts.close();
+        listener.validate(); // heartbeat
+        validateOverOrdered(messageCount, allInOrder);
+    }
+
+    private static void validateOverOrdered(AtomicInteger atomicCount, AtomicBoolean allInOrder) {
+        int count = atomicCount.get();
+        assertTrue(allInOrder.get());
+        assertTrue(count > 0);
+    }
 }

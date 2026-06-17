@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 
 import static io.synadia.client.OptionsConstants.*;
 import static io.synadia.client.OptionsProperties.*;
+import static io.synadia.client.utils.ApiUtils.normalizeDuration;
 import static io.synadia.client.utils.NatsConstants.*;
 import static io.synadia.client.utils.SSLUtils.DEFAULT_TLS_ALGORITHM;
 import static io.synadia.client.utils.Validator.emptyAsNull;
@@ -640,7 +641,7 @@ public class OptionsBuilder {
      * @return the Builder for chaining
      */
     public OptionsBuilder connectionTimeout(Duration connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
+        this.connectionTimeout = normalizeDuration(connectionTimeout, DEFAULT_CONNECTION_TIMEOUT);
         return this;
     }
 
@@ -652,7 +653,7 @@ public class OptionsBuilder {
      * @return the Builder for chaining
      */
     public OptionsBuilder connectionTimeout(long connectionTimeoutMillis) {
-        this.connectionTimeout = Duration.ofMillis(connectionTimeoutMillis);
+        this.connectionTimeout = normalizeDuration(connectionTimeoutMillis, DEFAULT_CONNECTION_TIMEOUT);
         return this;
     }
 
