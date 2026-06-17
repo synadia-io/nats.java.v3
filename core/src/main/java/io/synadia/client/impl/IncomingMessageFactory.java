@@ -4,6 +4,7 @@ import io.synadia.client.api.Status;
 import io.synadia.client.utils.IncomingHeadersProcessor;
 
 import static io.synadia.client.utils.NatsConstants.JS_ACK_SUBJECT_PREFIX;
+import static io.synadia.client.utils.NatsConstants.JS_FC_SUBJECT_PREFIX;
 
 // ----------------------------------------------------------------------------------------------------
 // Incoming Message Factory - internal use only
@@ -43,7 +44,7 @@ class IncomingMessageFactory {
         if (status != null) {
             message = new StatusMessage(status);
         }
-        else if (replyTo != null && replyTo.startsWith(JS_ACK_SUBJECT_PREFIX)) {
+        else if (replyTo != null && (replyTo.startsWith(JS_ACK_SUBJECT_PREFIX) || replyTo.startsWith(JS_FC_SUBJECT_PREFIX))) {
             message = new JetStreamMessage(data);
         }
         else {

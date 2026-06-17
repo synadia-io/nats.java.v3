@@ -15,6 +15,7 @@ public class JetStreamMetaData {
     // populated after parse is called
 
     private String prefix;
+    private String metaType;
     private String domain;
     private String accountHash;
     private String stream;
@@ -30,6 +31,7 @@ public class JetStreamMetaData {
         parse();
         return "JetStreamMetaData{" +
             "prefix='" + prefix + '\'' +
+            ", metaType='" + metaType + '\'' +
             ", domain='" + domain + '\'' +
             ", stream='" + stream + '\'' +
             ", consumer='" + consumer + '\'' +
@@ -46,6 +48,7 @@ public class JetStreamMetaData {
     v0 <prefix>.ACK.<stream name>.<consumer name>.<num delivered>.<stream sequence>.<consumer sequence>.<timestamp>
     v1 <prefix>.ACK.<stream name>.<consumer name>.<num delivered>.<stream sequence>.<consumer sequence>.<timestamp>.<num pending>
     v2 <prefix>.ACK.<domain>.<account hash>.<stream name>.<consumer name>.<num delivered>.<stream sequence>.<consumer sequence>.<timestamp>.<num pending>
+    v2 <prefix>.FC.<domain>.<account hash>.<stream name>.<consumer name>.<num delivered>.<stream sequence>.<consumer sequence>.<timestamp>.<num pending>
      */
 
     public JetStreamMetaData(NatsMessage natsMessage) {
@@ -60,7 +63,12 @@ public class JetStreamMetaData {
         if (needsParsed) {
             needsParsed = false;
             String[] parts = replyTo.split("\\.");
-            if (parts.length < 8 || !"ACK".equals(parts[1])) {
+            if (parts.length < 8) {
+                throw new IllegalArgumentException(notAJetStreamMessage(replyTo));
+            }
+
+            metaType = "ACK".equals(parts[1]) || "FC".equals(parts[1]) ? parts[1] : null;
+            if (metaType == null) {
                 throw new IllegalArgumentException(notAJetStreamMessage(replyTo));
             }
 
@@ -88,7 +96,7 @@ public class JetStreamMetaData {
 
             try {
                 prefix = parts[0];
-                // "ack" = parts[1]
+                // metaType = parts[1], checked and set above
                 domain = hasDomainAndHash ? parts[2] : null;
                 accountHash = hasDomainAndHash ? parts[3] : null;
                 stream = parts[streamIndex];
@@ -103,6 +111,15 @@ public class JetStreamMetaData {
                 throw new IllegalArgumentException(notAJetStreamMessage(replyTo));
             }
         }
+    }
+
+    /**
+     * Get the meta type of this message's reply subject, either {@code ACK} or {@code FC}.
+     * @return the meta type
+     */
+    public String getMetaType() {
+        parse();
+        return metaType;
     }
 
     /**

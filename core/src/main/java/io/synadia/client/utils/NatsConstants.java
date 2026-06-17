@@ -115,6 +115,7 @@ public interface NatsConstants {
     byte[] NATS_PENDING_BYTES_BYTES    = NATS_PENDING_BYTES.getBytes(ISO_8859_1);
 
     String JS_ACK_SUBJECT_PREFIX = "$JS.ACK.";
+    String JS_FC_SUBJECT_PREFIX = "$JS.FC.";
 
     String KV_OPERATION_HEADER_KEY       = "KV-Operation";
     byte[] KV_OPERATION_HEADER_KEY_BYTES = KV_OPERATION_HEADER_KEY.getBytes(ISO_8859_1);

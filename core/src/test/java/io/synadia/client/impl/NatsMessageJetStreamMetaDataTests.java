@@ -14,7 +14,8 @@ public class NatsMessageJetStreamMetaDataTests extends TestBase {
 
     public static final String TestMetaV0 = "$JS.ACK.test-stream.test-consumer.1.2.3.1605139610113260000";
     public static final String TestMetaV1 = "$JS.ACK.test-stream.test-consumer.1.2.3.1605139610113260000.4";
-    public static final String TestMetaV2 = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.4";
+    public static final String TestMetaV2ACK = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.4";
+    public static final String TestMetaV2FC = "$JS.FC.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.4";
     public static final String TestMetaVFuture = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.4.dont.care.how.many.more";
     public static final String InvalidMetaNoAck = "$JS.nope.test-stream.test-consumer.1.2.3.1605139610113260000";
     public static final String InvalidMetaData = "$JS.ACK.v2Domain.v2Hash.test-stream.test-consumer.1.2.3.1605139610113260000.not-a-number";
@@ -26,7 +27,7 @@ public class NatsMessageJetStreamMetaDataTests extends TestBase {
     }
 
     public NatsMessage getTestJsMessage() {
-        return getTestMessage(TestMetaV2, mockSid());
+        return getTestMessage(TestMetaV2ACK, mockSid());
     }
 
     public NatsMessage getTestJsMessage(long seq) {
@@ -57,10 +58,11 @@ public class NatsMessageJetStreamMetaDataTests extends TestBase {
         assertNotNull(msg.metaData()); // 2nd time, coverage lazy check is not null
         assertNotNull(meta.toString()); // COVERAGE toString
 
-        validateMeta(false, false, getTestMessage(TestMetaV0));
-        validateMeta(true, false, getTestMessage(TestMetaV1));
-        validateMeta(true, true, getTestMessage(TestMetaV2));
-        validateMeta(true, true, getTestMessage(TestMetaVFuture));
+        validateMeta(false, false, "ACK", getTestMessage(TestMetaV0));
+        validateMeta(true, false, "ACK", getTestMessage(TestMetaV1));
+        validateMeta(true, true, "ACK", getTestMessage(TestMetaV2ACK));
+        validateMeta(true, true, "FC", getTestMessage(TestMetaV2FC));
+        validateMeta(true, true, "ACK", getTestMessage(TestMetaVFuture));
 
         // since I can't make a JS message directly, do it indirectly
         NatsMessage nm = getTestMessage(InvalidMetaLt8Tokens);
@@ -68,8 +70,9 @@ public class NatsMessageJetStreamMetaDataTests extends TestBase {
         assertThrows(IllegalArgumentException.class, () -> nm.metaData().getStream());
     }
 
-    private void validateMeta(boolean hasPending, boolean hasDomainHashToken, Message msg) {
+    private void validateMeta(boolean hasPending, boolean hasDomainHashToken, String metaType, Message msg) {
         JetStreamMetaData meta = msg.metaData();
+        assertEquals(metaType, meta.getMetaType());
         assertEquals("test-stream", meta.getStream());
         assertEquals("test-consumer", meta.getConsumer());
         assertEquals(1, meta.deliveredCount());
