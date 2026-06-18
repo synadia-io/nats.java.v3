@@ -78,6 +78,15 @@ abstract class StreamSource extends LazyApiObject {
     }
 
     /**
+     * Get the consumer source for durable sourcing
+     * @return the consumer source, or null if not configured
+     */
+    @Nullable
+    public ConsumerSource getConsumerSource() {
+        return ConsumerSource.optionalInstance(readValue(ljv, CONSUMER));
+    }
+
+    /**
      * Get the subject transforms
      * @return the list of subject transforms
      */

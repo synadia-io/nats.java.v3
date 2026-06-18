@@ -61,7 +61,11 @@
     "subject_transforms": [
       {"src":"m_st_src0","dest":"m_st_dest0"},
       {"src":"m_st_src1","dest":"m_st_dest1"}
-    ]
+    ],
+    "consumer": {
+      "name": "mirror_con_name",
+      "deliver_subject": "mirror_con_deliver"
+    }
   },
   "sources": [
     {
@@ -76,7 +80,11 @@
       "subject_transforms": [
         {"src":"s0_st_src0","dest":"s0_st_dest0"},
         {"src":"s0_st_src1","dest":"s0_st_dest1"}
-      ]
+      ],
+      "consumer": {
+        "name": "s0_con_name",
+        "deliver_subject": "s0_con_deliver"
+      }
     },
     {
       "name": "s1",
@@ -90,7 +98,11 @@
       "subject_transforms": [
         {"src":"s1_st_src0","dest":"s1_st_dest0"},
         {"src":"s1_st_src1","dest":"s1_st_dest1"}
-      ]
+      ],
+      "consumer": {
+        "name": "s1_con_name",
+        "deliver_subject": "s1_con_deliver"
+      }
     }
   ]
 }

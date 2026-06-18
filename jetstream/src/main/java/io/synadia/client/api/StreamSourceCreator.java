@@ -26,6 +26,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
     private @Nullable ZonedDateTime startTime;
     private @Nullable String filterSubject;
     private @Nullable ExternalCreator externalCreator;
+    private @Nullable ConsumerSourceCreator consumerSourceCreator;
     private final List<SubjectTransformCreator> subjectTransformCreators = new ArrayList<>();
 
     /**
@@ -47,6 +48,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
         this.startTime = basis.startTime;
         this.filterSubject = basis.filterSubject;
         this.externalCreator = basis.externalCreator;
+        this.consumerSourceCreator = basis.consumerSourceCreator;
         this.subjectTransformCreators.addAll(basis.subjectTransformCreators);
     }
 
@@ -61,6 +63,8 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
         this.filterSubject = ss.getFilterSubject();
         External ext = ss.getExternal();
         this.externalCreator = ext == null ? null : new ExternalCreator(ext);
+        ConsumerSource cs = ss.getConsumerSource();
+        this.consumerSourceCreator = cs == null ? null : new ConsumerSourceCreator(cs);
         for (SubjectTransform st : ss.getSubjectTransforms()) {
             this.subjectTransformCreators.add(new SubjectTransformCreator(st));
         }
@@ -103,6 +107,16 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      */
     public T externalCreator(@Nullable ExternalCreator external) {
         this.externalCreator = external;
+        return (T) this;
+    }
+
+    /**
+     * Set the consumer source for durable sourcing
+     * @param consumerSourceCreator the consumer source
+     * @return this instance for chaining
+     */
+    public T consumerSourceCreator(@Nullable ConsumerSourceCreator consumerSourceCreator) {
+        this.consumerSourceCreator = consumerSourceCreator;
         return (T) this;
     }
 
@@ -156,6 +170,9 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
     /** @return the external reference */
     @Nullable public ExternalCreator getExternalCreator() { return externalCreator; }
 
+    /** @return the consumer source */
+    @Nullable public ConsumerSourceCreator getConsumerSourceCreator() { return consumerSourceCreator; }
+
     /** @return the subject transforms */
     public List<SubjectTransformCreator> getSubjectTransformCreators() { return subjectTransformCreators; }
 
@@ -167,6 +184,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
         addField(sb, OPT_START_TIME, startTime);
         addField(sb, FILTER_SUBJECT, filterSubject);
         addField(sb, EXTERNAL, externalCreator);
+        addField(sb, CONSUMER, consumerSourceCreator);
         addJsons(sb, SUBJECT_TRANSFORMS, subjectTransformCreators);
         return endJson(sb).toString();
     }
@@ -180,6 +198,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
             && Objects.equals(startTime, that.startTime)
             && Objects.equals(filterSubject, that.filterSubject)
             && Objects.equals(externalCreator, that.externalCreator)
+            && Objects.equals(consumerSourceCreator, that.consumerSourceCreator)
             && subjectTransformCreators.equals(that.subjectTransformCreators);
     }
 
@@ -190,6 +209,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
         result = 31 * result + Objects.hashCode(startTime);
         result = 31 * result + Objects.hashCode(filterSubject);
         result = 31 * result + Objects.hashCode(externalCreator);
+        result = 31 * result + Objects.hashCode(consumerSourceCreator);
         result = 31 * result + subjectTransformCreators.hashCode();
         return result;
     }

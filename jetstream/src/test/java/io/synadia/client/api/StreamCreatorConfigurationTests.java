@@ -471,6 +471,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
             assertEquals("dlvrsub", mirror.getExternal().getDeliver());
 
             validateSubjectTransforms(mirror.getSubjectTransforms(), 2, "m");
+            validateConsumerSource(mirror.getConsumerSource(), "mirror");
 
             assertNotNull(sc.getSources());
             assertEquals(2, sc.getSources().size());
@@ -512,6 +513,59 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
         assertEquals(name + "dlvrsub", source.getExternal().getDeliver());
 
         validateSubjectTransforms(source.getSubjectTransforms(), 2, name);
+        validateConsumerSource(source.getConsumerSource(), name);
+    }
+
+    private static void validateConsumerSource(ConsumerSource cs, String name) {
+        assertNotNull(cs);
+        assertEquals(name + "_con_name", cs.getName());
+        assertEquals(name + "_con_deliver", cs.getDeliverSubject());
+    }
+
+    @Test
+    public void testConsumerSource() {
+        ConsumerSourceCreator cs = new ConsumerSourceCreator("csname", "csdeliver");
+        assertEquals("csname", cs.getName());
+        assertEquals("csdeliver", cs.getDeliverSubject());
+
+        // round trip through the JSON read side
+        ConsumerSource read = ConsumerSource.optionalInstance(LazyJsonParser.parseUnchecked(cs.toJson()));
+        assertNotNull(read);
+        assertEquals("csname", read.getName());
+        assertEquals("csdeliver", read.getDeliverSubject());
+
+        // copy constructor (server response -> creator) + equals/hashCode
+        ConsumerSourceCreator copy = new ConsumerSourceCreator(read);
+        assertEquals(cs, copy);
+        assertEquals(cs.hashCode(), copy.hashCode());
+        assertNotNull(cs.toString());   // coverage
+        assertNotNull(read.toString()); // coverage
+
+        // fluent setters
+        assertEquals("csname2", cs.name("csname2").getName());
+        assertEquals("csdeliver2", cs.deliverSubject("csdeliver2").getDeliverSubject());
+
+        // validation: name rejects null/dots, deliver subject rejects null/spaces
+        assertThrows(IllegalArgumentException.class, () -> new ConsumerSourceCreator(null, "supplied"));
+        assertThrows(IllegalArgumentException.class, () -> new ConsumerSourceCreator("supplied", null));
+        assertThrows(IllegalArgumentException.class, () -> new ConsumerSourceCreator(HAS_DOT, "supplied"));
+        assertThrows(IllegalArgumentException.class, () -> new ConsumerSourceCreator("supplied", HAS_SPACE));
+        assertThrows(IllegalArgumentException.class, () -> cs.name(HAS_DOT));
+        assertThrows(IllegalArgumentException.class, () -> cs.deliverSubject(HAS_SPACE));
+
+        // StreamSourceCreator.consumerSourceCreator(...) setter + getter, with a JSON round trip
+        ConsumerSourceCreator csc = new ConsumerSourceCreator("rtname", "rtdeliver");
+        SourceCreator sourceCreator = new SourceCreator("rtstream").consumerSourceCreator(csc);
+        assertEquals(csc, sourceCreator.getConsumerSourceCreator());
+
+        // SourceCreator -> JSON -> Source -> getConsumerSource()
+        Source rtSource = new Source(LazyJsonParser.parseUnchecked(sourceCreator.toJson()));
+        assertNotNull(rtSource.getConsumerSource());
+        assertEquals("rtname", rtSource.getConsumerSource().getName());
+        assertEquals("rtdeliver", rtSource.getConsumerSource().getDeliverSubject());
+
+        // setting null clears it
+        assertNull(sourceCreator.consumerSourceCreator(null).getConsumerSourceCreator());
     }
 
     public static void validateSubjectTransforms(List<SubjectTransform> subjectTransforms, int count, String name) {
