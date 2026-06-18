@@ -37,13 +37,13 @@ public class ApiUtilsTests {
         assertTrue(mapToList(null, lv -> "x").isEmpty());
 
         // LazyJsonValue that isn't an array (a map)
-        LazyJsonValue mapLjv = LazyJsonParser.parseUnchecked("{\"a\":1}");
+        LazyJsonValue mapLjv = new LazyMapBuilder().put("a", 1).build();
         assertTrue(mapToList(mapLjv, lv -> "x").isEmpty());
     }
 
     @Test
     public void mapToList_appliesMapperOverArray() {
-        LazyJsonValue arrayLjv = LazyJsonParser.parseUnchecked("[\"a\",\"b\",\"c\"]");
+        LazyJsonValue arrayLjv = new LazyArrayBuilder().add("a").add("b").add("c").build();
         List<String> result = mapToList(arrayLjv, LazyJsonValue::getString);
         assertEquals(Arrays.asList("a", "b", "c"), result);
     }
@@ -182,7 +182,7 @@ public class ApiUtilsTests {
 
     @Test
     public void readString_lazyJsonValue_presentAndMissing() {
-        LazyJsonValue ljv = LazyJsonParser.parseUnchecked("{\"k\":\"v\"}");
+        LazyJsonValue ljv = new LazyMapBuilder().put("k", "v").build();
         assertEquals("v", readString(ljv, "k", "dflt"));
         assertEquals("dflt", readString(ljv, "missing", "dflt"));
     }
@@ -241,7 +241,7 @@ public class ApiUtilsTests {
 
     @Test
     public void readIntegerOrMinusOne_presentAndAbsent() {
-        LazyJsonValue ljv = LazyJsonParser.parseUnchecked("{\"n\":42}");
+        LazyJsonValue ljv = new LazyMapBuilder().put("n", 42).build();
         assertEquals(42, readIntegerOrMinusOne(ljv, "n"));
         // absent -> -1
         assertEquals(-1, readIntegerOrMinusOne(ljv, "missing"));
@@ -249,7 +249,7 @@ public class ApiUtilsTests {
 
     @Test
     public void readLongOrMinusOne_presentAndAbsent() {
-        LazyJsonValue ljv = LazyJsonParser.parseUnchecked("{\"n\":9000000000}");
+        LazyJsonValue ljv = new LazyMapBuilder().put("n", 9_000_000_000L).build();
         assertEquals(9_000_000_000L, readLongOrMinusOne(ljv, "n"));
         // absent -> -1
         assertEquals(-1L, readLongOrMinusOne(ljv, "missing"));
@@ -257,7 +257,7 @@ public class ApiUtilsTests {
 
     @Test
     public void readStringOrEmpty_presentAndAbsent() {
-        LazyJsonValue ljv = LazyJsonParser.parseUnchecked("{\"k\":\"v\"}");
+        LazyJsonValue ljv = new LazyMapBuilder().put("k", "v").build();
         assertEquals("v", readStringOrEmpty(ljv, "k"));
         // absent -> ""
         assertEquals("", readStringOrEmpty(ljv, "missing"));

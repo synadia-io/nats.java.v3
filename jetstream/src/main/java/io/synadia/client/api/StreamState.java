@@ -1,7 +1,7 @@
 package io.synadia.client.api;
 
-import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
+import io.nats.json.LazyMapBuilder;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -21,11 +21,7 @@ import static io.synadia.client.utils.ApiUtils.*;
  */
 @NullMarked
 public class StreamState extends LazyApiObject {
-    static final StreamState EMPTY;
-    static {
-        try { EMPTY = new StreamState(LazyJsonParser.parse("{}")); }
-        catch (Exception e) { throw new RuntimeException(e); }
-    }
+    static final StreamState EMPTY = new StreamState(new LazyMapBuilder().build());
 
     private @Nullable List<Subject> _subjects;
     private @Nullable Map<String, Long> _subjectMap;

@@ -1,8 +1,7 @@
 package io.synadia.client.api;
 
-import io.nats.json.JsonParseException;
-import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
+import io.nats.json.LazyMapBuilder;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -29,13 +28,8 @@ public class ConsumerConfiguration extends LazyApiObject {
 
     public static ConsumerConfiguration getDefaultInstance() {
         if (DEFAULT_INSTANCE == null) {
-            try {
-                DEFAULT_INSTANCE = new ConsumerConfiguration(
-                    LazyJsonParser.parse("{\"name\":\"" + UNDEFINED + "\"}"));
-            }
-            catch (JsonParseException ignore) {
-                // parse will always work
-            }
+            DEFAULT_INSTANCE = new ConsumerConfiguration(
+                new LazyMapBuilder().put(NAME, UNDEFINED).build());
         }
         return DEFAULT_INSTANCE;
     }
