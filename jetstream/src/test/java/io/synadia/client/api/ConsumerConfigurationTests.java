@@ -286,6 +286,29 @@ public class ConsumerConfigurationTests extends TestBase {
     // ----------------------------------------------------------------------------------------------------
 
     @Test
+    public void testIdleHeartbeatUnset() {
+        // PR #1580: a non-positive idle heartbeat clears the value to null (true "unset"), not Duration.ZERO.
+
+        // Duration path
+        assertNull(new PullConsumerCreator().idleHeartbeat((Duration) null).getIdleHeartbeat());
+        assertNull(new PullConsumerCreator().idleHeartbeat(Duration.ZERO).getIdleHeartbeat());
+
+        // millis path (the case fixed by #1580)
+        assertNull(new PullConsumerCreator().idleHeartbeat(0L).getIdleHeartbeat());
+        assertNull(new PullConsumerCreator().idleHeartbeat(-5L).getIdleHeartbeat());
+
+        // a valid value is still set on both paths
+        long valid = ConsumerCreator.MIN_IDLE_HEARTBEAT_MILLIS + 1;
+        assertEquals(Duration.ofMillis(valid), new PullConsumerCreator().idleHeartbeat(valid).getIdleHeartbeat());
+        assertEquals(Duration.ofMillis(valid), new PullConsumerCreator().idleHeartbeat(Duration.ofMillis(valid)).getIdleHeartbeat());
+
+        // positive-but-below-minimum throws on both paths
+        long tooSmall = ConsumerCreator.MIN_IDLE_HEARTBEAT_MILLIS - 1;
+        assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().idleHeartbeat(tooSmall));
+        assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().idleHeartbeat(Duration.ofMillis(tooSmall)));
+    }
+
+    @Test
     public void testPullConsumerCreator() {
         PullConsumerCreator cc = new PullConsumerCreator();
         setConsumerCreatorFields(cc, true);

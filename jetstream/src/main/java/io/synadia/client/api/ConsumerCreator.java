@@ -586,7 +586,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
 
     protected void _idleHeartbeat(long idleHeartbeatMillis) {
         if (idleHeartbeatMillis <= 0) {
-            this.idleHeartbeat = Duration.ZERO;
+            this.idleHeartbeat = DURATION_UNSET;
         }
         else if (idleHeartbeatMillis < MIN_IDLE_HEARTBEAT_MILLIS) {
             throw new IllegalArgumentException("Idle Heartbeat must be greater than or equal to " + MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.");
