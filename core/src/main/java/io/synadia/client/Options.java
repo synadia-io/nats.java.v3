@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static io.nats.json.Encoding.*;
@@ -118,7 +119,7 @@ public class Options {
     final ServerPool serverPool;
     final DispatcherFactory dispatcherFactory;
 
-    final List<java.util.function.Consumer<HttpRequest>> httpRequestInterceptors;
+    final List<Consumer<HttpRequest>> httpRequestInterceptors;
     final Proxy proxy;
 
     // these are not final b/c they are lazy initialized
@@ -462,7 +463,7 @@ public class Options {
      * the list of HttpRequest interceptors.
      * @return the list
      */
-    public List<java.util.function.Consumer<HttpRequest>> getHttpRequestInterceptors() {
+    public List<Consumer<HttpRequest>> getHttpRequestInterceptors() {
         return null == this.httpRequestInterceptors
             ? Collections.emptyList()
             : Collections.unmodifiableList(this.httpRequestInterceptors);

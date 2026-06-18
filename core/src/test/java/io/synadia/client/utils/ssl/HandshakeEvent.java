@@ -3,6 +3,7 @@ package io.synadia.client.utils.ssl;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
@@ -27,7 +28,7 @@ public class HandshakeEvent {
         this.peerPort = session.getPeerPort();
         X509Certificate peer = null;
         try {
-            java.security.cert.Certificate[] peerCerts = event.getPeerCertificates();
+            Certificate[] peerCerts = event.getPeerCertificates();
             if (peerCerts.length > 0 && peerCerts[0] instanceof X509Certificate) {
                 peer = (X509Certificate) peerCerts[0];
             }

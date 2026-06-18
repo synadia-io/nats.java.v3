@@ -3,6 +3,7 @@ package io.synadia.client.utils.ssl;
 import javax.net.ssl.*;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
@@ -218,7 +219,7 @@ public class DiagnosticSslContext extends SSLContext {
         sb.append("  Created      : ").append(new Date(session.getCreationTime())).append('\n');
         sb.append("  Last accessed: ").append(new Date(session.getLastAccessedTime())).append('\n');
 
-        java.security.cert.Certificate[] localCerts = session.getLocalCertificates();
+        Certificate[] localCerts = session.getLocalCertificates();
         if (localCerts != null) {
             sb.append("  Local certs  : ").append(localCerts.length).append('\n');
             for (int i = 0; i < localCerts.length; i++) {
@@ -239,7 +240,7 @@ public class DiagnosticSslContext extends SSLContext {
         }
 
         try {
-            java.security.cert.Certificate[] peerCerts = session.getPeerCertificates();
+            Certificate[] peerCerts = session.getPeerCertificates();
             sb.append("  Peer certs   : ").append(peerCerts.length).append('\n');
             for (int i = 0; i < peerCerts.length; i++) {
                 if (peerCerts[i] instanceof X509Certificate) {

@@ -116,7 +116,7 @@ public class OptionsBuilder {
     ExecutorService userCallbackExecutor = null;
     ThreadFactory userConnectThreadFactory = null;
     ThreadFactory userCallbackThreadFactory = null;
-    List<java.util.function.Consumer<HttpRequest>> httpRequestInterceptors = null;
+    List<Consumer<HttpRequest>> httpRequestInterceptors = null;
     Proxy proxy = null;
 
     boolean useDefaultTls = false;
@@ -1026,7 +1026,7 @@ public class OptionsBuilder {
      * @param interceptor The interceptor
      * @return the Builder for chaining
      */
-    public OptionsBuilder httpRequestInterceptor(java.util.function.Consumer<HttpRequest> interceptor) {
+    public OptionsBuilder httpRequestInterceptor(Consumer<HttpRequest> interceptor) {
         if (null == this.httpRequestInterceptors) {
             this.httpRequestInterceptors = new ArrayList<>();
         }

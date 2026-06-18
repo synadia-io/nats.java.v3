@@ -1,5 +1,6 @@
 package io.synadia.client.api;
 
+import io.nats.json.JsonSerializable;
 import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
 import io.synadia.client.utils.TestBase;
@@ -227,7 +228,7 @@ public class ApiCreatorsToDtoRoundTripTests extends TestBase {
      * Assert a full creator round-trip: the creator's JSON survives parse → DTO → re-built
      * creator → emit, and the rebuilt creator's instance equals the original.
      */
-    private static <C extends io.nats.json.JsonSerializable> void assertCreatorRoundTrip(C original, C rebuilt) {
+    private static <C extends JsonSerializable> void assertCreatorRoundTrip(C original, C rebuilt) {
         assertJsonEquivalent(original.toJson(), rebuilt.toJson());
         assertEquals(original, rebuilt);
     }

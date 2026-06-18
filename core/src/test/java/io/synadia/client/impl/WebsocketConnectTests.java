@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import static io.synadia.client.ConnectionEvents.CONNECTED;
 import static io.synadia.client.ConnectionEvents.RECONNECTED;
@@ -80,7 +81,7 @@ public class WebsocketConnectTests extends TestBase {
         });
     }
 
-    private static java.util.function.Consumer<HttpRequest> getInterceptor() {
+    private static Consumer<HttpRequest> getInterceptor() {
         return req -> {
             // Ideally we could validate that this header was sent to NATS server
             req.getHeaders().add("X-Ignored", "VALUE");

@@ -12,6 +12,7 @@ import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
@@ -75,7 +76,7 @@ public class ExpiringClientCertUtil {
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(null, null);
         ks.setKeyEntry("client", clientKP.getPrivate(), pw,
-            new java.security.cert.Certificate[]{clientCert, caCert});
+            new Certificate[]{clientCert, caCert});
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(ks, pw);
 
@@ -115,7 +116,7 @@ public class ExpiringClientCertUtil {
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(null, null);
         ks.setKeyEntry("client", clientKP.getPrivate(), pw,
-            new java.security.cert.Certificate[]{clientCert, caCert});
+            new Certificate[]{clientCert, caCert});
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(ks, pw);
 

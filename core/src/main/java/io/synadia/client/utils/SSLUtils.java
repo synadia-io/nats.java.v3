@@ -24,14 +24,14 @@ public class SSLUtils {
     }
 
     public interface TrustManagerDelegate {
-        java.security.cert.X509Certificate[] getAcceptedIssuers();
+        X509Certificate[] getAcceptedIssuers();
         void checkClientTrusted(X509Certificate[] certs, String authType);
         void checkServerTrusted(X509Certificate[] certs, String authType);
     }
 
     private static final TrustManager[] DEFAULT_TRUST_MANAGERS = new TrustManager[] {
         new X509TrustManager() {
-            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+            public X509Certificate[] getAcceptedIssuers() {
                 return TRUST_MANAGER_DELEGATE == null ? null : TRUST_MANAGER_DELEGATE.getAcceptedIssuers();
             }
 

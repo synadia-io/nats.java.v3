@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static io.nats.json.Encoding.base64UrlEncodeToString;
@@ -192,8 +193,8 @@ public class OptionsTests extends TestBase {
 
     @Test
     public void testHttpRequestInterceptors() {
-        java.util.function.Consumer<HttpRequest> interceptor1 = req -> req.getHeaders().add("Test1", "Header");
-        java.util.function.Consumer<HttpRequest> interceptor2 = req -> req.getHeaders().add("Test2", "Header");
+        Consumer<HttpRequest> interceptor1 = req -> req.getHeaders().add("Test1", "Header");
+        Consumer<HttpRequest> interceptor2 = req -> req.getHeaders().add("Test2", "Header");
         Options o = new OptionsBuilder()
             .httpRequestInterceptor(interceptor1)
             .httpRequestInterceptor(interceptor2)

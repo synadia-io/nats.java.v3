@@ -1,5 +1,6 @@
 package io.synadia.client.api;
 
+import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -22,7 +23,7 @@ import static io.synadia.client.utils.ApiUtils.*;
 public class StreamState extends LazyApiObject {
     static final StreamState EMPTY;
     static {
-        try { EMPTY = new StreamState(io.nats.json.LazyJsonParser.parse("{}")); }
+        try { EMPTY = new StreamState(LazyJsonParser.parse("{}")); }
         catch (Exception e) { throw new RuntimeException(e); }
     }
 

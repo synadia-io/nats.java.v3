@@ -24,7 +24,7 @@ public class ApiResponseTests {
 
         TestApiResponse() { }
 
-        public TestApiResponse(io.synadia.client.api.Error error) {
+        public TestApiResponse(Error error) {
             super(error);
         }
     }
@@ -162,7 +162,7 @@ public class ApiResponseTests {
         assertTrue(JsNoMessageFoundErr == convert(new Status(404, "four-oh-four")));
         //noinspection SimplifiableAssertion We are intentionally testing that the convert gives the exact object
         assertTrue(JsBadRequestErr == convert(new Status(408, "four-oh-eight")));
-        io.synadia.client.api.Error e = convert(new Status(499, "four-nine-nine"));
+        Error e = convert(new Status(499, "four-nine-nine"));
         assertEquals(499, e.getCode());
         assertEquals(NOT_SET, e.getApiErrorCode());
         assertEquals("four-nine-nine", e.getDescription());

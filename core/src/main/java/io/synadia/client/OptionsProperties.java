@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 import static io.synadia.client.utils.Validator.emptyAsNull;
 
@@ -297,41 +298,41 @@ public interface OptionsProperties {
         return value;
     }
 
-    static void stringProperty(Properties props, String key, java.util.function.Consumer<String> consumer) {
+    static void stringProperty(Properties props, String key, Consumer<String> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             consumer.accept(value);
         }
     }
 
-    static void charArrayProperty(Properties props, String key, java.util.function.Consumer<char[]> consumer) {
+    static void charArrayProperty(Properties props, String key, Consumer<char[]> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             consumer.accept(value.toCharArray());
         }
     }
 
-    static void booleanProperty(Properties props, String key, java.util.function.Consumer<Boolean> consumer) {
+    static void booleanProperty(Properties props, String key, Consumer<Boolean> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             consumer.accept(Boolean.parseBoolean(value));
         }
     }
 
-    static void booleanPropertyIfTrue(Properties props, String key, java.util.function.Consumer<Boolean> consumer) {
+    static void booleanPropertyIfTrue(Properties props, String key, Consumer<Boolean> consumer) {
         if (Boolean.parseBoolean(getPropertyValue(props, key))) { // parseBoolean treats null as false
             consumer.accept(true);
         }
     }
 
-    static void intProperty(Properties props, String key, java.util.function.Consumer<Integer> consumer) {
+    static void intProperty(Properties props, String key, Consumer<Integer> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             consumer.accept(Integer.parseInt(value));
         }
     }
 
-    static void intGtEqZeroProperty(Properties props, String key, java.util.function.Consumer<Integer> consumer) {
+    static void intGtEqZeroProperty(Properties props, String key, Consumer<Integer> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             int i = Integer.parseInt(value);
@@ -341,14 +342,14 @@ public interface OptionsProperties {
         }
     }
 
-    static void longProperty(Properties props, String key, java.util.function.Consumer<Long> consumer) {
+    static void longProperty(Properties props, String key, Consumer<Long> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             consumer.accept(Long.parseLong(value));
         }
     }
 
-    static void longGtEqZeroProperty(Properties props, String key, java.util.function.Consumer<Long> consumer) {
+    static void longGtEqZeroProperty(Properties props, String key, Consumer<Long> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             long l = Long.parseLong(value);
@@ -358,7 +359,7 @@ public interface OptionsProperties {
         }
     }
 
-    static void durationProperty(Properties props, String key, java.util.function.Consumer<Duration> consumer) {
+    static void durationProperty(Properties props, String key, Consumer<Duration> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
             try {
@@ -376,7 +377,7 @@ public interface OptionsProperties {
         }
     }
 
-    static void classnameProperty(Properties props, String key, java.util.function.Consumer<Object> consumer) {
+    static void classnameProperty(Properties props, String key, Consumer<Object> consumer) {
         stringProperty(props, key, className -> consumer.accept(createInstanceOf(className)));
     }
 
