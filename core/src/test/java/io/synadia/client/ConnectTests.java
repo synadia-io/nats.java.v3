@@ -5,7 +5,6 @@ import io.synadia.client.api.ServerInfo;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SimulateSocketDataPortException;
 import io.synadia.client.utils.Listener;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -516,7 +515,6 @@ public class ConnectTests {
     }
 
     @Test
-    @Disabled
     void testConnectPendingCountCoverage() throws Exception {
         runInOwnServer(nc -> {
             AtomicLong outgoingPendingMessageCount = new AtomicLong();
