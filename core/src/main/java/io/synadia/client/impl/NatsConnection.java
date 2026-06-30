@@ -260,7 +260,7 @@ public class NatsConnection implements AutoCloseable {
                 reconnectImpl(); // call the impl here otherwise the tryingToConnect guard will block the behavior
             }
             else {
-                close();
+                this.close(true, false);
 
                 String err = connectError.get();
                 if (this.isAuthenticationError(err)) {
@@ -384,7 +384,7 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if (options.getMaxReconnects() == 0) {
-            this.close();
+            this.close(true, false);
             return;
         }
 
@@ -395,7 +395,7 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if (!isConnected()) {
-            this.close();
+            this.close(true, false);
             return;
         }
 
@@ -750,7 +750,7 @@ public class NatsConnection implements AutoCloseable {
             }
 
             if (isClosing()) { // isClosing() means we are in the close method or were asked to be
-                close();
+                this.close(true, false);
             }
             else if (wasConnected && tryReconnectIfConnected) {
                 reconnectImpl(); // call the impl here otherwise the tryingToConnect guard will block the behavior
@@ -769,15 +769,21 @@ public class NatsConnection implements AutoCloseable {
      * and {@link Subscription#nextMessage(Long) nextMessage}.
      * If close() is called after {@link #drain(long) drain} it will wait up to the connection timeout
      * to return, but it will not initiate a close. The drain takes precedence and will initiate the close.
-     *
-     * @throws InterruptedException if the thread, or one owned by the connection is interrupted during the close
+     * <p>If the calling thread is interrupted while close is waiting, the close stops waiting,
+     * the thread's interrupt status is restored, and the method returns.
      */
-    public void close() throws InterruptedException {
-        this.close(true, false);
+    @Override
+    public void close() {
+        try {
+            this.close(true, false);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupt status; do not propagate from close()
+        }
     }
 
-    // This method was originally built assuming there might be multiple paths to this method,
-    // but it turns out there isn't. Not refactoring the code though, hence the warning suppression
+    // Several paths reach this (public close(), connect/reconnect failure, closeSocket, drain, final flush),
+    // but every caller passes forceClose=false, hence the SameParameterValue suppression.
     @SuppressWarnings("SameParameterValue")
     protected void close(boolean checkDrainStatus, boolean forceClose) throws InterruptedException {
         statusLock.lock();

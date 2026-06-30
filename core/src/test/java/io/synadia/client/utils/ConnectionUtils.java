@@ -115,10 +115,7 @@ public abstract class ConnectionUtils {
     }
 
     public static void close(NatsConnection conn) {
-        try {
-            conn.close();
-        }
-        catch (InterruptedException e) { /* ignored */ }
+        conn.close();
     }
 
     // ----------------------------------------------------------------------------------------------------

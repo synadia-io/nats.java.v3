@@ -657,14 +657,9 @@ public class DispatcherTests extends TestBase {
 
             String subject = random();
             final Dispatcher d = nc.createDispatcher(msg -> {
-                try {
-                    if (msg.getSubject().equals(subject)) {
-                        nc.close();
-                        fDone.complete(Boolean.TRUE);
-                    }
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
+                if (msg.getSubject().equals(subject)) {
+                    nc.close();
+                    fDone.complete(Boolean.TRUE);
                 }
             });
 

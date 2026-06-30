@@ -184,10 +184,11 @@ public class SharedServer {
         try {
             for (NatsConnection nc : connectionMap.values()) {
                 try {
-                    ((NatsConnection)nc).close(false, true);
+                    nc.close(false, true);
                 }
                 catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    return;
                 }
             }
             if (natsTestServer != null) {
