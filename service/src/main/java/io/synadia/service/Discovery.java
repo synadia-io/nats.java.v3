@@ -51,7 +51,7 @@ public class Discovery {
     public Discovery(NatsConnection conn, long maxTimeMillis, int maxResults) {
         this.conn = conn;
         this.maxTimeMillis = maxTimeMillis < 1 ? DEFAULT_DISCOVERY_MAX_TIME_MILLIS : maxTimeMillis;
-        this.maxTimeNanos = maxTimeMillis * NANOS_PER_MILLI;
+        this.maxTimeNanos = this.maxTimeMillis * NANOS_PER_MILLI;
         this.maxResults = maxResults < 1 ? DEFAULT_DISCOVERY_MAX_RESULTS : maxResults;
         setInboxSupplier(null);
     }
