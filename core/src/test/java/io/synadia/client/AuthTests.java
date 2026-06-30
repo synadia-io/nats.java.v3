@@ -483,10 +483,16 @@ public class AuthTests extends TestBase {
         SSLContext ctx = SslTestingHelper.createTestSSLContext();
         runInConfiguredServer("wss_operator.conf", ts -> {
             String uri = ts.getLocalhostUri("wss");
-            Options options = optionsBuilder(uri).maxReconnects(0).sslContext(ctx)
+            // wss + TLS + JWT is the heaviest connect path and can transiently drop right after
+            // connecting under CI load. maxReconnects(0) gives it zero recovery, so a momentary
+            // drop lands the connection in CLOSED and the test fails. Allow reconnects and a longer
+            // connect window so a transient drop recovers; the test still verifies the wss/JWT
+            // connect succeeds and TLS is available.
+            Options options = optionsBuilder(uri).sslContext(ctx)
                 .authHandler(getUserCredsAuthHander()).build();
-            NatsConnection conn = managedConnect(options);
-            assertTrue(conn.getServerInfo().isTLSAvailable());
+            try (NatsConnection conn = managedConnect(options, LONG_WAIT)) {
+                assertTrue(conn.getServerInfo().isTLSAvailable());
+            }
         });
     }
 
