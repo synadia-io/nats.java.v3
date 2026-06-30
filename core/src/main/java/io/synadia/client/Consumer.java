@@ -1,6 +1,5 @@
 package io.synadia.client;
 
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -10,7 +9,7 @@ import java.util.concurrent.CompletableFuture;
  * The {@link Dispatcher} and {@link Subscription} deal with the mechanics of their specialized roles.
  * 
  * <p>A slow consumer is defined as a consumer that is not handling messages as quickly as they are arriving. For example,
- * if the application code doesn't call {@link Subscription#nextMessage(java.time.Duration) nextMessage()}
+ * if the application code doesn't call {@link Subscription#nextMessage(Long) nextMessage()}
  * often enough on a Subscription.
  * 
  * <p>By default, the library will allow a consumer to be a bit slow, at times, by caching messages for it in a queue.
@@ -101,11 +100,11 @@ public interface Consumer {
      * A future is used to allow this call to be treated as synchronous or asynchronous as
      * needed by the application.
      * 
-     * @param timeout The time to wait for the drain to succeed, pass 0 to wait
+     * @param timeoutMillis The time in milliseconds to wait for the drain to succeed, pass 0 or less to wait
      *                    forever. Drain involves moving messages to and from the server
      *                    so a very short timeout is not recommended.
      * @return A future that can be used to check if the drain has completed
      * @throws InterruptedException if the thread is interrupted
      */
-    CompletableFuture<Boolean> drain(Duration timeout) throws InterruptedException;
+    CompletableFuture<Boolean> drain(long timeoutMillis) throws InterruptedException;
 }

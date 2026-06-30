@@ -5,7 +5,6 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.NUID;
 import io.synadia.client.impl.NatsConnection;
 
-import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +43,7 @@ public class Service {
     public static final String DEFAULT_SERVICE_PREFIX = "$SRV.";
 
     private final NatsConnection conn;
-    private final Duration drainTimeout;
+    private final long drainTimeout;
     private final ConcurrentHashMap<String, EndpointContext> serviceContexts;
     private final List<EndpointContext> discoveryContexts;
     private final List<Dispatcher> dInternals;
@@ -279,10 +278,9 @@ public class Service {
                     }
 
                     // make sure drain is done before closing dispatcher
-                    long drainTimeoutMillis = drainTimeout.toMillis();
                     for (CompletableFuture<Boolean> f : futures) {
                         try {
-                            f.get(drainTimeoutMillis, TimeUnit.MILLISECONDS);
+                            f.get(drainTimeout, TimeUnit.MILLISECONDS);
                         }
                         catch (Exception ignore) {
                             // don't care if it completes successfully or not, just that it's done.
@@ -386,10 +384,10 @@ public class Service {
     }
 
     /**
-     * Get the drain timeout setting
-     * @return the drain timeout setting
+     * Get the drain timeout setting, in milliseconds
+     * @return the drain timeout setting in milliseconds
      */
-    public Duration getDrainTimeout() {
+    public long getDrainTimeout() {
         return drainTimeout;
     }
 

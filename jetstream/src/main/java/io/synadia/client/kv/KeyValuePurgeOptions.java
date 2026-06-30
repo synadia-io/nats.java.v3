@@ -1,6 +1,7 @@
 package io.synadia.client.kv;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 
@@ -15,10 +16,10 @@ public class KeyValuePurgeOptions {
      */
     public static final long DEFAULT_THRESHOLD_MILLIS = Duration.ofMinutes(30).toMillis();
 
-    private final long deleteMarkersThresholdMillis;
+    private final long millis;
 
     private KeyValuePurgeOptions(Builder b) {
-        this.deleteMarkersThresholdMillis = b.deleteMarkersThresholdMillis;
+        this.millis = b.millis;
     }
 
     /**
@@ -26,7 +27,7 @@ public class KeyValuePurgeOptions {
      * @return the threshold
      */
     public long getDeleteMarkersThresholdMillis() {
-        return deleteMarkersThresholdMillis;
+        return millis;
     }
 
     /**
@@ -43,7 +44,7 @@ public class KeyValuePurgeOptions {
      * <p>{@code new KeyValuePurgeOptions.Builder().build()} will create a new KeyValuePurgeOptions.</p>
      */
     public static class Builder {
-        private long deleteMarkersThresholdMillis = DEFAULT_THRESHOLD_MILLIS;
+        private long millis = DEFAULT_THRESHOLD_MILLIS;
 
         /**
          * Construct an instance of the builder
@@ -52,35 +53,30 @@ public class KeyValuePurgeOptions {
 
         /**
          * Set the delete marker threshold.
-         * Null or duration of 0 will assume the default threshold {@link #DEFAULT_THRESHOLD_MILLIS}
-         * Duration less than zero will assume no threshold and will not keep any markers.
-         * @param deleteMarkersThreshold the threshold duration or null
+         * null will assume the default threshold {@link #DEFAULT_THRESHOLD_MILLIS}
+         * <= 0 will assume no threshold and will not keep any markers, same as calling {@link #deleteMarkersNoThreshold()}
+         * @param millis the threshold millis
          * @return The builder
          */
-        public Builder deleteMarkersThreshold(Duration deleteMarkersThreshold) {
-            this.deleteMarkersThresholdMillis = deleteMarkersThreshold == null
-                ? DEFAULT_THRESHOLD_MILLIS : deleteMarkersThreshold.toMillis();
+        public Builder deleteMarkersThreshold(@Nullable Long millis) {
+            if (millis == null) {
+                this.millis = DEFAULT_THRESHOLD_MILLIS;
+            }
+            else if (millis <= 0) {
+                this.millis = -1;
+            }
+            else {
+                this.millis = millis;
+            }
             return this;
         }
 
         /**
-         * Set the delete marker threshold.
-         * 0 will assume the default threshold {@link #DEFAULT_THRESHOLD_MILLIS}
-         * Less than zero will assume no threshold and will not keep any markers.
-         * @param deleteMarkersThresholdMillis the threshold millis
-         * @return The builder
-         */
-        public Builder deleteMarkersThreshold(long deleteMarkersThresholdMillis) {
-            this.deleteMarkersThresholdMillis = deleteMarkersThresholdMillis;
-            return this;
-        }
-
-        /**
-         * Set the delete marker threshold to -1 so as to not keep any markers
+         * Set the delete marker threshold to -1 to not keep any markers
          * @return The builder
          */
         public Builder deleteMarkersNoThreshold() {
-            this.deleteMarkersThresholdMillis = -1;
+            this.millis = -1;
             return this;
         }
 
@@ -89,12 +85,6 @@ public class KeyValuePurgeOptions {
          * @return the options
          */
         public KeyValuePurgeOptions build() {
-            if (deleteMarkersThresholdMillis < 0) {
-                deleteMarkersThresholdMillis = -1;
-            }
-            else if (deleteMarkersThresholdMillis == 0) {
-                deleteMarkersThresholdMillis = DEFAULT_THRESHOLD_MILLIS;
-            }
             return new KeyValuePurgeOptions(this);
         }
     }

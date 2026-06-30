@@ -7,7 +7,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -160,19 +159,8 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @Nullable
-    public Message next(@Nullable Duration maxWait) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
-        return maxWait == null || maxWait.isZero() || maxWait.isNegative()
-            ? next(DEFAULT_EXPIRES_IN_MILLIS)
-            : next(maxWait.toMillis());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @Nullable
-    public Message next(long maxWaitMillis) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
-        if (maxWaitMillis < MIN_EXPIRES_MILLS) {
+    public Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
+        if (maxWait < MIN_EXPIRES_MILLS) {
             throw new IllegalArgumentException("Max wait must be at least " + MIN_EXPIRES_MILLS + " milliseconds.");
         }
 
@@ -183,7 +171,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
             checkNotPinned("Next");
 
             try {
-                nnc = new NatsNextConsumer(this, cachedConsumerInfo.get(), maxWaitMillis);
+                nnc = new NatsNextConsumer(this, isOrdered ? null : cachedConsumerInfo.get(), maxWait);
                 trackConsume(nnc); // this has to be done after the nnc is fully set up
             }
             catch (Exception e) {

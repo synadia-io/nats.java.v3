@@ -13,7 +13,6 @@ import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -617,7 +616,7 @@ public class ServiceTests extends TestBase {
 
             // give 10 seconds for responses, b/c sometimes on GH this takes more than the default 5 seconds.
             // limit to 2 results so we don't wait the entire time when we do get results
-            Discovery discovery = new Discovery(clientNc, 10_000, 2);
+            Discovery discovery = new Discovery(clientNc, 10000, 2);
 
             List<PingResponse> prs = discovery.ping();
             boolean one = false;
@@ -777,7 +776,7 @@ public class ServiceTests extends TestBase {
         assertNotNull(service.toString()); // coverage
         assertNotNull(service.getId());
         assertEquals(name, service.getName());
-        assertEquals(ServiceBuilder.DEFAULT_DRAIN_TIMEOUT, service.getDrainTimeout());
+        assertEquals(ServiceBuilder.DEFAULT_DRAIN_TIMEOUT_MILLIS, service.getDrainTimeout());
         assertEquals("1.0.0", service.getVersion());
         assertNull(service.getDescription());
         assertNull(service.getPingResponse().getMetadata());
@@ -787,25 +786,25 @@ public class ServiceTests extends TestBase {
         meta.put("foo", "bar");
         service = Service.builder().connection(conn).name(name).version("1.0.0").addServiceEndpoint(se)
             .description("desc")
-            .drainTimeout(Duration.ofSeconds(1))
+            .drainTimeout(1000)
             .metadata(meta)
             .build();
         assertEquals("desc", service.getDescription());
-        assertEquals(Duration.ofSeconds(1), service.getDrainTimeout());
+        assertEquals(1000, service.getDrainTimeout());
         assertTrue(service.getPingResponse().toJson().contains("\"foo\""));
         assertNotNull(service.getPingResponse().getMetadata());
 
         // more coverage
         service = Service.builder().connection(conn).name(name).version("1.0.0").addServiceEndpoint(se)
-            .drainTimeout(null)
+            .drainTimeout(0)
             .metadata(new HashMap<>())
             .build();
-        assertEquals(ServiceBuilder.DEFAULT_DRAIN_TIMEOUT, service.getDrainTimeout());
+        assertEquals(ServiceBuilder.DEFAULT_DRAIN_TIMEOUT_MILLIS, service.getDrainTimeout());
 
         service = Service.builder().connection(conn).name(name).version("1.0.0").addServiceEndpoint(se)
             .drainTimeout(1000)
             .build();
-        assertEquals(Duration.ofSeconds(1), service.getDrainTimeout());
+        assertEquals(1000, service.getDrainTimeout());
 
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(null));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(""));
@@ -858,18 +857,18 @@ public class ServiceTests extends TestBase {
         assertNotNull(service.toString()); // coverage
         assertNotNull(service.getId());
         assertEquals(name, service.getName());
-        assertEquals(ServiceBuilder.DEFAULT_DRAIN_TIMEOUT, service.getDrainTimeout());
+        assertEquals(ServiceBuilder.DEFAULT_DRAIN_TIMEOUT_MILLIS, service.getDrainTimeout());
         assertEquals("1.0.0", service.getVersion());
         assertNull(service.getDescription());
 
         service = Service.builder().connection(conn).name(name).version("1.0.0")
                 .description("desc")
-                .drainTimeout(Duration.ofSeconds(1))
+                .drainTimeout(1000)
                 .build();
 
         service.addServiceEndpoints(se);
         assertEquals("desc", service.getDescription());
-        assertEquals(Duration.ofSeconds(1), service.getDrainTimeout());
+        assertEquals(1000, service.getDrainTimeout());
 
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(null));
         assertThrows(IllegalArgumentException.class, () -> Service.builder().name(""));

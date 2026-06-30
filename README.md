@@ -8,72 +8,68 @@
 
 The property loader accepts each key with or without the `io.nats.client.` prefix; both forms resolve to the same property.
 
-```
-| Name                                  | Description                                                                          |
-|---------------------------------------|--------------------------------------------------------------------------------------|
-| connectionListenerClass               | Configure a connectionListener (class name).                                         |
-| dataPortType                          | Configure a dataPortType.                                                            |
-| errorListenerClass                    | Configure an errorListener (class name).                                             |
-| timeTraceLoggerClass                  | Configure a TimeTraceLogger to receive trace events related to this connection (class name). |
-| statisticsCollectorClass              | Configure the statisticsCollector (class name).                                      |
-| maxPings                              | Configure maxPingsOut.                                                               |
-| pingInterval                          | Configure pingInterval.                                                              |
-| cleanupInterval                       | Configure requestCleanupInterval.                                                    |
-| writeQueuePushTimeout                 | Configure writeQueuePushTimeout.                                                     |
-| connectionTimeout                     | Configure connectionTimeout.                                                         |
-| socketReadTimeout                     | Set the underlying socket SO_TIMEOUT (milliseconds).                                 |
-| socketWriteTimeout                    | Set the timeout around socket writes, providing support where Java is lacking.       |
-| socketSoLinger                        | Configure the socket SO_LINGER property for built-in data port implementations.      |
-| socketReceiveBufferSize               | Set the underlying socket receive buffer size hint (SO_RCVBUF).                      |
-| socketSendBufferSize                  | Set the underlying socket send buffer size hint (SO_SNDBUF).                         |
-| reconnectBufSize                      | Configure reconnectBufferSize.                                                       |
-| reconnectWait                         | Configure reconnectWait.                                                             |
-| maxReconnect                          | Configure maxReconnects.                                                             |
-| reconnectJitter                       | Configure reconnectJitter.                                                           |
-| reconnectJitterTls                    | Configure reconnectJitterTls.                                                        |
-| pedantic                              | Configure pedantic.                                                                  |
-| verbose                               | Configure verbose.                                                                   |
-| noEcho                                | Configure noEcho.                                                                    |
-| connectionName                        | Configure connectionName.                                                            |
-| noRandomize                           | Configure noRandomize.                                                               |
-| hostnameResolveMode                   | Configure the hostname resolution mode (replaces the legacy noResolveHostnames and fast.fallback flags). |
-| noSubjectValidation                   | Set subject validation to none.                                                      |
-| strictSubjectValidation               | Set subject validation to strict.                                                    |
-| reportNoResponders                    | Configure reportNoResponders.                                                        |
-| clientSideLimitChecks                 | Configure clientSideLimitChecks.                                                     |
-| url                                   | Configure server. The value can be a comma-separated list of server URLs.            |
-| servers                               | Configure servers. The value can be a comma-separated list of server URLs.           |
-| password                              | Configure userinfo password.                                                         |
-| username                              | Configure userinfo username.                                                         |
-| token                                 | Configure token.                                                                     |
-| tokenSupplierClass                    | Property used to set class name for the token supplier.                              |
-| secure                                | See notes on SSL configuration.                                                      |
-| openTls                               | See notes on SSL configuration.                                                      |
-| maxMessagesInOutgoingQueue            | Configure maxMessagesInOutgoingQueue.                                                |
-| discardMessagesWhenOutgoingQueueFull  | Configure discardMessagesWhenOutgoingQueueFull.                                      |
-| useOldRequestStyle                    | Configure oldRequestStyle.                                                           |
-| maxControlLine                        | Configure maxControlLine.                                                            |
-| inboxPrefix                           | Property used to set the inbox prefix.                                               |
-| ignoreDiscoveredServers               | Set whether to ignore discovered servers when connecting.                            |
-| serversPoolImplementationClass        | Property used to set class name for ServerPool implementation.                       |
-| dispatcherFactoryClass                | Property used to set class name for the Dispatcher Factory.                          |
-| sslContextFactoryClass                | Property used to set class name for the SSLContextFactory.                           |
-| keyStore                              | Property for the keystore path used to create an SSLContext.                         |
-| keyStorePassword                      | Property for the keystore password used to create an SSLContext.                     |
-| trustStore                            | Property for the truststore path used to create an SSLContext.                       |
-| trustStorePassword                    | Property for the truststore password used to create an SSLContext.                   |
-| tlsAlgorithm                          | Property for the algorithm used to create an SSLContext.                             |
-| credentialPath                        | Property used to set the path to a credentials file to be used in a FileAuthHandler. |
-| tlsFirst                              | Property used to set TLS Handshake First behavior.                                   |
-| supportUtf8Subjects                   | Property used to enable UTF-8 subject support.                                       |
-| useTimeoutException                   | Instruct the client to throw TimeoutException instead of CancellationException.      |
-| useDispatcherWithExecutor             | Instruct dispatchers to dispatch all messages as a task.                             |
-| forceFlushOnRequest                   | When making a core request, send the message as soon as it's first in the queue.     |
-| executorServiceClass                  | Property used to set class name for the main executor.                               |
-| scheduledExecutorServiceClass         | Property used to set class name for the scheduled executor.                          |
-| connectExecutorServiceClass           | Property used to set class name for the connection executor.                         |
-| callbackExecutorServiceClass          | Property used to set class name for the callback executor.                           |
-| connectThreadFactoryClass             | Property used to set class name for the connection executor thread factory.          |
-| callbackThreadFactoryClass            | Property used to set class name for the callback executor thread factory.            |
-| readListenerClass                     | Property used to set class name for the ReadListener implementation.                 |
-```
+| Name | Default Value | Description |
+|------|---------------|-------------|
+| `connectionListenerClass` | `(none)` | Configure a connectionListener (class name). |
+| `dataPortType` | `io.synadia.client.impl.SocketDataPort` | Configure a dataPortType. |
+| `errorListenerClass` | `(none)` | Configure an errorListener (class name). |
+| `statisticsCollectorClass` | `(none)` | Configure the statisticsCollector (class name). |
+| `maxPingsOut` | `2` | Configure maxPingsOut. |
+| `pingInterval` | `120000` (ms) | Configure pingInterval. |
+| `requestCleanupInterval` | `5000` (ms) | Configure requestCleanupInterval. |
+| `writeQueuePushTimeout` | `2000` (ms) | Configure writeQueuePushTimeout. |
+| `connectionTimeout` | `2000` (ms) | Configure connectionTimeout. |
+| `socketReadTimeout` | `0` (disabled) | Set the underlying socket SO_TIMEOUT (milliseconds). |
+| `socketWriteTimeout` | `60000` (ms, 60s) | Set the timeout around socket writes, providing support where Java is lacking. |
+| `socketSoLinger` | `-1` (disabled) | Configure the socket SO_LINGER property for built-in data port implementations. |
+| `socketReceiveBufferSize` | `-1` (OS default) | Set the underlying socket receive buffer size hint (SO_RCVBUF). |
+| `socketSendBufferSize` | `-1` (OS default) | Set the underlying socket send buffer size hint (SO_SNDBUF). |
+| `reconnectBufferSize` | `8388608` (bytes) | Configure reconnectBufferSize. |
+| `reconnectWait` | `2000` (ms) | Configure reconnectWait. |
+| `maxReconnects` | `60` | Configure maxReconnects. |
+| `reconnectJitter` | `100` (ms) | Configure reconnectJitter. |
+| `reconnectJitterTls` | `1000` (ms) | Configure reconnectJitterTls. |
+| `reconnectDelayHandlerClass` | `(none)` | Configure a reconnectDelayHandler (class name). |
+| `reconnectDelayBehavior` | `LameDuckAware` | Configure the reconnectDelayBehavior (case-insensitive enum name). |
+| `pedantic` | `false` | Configure pedantic. |
+| `verbose` | `false` | Configure verbose. |
+| `noEcho` | `false` | Configure noEcho. |
+| `connectionName` | `(none)` | Configure connectionName. |
+| `noRandomize` | `false` | Configure noRandomize. |
+| `hostnameResolveMode` | `ResolveToAll` | Configure the hostname resolution mode (replaces the legacy noResolveHostnames and fast.fallback flags). |
+| `subjectValidationType` | `Lenient` | Set the subject validation type (case-insensitive `None`, `Lenient`, or `Strict`). |
+| `clientSideLimitChecks` | `true` | Configure clientSideLimitChecks. |
+| `url` | `nats://localhost:4222` | Configure server. The value can be a comma-separated list of server URLs. |
+| `servers` | `(none)` | Configure servers. The value can be a comma-separated list of server URLs. |
+| `password` | `(none)` | Configure userinfo password. |
+| `username` | `(none)` | Configure userinfo username. |
+| `token` | `(none)` | Configure token. |
+| `tokenSupplierClass` | `(none)` | Property used to set class name for the token supplier. |
+| `secure` | `false` | See notes on SSL configuration. |
+| `openTls` | `false` | See notes on SSL configuration. |
+| `maxMessagesInOutgoingQueue` | `5000` | Configure maxMessagesInOutgoingQueue. |
+| `discardMessagesWhenOutgoingQueueFull` | `false` | Configure discardMessagesWhenOutgoingQueueFull. |
+| `maxControlLine` | `4096` | Configure maxControlLine. |
+| `inboxPrefix` | `_INBOX.` | Property used to set the inbox prefix. |
+| `ignoreDiscoveredServers` | `false` | Set whether to ignore discovered servers when connecting. |
+| `serversPoolImplementationClass` | `(none)` | Property used to set class name for ServerPool implementation. |
+| `dispatcherFactoryClass` | `(none)` | Property used to set class name for the Dispatcher Factory. |
+| `sslContextFactoryClass` | `(none)` | Property used to set class name for the SSLContextFactory. |
+| `keyStore` | `(none)` | Property for the keystore path used to create an SSLContext. |
+| `keyStorePassword` | `(none)` | Property for the keystore password used to create an SSLContext. |
+| `trustStore` | `(none)` | Property for the truststore path used to create an SSLContext. |
+| `trustStorePassword` | `(none)` | Property for the truststore password used to create an SSLContext. |
+| `tlsAlgorithm` | `SunX509` | Property for the algorithm used to create an SSLContext. |
+| `credentialPath` | `(none)` | Property used to set the path to a credentials file to be used in a FileAuthHandler. |
+| `tlsFirst` | `false` | Property used to set TLS Handshake First behavior. |
+| `supportUtf8Subjects` | `false` | Property used to enable UTF-8 subject support. |
+| `useTimeoutException` | `false` | Instruct the client to throw TimeoutException instead of CancellationException. |
+| `useDispatcherWithExecutor` | `false` | Instruct dispatchers to dispatch all messages as a task. |
+| `forceFlushOnRequest` | `true` | When making a core request, send the message as soon as it's first in the queue. |
+| `executorServiceClass` | `(none)` | Property used to set class name for the main executor. |
+| `scheduledExecutorServiceClass` | `(none)` | Property used to set class name for the scheduled executor. |
+| `connectExecutorServiceClass` | `(none)` | Property used to set class name for the connection executor. |
+| `callbackExecutorServiceClass` | `(none)` | Property used to set class name for the callback executor. |
+| `connectThreadFactoryClass` | `(none)` | Property used to set class name for the connection executor thread factory. |
+| `callbackThreadFactoryClass` | `(none)` | Property used to set class name for the callback executor thread factory. |
+| `readListenerClass` | `(none)` | Property used to set class name for the ReadListener implementation. |

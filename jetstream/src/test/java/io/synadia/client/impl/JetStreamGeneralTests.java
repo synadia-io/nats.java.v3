@@ -9,7 +9,6 @@ import io.synadia.client.utils.ConnectionUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -55,8 +54,8 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
 
             // read them all back, validating the data and headers that were sent
             JetStreamPushSubscription sub = ctx.js.pushSubscribe(subject);
-            nc.flush(Duration.ofSeconds(1));
-            List<Message> msgs = readMessagesAck(sub, Duration.ofSeconds(1), 5);
+            nc.flush(1000);
+            List<Message> msgs = readMessagesAck(sub, 1000L, 5);
             assertEquals(5, msgs.size());
 
             assertEquals(data(1), new String(msgs.get(0).getData()));
@@ -160,7 +159,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
 
     private void readPrefixMessages(NatsConnection nc, JetStream js, String subject, String dest) throws InterruptedException, IOException, JetStreamApiException, TimeoutException {
         JetStreamPushSubscription sub = js.pushSubscribe(subject);
-        nc.flush(Duration.ofSeconds(1));
+        nc.flush(1000);
         List<Message> msgs = readMessagesAck(sub);
         assertEquals(2, msgs.size());
         assertEquals(subject, msgs.get(0).getSubject());

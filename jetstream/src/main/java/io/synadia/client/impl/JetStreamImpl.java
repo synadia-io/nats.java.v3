@@ -6,7 +6,6 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,7 +31,7 @@ public class JetStreamImpl implements JetStreamConstants {
 
     final NatsConnection conn;
     final JetStreamOptions jso;
-    final Duration timeout;
+    final long timeoutMillis;
     final boolean consumerCreate290Available;
     final boolean multipleSubjectFilter210Available;
     final boolean directBatchGet211Available;
@@ -48,8 +47,8 @@ public class JetStreamImpl implements JetStreamConstants {
         // Clone the input jsOptions (JetStreamOptions.builder(...) handles null.
         // If jsOptions is not supplied or the jsOptions request timeout
         // was not set, use the connection options connect timeout.
-        timeout = jsOptions == null || jsOptions.getRequestTimeout() == null ? conn.getOptions().getConnectionTimeout() : jsOptions.getRequestTimeout();
-        jso = JetStreamOptions.builder(jsOptions).requestTimeout(timeout).build();
+        timeoutMillis = jsOptions == null || jsOptions.getRequestTimeout() <= 0 ? conn.getOptions().getConnectionTimeout() : jsOptions.getRequestTimeout();
+        jso = JetStreamOptions.builder(jsOptions).requestTimeout(timeoutMillis).build();
 
         ServerInfo si = conn.getServerInfo();
         consumerCreate290Available = si.isSameOrNewerThanVersion("2.9.0") && !jso.isOptOut290ConsumerCreate();
@@ -60,14 +59,14 @@ public class JetStreamImpl implements JetStreamConstants {
     JetStreamImpl(JetStreamImpl impl) {
         conn = impl.conn;
         jso = impl.jso;
-        timeout = impl.timeout;
+        timeoutMillis = impl.timeoutMillis;
         consumerCreate290Available = impl.consumerCreate290Available;
         multipleSubjectFilter210Available = impl.multipleSubjectFilter210Available;
         directBatchGet211Available = impl.directBatchGet211Available;
     }
 
-    public Duration getTimeout() {
-        return timeout;
+    public long getTimeout() {
+        return timeoutMillis;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -187,18 +186,18 @@ public class JetStreamImpl implements JetStreamConstants {
     // ----------------------------------------------------------------------------------------------------
     // Request Utils
     // ----------------------------------------------------------------------------------------------------
-    Message makeRequestResponseRequired(String subject, byte @Nullable[] bytes, Duration timeout) throws IOException {
+    Message makeRequestResponseRequired(String subject, byte @Nullable[] bytes, long timeoutMillis) throws IOException {
         try {
-            return responseRequired(conn.request(prependPrefix(subject), bytes, timeout));
+            return responseRequired(conn.request(prependPrefix(subject), null, bytes, timeoutMillis, CancelAction.REPORT, conn.isForceFlushOnRequest()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException(e);
         }
     }
 
-    Message makeInternalRequestResponseRequired(String subject, @Nullable Headers headers, byte @Nullable [] data, Duration timeout, CancelAction cancelAction) throws IOException {
+    Message makeInternalRequestResponseRequired(String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis) throws IOException {
         try {
-            return responseRequired(conn.request(subject, headers, data, timeout, cancelAction));
+            return responseRequired(conn.request(subject, headers, data, timeoutMillis, CancelAction.COMPLETE, conn.isForceFlushOnRequest()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException(e);

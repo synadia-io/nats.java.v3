@@ -10,7 +10,6 @@ import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -254,7 +253,7 @@ public class ConnectTests {
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.SLEEP_BEFORE_INFO)) { // will sleep for 3
             Options options = optionsBuilder(mockTs)
                 .noReconnect()
-                .connectionTimeout(Duration.ofSeconds(2)) // 2 is also the default but explicit for test
+                .connectionTimeout(2000) // 2 is also the default but explicit for test
                 .build();
             assertThrows(IOException.class, () -> Nats.connect(options));
         }
@@ -265,7 +264,7 @@ public class ConnectTests {
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.SLEEP_BEFORE_INFO)) {
             Options options = optionsBuilder(mockTs)
                 .noReconnect()
-                .connectionTimeout(Duration.ofSeconds(6)) // longer than the sleep
+                .connectionTimeout(6000) // longer than the sleep
                 .build();
             assertCanConnect(options);
         }
@@ -499,8 +498,9 @@ public class ConnectTests {
     @Test
     void testLowConnectionTimeoutResultsInIOException() {
         Options options = Options.builder()
-                .connectionTimeout(Duration.ZERO)
+                .connectionTimeout(0)
                 .build();
+        //noinspection resource
         assertThrows(IOException.class, () -> Nats.connect(options));
     }
 

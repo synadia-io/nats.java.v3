@@ -6,7 +6,6 @@ import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -85,18 +84,18 @@ public class RequestTests extends TestBase {
             assertNotNull(msg.getData());
             assertEquals(data(2), new String(msg.getData()));
 
-            msg = nc.request(subject, dataBytes(3), Duration.ofSeconds(1));
+            msg = nc.request(subject, dataBytes(3), 1000);
             assertNotNull(msg);
             assertNotNull(msg.getData());
             assertEquals(data(3), new String(msg.getData()));
 
             outMsg = NatsMessage.builder().subject(subject).data(dataBytes(4)).build();
-            msg = nc.request(outMsg, Duration.ofSeconds(1));
+            msg = nc.request(outMsg, 1000);
             assertNotNull(msg);
             assertNotNull(msg.getData());
             assertEquals(data(4), new String(msg.getData()));
 
-            msg = nc.request(subject, new Headers().put("foo", "bar"), dataBytes(5), Duration.ofSeconds(1));
+            msg = nc.request(subject, new Headers().put("foo", "bar"), dataBytes(5), 1000);
             assertNotNull(msg);
             assertNotNull(msg.getData());
             assertEquals(data(5), new String(msg.getData()));
@@ -106,7 +105,7 @@ public class RequestTests extends TestBase {
             //noinspection DataFlowIssue
             assertThrows(IllegalArgumentException.class, () -> nc.request(null));
             //noinspection DataFlowIssue
-            assertThrows(IllegalArgumentException.class, () -> nc.request(null, Duration.ofSeconds(1)));
+            assertThrows(IllegalArgumentException.class, () -> nc.request(null, 1000));
         });
     }
 
@@ -144,7 +143,7 @@ public class RequestTests extends TestBase {
             String subject = random();
             d.subscribe(subject);
 
-            Message msg = nc.request(subject, null, Duration.ofMillis(1000));
+            Message msg = nc.request(subject, null, 1000);
 
             assertEquals(0, nc.getStatistics().getOutstandingRequests());
             assertNotNull(msg);
@@ -177,7 +176,7 @@ public class RequestTests extends TestBase {
 
     @Test
     public void testMultipleReplies() throws Exception {
-        OptionsBuilder builder = optionsBuilder().turnOnAdvancedStats().requestCleanupInterval(Duration.ofMillis(2500));
+        OptionsBuilder builder = optionsBuilder().turnOnAdvancedStats().requestCleanupInterval(2500);
         runInSharedOwnNc(builder, nc -> {
             CountDownLatch d4CanReply = new CountDownLatch(1);
             AtomicInteger requests = new AtomicInteger();
@@ -198,7 +197,7 @@ public class RequestTests extends TestBase {
             d3.subscribe(subject);
             d4.subscribe(subject);
 
-            Message reply = nc.request(subject, null, Duration.ofSeconds(2));
+            Message reply = nc.request(subject, null, 2000);
             assertNotNull(reply);
             sleep(2000); // less than the requestCleanupInterval but enough time
             assertEquals(4, requests.get());
@@ -239,14 +238,14 @@ public class RequestTests extends TestBase {
 
             nc.publish("request-subject", "reply-to", "hello".getBytes(StandardCharsets.UTF_8));
 
-            Message msg = sub.nextMessage(Duration.ofMillis(400));
+            Message msg = sub.nextMessage(400L);
 
             assertNotNull(msg);
             assertEquals("hello", new String(msg.getData(), StandardCharsets.UTF_8));
 
             nc.publish("request-subject", "reply-to", new Headers().put("foo", "bar"), "check-headers".getBytes(StandardCharsets.UTF_8));
 
-            msg = sub.nextMessage(Duration.ofMillis(400));
+            msg = sub.nextMessage(400L);
 
             assertEquals("check-headers", new String(msg.getData(), StandardCharsets.UTF_8));
             assertTrue(msg.hasHeaders());
@@ -282,7 +281,7 @@ public class RequestTests extends TestBase {
 
         try (NatsTestServer ts = new NatsTestServer())
         {
-            Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofHours(1)).build();
+            Options options = optionsBuilder(ts).requestCleanupInterval(3600000).build();
             NatsConnection nc = Nats.connect(options);
 
             try {
@@ -301,7 +300,7 @@ public class RequestTests extends TestBase {
                 String subject = random();
                 d.subscribe(subject);
 
-                CompletableFuture<Message> incoming = nc.requestAsync(subject, null, Duration.ofMillis(100));
+                CompletableFuture<Message> incoming = nc.requestAsync(subject, null, 100);
 
                 Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
@@ -310,7 +309,7 @@ public class RequestTests extends TestBase {
                 assertEquals(0, msg.getData().length);
                 assertTrue(msg.getSubject().indexOf('.') < msg.getSubject().lastIndexOf('.'));
 
-                incoming = nc.requestAsync(subject, new Headers().put("foo", "bar"), null, Duration.ofMillis(100));
+                incoming = nc.requestAsync(subject, new Headers().put("foo", "bar"), null, 100);
 
                 msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
@@ -332,7 +331,7 @@ public class RequestTests extends TestBase {
     public void testSimpleRequestWithTimeoutSlowProducer() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
             long cleanupInterval = 10;
-            Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofMillis(cleanupInterval)).build();
+            Options options = optionsBuilder(ts).requestCleanupInterval(cleanupInterval).build();
             NatsConnection nc = (NatsConnection) Nats.connect(options);
 
             try {
@@ -340,7 +339,7 @@ public class RequestTests extends TestBase {
                 assertConnected(nc);
 
                 //slow responder
-                long delay = 2 * cleanupInterval + DEFAULT_CONNECTION_TIMEOUT.toMillis();
+                long delay = 2 * cleanupInterval + DEFAULT_CONNECTION_TIMEOUT;
 
                 Dispatcher d = nc.createDispatcher(msg -> {
                     assertTrue(msg.getReplyTo().startsWith(DEFAULT_INBOX_PREFIX));
@@ -350,7 +349,7 @@ public class RequestTests extends TestBase {
                 String subject = random();
                 d.subscribe(subject);
 
-                CompletableFuture<Message> incoming = nc.requestAsync(subject, null, Duration.ofMillis(cleanupInterval));
+                CompletableFuture<Message> incoming = nc.requestAsync(subject, null, cleanupInterval);
                 assertThrows(CancellationException.class, () -> incoming.get(delay, TimeUnit.MILLISECONDS));
 
             }
@@ -363,7 +362,7 @@ public class RequestTests extends TestBase {
 
     @Test
     public void testNoResponders() throws Exception {
-        OptionsBuilder optionsBuilder = optionsBuilder().requestCleanupInterval(Duration.ofHours(1));
+        OptionsBuilder optionsBuilder = optionsBuilder().requestCleanupInterval(3600000);
         runInSharedOwnNc(optionsBuilder, nc -> {
             assertConnected(nc);
             ExecutionException ee = assertThrows(ExecutionException.class,
@@ -376,7 +375,7 @@ public class RequestTests extends TestBase {
     @Test
     public void testRequireCleanupOnCancel() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
-            Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofHours(1)).build();
+            Options options = optionsBuilder(ts).requestCleanupInterval(3600000).build();
             NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
@@ -398,7 +397,7 @@ public class RequestTests extends TestBase {
     public void testCleanupTimerWorks() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
             long cleanupInterval = 50;
-            Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofMillis(cleanupInterval)).build();
+            Options options = optionsBuilder(ts).requestCleanupInterval(cleanupInterval).build();
             NatsConnection nc = Nats.connect(options);
             try {
                 assertConnected(nc);
@@ -439,7 +438,7 @@ public class RequestTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             long cleanupInterval = 50;
             int msgCount = 100;
-            Options options = optionsBuilder(ts).requestCleanupInterval(Duration.ofMillis(cleanupInterval)).build();
+            Options options = optionsBuilder(ts).requestCleanupInterval(cleanupInterval).build();
             try (NatsConnection nc = managedConnect(options)) {
                 Dispatcher d = nc.createDispatcher(msg -> nc.publish(msg.getReplyTo(), null));
                 String subject = random();
@@ -478,7 +477,7 @@ public class RequestTests extends TestBase {
                         Future<Message> incoming = nc.requestAsync(subject, null);
                         messages.add(incoming);
                     }
-                    nc.flush(Duration.ofMillis(1000));
+                    nc.flush(1000);
 
                     for (Future<Message> f : messages) {
                         Message msg = f.get(1000, TimeUnit.MILLISECONDS);
@@ -496,7 +495,7 @@ public class RequestTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             int initialSize = 128;
             int messageSize = 1024;
-            Options options = optionsBuilder(ts).bufferSize(initialSize).connectionTimeout(Duration.ofSeconds(10)).build();
+            Options options = optionsBuilder(ts).bufferSize(initialSize).connectionTimeout(10000).build();
             try (NatsConnection nc = managedConnect(options)) {
                 Dispatcher d = nc.createDispatcher(msg -> nc.publish(msg.getReplyTo(), msg.getData()));
                 String subject = random();
@@ -532,7 +531,7 @@ public class RequestTests extends TestBase {
     @Test
     public void testNatsRequestCompletableFuture() throws Exception {
         // coverage for configuration
-        NatsRequestCompletableFuture f = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofMillis(-1000), true);
+        NatsRequestCompletableFuture f = new NatsRequestCompletableFuture(CancelAction.CANCEL, -1000, true);
         assertEquals(CancelAction.CANCEL, f.getCancelAction());
         assertTrue(f.hasExceededTimeout());
         assertFalse(f.wasCanceledClosing());
@@ -543,37 +542,37 @@ public class RequestTests extends TestBase {
         assertTrue(f.wasCanceledTimedOut());
         assertTrue(f.useTimeoutException());
 
-        f = new NatsRequestCompletableFuture(CancelAction.COMPLETE, Duration.ofNanos(0), true);
+        f = new NatsRequestCompletableFuture(CancelAction.COMPLETE, 0, true);
         assertEquals(CancelAction.COMPLETE, f.getCancelAction());
 
-        f = new NatsRequestCompletableFuture(CancelAction.REPORT, Duration.ofNanos(0), true);
+        f = new NatsRequestCompletableFuture(CancelAction.REPORT, 0, true);
         assertEquals(CancelAction.REPORT, f.getCancelAction());
 
         // coverage for null timeout
-        f = new NatsRequestCompletableFuture(CancelAction.CANCEL, null, true);
-        Thread.sleep(DEFAULT_REQUEST_CLEANUP_INTERVAL.toMillis() + 100);
+        f = new NatsRequestCompletableFuture(CancelAction.CANCEL, DEFAULT_REQUEST_CLEANUP_INTERVAL, true);
+        Thread.sleep(DEFAULT_REQUEST_CLEANUP_INTERVAL + 100);
         assertTrue(f.hasExceededTimeout());
 
-        f = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofNanos(0), false);
+        f = new NatsRequestCompletableFuture(CancelAction.CANCEL, 0, false);
         assertFalse(f.useTimeoutException());
 
         // coverage for behavior
-        NatsRequestCompletableFuture fcf = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofNanos(0), false);
+        NatsRequestCompletableFuture fcf = new NatsRequestCompletableFuture(CancelAction.CANCEL, 0, false);
         assertFalse(fcf.useTimeoutException());
         fcf.cancelClosing();
         assertThrows(CancellationException.class, fcf::get);
 
-        NatsRequestCompletableFuture fct = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofNanos(0), true);
+        NatsRequestCompletableFuture fct = new NatsRequestCompletableFuture(CancelAction.CANCEL, 0, true);
         assertTrue(fct.useTimeoutException());
         fct.cancelClosing();
         assertThrows(CancellationException.class, fct::get);
 
-        NatsRequestCompletableFuture ftof = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofNanos(0), false);
+        NatsRequestCompletableFuture ftof = new NatsRequestCompletableFuture(CancelAction.CANCEL, 0, false);
         assertFalse(ftof.useTimeoutException());
         ftof.cancelTimedOut();
         assertThrows(CancellationException.class, ftof::get);
 
-        NatsRequestCompletableFuture ftot = new NatsRequestCompletableFuture(CancelAction.CANCEL, Duration.ofNanos(0), true);
+        NatsRequestCompletableFuture ftot = new NatsRequestCompletableFuture(CancelAction.CANCEL, 0, true);
         assertTrue(ftot.useTimeoutException());
         ftot.cancelTimedOut();
         ExecutionException ee = assertThrows(ExecutionException.class, ftot::get);
@@ -596,7 +595,7 @@ public class RequestTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = Options.builder()
                     .server(ts.getServerUri())
-                    .requestCleanupInterval(Duration.ofSeconds(10))
+                    .requestCleanupInterval(10000)
                     .build();
             NatsConnection nc = (NatsConnection) Nats.connect(options);
 

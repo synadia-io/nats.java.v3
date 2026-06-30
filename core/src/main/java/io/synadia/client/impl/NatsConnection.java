@@ -14,7 +14,6 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -305,7 +304,7 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void forceReconnectImpl(@NonNull ForceReconnectOptions frOpts) throws InterruptedException {
-        if (frOpts.getFlushWait() != null) {
+        if (frOpts.isFlush()) {
             try {
                 flush(frOpts.getFlushWait());
             }
@@ -384,7 +383,7 @@ public class NatsConnection implements AutoCloseable {
             return;
         }
 
-        if (options.getMaxReconnect() == 0) {
+        if (options.getMaxReconnects() == 0) {
             this.close();
             return;
         }
@@ -475,12 +474,11 @@ public class NatsConnection implements AutoCloseable {
     // is called from reconnect and connect
     // will wait for any previous attempt to complete, using the reader.stop and
     // writer.stop
-    protected void tryToConnect(NatsUri cur, NatsUri resolved, long now) {
+    protected void tryToConnect(NatsUri cur, NatsUri resolved, long nowNanos) {
         clearCurrentServer();
 
         try {
-            Duration connectTimeout = options.getConnectionTimeout();
-            long end = now + connectTimeout.toNanos();
+            long end = nowNanos + (options.getConnectionTimeout() * NANOS_PER_MILLI);
             timeCheck(end);
 
             statusLock.lock();
@@ -568,8 +566,7 @@ public class NatsConnection implements AutoCloseable {
 
             if (pingTask == null) {
                 timeCheck(end);
-                long pingMillis = this.options.getPingInterval().toMillis();
-
+                long pingMillis = this.options.getPingInterval();
                 if (pingMillis > 0) {
                     pingTask = new ScheduledTask(scheduledExecutor, pingMillis, () -> {
                         if (isConnected() && !isClosing()) {
@@ -583,8 +580,7 @@ public class NatsConnection implements AutoCloseable {
                     });
                 }
 
-                long cleanMillis = this.options.getRequestCleanupInterval().toMillis();
-
+                long cleanMillis = this.options.getRequestCleanupInterval();
                 if (cleanMillis > 0) {
                     cleanupTask = new ScheduledTask(scheduledExecutor, cleanMillis, () -> cleanResponses(false));
                 }
@@ -770,8 +766,8 @@ public class NatsConnection implements AutoCloseable {
 
     /**
      * Close the connection and release all blocking calls like {@link #flush flush}
-     * and {@link Subscription#nextMessage(Duration) nextMessage}.
-     * If close() is called after {@link #drain(Duration) drain} it will wait up to the connection timeout
+     * and {@link Subscription#nextMessage(Long) nextMessage}.
+     * If close() is called after {@link #drain(long) drain} it will wait up to the connection timeout
      * to return, but it will not initiate a close. The drain takes precedence and will initiate the close.
      *
      * @throws InterruptedException if the thread, or one owned by the connection is interrupted during the close
@@ -1055,13 +1051,13 @@ public class NatsConnection implements AutoCloseable {
     /**
      * Create a synchronous subscription to the specified subject.
      *
-     * <p>Use the {@link Subscription#nextMessage(Duration) nextMessage}
+     * <p>Use the {@link Subscription#nextMessage(Long) nextMessage}
      * method to read messages for this subscription.
      *
      * <p>See {@link #createDispatcher(MessageHandler) createDispatcher} for
      * information about creating an asynchronous subscription with callbacks.
      *
-     * <p>As of 2.6.1 this method will throw an IllegalArgumentException if the subject contains whitespace.
+     * <p>This method will throw an IllegalArgumentException if the subject is invalid.
      *
      * @param subject the subject to subscribe to
      * @return an object representing the subscription
@@ -1069,19 +1065,19 @@ public class NatsConnection implements AutoCloseable {
     @NonNull
     public Subscription subscribe(@NonNull String subject) {
         subjectValidate(subject);
-        return createSubscription(subject, null, null, null);
+        return createSubscriptionInternal(subject, null, null, null);
     }
 
     /**
      * Create a synchronous subscription to the specified subject and queue.
      *
-     * <p>Use the {@link Subscription#nextMessage(Duration) nextMessage} method to read
+     * <p>Use the {@link Subscription#nextMessage(Long) nextMessage} method to read
      * messages for this subscription.
      *
      * <p>See {@link #createDispatcher(MessageHandler) createDispatcher} for
      * information about creating an asynchronous subscription with callbacks.
      *
-     * <p>As of 2.6.1 this method will throw an IllegalArgumentException if either string contains whitespace.
+     * <p>This method will throw an IllegalArgumentException if the subject is invalid.
      *
      * @param subject the subject to subscribe to
      * @param queueName the queue group to join
@@ -1091,7 +1087,7 @@ public class NatsConnection implements AutoCloseable {
     public Subscription subscribe(@NonNull String subject, @NonNull String queueName) {
         subjectValidate(subject);
         Validator.validateQueueName(queueName, true);
-        return createSubscription(subject, queueName, null, null);
+        return createSubscriptionInternal(subject, queueName, null, null);
     }
 
     protected void invalidate(NatsSubscription sub) {
@@ -1142,10 +1138,10 @@ public class NatsConnection implements AutoCloseable {
 
     // Assumes the null/empty checks were handled elsewhere
     @NonNull
-    public NatsSubscription createSubscription(@NonNull String subject,
-                                        @Nullable String queueName,
-                                        @Nullable NatsDispatcher dispatcher,
-                                        @Nullable NatsSubscriptionFactory factory) {
+    NatsSubscription createSubscriptionInternal(@NonNull String subject,
+                                                @Nullable String queueName,
+                                                @Nullable NatsDispatcher dispatcher,
+                                                @Nullable NatsSubscriptionFactory factory) {
         if (isClosed()) {
             throw new IllegalStateException("NatsConnection is Closed");
         }
@@ -1300,13 +1296,13 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param subject the subject for the service that will handle the request
      * @param data the content of the message
-     * @param timeout the time to wait for a response
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Nullable
-    public Message request(@NonNull String subject, byte @Nullable [] data, @Nullable Duration timeout) throws InterruptedException {
-        return request(subject, null, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public Message request(@NonNull String subject, byte @Nullable [] data, long timeoutMillis) throws InterruptedException {
+        return request(subject, null, data, timeoutMillis, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1317,13 +1313,13 @@ public class NatsConnection implements AutoCloseable {
      * @param subject the subject for the service that will handle the request
      * @param headers Optional headers to publish with the message.
      * @param data the content of the message
-     * @param timeout the time to wait for a response
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Nullable
-    public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, @Nullable Duration timeout) throws InterruptedException {
-        return request(subject, headers, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis) throws InterruptedException {
+        return request(subject, headers, data, timeoutMillis, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1336,35 +1332,33 @@ public class NatsConnection implements AutoCloseable {
      * server to respond to the client with the consumer's reply.</p>
      *
      * @param message the message
-     * @param timeout the time to wait for a response
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      */
     @Nullable
-    public Message request(@NonNull Message message, @Nullable Duration timeout) throws InterruptedException {
+    public Message request(@NonNull Message message, long timeoutMillis) throws InterruptedException {
         Validator.validateNotNull(message, "Message");
-        return request(message.getSubject(), message.getHeaders(), message.getData(), timeout, CancelAction.REPORT, forceFlushOnRequest);
+        return request(message.getSubject(), message.getHeaders(), message.getData(), timeoutMillis, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     @Nullable
-    public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, @Nullable Duration timeout, @NonNull CancelAction cancelAction) throws InterruptedException {
-        return request(subject, headers, data, timeout, cancelAction, forceFlushOnRequest);
+    public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis, @NonNull CancelAction cancelAction) throws InterruptedException {
+        return request(subject, headers, data, timeoutMillis, cancelAction, forceFlushOnRequest);
     }
 
     @Nullable
     public Message request(@NonNull String subject,
                            @Nullable Headers headers,
                            byte @Nullable [] data,
-                           @Nullable Duration timeout,
+                           long timeoutMillis,
                            @NonNull CancelAction cancelAction,
                            boolean flushImmediatelyAfterPublish) throws InterruptedException
     {
-        CompletableFuture<Message> incoming = requestAsync(subject, headers, data, timeout, cancelAction, flushImmediatelyAfterPublish);
+        CompletableFuture<Message> incoming = requestAsync(subject, headers, data, timeoutMillis, cancelAction, flushImmediatelyAfterPublish);
         try {
-            if (timeout == null) {
-                timeout = getOptions().getConnectionTimeout();
-            }
-            return incoming.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+            long getMillis = timeoutMillis <= 0 ? getOptions().getConnectionTimeout() : timeoutMillis;
+            return incoming.get(getMillis, TimeUnit.MILLISECONDS);
         }
         catch (TimeoutException | ExecutionException | CancellationException e) {
             return null;
@@ -1381,7 +1375,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] data) {
-        return requestAsync(subject, null, data, null, CancelAction.REPORT, forceFlushOnRequest);
+        return requestAsync(subject, null, data, -1, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1395,7 +1389,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data) {
-        return requestAsync(subject, headers, data, null, CancelAction.REPORT, forceFlushOnRequest);
+        return requestAsync(subject, headers, data, -1, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1404,12 +1398,12 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param subject the subject for the service that will handle the request
      * @param data the content of the message
-     * @param timeout the time to wait for a response. If not supplied a default will be used.
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] data, @Nullable Duration timeout) {
-        return requestAsync(subject, null, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] data, long timeoutMillis) {
+        return requestAsync(subject, null, data, timeoutMillis, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1419,12 +1413,12 @@ public class NatsConnection implements AutoCloseable {
      * @param subject the subject for the service that will handle the request
      * @param data the content of the message
      * @param headers Optional headers to publish with the message.
-     * @param timeout the time to wait for a response
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, Duration timeout) {
-        return requestAsync(subject, headers, data, timeout, CancelAction.REPORT, forceFlushOnRequest);
+    public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis) {
+        return requestAsync(subject, headers, data, timeoutMillis, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1436,13 +1430,13 @@ public class NatsConnection implements AutoCloseable {
      * server to respond to the client with the consumer's reply.</p>
      *
      * @param message the message
-     * @param timeout the time to wait for a response
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
      * @return a Future for the response, which may be cancelled on error or timed out
      */
     @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull Message message, @Nullable Duration timeout) {
+    public CompletableFuture<Message> requestAsync(@NonNull Message message, long timeoutMillis) {
         Validator.validateNotNull(message, "Message");
-        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), timeout, CancelAction.REPORT, forceFlushOnRequest);
+        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), timeoutMillis, CancelAction.REPORT, forceFlushOnRequest);
     }
 
     /**
@@ -1459,23 +1453,27 @@ public class NatsConnection implements AutoCloseable {
     @NonNull
     public CompletableFuture<Message> request(@NonNull Message message) {
         Validator.validateNotNull(message, "Message");
-        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), null, CancelAction.REPORT, forceFlushOnRequest);
+        return requestAsync(message.getSubject(), message.getHeaders(), message.getData(), -1, CancelAction.REPORT, forceFlushOnRequest);
     }
 
+    /**
+     * Send a request, returning a future for the response. This is the core request-send used by all the
+     * other request / requestAsync methods.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param headers optional headers to publish with the message
+     * @param data the content of the message
+     * @param timeoutMillis the time in milliseconds before the outstanding request is cleaned up; a value
+     *                       less than 0 uses the request cleanup interval default
+     * @param cancelAction what to do with the future if the request is cancelled (cancel, report, or complete)
+     * @param flushImmediatelyAfterPublish whether to flush the outgoing buffer immediately after publishing the request
+     * @return a Future for the response, which may be cancelled on error or timed out
+     */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject,
                                                    @Nullable Headers headers,
                                                    byte @Nullable [] data,
-                                                   @Nullable Duration futureTimeout,
-                                                   @NonNull CancelAction cancelAction) {
-        return requestAsync(subject, headers, data, futureTimeout, cancelAction, forceFlushOnRequest);
-    }
-
-    @NonNull
-    public CompletableFuture<Message> requestAsync(@NonNull String subject,
-                                                   @Nullable Headers headers,
-                                                   byte @Nullable [] data,
-                                                   @Nullable Duration futureTimeout,
+                                                   long timeoutMillis,
                                                    @NonNull CancelAction cancelAction,
                                                    boolean flushImmediatelyAfterPublish)
     {
@@ -1505,7 +1503,7 @@ public class NatsConnection implements AutoCloseable {
         String responseToken = getResponseToken(responseInbox);
         NatsRequestCompletableFuture future =
             new NatsRequestCompletableFuture(cancelAction,
-                futureTimeout == null ? options.getRequestCleanupInterval() : futureTimeout, options.useTimeoutException());
+                timeoutMillis <= 0 ? options.getRequestCleanupInterval() : timeoutMillis, options.useTimeoutException());
 
         responsesAwaiting.put(responseToken, future);
         statistics.incrementOutstandingRequests();
@@ -1661,33 +1659,30 @@ public class NatsConnection implements AutoCloseable {
 
     /**
      * Flush the connection's buffer of outgoing messages, including sending a
-     * protocol message to and from the server. Passing null is equivalent to
-     * passing 0, which will wait forever.
+     * protocol message to and from the server.
      * If called while the connection is closed, this method will immediately
      * throw a TimeoutException, regardless of the timeout.
      * If called while the connection is disconnected due to network issues this
      * method will wait for up to the timeout for a reconnect or close.
      *
-     * @param timeout The time to wait for the flush to succeed, pass 0 or null to wait forever.
+     * @param timeoutMillis the time in milliseconds to wait for the flush to succeed; pass 0 (or a negative value) to wait forever.
      * @throws TimeoutException if the timeout is exceeded
      * @throws InterruptedException if the underlying thread is interrupted
      */
-    public void flush(@Nullable Duration timeout) throws TimeoutException, InterruptedException {
-        Instant start = Instant.now();
-        waitForConnectOrClose(timeout);
+    public void flush(long timeoutMillis) throws TimeoutException, InterruptedException {
+        // The timeout comes in as millis, but we operate in nanos: we do work below
+        // (waitForConnectOrClose, then sendPing) before blocking on the future, so we
+        // recompute the remaining time right at the get() call for a precise wait.
+        long startNanos = NatsSystemClock.nanoTime();
+        boolean forever = timeoutMillis <= 0; // 0 (or negative) waits forever
+        long timeoutNanos = forever ? 0 : timeoutMillis * NANOS_PER_MILLI;
+        waitForConnectOrClose(forever ? 0 : timeoutMillis);
 
         if (isClosed()) {
             throw new TimeoutException("Attempted to flush while closed");
         }
 
-        if (timeout == null || timeout.isNegative()) {
-            timeout = Duration.ZERO;
-        }
-
-        Instant now = Instant.now();
-        Duration waitTime = Duration.between(start, now);
-
-        if (!timeout.equals(Duration.ZERO) && waitTime.compareTo(timeout) >= 0) {
+        if (!forever && NatsSystemClock.nanoTime() - startNanos >= timeoutNanos) {
             throw new TimeoutException("Timeout out waiting for connection before flush.");
         }
 
@@ -1698,20 +1693,16 @@ public class NatsConnection implements AutoCloseable {
                 return;
             }
 
-            long nanos = timeout.toNanos();
-
-            if (nanos > 0) {
-
-                nanos -= waitTime.toNanos();
-
-                if (nanos <= 0) {
-                    nanos = 1; // let the future timeout if it isn't resolved
-                }
-
-                waitForIt.get(nanos, TimeUnit.NANOSECONDS);
+            if (forever) {
+                waitForIt.get();
             }
             else {
-                waitForIt.get();
+                // recompute the time left here, after the work above, so the future waits for a precise remainder
+                long remainingNanos = timeoutNanos - (NatsSystemClock.nanoTime() - startNanos);
+                if (remainingNanos <= 0) {
+                    remainingNanos = 1; // let the future timeout if it isn't resolved
+                }
+                waitForIt.get(remainingNanos, TimeUnit.NANOSECONDS);
             }
 
             this.statistics.incrementFlushCounter();
@@ -1757,7 +1748,7 @@ public class NatsConnection implements AutoCloseable {
             throw new IOException("Must be connected to do RTT.");
         }
 
-        long timeout = options.getConnectionTimeout().toMillis();
+        long timeout = options.getConnectionTimeout();
         CompletableFuture<Boolean> pongFuture = new CompletableFuture<>();
         pongQueue.add(pongFuture);
         try {
@@ -2295,18 +2286,20 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void waitForDisconnectOrClose(Duration timeout) throws InterruptedException {
-        waitWhile(timeout, (Void) -> this.isDisconnecting() && !this.isClosed() );
+    protected void waitForDisconnectOrClose(long timeoutMillis) throws InterruptedException {
+        waitWhile(timeoutMillis < 0 ? -1 : timeoutMillis * NANOS_PER_MILLI, (Void) -> this.isDisconnecting() && !this.isClosed() );
     }
 
-    protected void waitForConnectOrClose(Duration timeout) throws InterruptedException {
-        waitWhile(timeout, (Void) -> !this.isConnected() && !this.isClosed());
+    protected void waitForConnectOrClose(long timeoutMillis) throws InterruptedException {
+        waitWhile(timeoutMillis < 0 ? -1 : timeoutMillis * NANOS_PER_MILLI, (Void) -> !this.isConnected() && !this.isClosed());
     }
 
-    protected void waitWhile(Duration timeout, Predicate<Void> waitWhileTrue) throws InterruptedException {
+    // operates purely in nanoseconds (precise, monotonic); the millis-facing wrappers above convert once at the edge.
+    // < 0 returns immediately, 0 waits forever, > 0 waits up to that many nanos.
+    protected void waitWhile(long timeoutNanos, Predicate<Void> waitWhileTrue) throws InterruptedException {
         statusLock.lock();
         try {
-            long currentWaitNanos = (timeout != null) ? timeout.toNanos() : -1;
+            long currentWaitNanos = timeoutNanos;
             long start = NatsSystemClock.nanoTime();
             while (currentWaitNanos >= 0 && waitWhileTrue.test(null)) {
                 if (currentWaitNanos > 0) {
@@ -2414,7 +2407,7 @@ public class NatsConnection implements AutoCloseable {
      * were drained in the timeout, and false otherwise. The future completes after the connection
      * is closed, so any connection handler notifications will happen before the future completes.
      *
-     * @param timeout The time to wait for the drain to succeed, pass 0 or null to wait
+     * @param timeoutMillis The time in milliseconds to wait for the drain to succeed, pass 0 or less to wait
      *                    forever. Drain involves moving messages to and from the server
      *                    so a very short timeout is not recommended. If the timeout is reached before
      *                    the drain completes, the connection is simply closed, which can result in message
@@ -2424,7 +2417,7 @@ public class NatsConnection implements AutoCloseable {
      * @throws TimeoutException if the initial flush times out
      */
     @NonNull
-    public CompletableFuture<Boolean> drain(@Nullable Duration timeout) throws TimeoutException, InterruptedException {
+    public CompletableFuture<Boolean> drain(long timeoutMillis) throws TimeoutException, InterruptedException {
 
         if (isClosing() || isClosed()) {
             throw new IllegalStateException("A connection can't be drained during close.");
@@ -2441,7 +2434,7 @@ public class NatsConnection implements AutoCloseable {
         }
 
         final CompletableFuture<Boolean> tracker = this.draining.get();
-        Instant start = Instant.now();
+        long startNanos = NatsSystemClock.nanoTime();
 
         // Don't include subscribers with dispatchers
         HashSet<NatsSubscription> pureSubscribers = new HashSet<>(this.subscribers.values());
@@ -2464,7 +2457,7 @@ public class NatsConnection implements AutoCloseable {
         });
 
         try {
-            this.flush(timeout); // Flush and wait up to the timeout, if this fails, let the caller know
+            this.flush(timeoutMillis); // Flush and wait up to the timeout, if this fails, let the caller know
         } catch (Exception e) {
             this.close(false, false);
             throw e;
@@ -2475,8 +2468,7 @@ public class NatsConnection implements AutoCloseable {
         // Wait for the timeout or all consumers are drained
         executor.submit(() -> {
             try {
-                long timeoutNanos = (timeout == null || timeout.toNanos() <= 0)
-                    ? Long.MAX_VALUE : timeout.toNanos();
+                long timeoutNanos = timeoutMillis <= 0 ? Long.MAX_VALUE : timeoutMillis * NANOS_PER_MILLI;
                 long startTime = System.nanoTime();
                 while (NatsSystemClock.nanoTime() - startTime < timeoutNanos && !Thread.interrupted()) {
                     consumers.removeIf(NatsConsumer::isDrained);
@@ -2491,14 +2483,12 @@ public class NatsConnection implements AutoCloseable {
                 this.blockPublishForDrain.set(true);
 
                 // One last flush
-                if (timeout == null || timeout.equals(Duration.ZERO)) {
-                    this.flush(Duration.ZERO);
+                if (timeoutMillis <= 0) {
+                    this.flush(0);
                 } else {
-                    Instant now = Instant.now();
-                    Duration passed = Duration.between(start, now);
-                    Duration newTimeout = timeout.minus(passed);
-                    if (newTimeout.toNanos() > 0) {
-                        this.flush(newTimeout);
+                    long remainingMillis = timeoutMillis - (NatsSystemClock.nanoTime() - startNanos) / NANOS_PER_MILLI;
+                    if (remainingMillis > 0) {
+                        this.flush(remainingMillis);
                     }
                 }
                 this.close(false, false); // close the connection after the last flush

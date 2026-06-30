@@ -4,16 +4,20 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.Subscription;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.synadia.client.utils.Validator.required;
 import static io.synadia.client.utils.Validator.validateQueueName;
 
 public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
+
+    // 5 minutes; idle nap only — a message or the POISON pill wakes poll() immediately, so this only bounds
+    // how often an otherwise idle dispatcher wakes to re-check its run flags.
+    protected static final long WAIT_FOR_MESSAGE_MINUTES = 5;
 
     protected final ConsumerMessageQueue incoming;
     protected final MessageHandler defaultHandler;
@@ -37,8 +41,6 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
     // This tracks the non-default handler by sid
     protected final Map<String, MessageHandler> nonDefaultHandlerBySid;
 
-    protected final Duration waitForMessage;
-
     NatsDispatcher(NatsConnection conn, MessageHandler handler) {
         super(conn);
         this.defaultHandler = handler;
@@ -49,7 +51,6 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
         this.nonDefaultHandlerBySid = new ConcurrentHashMap<>();
         this.running = new AtomicBoolean(false);
         this.started = new AtomicBoolean(false);
-        this.waitForMessage = Duration.ofMinutes(5); // This can be long since we aren't doing anything
     }
 
     @Override
@@ -76,7 +77,7 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
     public void run() {
         try {
             while (running.get() && !Thread.interrupted()) {
-                NatsMessage msg = this.incoming.pop(this.waitForMessage);
+                NatsMessage msg = this.incoming.pop(WAIT_FOR_MESSAGE_MINUTES, TimeUnit.MINUTES);
                 if (msg != null) {
                     NatsSubscription sub = msg.getNatsSubscription();
                     if (sub != null && sub.isActive()) {
@@ -250,7 +251,7 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
             NatsSubscription sub = this.subWithDefaultHandlerBySubject.get(subject);
 
             if (sub == null) {
-                sub = connection.createSubscription(subject, queueName, this, null);
+                sub = connection.createSubscriptionInternal(subject, queueName, this, null);
                 NatsSubscription wonTheRace = this.subWithDefaultHandlerBySubject.putIfAbsent(subject, sub);
                 if (wonTheRace != null) {
                     this.connection.unsubscribe(sub, -1); // Could happen on very bad timing
@@ -269,7 +270,7 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
     }
 
     private NatsSubscription _subscribeImplHandlerProvided(String subject, String queueName, MessageHandler handler, NatsSubscriptionFactory nsf) {
-        NatsSubscription sub = connection.createSubscription(subject, queueName, this, nsf);
+        NatsSubscription sub = connection.createSubscriptionInternal(subject, queueName, this, nsf);
         trackSubWithUserHandler(sub.getSID(), sub, handler);
         return sub;
     }

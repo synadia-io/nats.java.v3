@@ -4,7 +4,6 @@ import io.synadia.client.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -42,8 +41,8 @@ public class ValidateIssue1426Test {
                 .token(new char[]{'1', '2', '3', '4'})
                 .maxMessagesInOutgoingQueue(NUMBER_OF_SUBS )
                 .reconnectBufferSize(NUMBER_OF_SUBS * 100)
-                .connectionTimeout(Duration.ofSeconds(1))
-                .reconnectWait(2_000L)
+                .connectionTimeout(1000)
+                .reconnectWait(2000L)
                 .errorListener(errorListener)
                 .build();
 

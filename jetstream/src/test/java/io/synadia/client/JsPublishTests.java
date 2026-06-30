@@ -44,7 +44,7 @@ public class JsPublishTests extends JetStreamTestBase {
                 PushConsumerCreator creator = new PushConsumerCreator().filterSubject(s);
                 ConsumerInfo ci = jsm.createConsumer(streamName, creator);
                 JetStreamPushSubscription sub = js.pushSubscribe(ci);
-                Message m = sub.nextMessage(1000);
+                Message m = sub.nextMessage(1000L);
                 assertEquals(data, new String(m.getData(), StandardCharsets.UTF_8));
             }
         });

@@ -4,7 +4,6 @@ import io.synadia.client.*;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +45,7 @@ public class SlowConsumerTests extends TestBase {
             nc.publish(subject, null);
             nc.publish(subject, null);
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(3, sub.getDroppedCount());
             assertEquals(1, sub.getPendingMessageCount());
@@ -55,7 +54,7 @@ public class SlowConsumerTests extends TestBase {
             sub.clearDroppedCount();
             
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(1, sub.getDroppedCount());
             assertEquals(1, sub.getPendingMessageCount());
@@ -77,7 +76,7 @@ public class SlowConsumerTests extends TestBase {
 
             nc.publish(subject, null);
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(1, sub.getDroppedCount());
             assertEquals(1, sub.getPendingMessageCount());
@@ -86,7 +85,7 @@ public class SlowConsumerTests extends TestBase {
             sub.clearDroppedCount();
             
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(1, sub.getDroppedCount());
             assertEquals(1, sub.getPendingMessageCount());
@@ -118,7 +117,7 @@ public class SlowConsumerTests extends TestBase {
             
             nc.publish(subject, null);
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(1000));
+            nc.flush(1000);
 
             assertEquals(1, d.getDroppedCount());
             assertEquals(1, d.getPendingMessageCount());
@@ -127,7 +126,7 @@ public class SlowConsumerTests extends TestBase {
             d.clearDroppedCount();
             
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(1, d.getDroppedCount());
             assertEquals(1, d.getPendingMessageCount());
@@ -159,7 +158,7 @@ public class SlowConsumerTests extends TestBase {
             
             nc.publish(subject, null);
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(1, d.getDroppedCount());
             assertEquals(1, d.getPendingMessageCount());
@@ -168,7 +167,7 @@ public class SlowConsumerTests extends TestBase {
             d.clearDroppedCount();
             
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(1, d.getDroppedCount());
             assertEquals(1, d.getPendingMessageCount());
@@ -206,7 +205,7 @@ public class SlowConsumerTests extends TestBase {
             nc.publish(subject, null);
             nc.publish(subject, null);
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             // Notification is in another thread, wait for it, or fail
             listener.future.get(3000, TimeUnit.MILLISECONDS);
@@ -216,18 +215,18 @@ public class SlowConsumerTests extends TestBase {
             listener.consumers.clear();
             
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(1000));
+            nc.flush(1000);
 
             assertEquals(0, listener.consumers.size()); // no renotify
 
             listener.waitForSlow();
             // Clear the queue, we should become a non-slow consumer
-            sub.nextMessage(Duration.ofMillis(1000)); // only 1 to get
+            sub.nextMessage(1000L); // only 1 to get
 
             // Notification again on 2nd message
             nc.publish(subject, null);
             nc.publish(subject, null);
-            nc.flush(Duration.ofMillis(1000));
+            nc.flush(1000);
 
             listener.future.get(3000, TimeUnit.MILLISECONDS);
 

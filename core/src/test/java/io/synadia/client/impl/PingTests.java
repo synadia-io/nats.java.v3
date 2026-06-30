@@ -6,7 +6,6 @@ import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
@@ -53,7 +52,7 @@ public class PingTests extends TestBase {
     @Test
     public void testPingTimer() throws Exception {
         OptionsBuilder builder = optionsBuilder()
-            .pingInterval(Duration.ofMillis(5))
+            .pingInterval(5)
             .maxPingsOut(10000); // just don't want this to be what fails the test
         runInSharedOwnNc(builder, nc -> {
             Statistics stats = nc.getStatistics();
@@ -66,7 +65,7 @@ public class PingTests extends TestBase {
     public void testMaxPingsOut() throws Exception {
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.NO_EXIT)) {
             Options options = optionsBuilder(mockTs)
-                .pingInterval(Duration.ofSeconds(10)) // Avoid auto pings
+                .pingInterval(10000) // Avoid auto pings
                 .maxPingsOut(2)
                 .maxReconnects(0)
                 .build();
@@ -89,7 +88,7 @@ public class PingTests extends TestBase {
                 .build();
             try (NatsConnection nc = standardConnect(options)) {
                 // fake server so flush will time out
-                assertThrows(TimeoutException.class, () -> nc.flush(Duration.ofMillis(50)));
+                assertThrows(TimeoutException.class, () -> nc.flush(50));
             }
         }
     }
@@ -100,11 +99,11 @@ public class PingTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
             try (NatsConnection nc = managedConnect(options)) {
-                nc.flush(Duration.ofSeconds(2));
+                nc.flush(2000);
                 listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
                 ts.close();
                 listener.validate();
-                assertThrows(TimeoutException.class, () -> nc.flush(Duration.ofSeconds(2)));
+                assertThrows(TimeoutException.class, () -> nc.flush(2000));
             }
         }
     }
@@ -114,7 +113,7 @@ public class PingTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             try (NatsTestServer ts2 = new NatsTestServer()) {
                 Options options = optionsBuilder(ts.getServerUri(), ts2.getServerUri())
-                    .pingInterval(Duration.ofMillis(500))
+                    .pingInterval(500)
                     .maxPingsOut(100) // just don't want this to be what fails the test
                     .build();
                 try (NatsConnection nc = managedConnect(options)) {

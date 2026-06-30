@@ -107,13 +107,13 @@ public interface Message {
 	void ack();
 
 	/**
-	 * ack acknowledges a JetStream messages received from a Consumer, indicating the message
-	 * should not be received again later.  Duration.ZERO does not confirm the acknowledgement.
-	 * @param timeout the duration to wait for an ack confirmation
-     * @throws TimeoutException if a timeout was specified and the NATS server does not return a response
+	 * ack acknowledges a JetStream message received from a Consumer, indicating the message
+	 * should not be received again later, and waits for confirmation from the server.
+	 * @param timeoutMillis the time in milliseconds to wait for an ack confirmation; less than 1 millisecond uses the default connection timeout
+     * @throws TimeoutException if the NATS server does not return a response in time
      * @throws InterruptedException if the thread is interrupted
 	 */
-	void ackSync(Duration timeout) throws TimeoutException, InterruptedException;
+	void ackSync(long timeoutMillis) throws TimeoutException, InterruptedException;
 
 	/**
 	 * nak acknowledges a JetStream message has been received but indicates that the message
@@ -124,16 +124,17 @@ public interface Message {
 	/**
 	 * nak acknowledges a JetStream message has been received but indicates that the message
 	 * is not completely processed and should be sent again later, after at least the delay amount.
-	 * @param nakDelay tell the server how long to delay before processing the ack
+	 * @param nakDelayMillis tell the server how long to delay, in milliseconds, before processing the ack
 	 */
-	void nakWithDelay(Duration nakDelay);
+	void nakWithDelay(long nakDelayMillis);
 
 	/**
 	 * nak acknowledges a JetStream message has been received but indicates that the message
 	 * is not completely processed and should be sent again later, after at least the delay amount.
-	 * @param nakDelayMillis tell the server how long to delay before processing the ack
+	 * Convenient when you want to express the delay in seconds or minutes (e.g. {@code Duration.ofMinutes(5)}).
+	 * @param nakDelay how long to tell the server to delay before processing the ack
 	 */
-	void nakWithDelay(long nakDelayMillis);
+	void nakWithDelay(Duration nakDelay);
 
 	/**
 	 * term instructs the server to stop redelivery of this message without acknowledging it as

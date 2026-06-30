@@ -6,7 +6,6 @@ import io.synadia.client.Message;
 import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.impl.NatsConnection;
 
-import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -121,7 +120,7 @@ class EndpointContext {
         return !internalDispatcher;
     }
 
-    CompletableFuture<Boolean> drain(Duration timeout) throws InterruptedException {
-        return dispatcher.drain(timeout);
+    CompletableFuture<Boolean> drain(long timeoutMillis) throws InterruptedException {
+        return dispatcher.drain(timeoutMillis);
     }
 }

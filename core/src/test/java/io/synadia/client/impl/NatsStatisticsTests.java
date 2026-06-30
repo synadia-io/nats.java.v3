@@ -7,7 +7,6 @@ import io.synadia.client.Statistics;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,9 +23,9 @@ public class NatsStatisticsTests extends TestBase {
             String subject = random();
             d.subscribe(subject);
 
-            nc.flush(Duration.ofMillis(500));
+            nc.flush(500);
             Future<Message> incoming = nc.requestAsync(subject, new byte[8]);
-            nc.flush(Duration.ofMillis(500));
+            nc.flush(500);
             Message msg = incoming.get(500, TimeUnit.MILLISECONDS);
 
             String str = nc.getStatistics().toString();
@@ -185,7 +184,7 @@ public class NatsStatisticsTests extends TestBase {
             d3.subscribe(subject);
             d4.subscribe(subject);
 
-            Message reply = nc.request(subject, null, Duration.ofSeconds(2));
+            Message reply = nc.request(subject, null, 2000);
             assertNotNull(reply);
             sleep(2000);
             assertEquals(3, requests.get());
@@ -228,7 +227,7 @@ public class NatsStatisticsTests extends TestBase {
             d3.subscribe(subject);
             d4.subscribe(subject);
 
-            Message reply = nc.request(subject, null, Duration.ofSeconds(2));
+            Message reply = nc.request(subject, null, 2000);
             assertNotNull(reply);
             sleep(2000);
             assertEquals(3, requests.get());

@@ -54,11 +54,11 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
 
     /**
      * Sets the max amount of expire time for the server to allow on pull requests.
-     * @param maxExpires the max expire duration in milliseconds
+     * @param maxExpiresMillis the max expire duration in milliseconds
      * @return this instance for chaining.
      */
-    public PullConsumerCreator maxExpires(long maxExpires) {
-        _maxExpires(maxExpires);
+    public PullConsumerCreator maxExpires(long maxExpiresMillis) {
+        _maxExpires(maxExpiresMillis);
         return this;
     }
 

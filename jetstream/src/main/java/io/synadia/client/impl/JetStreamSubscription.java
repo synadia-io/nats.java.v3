@@ -4,9 +4,10 @@ import io.synadia.client.Message;
 import io.synadia.client.Subscription;
 import io.synadia.client.api.ConsumerInfo;
 import io.synadia.client.global.NatsSystemClock;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This is a JetStream specific subscription.
@@ -79,50 +80,36 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
         super.invalidate();
     }
 
+    /** {@inheritDoc} */
     @Override
-    public Message nextMessage(Duration timeout) throws InterruptedException, IllegalStateException {
-        if (timeout == null) {
-            return _nextUnmanagedNoWait(null);
+    public Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException, IllegalStateException {
+        if (timeoutMillis == null) {
+            return _nextUnmanagedNoWait(null);       // poll once, return immediately
         }
-        long timeoutNanos = timeout.toNanos();
-        if (timeoutNanos <= 0) {
-            return _nextUnmanagedWaitForever(null);
-        }
-        return _nextUnmanaged(timeoutNanos, null);
-    }
-
-    @Override
-    public Message nextMessage(long timeoutMillis) throws InterruptedException, IllegalStateException {
         if (timeoutMillis <= 0) {
-            return _nextUnmanagedWaitForever(null);
+            return _nextUnmanagedWaitForever();      // wait forever
         }
-        return _nextUnmanaged(timeoutMillis * NANOS_PER_MILLI, null);
+        return _nextUnmanaged(timeoutMillis, TimeUnit.MILLISECONDS, null);  // wait up to timeoutMillis
     }
 
-    protected Message _nextUnmanagedWaitForever(String expectedPullSubject) throws InterruptedException {
+    protected Message _nextUnmanagedWaitForever() throws InterruptedException {
         while (true) {
-            Message msg = nextMessageInternal(Duration.ZERO);
+            Message msg = nextMessage(0L, TimeUnit.MILLISECONDS); // 0 = wait forever, unit is irrelevant
             if (msg != null) { // null shouldn't happen, so just a code guard b/c nextMessageInternal can return null
                 switch (manager.manage(msg)) {
                     case MESSAGE:
                         return msg;
                     case STATUS_ERROR:
-                        // if the status applies throw exception, otherwise it's ignored, fall through
-                        if (expectedPullSubject == null || expectedPullSubject.equals(msg.getSubject())) {
-                            throw new JetStreamStatusException(msg.getStatus(), this);
-                        }
-                        break;
+                        throw new JetStreamStatusException(msg.getStatus(), this);
                 }
-                // Check again since waiting forever when:
-                // 1. Any STATUS_HANDLED or STATUS_TERMINUS
-                // 2. STATUS_ERRORS that aren't for expected pullSubject
+                // Check again since waiting forever for any other state
             }
         }
     }
 
     protected Message _nextUnmanagedNoWait(String expectedPullSubject) throws InterruptedException {
         while (true) {
-            Message msg = nextMessageInternal(null);
+            Message msg = nextMessage(null, TimeUnit.MILLISECONDS); // null = try once, no wait, unit is irrelevant
             if (msg == null) {
                 return null;
             }
@@ -149,11 +136,12 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
         }
     }
 
-    protected Message _nextUnmanaged(long timeoutNanos, String expectedPullSubject) throws InterruptedException {
+    protected Message _nextUnmanaged(long timeout, TimeUnit timeoutUnit, String expectedPullSubject) throws InterruptedException {
+        long timeoutNanos = timeoutUnit.toNanos(timeout);
         long timeLeftNanos = timeoutNanos;
         long start = NatsSystemClock.nanoTime();
         while (timeLeftNanos > 0) {
-            Message msg = nextMessageInternal( Duration.ofNanos(timeLeftNanos) );
+            Message msg = nextMessage(timeLeftNanos, TimeUnit.NANOSECONDS);
             if (msg == null) {
                 return null; // normal timeout
             }

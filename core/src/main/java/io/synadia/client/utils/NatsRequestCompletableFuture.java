@@ -3,14 +3,11 @@ package io.synadia.client.utils;
 import io.synadia.client.Message;
 import io.synadia.client.global.NatsSystemClock;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
-import static io.synadia.client.OptionsConstants.DEFAULT_REQUEST_CLEANUP_INTERVAL;
 import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
 /**
@@ -19,13 +16,12 @@ import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 public class NatsRequestCompletableFuture extends CompletableFuture<Message> {
 
     // allows a small buffer to account for communication and code execution time, probably more than needed but...
-    private static final long HYDRATION_TIME = 10 * NANOS_PER_MILLI;
+    private static final long HYDRATION_TIME_NANOS = 10 * NANOS_PER_MILLI;
 
     public enum CancelAction { CANCEL, REPORT, COMPLETE }
 
     private static final String CLOSING_MESSAGE = "Future cancelled, connection closing.";
     private static final String CANCEL_MESSAGE = "Future cancelled, response not registered in time, check connection status.";
-    private static final long DEFAULT_TIMEOUT_NANOS = DEFAULT_REQUEST_CLEANUP_INTERVAL.toNanos(); // currently 5 seconds
 
     private final CancelAction cancelAction;
     private final long timeOutAfterNanoTime;
@@ -33,9 +29,9 @@ public class NatsRequestCompletableFuture extends CompletableFuture<Message> {
     private boolean wasCanceledTimedOut;
     private final boolean useTimeoutException;
 
-    public NatsRequestCompletableFuture(@NonNull CancelAction cancelAction, @Nullable Duration timeout, boolean useTimeoutException) {
+    public NatsRequestCompletableFuture(@NonNull CancelAction cancelAction, long timeoutMillis, boolean useTimeoutException) {
         this.cancelAction = cancelAction;
-        timeOutAfterNanoTime = NatsSystemClock.nanoTime() + HYDRATION_TIME + (timeout == null ? DEFAULT_TIMEOUT_NANOS : timeout.toNanos());
+        timeOutAfterNanoTime = NatsSystemClock.nanoTime() + HYDRATION_TIME_NANOS + (timeoutMillis * NANOS_PER_MILLI);
         this.useTimeoutException = useTimeoutException;
     }
 

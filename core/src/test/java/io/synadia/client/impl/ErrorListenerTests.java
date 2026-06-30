@@ -7,7 +7,6 @@ import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +45,7 @@ public class ErrorListenerTests extends TestBase {
             ts.close();
 
             try {
-                nc.flush(Duration.ofSeconds(1));
+                nc.flush(1000);
             }
             catch (Exception exp) {
                 // this usually fails
@@ -120,7 +119,7 @@ public class ErrorListenerTests extends TestBase {
             nc.publish(subject, null);
             nc.publish(subject, null);
 
-            nc.flush(Duration.ofMillis(5000));
+            nc.flush(5000);
 
             assertEquals(3, sub.getDroppedCount());
 
@@ -170,19 +169,19 @@ public class ErrorListenerTests extends TestBase {
                 .maxMessagesInOutgoingQueue(maxMessages)
                 .discardMessagesWhenOutgoingQueueFull()
                 .errorListener(listener)
-                .pingInterval(Duration.ofSeconds(100)) // make this long so we don't ping during test
+                .pingInterval(100_000) // make this long so we don't ping during test
                 .build();
             NatsConnection nc = (NatsConnection) Nats.connect(options);
 
             try {
-                nc.flush(Duration.ofSeconds(2));
+                nc.flush(2000);
                 nc.getWriter().stop().get(2, TimeUnit.SECONDS);
                 for (int i = 0; i < maxMessages + 1; i++) {
                     nc.publish(subject + i, ("message" + i).getBytes());
                 }
                 nc.getWriter().start(nc.getDataPortFuture());
 
-                nc.flush(Duration.ofSeconds(2));
+                nc.flush(2000);
             } finally {
                 closeAndConfirm(nc);
             }
@@ -207,12 +206,12 @@ public class ErrorListenerTests extends TestBase {
                 .discardMessagesWhenOutgoingQueueFull()
                 .connectionListener(listener)
                 .errorListener(listener)
-                .pingInterval(Duration.ofSeconds(100)) // make this long so we don't ping during test
+                .pingInterval(100_000) // make this long so we don't ping during test
                 .build();
             listener.queueConnectionEvent(ConnectionEvents.CONNECTED, LONG_VALIDATE_TIMEOUT);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED, LONG_VALIDATE_TIMEOUT);
             try (NatsConnection nc = managedConnect(options)) {
-                nc.flush(Duration.ofSeconds(1));
+                nc.flush(1000);
                 listener.validate();
                 ts.close();
                 listener.validate();

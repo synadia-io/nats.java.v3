@@ -2,7 +2,6 @@ package io.synadia.client.impl;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 
 import static io.synadia.client.impl.JetStreamConstants.*;
 import static io.synadia.client.utils.JsValidator.validatePrefixOrDomain;
@@ -21,7 +20,7 @@ public class JetStreamOptions {
     public static final JetStreamOptions DEFAULT_JS_OPTIONS = new Builder().build();
 
     private final String jsPrefix;
-    private final Duration requestTimeout;
+    private final long requestTimeout;
     private final boolean defaultPrefix;
     private final boolean optOut290ConsumerCreate;
     private final Charset defaultCharset;
@@ -41,10 +40,10 @@ public class JetStreamOptions {
     }
 
     /**
-     * Gets the request timeout the stream.
-     * @return the name of the stream.
+     * Gets the request timeout in milliseconds for JetStream API calls. A value {@code <= 0} means unset (the connection timeout is used).
+     * @return the request timeout in milliseconds.
      */
-    public Duration getRequestTimeout() {
+    public long getRequestTimeout() {
         return requestTimeout;
     }
 
@@ -113,7 +112,7 @@ public class JetStreamOptions {
     public static class Builder {
 
         private String jsPrefix;
-        private Duration requestTimeout;
+        private long requestTimeout;
         private boolean optOut290ConsumerCreate;
         private Charset defaultCharset = StandardCharsets.UTF_8;
 
@@ -141,12 +140,12 @@ public class JetStreamOptions {
         }
 
         /**
-         * Sets the request timeout for JetStream API calls.
-         * @param requestTimeout the duration to wait for responses.
+         * Sets the request timeout in milliseconds for JetStream API calls. A value {@code <= 0} means unset (the connection timeout is used).
+         * @param millis the milliseconds to wait for responses.
          * @return the builder
          */
-        public Builder requestTimeout(Duration requestTimeout) {
-            this.requestTimeout = requestTimeout;
+        public Builder requestTimeout(long millis) {
+            this.requestTimeout = millis;
             return this;
         }
 

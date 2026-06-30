@@ -3,7 +3,6 @@ package io.synadia.client;
 import io.synadia.client.impl.NatsConnection;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 
@@ -32,7 +31,7 @@ public class SubscriberTests {
             Subscription sub = nc.subscribe(subject);
             nc.publish(subject, new byte[16]);
 
-            Message msg = sub.nextMessage(Duration.ofMillis(500));
+            Message msg = sub.nextMessage(500L);
 
             assertTrue(sub.isActive());
             assertEquals(subject, msg.getSubject());
@@ -49,7 +48,7 @@ public class SubscriberTests {
             Subscription sub = nc.subscribe(subject);
             nc.publish(subject, new byte[16]);
 
-            Message msg = sub.nextMessage(Duration.ofMillis(500));
+            Message msg = sub.nextMessage(500L);
 
             assertTrue(sub.isActive());
             assertEquals(subject, msg.getSubject());
@@ -102,7 +101,7 @@ public class SubscriberTests {
                 gotSub.get();
                 sendMsg.complete(Boolean.TRUE);
 
-                Message msg = sub.nextMessage(Duration.ZERO);
+                Message msg = sub.nextMessage(0L);
 
                 assertTrue(sub.isActive());
                 assertNotNull(msg);
@@ -123,17 +122,17 @@ public class SubscriberTests {
             nc.publish(subject, new byte[16]);
             nc.publish(subject, new byte[16]);
 
-            Message msg = sub.nextMessage(Duration.ofMillis(500));
+            Message msg = sub.nextMessage(500L);
 
             assertEquals(subject, msg.getSubject());
             assertEquals(sub, msg.getSubscription());
             assertNull(msg.getReplyTo());
             assertEquals(16, msg.getData().length);
-            msg = sub.nextMessage(100); // coverage for nextMessage(millis)
+            msg = sub.nextMessage(100L); // coverage for nextMessage(millis)
             assertNotNull(msg);
-            msg = sub.nextMessage(Duration.ofMillis(100));
+            msg = sub.nextMessage(100L);
             assertNotNull(msg);
-            msg = sub.nextMessage(100); // coverage for nextMessage(millis)
+            msg = sub.nextMessage(100L); // coverage for nextMessage(millis)
             assertNull(msg);
         });
     }
@@ -156,7 +155,7 @@ public class SubscriberTests {
                 nc.publish(subject, new byte[16]);
             }
 
-            nc.flush(Duration.ofMillis(200));// Get them all to the server
+            nc.flush(200);// Get them all to the server
 
             for (int i = 0; i < msgs; i++) {
                 msg = sub1.nextMessage(null);
@@ -194,12 +193,12 @@ public class SubscriberTests {
             Subscription sub = nc.subscribe(subject);
             nc.publish(subject, new byte[16]);
 
-            Message msg = sub.nextMessage(Duration.ofMillis(500));
+            Message msg = sub.nextMessage(500L);
             assertNotNull(msg);
 
             sub.unsubscribe();
             assertFalse(sub.isActive());
-            assertThrows(IllegalStateException.class, () -> sub.nextMessage(Duration.ofMillis(500)));
+            assertThrows(IllegalStateException.class, () -> sub.nextMessage(500L));
         });
     }
 
@@ -210,10 +209,10 @@ public class SubscriberTests {
             Subscription sub = nc.subscribe(subject).unsubscribe(1);
             nc.publish(subject, new byte[16]);
 
-            Message msg = sub.nextMessage(Duration.ofMillis(500)); // should get 1
+            Message msg = sub.nextMessage(500L); // should get 1
             assertNotNull(msg);
 
-            assertThrows(IllegalStateException.class, () -> sub.nextMessage(Duration.ofMillis(500)));
+            assertThrows(IllegalStateException.class, () -> sub.nextMessage(500L));
         });
     }
 
@@ -230,11 +229,11 @@ public class SubscriberTests {
 
             Message msg;
             for (int i = 0; i < msgCount; i++) {
-                msg = sub.nextMessage(Duration.ofMillis(500)); // should get 1
+                msg = sub.nextMessage(500L); // should get 1
                 assertNotNull(msg);
             }
 
-            assertThrows(IllegalStateException.class, () -> sub.nextMessage(Duration.ofMillis(500)));
+            assertThrows(IllegalStateException.class, () -> sub.nextMessage(500L));
         });
     }
 
@@ -256,7 +255,7 @@ public class SubscriberTests {
             Subscription sub = nc.subscribe(subject).unsubscribe(1);
             nc.publish(subject, new byte[16]);
 
-            Message msg = sub.nextMessage(Duration.ofMillis(500)); // should get 1
+            Message msg = sub.nextMessage(500L); // should get 1
             assertNotNull(msg);
 
             assertThrows(IllegalStateException.class, sub::unsubscribe);
@@ -269,7 +268,7 @@ public class SubscriberTests {
             String subject = random();
             Subscription sub = nc.subscribe(subject);
             new Thread(sub::unsubscribe).start();
-            assertThrows(IllegalStateException.class, () -> sub.nextMessage(Duration.ofMillis(5000)));
+            assertThrows(IllegalStateException.class, () -> sub.nextMessage(5000L));
         });
     }
 
@@ -284,7 +283,7 @@ public class SubscriberTests {
                 nc.publish(subject, new byte[16]);
             }
 
-            nc.flush(Duration.ofMillis(1000)); // Slow things down so we have time to unsub
+            nc.flush(1000); // Slow things down so we have time to unsub
 
             for (int i = 0; i < msgCount; i++) {
                 sub.nextMessage(null);
@@ -292,7 +291,7 @@ public class SubscriberTests {
 
             sub.unsubscribe(msgCount); // we already have that many
 
-            assertThrows(IllegalStateException.class, () -> sub.nextMessage(Duration.ofMillis(5000)));
+            assertThrows(IllegalStateException.class, () -> sub.nextMessage(5000L));
         });
     }
 
@@ -347,7 +346,7 @@ public class SubscriberTests {
         runInShared(nc -> {
             String subject = random();
             Subscription sub = nc.subscribe(subject);
-            nc.flush(Duration.ofMillis(1000));
+            nc.flush(1000);
 
             new Thread(() -> {
                 try {
@@ -357,7 +356,7 @@ public class SubscriberTests {
                 sub.unsubscribe();
             }).start();
 
-            assertThrows(IllegalStateException.class, () -> sub.nextMessage(Duration.ofMillis(5000)));
+            assertThrows(IllegalStateException.class, () -> sub.nextMessage(5000L));
         });
     }
 }

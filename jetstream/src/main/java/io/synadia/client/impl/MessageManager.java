@@ -5,7 +5,6 @@ import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.utils.NatsConstants;
 import io.synadia.client.utils.ScheduledTask;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -97,19 +96,18 @@ public abstract class MessageManager {
         conn.notifyErrorListener((c, el) -> el.heartbeatAlarm(c, sub, lastStreamSeq, lastConsumerSeq));
     }
 
-    protected void configureIdleHeartbeat(Duration configIdleHeartbeat, long configMessageAlarmTime) {
+    protected void configureIdleHeartbeat(long configIdleHeartbeatMillis, long configMessageAlarmTime) {
         stateChangeLock.lock();
         try {
-            long idleSettingMillis = configIdleHeartbeat == null ? 0 : configIdleHeartbeat.toMillis();
-            idleHeartbeatSettingMillis.set(idleSettingMillis);
-            if (idleSettingMillis <= 0) {
+            idleHeartbeatSettingMillis.set(configIdleHeartbeatMillis);
+            if (configIdleHeartbeatMillis <= 0) {
                 alarmPeriodSettingNanos.set(0);
                 hb.set(false);
             }
             else {
                 long alarmPeriodSettingMillis;
-                if (configMessageAlarmTime < idleSettingMillis) {
-                    alarmPeriodSettingMillis = idleSettingMillis * THRESHOLD;
+                if (configMessageAlarmTime < configIdleHeartbeatMillis) {
+                    alarmPeriodSettingMillis = configIdleHeartbeatMillis * THRESHOLD;
                 }
                 else {
                     alarmPeriodSettingMillis = configMessageAlarmTime;

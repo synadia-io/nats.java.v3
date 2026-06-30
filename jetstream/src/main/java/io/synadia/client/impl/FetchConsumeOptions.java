@@ -137,12 +137,12 @@ public class FetchConsumeOptions extends BaseConsumeOptions {
         }
 
         @Override
-        public Builder expiresIn(long expiresInMillis) {
-            if (noWait && expiresInMillis < 1) {
+        public Builder expiresIn(long millis) {
+            if (noWait && millis < 1) {
                 expiresIn = UNSET;
                 return this;
             }
-            return super.expiresIn(expiresInMillis);
+            return super.expiresIn(millis);
         }
 
         /**
@@ -160,12 +160,12 @@ public class FetchConsumeOptions extends BaseConsumeOptions {
          * Set no wait to true with an expiration. This is the common configuration to receive messages as soon as they arrive in the stream without excessive pulling.
          * When no wait is true with expire, the fetch will return immediately with as many messages as are available, but at least one message. Between one and the maximum configured.
          * When no message is available it will wait for new messages to arrive till it expires.
-         * @param expiresInMillis the expiration time in milliseconds
+         * @param millis the expiration time in milliseconds
          * @return the builder
          */
-        public Builder noWaitExpiresIn(long expiresInMillis) {
+        public Builder noWaitExpiresIn(long millis) {
             this.noWait = true;
-            return expiresIn(expiresInMillis);
+            return expiresIn(millis);
         }
 
         /**

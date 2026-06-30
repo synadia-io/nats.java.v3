@@ -2,7 +2,7 @@ package io.synadia.client.impl;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
@@ -36,13 +36,13 @@ public class MessageQueueTests {
     }
 
     private static WriterMessageQueue newWriterMessageQueue(int maxMessagesInOutgoingQueue) {
-        return new WriterMessageQueue(maxMessagesInOutgoingQueue, false, Duration.ofMillis(500));
+        return new WriterMessageQueue(maxMessagesInOutgoingQueue, false, 500);
     }
 
     @Test
     public void testEmptyPopConsumer() throws InterruptedException {
         ConsumerMessageQueue q = new ConsumerMessageQueue();
-        NatsMessage msg = q.pop(null);
+        NatsMessage msg = q.pop(null, TimeUnit.MILLISECONDS);
         assertNull(msg);
     }
 
@@ -51,7 +51,7 @@ public class MessageQueueTests {
         ConsumerMessageQueue q = new ConsumerMessageQueue();
         NatsMessage expected = getTestMessage();
         q.push(expected);
-        NatsMessage actual = q.pop(null);
+        NatsMessage actual = q.pop(null, TimeUnit.MILLISECONDS);
         assertEquals(expected, actual);
     }
 
@@ -60,7 +60,7 @@ public class MessageQueueTests {
         long waitTimeNanos = 100 * 1_000_000L;
         ConsumerMessageQueue q = new ConsumerMessageQueue();
         long start = System.nanoTime();
-        NatsMessage msg = q.pop(Duration.ofNanos(waitTimeNanos));
+        NatsMessage msg = q.pop(waitTimeNanos, TimeUnit.NANOSECONDS);
         long end = System.nanoTime();
         long elapsed = end - start;
         assertNull(msg);
@@ -72,7 +72,7 @@ public class MessageQueueTests {
         ConsumerMessageQueue q = new ConsumerMessageQueue();
         NatsMessage expected = getTestMessage();
         q.push(expected);
-        NatsMessage actual = q.pop(Duration.ZERO);
+        NatsMessage actual = q.pop(0L, TimeUnit.MILLISECONDS);
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
@@ -85,17 +85,17 @@ public class MessageQueueTests {
             q.pause();
         });
         t.start();
-        NatsMessage msg = q.pop(Duration.ZERO);
+        NatsMessage msg = q.pop(0L, TimeUnit.MILLISECONDS);
         assertNull(msg);
 
         NatsMessage expected = getTestMessage();
         q.push(expected);
 
-        msg = q.pop(Duration.ZERO);
+        msg = q.pop(0L, TimeUnit.MILLISECONDS);
         assertNull(msg); // Haven't reset yet
 
         q.resume();
-        msg = q.pop(null);
+        msg = q.pop(null, TimeUnit.MILLISECONDS);
         assertEquals(expected, msg);
     }
 
@@ -108,13 +108,13 @@ public class MessageQueueTests {
             q.drain();
         });
         t.start();
-        NatsMessage msg = q.pop(Duration.ZERO);
+        NatsMessage msg = q.pop(0L, TimeUnit.MILLISECONDS);
         assertNull(msg);
 
         NatsMessage expected = getTestMessage();
         q.push(expected);
 
-        msg = q.pop(Duration.ZERO);
+        msg = q.pop(0L, TimeUnit.MILLISECONDS);
         assertEquals(expected, msg);
     }
 
@@ -137,7 +137,7 @@ public class MessageQueueTests {
             threads[i].join();
         }
 
-        validateAccumulate(100, q.accumulate(-1, 101, Duration.ofMillis(500)));
+        validateAccumulate(100, q.accumulate(-1, 101, 500L));
     }
 
     @Test
@@ -155,7 +155,7 @@ public class MessageQueueTests {
             threads[i] = new Thread(() -> {
                 try {
                     do {
-                        if (q.pop(Duration.ofMillis(500)) == null) {
+                        if (q.pop(500L, TimeUnit.MILLISECONDS) == null) {
                             return;
                         }
                         allCount.incrementAndGet();
@@ -249,7 +249,7 @@ public class MessageQueueTests {
         assertEquals(2, q.length());
         q.push(msg3);
         assertEquals(3, q.length());
-        q.accumulate(-1, 1, Duration.ofMillis(500));
+        q.accumulate(-1, 1, 500L);
         assertEquals(2, q.length());
         q.accumulate(-1, 100, null);
         assertEquals(0, q.length());
@@ -357,7 +357,7 @@ public class MessageQueueTests {
         assertEquals(2, q.length());
         assertEquals(sizeAfter, q.sizeInBytes());
 
-        NatsMessage head = q.accumulate(-1, 3, Duration.ofMillis(500));
+        NatsMessage head = q.accumulate(-1, 3, 500L);
         if (filtered != 1) {
             assertEquals(msg1, head);
             head = head.next;
@@ -404,7 +404,7 @@ public class MessageQueueTests {
 
     @Test
     public void testDiscardMessageWhenQueueFull() throws InterruptedException {
-        WriterMessageQueue q = new WriterMessageQueue(2, true, Duration.ofMillis(500));
+        WriterMessageQueue q = new WriterMessageQueue(2, true, 500);
         NatsMessage msg1 = getTestMessage();
         NatsMessage msg2 = getTestMessage();
         NatsMessage msg3 = getTestMessage();
@@ -471,7 +471,7 @@ public class MessageQueueTests {
         assertTrue(q.isDraining());
         assertFalse(q.isDrained());
 
-        q.accumulate(-1, 1, Duration.ofSeconds(1));
+        q.accumulate(-1, 1, 1000L);
         assertTrue(q.isRunning()); // still running while draining
         assertFalse(q.isPaused());
         assertTrue(q.isDraining());
@@ -505,7 +505,7 @@ public class MessageQueueTests {
         assertTrue(q.isDraining());
         assertFalse(q.isDrained());
 
-        q.pop(null);
+        q.pop(null, TimeUnit.MILLISECONDS);
         assertTrue(q.isRunning()); // still running while draining
         assertFalse(q.isPaused());
         assertTrue(q.isDraining());

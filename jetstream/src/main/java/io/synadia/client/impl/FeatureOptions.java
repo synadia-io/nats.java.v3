@@ -1,7 +1,5 @@
 package io.synadia.client.impl;
 
-import java.time.Duration;
-
 /**
  * The FeatureOptions is a base class of general options for features.
  */
@@ -57,12 +55,12 @@ public abstract class FeatureOptions {
         }
 
         /**
-         * Sets the request timeout for JetStream API calls.
-         * @param requestTimeout the duration to wait for responses.
+         * Sets the request timeout in milliseconds for JetStream API calls.
+         * @param millis the milliseconds to wait for responses.
          * @return the builder
          */
-        public B jsRequestTimeout(Duration requestTimeout) {
-            jsoBuilder.requestTimeout(requestTimeout);
+        public B jsRequestTimeout(long millis) {
+            jsoBuilder.requestTimeout(millis);
             return getThis();
         }
 

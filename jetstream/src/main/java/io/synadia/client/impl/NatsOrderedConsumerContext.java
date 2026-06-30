@@ -7,7 +7,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.time.Duration;
 
 /**
  * Implementation of Ordered Consumer Context
@@ -54,17 +53,8 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @Nullable
-    public Message next(@Nullable Duration maxWait) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
+    public Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
         return impl.next(maxWait);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @Nullable
-    public Message next(long maxWaitMillis) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
-        return impl.next(maxWaitMillis);
     }
 
     /**

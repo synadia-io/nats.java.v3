@@ -1,9 +1,8 @@
 package io.synadia.client;
 
-import io.synadia.client.impl.SocketDataPort;
+import io.synadia.client.impl.SocketDataPortWithWriteTimeout;
 import io.synadia.client.utils.NatsConstants;
 
-import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -34,57 +33,58 @@ public interface OptionsConstants {
      * Default wait time before attempting reconnection to the same server.
      * This property is defined as 2000 milliseconds (2 seconds).
      */
-    long DEFAULT_RECONNECT_WAIT_MILLIS = 2_000L;
+    long DEFAULT_RECONNECT_WAIT = 2_000L;
 
     /**
      * Default reconnect jitter. Defined as 100 milliseconds.
      */
-    long DEFAULT_RECONNECT_JITTER_MILLIS = 100L;
+    long DEFAULT_RECONNECT_JITTER = 100L;
 
     /**
      * Default reconnect jitter for TLS. Defined as 1000 milliseconds (1 second).
      */
-    long DEFAULT_RECONNECT_JITTER_TLS_MILLIS = 1_000L;
+    long DEFAULT_RECONNECT_JITTER_TLS = 1_000L;
 
     /**
-     * Default connection timeout. Defined as 2 seconds.
+     * Default connection timeout. Defined as 2000 milliseconds (2 seconds).
      */
-    Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(2);
+    long DEFAULT_CONNECTION_TIMEOUT = 2_000L;
 
     /**
-     * Default socket write timeout. Defined as 1 minute.
+     * Default socket write timeout in milliseconds (1 minute).
      */
-    Duration DEFAULT_SOCKET_WRITE_TIMEOUT = Duration.ofMinutes(1);
+    long DEFAULT_SOCKET_WRITE_TIMEOUT = 60_000L;
 
     /**
-     * Set to 100 nanos to ensure that the scheduled task can execute.
+     * The minimum socket write timeout in milliseconds when enabled.
+     * A configured value below this (including {@code <= 0}) disables the write timeout.
      */
-    long MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS = 100;
+    long MINIMUM_SOCKET_WRITE_TIMEOUT = 1;
 
     /**
      * Default server ping interval. The client will send a ping to the server on this interval to insure liveness.
      * <p>A value of {@code <=0} means disabled.</p>
-     * <p>Defined as 2 minutes.</p>
+     * <p>Defined as 120000 milliseconds (2 minutes).</p>
      */
-    Duration DEFAULT_PING_INTERVAL = Duration.ofMinutes(2);
+    long DEFAULT_PING_INTERVAL = 120_000L;
 
     /**
      * Default interval to clean up cancelled/timed out requests.
-     * <p>Defined as 5 seconds.</p>
+     * <p>Defined as 5000 milliseconds (5 seconds).</p>
      */
-    Duration DEFAULT_REQUEST_CLEANUP_INTERVAL = Duration.ofSeconds(5);
+    long DEFAULT_REQUEST_CLEANUP_INTERVAL = 5000L;
 
     /**
      * Default amount of time to try to add something to the outgoing queue.
-     * <p>Defined as 2 seconds.</p>
+     * <p>Defined as 2000 milliseconds (2 seconds).</p>
      */
-    Duration DEFAULT_WRITE_QUEUE_PUSH_TIMEOUT = Duration.ofSeconds(2);
+    long DEFAULT_WRITE_QUEUE_PUSH_TIMEOUT = 2000L;
 
     /**
      * The minimum amount of time to try to add something to the outgoing queue.
      * <p>Defined as 50 milliseconds.</p>
      */
-    Duration MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT = Duration.ofMillis(50);
+    long MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT = 50;
 
     /**
      * Default maximum number of pings without a response allowed by the client.
@@ -115,7 +115,7 @@ public interface OptionsConstants {
      * <p><em>This option is currently provided only for testing and experimentation; the default
      * should be used in almost all cases.</em></p>
      */
-    String DEFAULT_DATA_PORT_TYPE = SocketDataPort.class.getCanonicalName();
+    String DEFAULT_DATA_PORT_TYPE = SocketDataPortWithWriteTimeout.class.getCanonicalName();
 
     /**
      * Default size for buffers in the connection.

@@ -299,7 +299,7 @@ public class JetStream extends JetStreamImpl {
             data = sData.getBytes(jso.getDefaultCharset());
         }
 
-        Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout(), CancelAction.COMPLETE);
+        Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout());
         return processPublishResponse(resp);
     }
 
@@ -310,7 +310,7 @@ public class JetStream extends JetStreamImpl {
             data = sData.getBytes(jso.getDefaultCharset());
         }
 
-        CompletableFuture<Message> future = conn.requestAsync(subject, merged, data, null, CancelAction.COMPLETE);
+        CompletableFuture<Message> future = conn.requestAsync(subject, merged, data, -1, CancelAction.COMPLETE, conn.isForceFlushOnRequest());
 
         return future.thenCompose(resp -> {
             try {
@@ -426,7 +426,7 @@ public class JetStream extends JetStreamImpl {
         }
 
         if (handler == null) {
-            return conn.createSubscription(inbox, cc.getDeliverGroup(), null, subFactory);
+            return conn.createSubscriptionInternal(inbox, cc.getDeliverGroup(), null, subFactory);
         }
 
         AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler, cc);

@@ -118,7 +118,7 @@ public class DefaultReconnectDelayHandlerTests {
         Options o = new OptionsBuilder()
             .reconnectWait(0L)
             .reconnectJitter(10L)
-            .reconnectJitterTls(10_000L)
+            .reconnectJitterTls(10000L)
             .build();
         // Run many times and at least one secure=true draw should exceed the non-TLS jitter ceiling.
         long maxSecure = 0L;

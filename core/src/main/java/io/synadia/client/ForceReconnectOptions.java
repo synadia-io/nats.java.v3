@@ -1,7 +1,5 @@
 package io.synadia.client;
 
-import java.time.Duration;
-
 /**
  * The PublishOptions class specifies the options for publishing with JetStream enabled servers.
  * Options are created using a {@link ForceReconnectOptions.Builder Builder}.
@@ -19,7 +17,7 @@ public class ForceReconnectOptions {
     public static final ForceReconnectOptions FORCE_CLOSE_INSTANCE = ForceReconnectOptions.builder().forceClose().build();
 
     private final boolean forceClose;
-    private final Duration flushWait;
+    private final long flushWait;
 
     private ForceReconnectOptions(Builder b) {
         this.forceClose = b.forceClose;
@@ -39,14 +37,14 @@ public class ForceReconnectOptions {
      * @return the flag
      */
     public boolean isFlush() {
-        return flushWait != null;
+        return flushWait > 0;
     }
 
     /**
-     * Get the flush wait setting
-     * @return the duration
+     * Get the flush wait setting, in milliseconds
+     * @return the flush wait in milliseconds, or 0 if there is no flush wait
      */
-    public Duration getFlushWait() {
+    public long getFlushWait() {
         return flushWait;
     }
 
@@ -63,7 +61,7 @@ public class ForceReconnectOptions {
      */
     public static class Builder {
         boolean forceClose = false;
-        Duration flushWait;
+        long flushWait;
 
         /**
          * Constructs a new Builder with the default values.
@@ -83,28 +81,11 @@ public class ForceReconnectOptions {
          * if supplied and at least 1 millisecond, the forceReconnect will try to
          * flush before closing for the specified wait time. Flush happens before close
          * so not affected by forceClose option
-         * @param flushWait the flush wait duraton
+         * @param millis the flush wait millis; less than 1 means no flush
          * @return the builder
          */
-        public Builder flush(Duration flushWait) {
-            this.flushWait = flushWait == null || flushWait.toMillis() < 1 ? null : flushWait;
-            return this;
-        }
-
-        /**
-         * if supplied and at least 1 millisecond, the forceReconnect will try to
-         * flush before closing for the specified wait time. Flush happens before close
-         * so not affected by forceClose option
-         * @param flushWaitMillis the flush wait millis
-         * @return the builder
-         */
-        public Builder flush(long flushWaitMillis) {
-            if (flushWaitMillis > 0) {
-                this.flushWait = Duration.ofMillis(flushWaitMillis);
-            }
-            else {
-                this.flushWait = null;
-            }
+        public Builder flush(long millis) {
+            this.flushWait = millis > 0 ? millis : 0;
             return this;
         }
 

@@ -38,7 +38,7 @@ public class NatsServerPool implements ServerPool {
         options = opts;
 
         // 2. maxConnectAttempts accounts for the first connect attempt and also reconnect attempts
-        maxConnectAttempts = options.getMaxReconnect() < 0 ? Integer.MAX_VALUE : options.getMaxReconnect() + 1;
+        maxConnectAttempts = options.getMaxReconnects() < 0 ? Integer.MAX_VALUE : options.getMaxReconnects() + 1;
 
         // 3. Add all the bootstrap to the server list and prepare list for next
         //    FYI bootstrap will always have at least the default url

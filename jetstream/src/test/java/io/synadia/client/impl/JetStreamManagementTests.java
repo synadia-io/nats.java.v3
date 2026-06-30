@@ -688,7 +688,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream, cc);
             assertTrue(ci.getPaused());
             assertNotNull(ci.getPauseRemaining());
-            assertTrue(ci.getPauseRemaining().toMillis() > 60_000);
+            assertTrue(ci.getPauseRemaining().toMillis() > 60000);
             assertEquals(pauseUntil, ci.getConsumerConfiguration().getPauseUntil());
         });
     }
@@ -712,7 +712,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             ci = ctx.jsm.getConsumerInfo(ctx.stream, ci.getName());
             assertTrue(ci.getPaused());
             assertNotNull(ci.getPauseRemaining());
-            assertTrue(ci.getPauseRemaining().toMillis() > 60_000);
+            assertTrue(ci.getPauseRemaining().toMillis() > 60000);
 
             // resume consumer
             boolean isResumed = ctx.jsm.resumeConsumer(ctx.stream, ci.getName());
@@ -1298,10 +1298,10 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             JetStreamPullSubscription sub = ctx.js.pullSubscribe(ci);
             ctx.jsm.deleteConsumer(ctx.stream, ci.getName());
             sub.pull(5);
-            validate1026(sub.nextMessage(500), listener, false);
+            validate1026(sub.nextMessage(500L), listener, false);
 
             ConsumerContext context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
-            validate1026(context.next(1000), listener, true); // simplification next never raises warnings, so empty = true
+            validate1026(context.next(1000L), listener, true); // simplification next never raises warnings, so empty = true
 
             context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
             //noinspection resource
@@ -1315,12 +1315,12 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
             context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
             try (IterableMessageConsumer ic = context.iterate(ConsumeOptions.builder().raiseStatusWarnings(false).build())) {
-                validate1026(ic.nextMessage(1000), listener, true); // we said not to raise status warnings in the ConsumeOptions
+                validate1026(ic.nextMessage(1000L), listener, true); // we said not to raise status warnings in the ConsumeOptions
             }
 
             context = setupFor1026Simplification(ctx, listener, ctx.stream, subject);
             try (IterableMessageConsumer ic = context.iterate(ConsumeOptions.builder().raiseStatusWarnings().build())) {
-                validate1026(ic.nextMessage(1000), listener, false); // we said raise status warnings in the ConsumeOptions
+                validate1026(ic.nextMessage(1000L), listener, false); // we said raise status warnings in the ConsumeOptions
             }
 
             AtomicInteger count = new AtomicInteger();
@@ -1460,7 +1460,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
                 while (m != null) {
                     assertEquals(seq, m.metaData().streamSequence());
                     if (seq++ <= 5) {
-                        m.ackSync(Duration.ofSeconds(1));
+                        m.ackSync(1000);
                     }
                     m = fc.nextMessage();
                 }
@@ -1483,7 +1483,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
                 while (m != null) {
                     assertEquals(seq, m.metaData().streamSequence());
                     if (seq++ <= 10) {
-                        m.ackSync(Duration.ofSeconds(1));
+                        m.ackSync(1000);
                     }
                     m = fc.nextMessage();
                 }
@@ -1504,7 +1504,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
                 Message m = fc.nextMessage();
                 while (m != null) {
                     assertEquals(seq++, m.metaData().streamSequence());
-                    m.ackSync(Duration.ofSeconds(1));
+                    m.ackSync(1000);
                     m = fc.nextMessage();
                 }
             }

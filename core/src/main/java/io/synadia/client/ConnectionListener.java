@@ -13,8 +13,8 @@ public interface ConnectionListener {
      * use the event type to decide what to do about the problem.
      * @param conn the connection associated with the error
      * @param type the type of event that has occurred
-     * @param time the time of the event, milliseconds since 1/1/1970
+     * @param date the time of the event, in milliseconds since January 1, 1970, 00:00:00 GMT (matching {@link java.util.Date#Date(long)})
      * @param uriDetails extra details about the uri related to this connection event
      */
-    void connectionEvent(NatsConnection conn, ConnectionEvents type, Long time, String uriDetails);
+    void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails);
 }

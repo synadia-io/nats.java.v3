@@ -160,7 +160,7 @@ public class AuthTests extends TestBase {
             sub = nc.subscribe("test");
             nc.publish("test", null);
             flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
-            Message msg = sub.nextMessage(Duration.ofSeconds(5));
+            Message msg = sub.nextMessage(5000L);
             assertNotNull(msg);
 
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
@@ -178,7 +178,7 @@ public class AuthTests extends TestBase {
             nc.publish("test", null);
 //            flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(5));
+            Message msg = sub.nextMessage(5000L);
             assertNotNull(msg);
 
             closeAndConfirm(nc);
@@ -219,7 +219,7 @@ public class AuthTests extends TestBase {
             sub = nc.subscribe("test");
             nc.publish("test", null);
             flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
-            Message msg = sub.nextMessage(Duration.ofSeconds(5));
+            Message msg = sub.nextMessage(5000L);
             assertNotNull(msg);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         }
@@ -237,7 +237,7 @@ public class AuthTests extends TestBase {
             confirmConnected(nc); // wait for reconnect
             nc.publish("test", null);
             flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
-            Message msg = sub.nextMessage(Duration.ofSeconds(5));
+            Message msg = sub.nextMessage(5000L);
             assertNotNull(msg);
             closeAndConfirm(nc);
         }
@@ -256,7 +256,7 @@ public class AuthTests extends TestBase {
                 .maxReconnects(4)
                 .noRandomize()
                 .connectionListener(listener)
-                .pingInterval(Duration.ofMillis(100))
+                .pingInterval(100)
                 .build();
 
             try (NatsConnection nc = managedConnect(options)) {
@@ -282,7 +282,7 @@ public class AuthTests extends TestBase {
                 .maxReconnects(4)
                 .noRandomize()
                 .connectionListener(listener)
-                .pingInterval(Duration.ofMillis(100)).build();
+                .pingInterval(100).build();
             try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
 
@@ -308,7 +308,7 @@ public class AuthTests extends TestBase {
                 .maxReconnects(4)
                 .noRandomize()
                 .connectionListener(listener)
-                .pingInterval(Duration.ofMillis(100))
+                .pingInterval(100)
                 .build();
             try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
@@ -336,7 +336,7 @@ public class AuthTests extends TestBase {
                 .maxReconnects(4)
                 .noRandomize()
                 .connectionListener(listener)
-                .pingInterval(Duration.ofMillis(100))
+                .pingInterval(100)
                 .build();
 
             try (NatsConnection nc = managedConnect(options)) {
@@ -539,7 +539,7 @@ public class AuthTests extends TestBase {
                 Listener listener = new Listener();
                 Options options = optionsBuilder(ts1.getServerUri(), ts2.getServerUri())
                     .maxReconnects(-1)
-                    .connectionTimeout(Duration.ofSeconds(2))
+                    .connectionTimeout(2000)
                     .connectionListener(listener)
                     .noRandomize()
                     .authHandler(getUserCredsAuthHander())
@@ -574,8 +574,8 @@ public class AuthTests extends TestBase {
                 Options options = optionsBuilder(server1, server2)
                     .noRandomize()
                     .maxReconnects(-1)
-                    .connectionTimeout(Duration.ofSeconds(5))
-                    .reconnectWait(1_000L) // wait a tad to allow restarts
+                    .connectionTimeout(5000)
+                    .reconnectWait(1000L) // wait a tad to allow restarts
                     .authHandler(getUserCredsAuthHander())
                     .build();
                 NatsConnection nc = managedConnect(options);

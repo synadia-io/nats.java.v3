@@ -12,11 +12,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.client.OptionsConstants.DEFAULT_SOCKET_WRITE_TIMEOUT;
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
 /**
  * This class is not thread-safe.  Caller must ensure thread safety.
  */
-@SuppressWarnings("ClassEscapesDefinedScope") // NatsConnection
 public class SocketDataPortWithWriteTimeout extends SocketDataPort {
 
     private long writeTimeoutNanos;
@@ -31,9 +31,8 @@ public class SocketDataPortWithWriteTimeout extends SocketDataPort {
     @Override
     public void afterConstruct(@NonNull Options options) {
         super.afterConstruct(options);
-        writeTimeoutNanos = options.getSocketWriteTimeout() == null
-            ? DEFAULT_SOCKET_WRITE_TIMEOUT.toNanos()
-            : options.getSocketWriteTimeout().toNanos();
+        long millis = options.getSocketWriteTimeout();
+        writeTimeoutNanos = (millis <= 0 ? DEFAULT_SOCKET_WRITE_TIMEOUT : millis) * NANOS_PER_MILLI;
         delayPeriodNanos = writeTimeoutNanos * 51 / 100;
     }
 

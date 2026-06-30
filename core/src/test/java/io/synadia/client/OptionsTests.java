@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,13 +72,13 @@ public class OptionsTests extends TestBase {
 
         assertNull(o.getSslContext(), "default ssl context");
 
-        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnect(), "default max reconnect");
+        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnects(), "default max reconnect");
         assertEquals(DEFAULT_MAX_PINGS_OUT, o.getMaxPingsOut(), "default ping max");
         assertEquals(DEFAULT_RECONNECT_BUF_SIZE, o.getReconnectBufferSize(), "default reconnect buffer size");
         assertEquals(DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE, o.getMaxMessagesInOutgoingQueue(),
             "default max messages in outgoing queue");
 
-        assertEquals(DEFAULT_RECONNECT_WAIT_MILLIS, o.getReconnectWaitMillis(), "default reconnect wait");
+        assertEquals(DEFAULT_RECONNECT_WAIT, o.getReconnectWait(), "default reconnect wait");
         assertEquals(DEFAULT_CONNECTION_TIMEOUT, o.getConnectionTimeout(), "default connection timeout");
         assertEquals(DEFAULT_PING_INTERVAL, o.getPingInterval(), "default ping interval");
         assertEquals(DEFAULT_REQUEST_CLEANUP_INTERVAL, o.getRequestCleanupInterval(),
@@ -162,7 +161,7 @@ public class OptionsTests extends TestBase {
 
     private static void _testChainedIntOptions(Options o) {
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertEquals(100, o.getMaxReconnect(), "chained max reconnect");
+        assertEquals(100, o.getMaxReconnects(), "chained max reconnect");
         assertEquals(200, o.getMaxPingsOut(), "chained ping max");
         assertEquals(300, o.getReconnectBufferSize(), "chained reconnect buffer size");
         assertEquals(400, o.getMaxControlLine(), "chained max control line");
@@ -172,8 +171,8 @@ public class OptionsTests extends TestBase {
     @Test
     public void testChainedDurationOptions() {
         Options o = new OptionsBuilder().reconnectWait(101L)
-            .connectionTimeout(Duration.ofMillis(202)).pingInterval(Duration.ofMillis(303))
-            .requestCleanupInterval(Duration.ofMillis(404))
+            .connectionTimeout(202).pingInterval(303)
+            .requestCleanupInterval(404)
             .reconnectJitter(505L)
             .reconnectJitterTls(606L)
             .build();
@@ -183,12 +182,12 @@ public class OptionsTests extends TestBase {
 
     private static void _testChainedDurationOptions(Options o) {
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertEquals(101L, o.getReconnectWaitMillis(), "chained reconnect wait");
-        assertEquals(Duration.ofMillis(202), o.getConnectionTimeout(), "chained connection timeout");
-        assertEquals(Duration.ofMillis(303), o.getPingInterval(), "chained ping interval");
-        assertEquals(Duration.ofMillis(404), o.getRequestCleanupInterval(), "chained cleanup interval");
-        assertEquals(505L, o.getReconnectJitterMillis(), "chained reconnect jitter");
-        assertEquals(606L, o.getReconnectJitterTlsMillis(), "chained cleanup jitter tls");
+        assertEquals(101L, o.getReconnectWait(), "chained reconnect wait");
+        assertEquals(202, o.getConnectionTimeout(), "chained connection timeout");
+        assertEquals(303, o.getPingInterval(), "chained ping interval");
+        assertEquals(404, o.getRequestCleanupInterval(), "chained cleanup interval");
+        assertEquals(505L, o.getReconnectJitter(), "chained reconnect jitter");
+        assertEquals(606L, o.getReconnectJitterTls(), "chained cleanup jitter tls");
     }
 
     @Test
@@ -214,7 +213,7 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_RECONNECT_WAIT, "" + (15 * MINUTE));
         props.setProperty(PROP_RECONNECT_JITTER, "" + (2 * DAY + 3 * HOUR + 4 * MINUTE));
         props.setProperty(PROP_RECONNECT_JITTER_TLS, "" + DAY);
-        props.setProperty(PROP_RECONNECT_BUF_SIZE, "1234567");
+        props.setProperty(PROP_RECONNECT_BUFFER_SIZE, "1234567");
         _testLongProperties(new OptionsBuilder(props).build());
 
         // negative values are silently skipped — defaults survive
@@ -222,26 +221,27 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_RECONNECT_WAIT, "-1");
         props.setProperty(PROP_RECONNECT_JITTER, "-1");
         props.setProperty(PROP_RECONNECT_JITTER_TLS, "-1");
-        props.setProperty(PROP_RECONNECT_BUF_SIZE, "-1");
+        props.setProperty(PROP_RECONNECT_BUFFER_SIZE, "-1");
         Options o = new OptionsBuilder(props).build();
-        assertEquals(DEFAULT_RECONNECT_WAIT_MILLIS, o.getReconnectWaitMillis());
-        assertEquals(DEFAULT_RECONNECT_JITTER_MILLIS, o.getReconnectJitterMillis());
-        assertEquals(DEFAULT_RECONNECT_JITTER_TLS_MILLIS, o.getReconnectJitterTlsMillis());
+        assertEquals(DEFAULT_RECONNECT_WAIT, o.getReconnectWait());
+        assertEquals(DEFAULT_RECONNECT_JITTER, o.getReconnectJitter());
+        assertEquals(DEFAULT_RECONNECT_JITTER_TLS, o.getReconnectJitterTls());
         assertEquals(DEFAULT_RECONNECT_BUF_SIZE, o.getReconnectBufferSize());
 
-        // non-numeric values throw NumberFormatException at build time
-        for (String key : new String[]{PROP_RECONNECT_WAIT, PROP_RECONNECT_JITTER, PROP_RECONNECT_JITTER_TLS, PROP_RECONNECT_BUF_SIZE}) {
+        // non-numeric values throw at build time: IllegalArgumentException (millisProperty) or its
+        // NumberFormatException subclass (longGtEqZeroProperty) — assert the common parent type.
+        for (String key : new String[]{PROP_RECONNECT_WAIT, PROP_RECONNECT_JITTER, PROP_RECONNECT_JITTER_TLS, PROP_RECONNECT_BUFFER_SIZE}) {
             Properties bad = new Properties();
             bad.setProperty(key, "not-a-number");
-            assertThrows(NumberFormatException.class, () -> new OptionsBuilder(bad).build(),
-                "expected NumberFormatException for non-numeric " + key);
+            assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder(bad).build(),
+                "expected IllegalArgumentException for non-numeric " + key);
         }
     }
 
     private static void _testLongProperties(Options o) {
-        assertEquals(15 * MINUTE, o.getReconnectWaitMillis());
-        assertEquals(2 * DAY + 3 * HOUR + 4 * MINUTE, o.getReconnectJitterMillis());
-        assertEquals(DAY, o.getReconnectJitterTlsMillis());
+        assertEquals(15 * MINUTE, o.getReconnectWait());
+        assertEquals(2 * DAY + 3 * HOUR + 4 * MINUTE, o.getReconnectJitter());
+        assertEquals(DAY, o.getReconnectJitterTls());
         assertEquals(1234567L, o.getReconnectBufferSize());
     }
 
@@ -252,15 +252,15 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_CONNECTION_TIMEOUT, "42000");
         props.setProperty(PROP_SOCKET_WRITE_TIMEOUT, "42123");
         props.setProperty(PROP_PING_INTERVAL, "20345");
-        props.setProperty(PROP_CLEANUP_INTERVAL, "" + (10 * HOUR));
+        props.setProperty(PROP_REQUEST_CLEANUP_INTERVAL, "" + (10 * HOUR));
         _testDurationProperties(new OptionsBuilder(props).build());
 
-        // test duration strings
+        // test ISO-8601 duration strings (accepted, converted to millis)
         props = new Properties();
         props.setProperty(PROP_CONNECTION_TIMEOUT, "PT42S");
-        props.setProperty(PROP_SOCKET_WRITE_TIMEOUT, "PT42.123S");
+        props.setProperty(PROP_SOCKET_WRITE_TIMEOUT, "PT42.123S"); // now millis like the others — ISO-8601 accepted, = 42123 ms
         props.setProperty(PROP_PING_INTERVAL, "PT20.345S");
-        props.setProperty(PROP_CLEANUP_INTERVAL, "PT10H");
+        props.setProperty(PROP_REQUEST_CLEANUP_INTERVAL, "PT10H");
         _testDurationProperties(new OptionsBuilder(props).build());
 
         // test negative value gives default
@@ -269,10 +269,10 @@ public class OptionsTests extends TestBase {
         Options o = new OptionsBuilder(props).build();
         assertEquals(DEFAULT_CONNECTION_TIMEOUT, o.getConnectionTimeout());
 
-        // test parse error
+        // test parse error (neither a millis number nor an ISO-8601 duration)
         Properties px1 = new Properties();
         px1.setProperty(PROP_CONNECTION_TIMEOUT, "A");
-        assertThrows(NumberFormatException.class, () -> new OptionsBuilder(px1).build());
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder(px1).build());
     }
 
     private static final long MINUTE = 1000 * 60;
@@ -280,10 +280,10 @@ public class OptionsTests extends TestBase {
     private static final long DAY = HOUR * 24;
 
     private static void _testDurationProperties(Options o) {
-        assertEquals(42000, o.getConnectionTimeout().toMillis());
-        assertEquals(42123, o.getSocketWriteTimeout().toMillis());
-        assertEquals(20345, o.getPingInterval().toMillis());
-        assertEquals(10 * HOUR, o.getRequestCleanupInterval().toMillis());
+        assertEquals(42000, o.getConnectionTimeout());
+        assertEquals(42123, o.getSocketWriteTimeout());
+        assertEquals(20345, o.getPingInterval());
+        assertEquals(10 * HOUR, o.getRequestCleanupInterval());
     }
 
     @Test
@@ -304,20 +304,20 @@ public class OptionsTests extends TestBase {
         o = new OptionsBuilder()
             .maxReconnects(42)
             .reconnectBufferSize(43)
-            .socketReadTimeoutMillis(44)
+            .socketReadTimeout(44)
             .socketSoLinger(45)
-            .receiveBufferSize(46)
-            .sendBufferSize(47)
+            .socketReceiveBufferSize(46)
+            .socketSendBufferSize(47)
             .maxControlLine(48)
             .maxPingsOut(49)
             .maxMessagesInOutgoingQueue(50)
             .reconnectWait(73L)
             .reconnectJitter(74L)
             .reconnectJitterTls(75L)
-            .connectionTimeout(Duration.ofMillis(76))
-            .socketWriteTimeout(Duration.ofMillis(77))
-            .pingInterval(Duration.ofMillis(78))
-            .requestCleanupInterval(Duration.ofMillis(79))
+            .connectionTimeout(76)
+            .socketWriteTimeout(7700) // millis
+            .pingInterval(78)
+            .requestCleanupInterval(79)
             .properties(props)
             .build();
         _testNonDefaultNotOverridden(o);
@@ -337,43 +337,43 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_CONNECTION_TIMEOUT, "-1");
         props.setProperty(PROP_SOCKET_WRITE_TIMEOUT, "-1");
         props.setProperty(PROP_PING_INTERVAL, "-1");
-        props.setProperty(PROP_CLEANUP_INTERVAL, "-1");
+        props.setProperty(PROP_REQUEST_CLEANUP_INTERVAL, "-1");
         return props;
     }
 
     private static void _testNonDefaultNotOverridden(Options o) {
-        assertEquals(42, o.getMaxReconnect());
+        assertEquals(42, o.getMaxReconnects());
         assertEquals(43, o.getReconnectBufferSize());
-        assertEquals(44, o.getSocketReadTimeoutMillis());
+        assertEquals(44, o.getSocketReadTimeout());
         assertEquals(45, o.getSocketSoLinger());
-        assertEquals(46, o.getReceiveBufferSize());
-        assertEquals(47, o.getSendBufferSize());
+        assertEquals(46, o.getSocketReceiveBufferSize());
+        assertEquals(47, o.getSocketSendBufferSize());
         assertEquals(48, o.getMaxControlLine());
         assertEquals(49, o.getMaxPingsOut());
         assertEquals(50, o.getMaxMessagesInOutgoingQueue());
-        assertEquals(73L, o.getReconnectWaitMillis());
-        assertEquals(74L, o.getReconnectJitterMillis());
-        assertEquals(75L, o.getReconnectJitterTlsMillis());
-        assertEquals(Duration.ofMillis(76), o.getConnectionTimeout());
-        assertEquals(Duration.ofMillis(77), o.getSocketWriteTimeout());
-        assertEquals(Duration.ofMillis(78), o.getPingInterval());
-        assertEquals(Duration.ofMillis(79), o.getRequestCleanupInterval());
+        assertEquals(73L, o.getReconnectWait());
+        assertEquals(74L, o.getReconnectJitter());
+        assertEquals(75L, o.getReconnectJitterTls());
+        assertEquals(76, o.getConnectionTimeout());
+        assertEquals(7700, o.getSocketWriteTimeout());
+        assertEquals(78, o.getPingInterval());
+        assertEquals(79, o.getRequestCleanupInterval());
     }
 
     private static void _testDefaultNotOverridden(Options o) {
-        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnect());
+        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnects());
         assertEquals(DEFAULT_RECONNECT_BUF_SIZE, o.getReconnectBufferSize());
-        assertEquals(0, o.getSocketReadTimeoutMillis());
+        assertEquals(0, o.getSocketReadTimeout());
         assertEquals(-1, o.getSocketSoLinger());
-        assertEquals(-1, o.getReceiveBufferSize());
-        assertEquals(-1, o.getSendBufferSize());
-        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnect());
+        assertEquals(-1, o.getSocketReceiveBufferSize());
+        assertEquals(-1, o.getSocketSendBufferSize());
+        assertEquals(DEFAULT_MAX_RECONNECT, o.getMaxReconnects());
         assertEquals(DEFAULT_MAX_CONTROL_LINE, o.getMaxControlLine());
         assertEquals(DEFAULT_MAX_PINGS_OUT, o.getMaxPingsOut());
         assertEquals(DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE, o.getMaxMessagesInOutgoingQueue());
-        assertEquals(DEFAULT_RECONNECT_WAIT_MILLIS, o.getReconnectWaitMillis());
-        assertEquals(DEFAULT_RECONNECT_JITTER_MILLIS, o.getReconnectJitterMillis());
-        assertEquals(DEFAULT_RECONNECT_JITTER_TLS_MILLIS, o.getReconnectJitterTlsMillis());
+        assertEquals(DEFAULT_RECONNECT_WAIT, o.getReconnectWait());
+        assertEquals(DEFAULT_RECONNECT_JITTER, o.getReconnectJitter());
+        assertEquals(DEFAULT_RECONNECT_JITTER_TLS, o.getReconnectJitterTls());
         assertEquals(DEFAULT_CONNECTION_TIMEOUT, o.getConnectionTimeout());
         assertEquals(DEFAULT_SOCKET_WRITE_TIMEOUT, o.getSocketWriteTimeout());
         assertEquals(DEFAULT_PING_INTERVAL, o.getPingInterval());
@@ -492,15 +492,15 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_USERNAME, "user");
 
         // intProperty
-        props.setProperty(PROP_MAX_RECONNECT, "10");
+        props.setProperty(PROP_MAX_RECONNECTS, "10");
 
         // intGtEqZeroProperty
         props.setProperty(PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, "11");
 
         // longProperty
-        props.setProperty(PROP_RECONNECT_BUF_SIZE, "2999999999");
+        props.setProperty(PROP_RECONNECT_BUFFER_SIZE, "2999999999");
 
-        // durationProperty
+        // millisProperty
         props.setProperty(PROP_PING_INTERVAL, "1000");
 
         // classnameProperty
@@ -563,10 +563,10 @@ public class OptionsTests extends TestBase {
         assertEquals("name", o.getConnectionName());
         assertNotNull(o.getUsername());
         assertEquals("user", new String(o.getUsername()));
-        assertEquals(10, o.getMaxReconnect());
+        assertEquals(10, o.getMaxReconnects());
         assertEquals(11, o.getMaxMessagesInOutgoingQueue());
         assertEquals(2999999999L, o.getReconnectBufferSize());
-        assertEquals(1000, o.getPingInterval().toMillis());
+        assertEquals(1000, o.getPingInterval());
         assertNotNull(o.getAuthHandler());
         assertNotNull(o.getServerPool());
         assertInstanceOf(CoverageServerPool.class, o.getServerPool());
@@ -598,9 +598,9 @@ public class OptionsTests extends TestBase {
     @Test
     public void testPropertyIntOptions() {
         Properties props = new Properties();
-        props.setProperty(PROP_MAX_RECONNECT, "100");
-        props.setProperty(PROP_MAX_PINGS, "200");
-        props.setProperty(PROP_RECONNECT_BUF_SIZE, "300");
+        props.setProperty(PROP_MAX_RECONNECTS, "100");
+        props.setProperty(PROP_MAX_PINGS_OUT, "200");
+        props.setProperty(PROP_RECONNECT_BUFFER_SIZE, "300");
         props.setProperty(PROP_MAX_CONTROL_LINE, "400");
         props.setProperty(PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, "500");
 
@@ -611,7 +611,7 @@ public class OptionsTests extends TestBase {
 
     private static void _testPropertyIntOptions(Options o) {
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertEquals(100, o.getMaxReconnect(), "property max reconnect");
+        assertEquals(100, o.getMaxReconnects(), "property max reconnect");
         assertEquals(200, o.getMaxPingsOut(), "property ping max");
         assertEquals(300, o.getReconnectBufferSize(), "property reconnect buffer size");
         assertEquals(400, o.getMaxControlLine(), "property max control line");
@@ -626,7 +626,7 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_RECONNECT_JITTER_TLS, "-1");
         props.setProperty(PROP_CONNECTION_TIMEOUT, "-1");
         props.setProperty(PROP_PING_INTERVAL, "-1");
-        props.setProperty(PROP_CLEANUP_INTERVAL, "-1");
+        props.setProperty(PROP_REQUEST_CLEANUP_INTERVAL, "-1");
         props.setProperty(PROP_MAX_CONTROL_LINE, "-1");
         props.setProperty(PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, "-1");
 
@@ -637,7 +637,7 @@ public class OptionsTests extends TestBase {
 
     private static void _testDefaultPropertyIntOptions(Options o) {
         assertEquals(DEFAULT_MAX_CONTROL_LINE, o.getMaxControlLine(), "default max control line");
-        assertEquals(DEFAULT_RECONNECT_WAIT_MILLIS, o.getReconnectWaitMillis(), "default reconnect wait");
+        assertEquals(DEFAULT_RECONNECT_WAIT, o.getReconnectWait(), "default reconnect wait");
         assertEquals(DEFAULT_CONNECTION_TIMEOUT, o.getConnectionTimeout(), "default connection timeout");
         assertEquals(DEFAULT_PING_INTERVAL, o.getPingInterval(), "default ping interval");
         assertEquals(DEFAULT_REQUEST_CLEANUP_INTERVAL, o.getRequestCleanupInterval(),
@@ -652,7 +652,7 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_RECONNECT_WAIT, "101");
         props.setProperty(PROP_CONNECTION_TIMEOUT, "202");
         props.setProperty(PROP_PING_INTERVAL, "303");
-        props.setProperty(PROP_CLEANUP_INTERVAL, "404");
+        props.setProperty(PROP_REQUEST_CLEANUP_INTERVAL, "404");
         props.setProperty(PROP_RECONNECT_JITTER, "505");
         props.setProperty(PROP_RECONNECT_JITTER_TLS, "606");
 
@@ -663,12 +663,12 @@ public class OptionsTests extends TestBase {
 
     private static void _testPropertyDurationOptions(Options o) {
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertEquals(101L, o.getReconnectWaitMillis(), "property reconnect wait");
-        assertEquals(Duration.ofMillis(202), o.getConnectionTimeout(), "property connection timeout");
-        assertEquals(Duration.ofMillis(303), o.getPingInterval(), "property ping interval");
-        assertEquals(Duration.ofMillis(404), o.getRequestCleanupInterval(), "property cleanup interval");
-        assertEquals(505L, o.getReconnectJitterMillis(), "property reconnect jitter");
-        assertEquals(606L, o.getReconnectJitterTlsMillis(), "property reconnect jitter tls");
+        assertEquals(101L, o.getReconnectWait(), "property reconnect wait");
+        assertEquals(202, o.getConnectionTimeout(), "property connection timeout");
+        assertEquals(303, o.getPingInterval(), "property ping interval");
+        assertEquals(404, o.getRequestCleanupInterval(), "property cleanup interval");
+        assertEquals(505L, o.getReconnectJitter(), "property reconnect jitter");
+        assertEquals(606L, o.getReconnectJitterTls(), "property reconnect jitter tls");
     }
 
     @Test
@@ -929,7 +929,7 @@ public class OptionsTests extends TestBase {
 
     @Test
     public void testDefaultDataPort() {
-        Options o = new OptionsBuilder().socketWriteTimeout(null).build();
+        Options o = new OptionsBuilder().socketWriteTimeout(0).build();
         DataPort dataPort = o.buildDataPort();
         assertNotNull(dataPort);
         assertEquals(DEFAULT_DATA_PORT_TYPE, dataPort.getClass().getCanonicalName(), "old default dataPort");
@@ -1283,13 +1283,13 @@ public class OptionsTests extends TestBase {
 
     @Test
     public void testReconnectDelayHandler() {
-        ReconnectDelayHandler rdh = (round, opts, secure, ld) -> round * 2_000L;
+        ReconnectDelayHandler rdh = (round, opts, secure, ld) -> round * 2000L;
 
         Options o = new OptionsBuilder().reconnectDelayHandler(rdh).build();
         ReconnectDelayHandler rdhO = o.getReconnectDelayHandler();
 
         assertNotNull(rdhO);
-        assertEquals(10_000L, rdhO.getWaitTimeMillis(5L, o, false, false));
+        assertEquals(10000L, rdhO.getWaitTimeMillis(5L, o, false, false));
 
         // No custom handler → never null, falls back to the default singleton
         Options dflt = new OptionsBuilder().build();

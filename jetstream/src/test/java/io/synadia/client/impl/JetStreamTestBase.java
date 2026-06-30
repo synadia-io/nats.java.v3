@@ -7,11 +7,11 @@ import io.synadia.client.utils.JetStreamClientError;
 import io.synadia.client.utils.TestBase;
 import io.synadia.client.utils.VersionUtils.VersionCheck;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.function.Executable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamTestBase extends TestBase {
 
-    public static final Duration DEFAULT_TIMEOUT = Duration.ofMillis(1000);
+    public static final long DEFAULT_TIMEOUT = 1000;
 
     // ----------------------------------------------------------------------------------------------------
     // Publish / Read
@@ -100,24 +100,25 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public static List<Message> readMessagesAck(JetStreamSubscription sub) throws InterruptedException {
-        return readMessagesAck(sub, false, Duration.ofSeconds(1), -1);
+        return readMessagesAck(sub, false, 1000L, -1);
     }
 
     public static List<Message> readMessagesAck(JetStreamSubscription sub, boolean noisy) throws InterruptedException {
-        return readMessagesAck(sub, noisy, Duration.ofSeconds(1), -1);
+        return readMessagesAck(sub, noisy, 1000L, -1);
     }
 
-    public static List<Message> readMessagesAck(JetStreamSubscription sub, Duration timeout) throws InterruptedException {
-        return readMessagesAck(sub, false, timeout, -1);
+    // timeoutMillis follows the nextMessage convention: null = poll once (immediate), <= 0 = wait forever, > 0 = timed
+    public static List<Message> readMessagesAck(JetStreamSubscription sub, @Nullable Long timeoutMillis) throws InterruptedException {
+        return readMessagesAck(sub, false, timeoutMillis, -1);
     }
 
-    public static List<Message> readMessagesAck(JetStreamSubscription sub, Duration timeout, int max) throws InterruptedException {
-        return readMessagesAck(sub, false, timeout, max);
+    public static List<Message> readMessagesAck(JetStreamSubscription sub, @Nullable Long timeoutMillis, int max) throws InterruptedException {
+        return readMessagesAck(sub, false, timeoutMillis, max);
     }
 
-    public static List<Message> readMessagesAck(JetStreamSubscription sub, boolean noisy, Duration timeout, int max) throws InterruptedException {
+    public static List<Message> readMessagesAck(JetStreamSubscription sub, boolean noisy, @Nullable Long timeoutMillis, int max) throws InterruptedException {
         List<Message> messages = new ArrayList<>();
-        Message msg = sub.nextMessage(timeout);
+        Message msg = sub.nextMessage(timeoutMillis);
         while (msg != null) {
             messages.add(msg);
             if (msg.isJetStream()) {
@@ -137,7 +138,7 @@ public class JetStreamTestBase extends TestBase {
             if (messages.size() == max) {
                 return messages;
             }
-            msg = sub.nextMessage(timeout);
+            msg = sub.nextMessage(timeoutMillis);
         }
         return messages;
     }

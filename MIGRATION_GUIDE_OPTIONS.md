@@ -46,17 +46,17 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 |--------------------------------------------------|----------------------------------------|-------------------------------------|
 | `PROP_DATA_PORT_TYPE`                            | `dataPortType`                         | `dataport.type`                     |
 | `PROP_NO_ECHO`                                   | `noEcho`                               | `noecho`                            |
-| `PROP_MAX_PINGS`                                 | `maxPings`                             | `maxpings`                          |
+| `PROP_MAX_PINGS_OUT`                                 | `maxPingsOut`                             | `maxpings`                          |
 | `PROP_PING_INTERVAL`                             | `pingInterval`                         | `pinginterval`                      |
-| `PROP_CLEANUP_INTERVAL`                          | `cleanupInterval`                      | `cleanupinterval`                   |
+| `PROP_REQUEST_CLEANUP_INTERVAL`                          | `requestCleanupInterval`                      | `cleanupinterval`                   |
 | `PROP_CONNECTION_TIMEOUT`                        | `connectionTimeout`                    | `timeout`                           |
 | `PROP_SOCKET_WRITE_TIMEOUT`                      | `socketWriteTimeout`                   | `socket.write.timeout`              |
 | `PROP_SOCKET_SO_LINGER`                          | `socketSoLinger`                       | `socket.so.linger`                  |
 | `PROP_SOCKET_RECEIVE_BUFFER_SIZE`                | `socketReceiveBufferSize`              | `socket.receive.buffer.size`        |
 | `PROP_SOCKET_SEND_BUFFER_SIZE`                   | `socketSendBufferSize`                 | `socket.send.buffer.size`           |
-| `PROP_RECONNECT_BUF_SIZE`                        | `reconnectBufSize`                     | `reconnect.buffer.size`             |
+| `PROP_RECONNECT_BUFFER_SIZE`                        | `reconnectBufferSize`                     | `reconnect.buffer.size`             |
 | `PROP_RECONNECT_WAIT`                            | `reconnectWait`                        | `reconnect.wait`                    |
-| `PROP_MAX_RECONNECT`                             | `maxReconnect`                         | `reconnect.max`                     |
+| `PROP_MAX_RECONNECTS`                             | `maxReconnects`                         | `reconnect.max`                     |
 | `PROP_RECONNECT_JITTER`                          | `reconnectJitter`                      | `reconnect.jitter`                  |
 | `PROP_RECONNECT_JITTER_TLS`                      | `reconnectJitterTls`                   | `reconnect.jitter.tls`              |
 | `PROP_CONNECTION_NAME`                           | `connectionName`                       | `name`                              |
@@ -110,7 +110,19 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 | `PROP_NO_HEADERS`                 | v3 always advertises headers support; the toggle was no longer wired                    |
 | `PROP_NO_NO_RESPONDERS`           | v3 always advertises no-responders support; the toggle was no longer wired              |
 
-## 7. Prompts for Claude Code
+## 7. Timing options are milliseconds (value-format change)
+
+The connection timing options moved from `Duration` to a plain `long` **milliseconds**: `connectionTimeout`, `pingInterval`, `requestCleanupInterval`, `writeQueuePushTimeout`, and `socketWriteTimeout` (the reconnect options `reconnectWait`, `reconnectJitter`, `reconnectJitterTls` already made this move). They are all milliseconds — there is no nanosecond special case anymore.
+
+**Property files need no change.** The loader (`millisProperty`) accepts either a plain integer number of milliseconds (e.g. `2000`) **or** the ISO-8601 duration form (e.g. `PT2S`), converted to whole milliseconds — so existing v2 property files using `PT…` keep working. Negative values are ignored (the default is kept); a value that is neither an integer nor a valid duration throws `NumberFormatException` at build time. This applies uniformly, including `socket.write.timeout`.
+
+**API shape change** for the same options on `OptionsBuilder` / `Options`. The setters and getters keep their plain names but now take / return a `long` (milliseconds) instead of a `Duration`; the `Duration` overloads were dropped. The unit is documented in the javadoc rather than baked into the method name.
+- Setters: `connectionTimeout(long)`, `pingInterval(long)`, `requestCleanupInterval(long)`, `writeQueuePushTimeout(long)`, `socketWriteTimeout(long)`, `reconnectWait(long)`, `reconnectJitter(long)`, `reconnectJitterTls(long)` — all milliseconds (the parameter is named simply `millis`).
+- Getters: `getConnectionTimeout()`, `getPingInterval()`, `getRequestCleanupInterval()`, `getWriteQueuePushTimeout()`, `getSocketWriteTimeout()` — all `long` milliseconds.
+- `socketWriteTimeout` is in **milliseconds**; a value below `MINIMUM_SOCKET_WRITE_TIMEOUT` (`1` ms, including `<= 0`) disables it, mirroring `socketReadTimeout`. Default `DEFAULT_SOCKET_WRITE_TIMEOUT = 60000L` (60 s). *(It was previously `long` nanoseconds — the floor constant was `MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS = 100`, now `MINIMUM_SOCKET_WRITE_TIMEOUT = 1` ms; if you had set the timeout in nanoseconds, e.g. `60_000_000_000L`, divide by 1,000,000.)*
+- `socketReadTimeout` widened from `int` to **`long`** (still milliseconds, still `<= 0` disables — it maps to `setSoTimeout`, which the library casts back to `int` at the one call site). `getSocketReadTimeout()` now returns `long` and `socketReadTimeout(long millis)` takes `long`, bringing it in line with the other millisecond timing options. Source-compatible: `socketReadTimeout(44)` still compiles (the `int` literal widens). The other two socket ints — `socketSoLinger` (**seconds**, not millis — it maps straight to `setSoLinger`) and the `socketReceiveBufferSize` / `socketSendBufferSize` byte counts — stay `int`.
+
+## 8. Prompts for Claude Code
 
 Drop this `MIGRATION_GUIDE_OPTIONS.md` file into your project (or pass its path to Claude Code) and use one of the prompts below to migrate.
 
@@ -158,3 +170,29 @@ Do all of the following:
    update references to the Java constants themselves.
 5. Leave behavior unchanged. Compile and report any unresolved references.
 ```
+
+## 9. v3 property keys and builder API renamed for consistency
+
+Late in v3 a few property keys, builder setters, and getters were renamed so the **property key, the builder setter, and the getter all agree**. (Previously the property key sometimes differed from the API name — e.g. the key `maxPings` set `maxPingsOut`.)
+
+**Property keys** (what you put in a `.properties` file):
+
+| Old key | New key |
+|---|---|
+| `maxPings` | `maxPingsOut` |
+| `cleanupInterval` | `requestCleanupInterval` |
+| `reconnectBufSize` | `reconnectBufferSize` |
+| `maxReconnect` | `maxReconnects` |
+
+**Builder methods / getters** (Java code):
+
+| Old | New |
+|---|---|
+| `OptionsBuilder.receiveBufferSize(int)` | `OptionsBuilder.socketReceiveBufferSize(int)` |
+| `OptionsBuilder.sendBufferSize(int)` | `OptionsBuilder.socketSendBufferSize(int)` |
+| `Options.getReceiveBufferSize()` | `Options.getSocketReceiveBufferSize()` |
+| `Options.getSendBufferSize()` | `Options.getSocketSendBufferSize()` |
+| `Options.getMaxReconnect()` | `Options.getMaxReconnects()` |
+| `OptionsBuilder.opentls()` / `opentls(boolean)` | `OptionsBuilder.openTls()` / `openTls(boolean)` |
+
+For `maxPings`/`cleanupInterval`/`reconnectBufSize`/`maxReconnect` the **key** was changed to match the existing setter/getter; for the socket buffer sizes the **setter/getter** were changed to match the existing `socketReceiveBufferSize`/`socketSendBufferSize` keys; for `opentls` only the method casing was fixed (the `openTls` property key was already correct). The `PROP_*` constants were renamed to match (`PROP_MAX_PINGS`→`PROP_MAX_PINGS_OUT`, `PROP_CLEANUP_INTERVAL`→`PROP_REQUEST_CLEANUP_INTERVAL`, `PROP_RECONNECT_BUF_SIZE`→`PROP_RECONNECT_BUFFER_SIZE`, `PROP_MAX_RECONNECT`→`PROP_MAX_RECONNECTS`).

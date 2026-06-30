@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,7 +47,7 @@ public class AuthViolationDuringReconnectOnFlushTimeoutTest {
                     .token(new char[]{'1', '2', '3', '4'})
                     .maxMessagesInOutgoingQueue(NUMBER_OF_SUBS )
                     .reconnectBufferSize(NUMBER_OF_SUBS * 100)
-                    .connectionTimeout(Duration.ofMillis(10))
+                    .connectionTimeout(10)
                     .reconnectWait(2000L)
                     .errorListener(ctx.errorListener)
                     .build();

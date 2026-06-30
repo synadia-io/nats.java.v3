@@ -4,7 +4,6 @@ import io.synadia.client.impl.JetStreamOptions;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 
 import static io.synadia.client.impl.JetStreamConstants.*;
 import static io.synadia.client.utils.NatsConstants.DOT;
@@ -16,14 +15,14 @@ public class JetStreamOptionsTests extends TestBase {
     public void testBuilder() {
         // default
         JetStreamOptions jso = JetStreamOptions.defaultOptions();
-        assertNull(jso.getRequestTimeout());
+        assertEquals(0, jso.getRequestTimeout());
         assertEquals(DEFAULT_API_PREFIX, jso.getPrefix());
         assertTrue(jso.isDefaultPrefix());
         assertFalse(jso.isOptOut290ConsumerCreate());
 
         // default copy
         jso = JetStreamOptions.builder(jso).build();
-        assertNull(jso.getRequestTimeout());
+        assertEquals(0, jso.getRequestTimeout());
         assertEquals(DEFAULT_API_PREFIX, jso.getPrefix());
         assertTrue(jso.isDefaultPrefix());
         assertFalse(jso.isOptOut290ConsumerCreate());
@@ -31,17 +30,17 @@ public class JetStreamOptionsTests extends TestBase {
         // affirmative
         jso = JetStreamOptions.builder()
             .prefix("pre")
-            .requestTimeout(Duration.ofSeconds(42))
+            .requestTimeout(42000)
             .optOut290ConsumerCreate(true)
             .build();
-        assertEquals(Duration.ofSeconds(42), jso.getRequestTimeout());
+        assertEquals(42000, jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
         assertTrue(jso.isOptOut290ConsumerCreate());
 
         // affirmative copy
         jso = JetStreamOptions.builder(jso).build();
-        assertEquals(Duration.ofSeconds(42), jso.getRequestTimeout());
+        assertEquals(42000, jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
         assertTrue(jso.isOptOut290ConsumerCreate());
@@ -51,14 +50,14 @@ public class JetStreamOptionsTests extends TestBase {
             .prefix("pre.")
             .optOut290ConsumerCreate(false)
             .build();
-        assertNull(jso.getRequestTimeout());
+        assertEquals(0, jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
         assertFalse(jso.isOptOut290ConsumerCreate());
 
         // variations / coverage copy
         jso = JetStreamOptions.builder(jso).build();
-        assertNull(jso.getRequestTimeout());
+        assertEquals(0, jso.getRequestTimeout());
         assertEquals("pre.", jso.getPrefix());
         assertFalse(jso.isDefaultPrefix());
         assertFalse(jso.isOptOut290ConsumerCreate());

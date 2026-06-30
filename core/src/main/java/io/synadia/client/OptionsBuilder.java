@@ -17,7 +17,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +29,6 @@ import java.util.function.Supplier;
 
 import static io.synadia.client.OptionsConstants.*;
 import static io.synadia.client.OptionsProperties.*;
-import static io.synadia.client.utils.ApiUtils.normalizeDuration;
 import static io.synadia.client.utils.NatsConstants.*;
 import static io.synadia.client.utils.SSLUtils.DEFAULT_TLS_ALGORITHM;
 import static io.synadia.client.utils.Validator.emptyAsNull;
@@ -67,19 +65,19 @@ public class OptionsBuilder {
     SSLContext sslContext = null;
     SSLContextFactory sslContextFactory = null;
     int maxControlLine = DEFAULT_MAX_CONTROL_LINE;
-    int maxReconnect = DEFAULT_MAX_RECONNECT;
-    long reconnectWait = DEFAULT_RECONNECT_WAIT_MILLIS;
-    long reconnectJitter = DEFAULT_RECONNECT_JITTER_MILLIS;
-    long reconnectJitterTls = DEFAULT_RECONNECT_JITTER_TLS_MILLIS;
-    Duration connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
-    int socketReadTimeoutMillis = 0;
-    Duration socketWriteTimeout = DEFAULT_SOCKET_WRITE_TIMEOUT;
+    int maxReconnects = DEFAULT_MAX_RECONNECT;
+    long reconnectWait = DEFAULT_RECONNECT_WAIT;
+    long reconnectJitter = DEFAULT_RECONNECT_JITTER;
+    long reconnectJitterTls = DEFAULT_RECONNECT_JITTER_TLS;
+    long connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    long socketReadTimeout = 0;
+    long socketWriteTimeout = DEFAULT_SOCKET_WRITE_TIMEOUT;
     int socketSoLinger = -1;
-    int receiveBufferSize = -1;
-    int sendBufferSize = -1;
-    Duration pingInterval = DEFAULT_PING_INTERVAL;
-    Duration requestCleanupInterval = DEFAULT_REQUEST_CLEANUP_INTERVAL;
-    Duration writeQueuePushTimeout = DEFAULT_WRITE_QUEUE_PUSH_TIMEOUT;
+    int socketReceiveBufferSize = -1;
+    int socketSendBufferSize = -1;
+    long pingInterval = DEFAULT_PING_INTERVAL;
+    long requestCleanupInterval = DEFAULT_REQUEST_CLEANUP_INTERVAL;
+    long writeQueuePushTimeout = DEFAULT_WRITE_QUEUE_PUSH_TIMEOUT;
     int maxPingsOut = DEFAULT_MAX_PINGS_OUT;
     long reconnectBufferSize = DEFAULT_RECONNECT_BUF_SIZE;
     char[] username = null;
@@ -181,87 +179,85 @@ public class OptionsBuilder {
             this.servers(servers);
         });
 
-        charArrayProperty(props, PROP_USERNAME, ca -> this.username = ca);
-        charArrayProperty(props, PROP_PASSWORD, ca -> this.password = ca);
-        charArrayProperty(props, PROP_TOKEN, ca -> this.tokenSupplier = new Options.DefaultTokenSupplier(ca));
+        charArrayProperty(props, PROP_USERNAME, this::username);
+        charArrayProperty(props, PROP_PASSWORD, this::password);
+        charArrayProperty(props, PROP_TOKEN, this::token);
         //noinspection unchecked
-        classnameProperty(props, PROP_TOKEN_SUPPLIER_CLASS, o -> this.tokenSupplier = (Supplier<char[]>) o);
+        classnameProperty(props, PROP_TOKEN_SUPPLIER_CLASS, o -> tokenSupplier((Supplier<char[]>) o));
 
-        booleanProperty(props, PROP_SECURE, b -> this.useDefaultTls = b);
-        booleanProperty(props, PROP_OPEN_TLS, b -> this.useTrustAllTls = b);
+        booleanProperty(props, PROP_SECURE, this::secure);
+        booleanProperty(props, PROP_OPEN_TLS, this::openTls);
 
-        classnameProperty(props, PROP_SSL_CONTEXT_FACTORY_CLASS, o -> this.sslContextFactory = (SSLContextFactory) o);
-        stringProperty(props, PROP_KEY_STORE, s -> this.keystore = s);
-        charArrayProperty(props, PROP_KEY_STORE_PASSWORD, ca -> this.keystorePassword = ca);
-        stringProperty(props, PROP_TRUST_STORE, s -> this.truststore = s);
-        charArrayProperty(props, PROP_TRUST_STORE_PASSWORD, ca -> this.truststorePassword = ca);
-        stringProperty(props, PROP_TLS_ALGORITHM, s -> this.tlsAlgorithm = s);
+        classnameProperty(props, PROP_SSL_CONTEXT_FACTORY_CLASS, o -> sslContextFactory((SSLContextFactory) o));
+        stringProperty(props, PROP_KEY_STORE, this::keystorePath);
+        charArrayProperty(props, PROP_KEY_STORE_PASSWORD, this::keystorePassword);
+        stringProperty(props, PROP_TRUST_STORE, this::truststorePath);
+        charArrayProperty(props, PROP_TRUST_STORE_PASSWORD, this::truststorePassword);
+        stringProperty(props, PROP_TLS_ALGORITHM, this::tlsAlgorithm);
 
-        stringProperty(props, PROP_CREDENTIAL_PATH, s -> this.credentialPath = s);
+        stringProperty(props, PROP_CREDENTIAL_PATH, this::credentialPath);
 
-        stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
+        booleanProperty(props, PROP_NO_RANDOMIZE, this::noRandomize);
+        stringProperty(props, PROP_SUBJECT_VALIDATION_TYPE, s -> subjectValidationType(SubjectValidationType.get(s)));
 
-        booleanProperty(props, PROP_NO_RANDOMIZE, b -> this.noRandomize = b);
-        stringProperty(props, PROP_SUBJECT_VALIDATION_TYPE, s -> this.subjectValidationType = SubjectValidationType.get(s));
+        stringProperty(props, PROP_CONNECTION_NAME, this::connectionName);
+        booleanProperty(props, PROP_VERBOSE, this::verbose);
+        booleanProperty(props, PROP_NO_ECHO, this::noEcho);
+        booleanProperty(props, PROP_CLIENT_SIDE_LIMIT_CHECKS, this::clientSideLimitChecks);
+        booleanProperty(props, PROP_SUPPORT_UTF8_SUBJECTS, this::supportUTF8Subjects);
+        booleanProperty(props, PROP_PEDANTIC, this::pedantic);
 
-        stringProperty(props, PROP_CONNECTION_NAME, s -> this.connectionName = s);
-        booleanProperty(props, PROP_VERBOSE, b -> this.verbose = b);
-        booleanProperty(props, PROP_NO_ECHO, b -> this.noEcho = b);
-        booleanProperty(props, PROP_CLIENT_SIDE_LIMIT_CHECKS, b -> this.clientSideLimitChecks = b);
-        booleanProperty(props, PROP_SUPPORT_UTF8_SUBJECTS, b -> this.supportUTF8Subjects = b);
-        booleanProperty(props, PROP_PEDANTIC, b -> this.pedantic = b);
+        intProperty(props, PROP_MAX_RECONNECTS, this::maxReconnects);
+        millisProperty(props, PROP_RECONNECT_WAIT, this::reconnectWait);
+        millisProperty(props, PROP_RECONNECT_JITTER, this::reconnectJitter);
+        millisProperty(props, PROP_RECONNECT_JITTER_TLS, this::reconnectJitterTls);
+        longGtEqZeroProperty(props, PROP_RECONNECT_BUFFER_SIZE, this::reconnectBufferSize);
+        classnameProperty(props, PROP_RECONNECT_DELAY_HANDLER_CLASS, o -> reconnectDelayHandler((ReconnectDelayHandler) o));
+        stringProperty(props, PROP_RECONNECT_DELAY_BEHAVIOR, s -> reconnectDelayBehavior(ReconnectDelayBehavior.get(s)));
+        millisProperty(props, PROP_CONNECTION_TIMEOUT, this::connectionTimeout);
+        longProperty(props, PROP_SOCKET_READ_TIMEOUT, this::socketReadTimeout);
+        millisProperty(props, PROP_SOCKET_WRITE_TIMEOUT, this::socketWriteTimeout);
+        intProperty(props, PROP_SOCKET_SO_LINGER, this::socketSoLinger);
+        intProperty(props, PROP_SOCKET_RECEIVE_BUFFER_SIZE, this::socketReceiveBufferSize);
+        intProperty(props, PROP_SOCKET_SEND_BUFFER_SIZE, this::socketSendBufferSize);
 
-        intProperty(props, PROP_MAX_RECONNECT, i -> this.maxReconnect = i);
-        longGtEqZeroProperty(props, PROP_RECONNECT_WAIT, l -> this.reconnectWait = l);
-        longGtEqZeroProperty(props, PROP_RECONNECT_JITTER, l -> this.reconnectJitter = l);
-        longGtEqZeroProperty(props, PROP_RECONNECT_JITTER_TLS, l -> this.reconnectJitterTls = l);
-        longGtEqZeroProperty(props, PROP_RECONNECT_BUF_SIZE, l -> this.reconnectBufferSize = l);
-        classnameProperty(props, PROP_RECONNECT_DELAY_HANDLER_CLASS, o -> this.reconnectDelayHandler = (ReconnectDelayHandler) o);
-        stringProperty(props, PROP_RECONNECT_DELAY_BEHAVIOR, s -> this.reconnectDelayBehavior = ReconnectDelayBehavior.get(s));
-        durationProperty(props, PROP_CONNECTION_TIMEOUT, d -> this.connectionTimeout = d);
-        intProperty(props, PROP_SOCKET_READ_TIMEOUT, i -> this.socketReadTimeoutMillis = i);
-        durationProperty(props, PROP_SOCKET_WRITE_TIMEOUT, d -> this.socketWriteTimeout = d);
-        intProperty(props, PROP_SOCKET_SO_LINGER, i -> socketSoLinger = i);
-        intProperty(props, PROP_SOCKET_RECEIVE_BUFFER_SIZE, i -> this.receiveBufferSize = i);
-        intProperty(props, PROP_SOCKET_SEND_BUFFER_SIZE, i -> this.sendBufferSize = i);
+        intGtEqZeroProperty(props, PROP_MAX_CONTROL_LINE, this::maxControlLine);
+        millisProperty(props, PROP_PING_INTERVAL, this::pingInterval);
+        millisProperty(props, PROP_REQUEST_CLEANUP_INTERVAL, this::requestCleanupInterval);
+        millisProperty(props, PROP_WRITE_QUEUE_PUSH_TIMEOUT, this::writeQueuePushTimeout);
+        intProperty(props, PROP_MAX_PINGS_OUT, this::maxPingsOut);
 
-        intGtEqZeroProperty(props, PROP_MAX_CONTROL_LINE, i -> this.maxControlLine = i);
-        durationProperty(props, PROP_PING_INTERVAL, d -> this.pingInterval = d);
-        durationProperty(props, PROP_CLEANUP_INTERVAL, d -> this.requestCleanupInterval = d);
-        durationProperty(props, PROP_WRITE_QUEUE_PUSH_TIMEOUT, d -> this.writeQueuePushTimeout = d);
-        intProperty(props, PROP_MAX_PINGS, i -> this.maxPingsOut = i);
+        classnameProperty(props, PROP_CONNECTION_LISTENER_CLASS, o -> connectionListener((ConnectionListener) o));
+        classnameProperty(props, PROP_ERROR_LISTENER_CLASS, o -> errorListener((ErrorListener) o));
+        classnameProperty(props, PROP_READ_LISTENER_CLASS, o -> readListener((ReadListener) o));
+        classnameProperty(props, PROP_STATISTICS_COLLECTOR_CLASS, o -> statisticsCollector((StatisticsCollector) o));
 
-        classnameProperty(props, PROP_CONNECTION_LISTENER_CLASS, o -> this.connectionListener = (ConnectionListener) o);
-        classnameProperty(props, PROP_ERROR_LISTENER_CLASS, o -> this.errorListener = (ErrorListener) o);
-        classnameProperty(props, PROP_READ_LISTENER_CLASS, o -> this.readListener = (ReadListener) o);
-        classnameProperty(props, PROP_STATISTICS_COLLECTOR_CLASS, o -> this.statisticsCollector = (StatisticsCollector) o);
-
-        stringProperty(props, PROP_DATA_PORT_TYPE, s -> this.dataPortType = s);
+        stringProperty(props, PROP_DATA_PORT_TYPE, this::dataPortType);
         stringProperty(props, PROP_INBOX_PREFIX, this::inboxPrefix);
-        intGtEqZeroProperty(props, PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, i -> this.maxMessagesInOutgoingQueue = i);
-        booleanProperty(props, PROP_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL, b -> this.discardMessagesWhenOutgoingQueueFull = b);
+        intGtEqZeroProperty(props, PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE, this::maxMessagesInOutgoingQueue);
+        booleanProperty(props, PROP_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL, this::discardMessagesWhenOutgoingQueueFull);
 
-        booleanProperty(props, PROP_IGNORE_DISCOVERED_SERVERS, b -> this.ignoreDiscoveredServers = b);
-        booleanProperty(props, PROP_TLS_FIRST, b -> this.tlsFirst = b);
-        booleanProperty(props, PROP_USE_TIMEOUT_EXCEPTION, b -> this.useTimeoutException = b);
-        booleanProperty(props, PROP_USE_DISPATCHER_WITH_EXECUTOR, b -> this.useDispatcherWithExecutor = b);
-        booleanProperty(props, PROP_FORCE_FLUSH_ON_REQUEST, b -> this.forceFlushOnRequest = b);
+        booleanProperty(props, PROP_IGNORE_DISCOVERED_SERVERS, this::ignoreDiscoveredServers);
+        booleanProperty(props, PROP_TLS_FIRST, this::tlsFirst);
+        booleanProperty(props, PROP_USE_TIMEOUT_EXCEPTION, this::useTimeoutException);
+        booleanProperty(props, PROP_USE_DISPATCHER_WITH_EXECUTOR, this::useDispatcherWithExecutor);
+        booleanProperty(props, PROP_FORCE_FLUSH_ON_REQUEST, this::forceFlushOnRequest);
 
         stringProperty(props, PROP_HOSTNAME_RESOLVE_MODE, s -> {
             HostnameResolveMode mode = HostnameResolveMode.get(s);
             if (mode != null) {
-                hostnameResolveMode = mode;
+                hostnameResolveMode(mode);
             }
         });
 
-        classnameProperty(props, PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, o -> this.serverPool = (ServerPool) o);
-        classnameProperty(props, PROP_DISPATCHER_FACTORY_CLASS, o -> this.dispatcherFactory = (DispatcherFactory) o);
-        classnameProperty(props, PROP_EXECUTOR_SERVICE_CLASS, o -> this.userExecutor = (ExecutorService) o);
-        classnameProperty(props, PROP_CONNECT_EXECUTOR_SERVICE_CLASS, o -> this.userConnectExecutor = (ExecutorService) o);
-        classnameProperty(props, PROP_CALLBACK_EXECUTOR_SERVICE_CLASS, o -> this.userCallbackExecutor = (ExecutorService) o);
-        classnameProperty(props, PROP_SCHEDULED_EXECUTOR_SERVICE_CLASS, o -> this.userScheduledExecutor = (ScheduledExecutorService) o);
-        classnameProperty(props, PROP_CONNECT_THREAD_FACTORY_CLASS, o -> this.userConnectThreadFactory = (ThreadFactory) o);
-        classnameProperty(props, PROP_CALLBACK_THREAD_FACTORY_CLASS, o -> this.userCallbackThreadFactory = (ThreadFactory) o);
+        classnameProperty(props, PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, o -> serverPool((ServerPool) o));
+        classnameProperty(props, PROP_DISPATCHER_FACTORY_CLASS, o -> dispatcherFactory((DispatcherFactory) o));
+        classnameProperty(props, PROP_EXECUTOR_SERVICE_CLASS, o -> executor((ExecutorService) o));
+        classnameProperty(props, PROP_CONNECT_EXECUTOR_SERVICE_CLASS, o -> connectExecutor((ExecutorService) o));
+        classnameProperty(props, PROP_CALLBACK_EXECUTOR_SERVICE_CLASS, o -> callbackExecutor((ExecutorService) o));
+        classnameProperty(props, PROP_SCHEDULED_EXECUTOR_SERVICE_CLASS, o -> scheduledExecutor((ScheduledExecutorService) o));
+        classnameProperty(props, PROP_CONNECT_THREAD_FACTORY_CLASS, o -> connectThreadFactory((ThreadFactory) o));
+        classnameProperty(props, PROP_CALLBACK_THREAD_FACTORY_CLASS, o -> callbackThreadFactory((ThreadFactory) o));
         return this;
     }
 
@@ -317,6 +313,17 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set whether to keep the configured server order on reconnect (no randomize).
+     * Applied in the default server pool implementation
+     * @param noRandomize true to keep the configured order, false to randomize (the default)
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder noRandomize(boolean noRandomize) {
+        this.noRandomize = noRandomize;
+        return this;
+    }
+
+    /**
      * Set the hostname resolve mode
      *
      * @param hostnameResolveMode the enum value
@@ -351,6 +358,16 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set whether to turn off echo.
+     * @param noEcho true to turn off echo
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder noEcho(boolean noEcho) {
+        this.noEcho = noEcho;
+        return this;
+    }
+
+    /**
      * Set client side limit checks. Default is true
      *
      * @param checks the checks flag
@@ -371,6 +388,16 @@ public class OptionsBuilder {
      */
     public OptionsBuilder supportUTF8Subjects() {
         this.supportUTF8Subjects = true;
+        return this;
+    }
+
+    /**
+     * Set whether to support UTF8 subjects.
+     * @param supportUTF8Subjects true to enable UTF8 subjects
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder supportUTF8Subjects(boolean supportUTF8Subjects) {
+        this.supportUTF8Subjects = supportUTF8Subjects;
         return this;
     }
 
@@ -413,12 +440,32 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set whether to turn on verbose mode with the server.
+     * @param verbose true to turn on verbose mode
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder verbose(boolean verbose) {
+        this.verbose = verbose;
+        return this;
+    }
+
+    /**
      * Turn on pedantic mode for the server, in relation to this connection.
      *
      * @return the Builder for chaining
      */
     public OptionsBuilder pedantic() {
         this.pedantic = true;
+        return this;
+    }
+
+    /**
+     * Set whether to turn on pedantic mode for the server.
+     * @param pedantic true to turn on pedantic mode
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder pedantic(boolean pedantic) {
+        this.pedantic = pedantic;
         return this;
     }
 
@@ -445,13 +492,33 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set whether to use the default SSL Context (the SSL context is created at build() time).
+     * @param useDefaultTls true to use the default SSL context
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder secure(boolean useDefaultTls) {
+        this.useDefaultTls = useDefaultTls;
+        return this;
+    }
+
+    /**
      * Set the options to use an SSL context that accepts any server certificate and has no client certificates.
      *
      * @return the Builder for chaining
      * @throws NoSuchAlgorithmException <em>Not thrown, deferred to build() method, left in for backward compatibility</em>
      */
-    public OptionsBuilder opentls() throws NoSuchAlgorithmException {
+    public OptionsBuilder openTls() throws NoSuchAlgorithmException {
         useTrustAllTls = true;
+        return this;
+    }
+
+    /**
+     * Set whether to use an SSL context that accepts any server certificate (the context is created at build() time).
+     * @param useTrustAllTls true to use the trust-all SSL context
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder openTls(boolean useTrustAllTls) {
+        this.useTrustAllTls = useTrustAllTls;
         return this;
     }
 
@@ -553,7 +620,7 @@ public class OptionsBuilder {
      * @return the Builder for chaining
      */
     public OptionsBuilder noReconnect() {
-        this.maxReconnect = 0;
+        this.maxReconnects = 0;
         return this;
     }
 
@@ -576,7 +643,7 @@ public class OptionsBuilder {
      * @return the Builder for chaining
      */
     public OptionsBuilder maxReconnects(int max) {
-        this.maxReconnect = max;
+        this.maxReconnects = max;
         return this;
     }
 
@@ -637,72 +704,54 @@ public class OptionsBuilder {
      * Set the timeout for connection attempts. Each server in the options is allowed this timeout
      * so if 3 servers are tried with a timeout of 5s the total time could be 15s.
      *
-     * @param connectionTimeout the time to wait
+     * @param millis the time to wait in milliseconds. A value {@code <= 0} uses the default.
      * @return the Builder for chaining
      */
-    public OptionsBuilder connectionTimeout(Duration connectionTimeout) {
-        this.connectionTimeout = normalizeDuration(connectionTimeout, DEFAULT_CONNECTION_TIMEOUT);
+    public OptionsBuilder connectionTimeout(long millis) {
+        this.connectionTimeout = millis <= 0 ? DEFAULT_CONNECTION_TIMEOUT : millis;
         return this;
     }
 
     /**
-     * Set the timeout for connection attempts. Each server in the options is allowed this timeout
-     * so if 3 servers are tried with a timeout of 5s the total time could be 15s.
+     * Set the timeout to use around socket reads. A value {@code <= 0} disables the read timeout.
+     * <p>Keep this comfortably longer than the {@link #pingInterval(long) pingInterval} (which defaults to 2 minutes):
+     * a socket read timeout shorter than the ping interval can fire during normal idle periods and cause spurious
+     * read-timeout disconnects. The library deliberately does not validate this relationship.</p>
      *
-     * @param connectionTimeoutMillis the time to wait in milliseconds
+     * @param millis the timeout milliseconds
      * @return the Builder for chaining
      */
-    public OptionsBuilder connectionTimeout(long connectionTimeoutMillis) {
-        this.connectionTimeout = normalizeDuration(connectionTimeoutMillis, DEFAULT_CONNECTION_TIMEOUT);
+    public OptionsBuilder socketReadTimeout(long millis) {
+        this.socketReadTimeout = millis < 1 ? 0 : millis; // < 1 disables (connection compares to > 0)
         return this;
     }
 
     /**
-     * Set the timeout to use around socket reads
+     * Set the timeout to use around socket writes, in milliseconds.
+     * A value below {@link OptionsConstants#MINIMUM_SOCKET_WRITE_TIMEOUT} (including {@code <= 0}) disables the write timeout.
      *
-     * @param socketReadTimeoutMillis the timeout milliseconds
+     * @param millis the timeout milliseconds
      * @return the Builder for chaining
      */
-    public OptionsBuilder socketReadTimeoutMillis(int socketReadTimeoutMillis) {
-        this.socketReadTimeoutMillis = socketReadTimeoutMillis;
+    public OptionsBuilder socketWriteTimeout(long millis) {
+        this.socketWriteTimeout = millis <= MINIMUM_SOCKET_WRITE_TIMEOUT ? MINIMUM_SOCKET_WRITE_TIMEOUT : millis; // below the minimum (incl. <= 0) disables
         return this;
     }
 
     /**
-     * Set the timeout to use around socket writes
-     *
-     * @param socketWriteTimeoutMillis the timeout milliseconds
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder socketWriteTimeout(long socketWriteTimeoutMillis) {
-        socketWriteTimeout = Duration.ofMillis(socketWriteTimeoutMillis);
-        return this;
-    }
-
-    /**
-     * Set the timeout to use around socket writes
-     *
-     * @param socketWriteTimeout the timeout duration
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder socketWriteTimeout(Duration socketWriteTimeout) {
-        this.socketWriteTimeout = socketWriteTimeout;
-        return this;
-    }
-
-    /**
-     * Set the value of the socket SO LINGER property in seconds.
+     * Set the value of the socket SO_LINGER property, in <b>seconds</b> — not milliseconds. This is the unit
+     * Java's {@code socket.setSoLinger(boolean, int)} takes, and the only timing option here measured in seconds
+     * rather than milliseconds, so take care not to pass a millisecond value out of habit.
      * This feature is used by library data port implementations.
      * Setting this is a last resort if socket closes are a problem
-     * in your environment, otherwise it's generally not necessary
-     * to set this. The value must be greater than or equal to 0
-     * to have the code call socket.setSoLinger with true and the timeout value
+     * in your environment, otherwise it's generally not necessary to set this.
+     * A value less than 1 disables linger; a value of 1 or greater calls {@code socket.setSoLinger(true, value)}.
      *
-     * @param socketSoLinger the number of seconds to linger
+     * @param seconds the number of <b>seconds</b> to linger
      * @return the Builder for chaining
      */
-    public OptionsBuilder socketSoLinger(int socketSoLinger) {
-        this.socketSoLinger = socketSoLinger;
+    public OptionsBuilder socketSoLinger(int seconds) {
+        this.socketSoLinger = seconds < 1 ? -1 : seconds; // < 1 disables
         return this;
     }
 
@@ -711,11 +760,11 @@ public class OptionsBuilder {
      * The SO_RCVBUF option is used by the platform's networking code as a hint for the size to set the underlying network I/O buffers.
      * OVERRIDES THE UNDERLYING JAVA SOCKET IMPLEMENTATION - USE AT YOUR OWN RISK
      *
-     * @param receiveBufferSize the size in bytes
+     * @param bytes the size in bytes
      * @return the Builder for chaining
      */
-    public OptionsBuilder receiveBufferSize(int receiveBufferSize) {
-        this.receiveBufferSize = receiveBufferSize;
+    public OptionsBuilder socketReceiveBufferSize(int bytes) {
+        this.socketReceiveBufferSize = bytes < 1 ? -1 : bytes; // < 1 uses the OS default
         return this;
     }
 
@@ -724,11 +773,11 @@ public class OptionsBuilder {
      * The SO_SNDBUF option is used by the platform's networking code as a hint for the size to set the underlying network I/O buffers.
      * OVERRIDES THE UNDERLYING JAVA SOCKET IMPLEMENTATION - USE AT YOUR OWN RISK
      *
-     * @param sendBufferSize the size in bytes
+     * @param bytes the size in bytes
      * @return the Builder for chaining
      */
-    public OptionsBuilder sendBufferSize(int sendBufferSize) {
-        this.sendBufferSize = sendBufferSize;
+    public OptionsBuilder socketSendBufferSize(int bytes) {
+        this.socketSendBufferSize = bytes < 1 ? -1 : bytes; // < 1 uses the OS default
         return this;
     }
 
@@ -743,11 +792,11 @@ public class OptionsBuilder {
      * the ping interval should be set in seconds but this value is not enforced as it would result in
      * an API change from the 2.0 release.
      *
-     * @param time the time between client to server pings
+     * @param millis the time in milliseconds between client to server pings. A value {@code <= 0} disables pings.
      * @return the Builder for chaining
      */
-    public OptionsBuilder pingInterval(Duration time) {
-        this.pingInterval = time == null ? DEFAULT_PING_INTERVAL : time;
+    public OptionsBuilder pingInterval(long millis) {
+        this.pingInterval = millis;
         return this;
     }
 
@@ -758,22 +807,22 @@ public class OptionsBuilder {
      * <p>The default value is probably reasonable, but this interval is useful in a very noisy network
      * situation where lots of requests are used.
      *
-     * @param time the cleaning interval
+     * @param millis the cleaning interval in milliseconds
      * @return the Builder for chaining
      */
-    public OptionsBuilder requestCleanupInterval(Duration time) {
-        this.requestCleanupInterval = time;
+    public OptionsBuilder requestCleanupInterval(long millis) {
+        this.requestCleanupInterval = millis;
         return this;
     }
 
     /**
      * Set the amount of time to wait to acquire the lock and to offer a message to the outgoing message queue
      *
-     * @param time the wait time
+     * @param millis the wait time in milliseconds
      * @return the Builder for chaining
      */
-    public OptionsBuilder writeQueuePushTimeout(Duration time) {
-        this.writeQueuePushTimeout = time;
+    public OptionsBuilder writeQueuePushTimeout(long millis) {
+        this.writeQueuePushTimeout = millis;
         return this;
     }
 
@@ -826,6 +875,26 @@ public class OptionsBuilder {
      */
     public OptionsBuilder userInfo(char[] userName, char[] password) {
         this.username = userName;
+        this.password = password;
+        return this;
+    }
+
+    /**
+     * Set the username for basic authentication. See {@link #userInfo(char[], char[])} to set both at once.
+     * @param username the username
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder username(char[] username) {
+        this.username = username;
+        return this;
+    }
+
+    /**
+     * Set the password for basic authentication. See {@link #userInfo(char[], char[])} to set both at once.
+     * @param password the password
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder password(char[] password) {
         this.password = password;
         return this;
     }
@@ -1092,12 +1161,32 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set whether to discard messages when the outgoing queue is full.
+     * @param discardMessagesWhenOutgoingQueueFull true to discard
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder discardMessagesWhenOutgoingQueueFull(boolean discardMessagesWhenOutgoingQueueFull) {
+        this.discardMessagesWhenOutgoingQueueFull = discardMessagesWhenOutgoingQueueFull;
+        return this;
+    }
+
+    /**
      * Turn off use of discovered servers when connecting / reconnecting. Used in the default server list provider.
      *
      * @return the Builder for chaining
      */
     public OptionsBuilder ignoreDiscoveredServers() {
         this.ignoreDiscoveredServers = true;
+        return this;
+    }
+
+    /**
+     * Set whether to ignore discovered servers when connecting / reconnecting.
+     * @param ignoreDiscoveredServers true to ignore discovered servers
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder ignoreDiscoveredServers(boolean ignoreDiscoveredServers) {
+        this.ignoreDiscoveredServers = ignoreDiscoveredServers;
         return this;
     }
 
@@ -1117,12 +1206,32 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set TLS Handshake First behavior.
+     * @param tlsFirst true to perform the TLS handshake first
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder tlsFirst(boolean tlsFirst) {
+        this.tlsFirst = tlsFirst;
+        return this;
+    }
+
+    /**
      * Throw {@link java.util.concurrent.TimeoutException} on timeout instead of {@link java.util.concurrent.CancellationException}?
      *
      * @return the Builder for chaining
      */
     public OptionsBuilder useTimeoutException() {
         this.useTimeoutException = true;
+        return this;
+    }
+
+    /**
+     * Set whether to throw {@link java.util.concurrent.TimeoutException} on timeout instead of {@link java.util.concurrent.CancellationException}.
+     * @param useTimeoutException true to throw TimeoutException
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder useTimeoutException(boolean useTimeoutException) {
+        this.useTimeoutException = useTimeoutException;
         return this;
     }
 
@@ -1137,12 +1246,32 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set whether dispatchers dispatch messages as a task (via the executor) instead of directly from the dispatcher thread.
+     * @param useDispatcherWithExecutor true to dispatch via the executor
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder useDispatcherWithExecutor(boolean useDispatcherWithExecutor) {
+        this.useDispatcherWithExecutor = useDispatcherWithExecutor;
+        return this;
+    }
+
+    /**
      * Instruct requests to turn off flush on requests.
      *
      * @return the Builder for chaining
      */
     public OptionsBuilder dontForceFlushOnRequest() {
         this.forceFlushOnRequest = false;
+        return this;
+    }
+
+    /**
+     * Set whether requests force a flush of the outgoing buffer after publishing.
+     * @param forceFlushOnRequest true to force a flush on requests
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder forceFlushOnRequest(boolean forceFlushOnRequest) {
+        this.forceFlushOnRequest = forceFlushOnRequest;
         return this;
     }
 
@@ -1287,25 +1416,9 @@ public class OptionsBuilder {
             authHandler = Nats.credentials(file.toString());
         }
 
-        if (socketReadTimeoutMillis < 1) {
-            socketReadTimeoutMillis = 0; // just for consistency. The connection compares to gt 0
-        }
-
-        if (socketWriteTimeout != null && socketWriteTimeout.toNanos() < MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS) {
-            throw new IllegalArgumentException("Socket Write Timeout cannot be less than " + MINIMUM_SOCKET_WRITE_TIMEOUT_NANOS + " nanoseconds.");
-        }
-
-        if (socketSoLinger < 1) {
-            socketSoLinger = -1;
-        }
-
-        if (receiveBufferSize < 1) {
-            receiveBufferSize = -1;
-        }
-
-        if (sendBufferSize < 1) {
-            sendBufferSize = -1;
-        }
+        // socketReadTimeout / socketWriteTimeout / socketSoLinger / socketReceiveBufferSize / socketSendBufferSize
+        // are normalized in their setters (and the field initial values are already the normalized defaults),
+        // and the property loaders route through those setters — so no build()-time clamp is needed here.
 
         if (errorListener == null) {
             errorListener = new ErrorListener() {};
@@ -1337,16 +1450,16 @@ public class OptionsBuilder {
         this.verbose = o.verbose;
         this.pedantic = o.pedantic;
         this.sslContext = o.sslContext;
-        this.maxReconnect = o.maxReconnect;
+        this.maxReconnects = o.maxReconnects;
         this.reconnectWait = o.reconnectWait;
         this.reconnectJitter = o.reconnectJitter;
         this.reconnectJitterTls = o.reconnectJitterTls;
         this.connectionTimeout = o.connectionTimeout;
-        this.socketReadTimeoutMillis = o.socketReadTimeoutMillis;
+        this.socketReadTimeout = o.socketReadTimeout;
         this.socketWriteTimeout = o.socketWriteTimeout;
         this.socketSoLinger = o.socketSoLinger;
-        this.receiveBufferSize = o.receiveBufferSize;
-        this.sendBufferSize = o.sendBufferSize;
+        this.socketReceiveBufferSize = o.socketReceiveBufferSize;
+        this.socketSendBufferSize = o.socketSendBufferSize;
         this.pingInterval = o.pingInterval;
         this.requestCleanupInterval = o.requestCleanupInterval;
         this.writeQueuePushTimeout = o.writeQueuePushTimeout;

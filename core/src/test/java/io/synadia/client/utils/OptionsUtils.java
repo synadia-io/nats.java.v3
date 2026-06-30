@@ -4,7 +4,6 @@ import io.synadia.client.*;
 import io.synadia.client.impl.NatsConnection;
 import org.jspecify.annotations.NonNull;
 
-import java.time.Duration;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -89,7 +88,7 @@ public abstract class OptionsUtils {
         }
 
         return Options.builder()
-            .connectionTimeout(Duration.ofSeconds(4))
+            .connectionTimeout(4000)
             .executor(EX)
             .scheduledExecutor(SC)
             .callbackExecutor(Executors.newSingleThreadExecutor(new TestThreadFactory("CB")))
@@ -99,7 +98,7 @@ public abstract class OptionsUtils {
             // This forces to use the plain SocketDataPort instead of
             // SocketDataPortWithWriteTimeout, we just don't need it for testing.
             // This saves running the scheduled task in the SocketDataPortWithWriteTimeout
-            .socketWriteTimeout(null);
+            .socketWriteTimeout(0);
     }
 
     static class TestThreadFactory implements ThreadFactory {

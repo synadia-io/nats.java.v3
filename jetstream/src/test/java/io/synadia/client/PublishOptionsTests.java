@@ -4,7 +4,6 @@ import io.synadia.client.impl.PublishOptions;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,7 +22,7 @@ public class PublishOptionsTests extends TestBase {
         assertNull(po.getExpectedLastSubjectSequenceSubject());
         assertNull(po.getMessageTtl());
 
-        Duration streamTimeout = Duration.ofSeconds(99);
+        long streamTimeout = 99000;
 
         po = builder
             .streamTimeout(streamTimeout)
@@ -50,7 +49,7 @@ public class PublishOptionsTests extends TestBase {
 
         // these are not cleared
         assertEquals("expectedStream", po.getExpectedStream());
-        assertEquals(Duration.ofSeconds(99), po.getStreamTimeout());
+        assertEquals(99000, po.getStreamTimeout());
         assertEquals("custom", po.getMessageTtl());
 
         // these are cleared
@@ -63,10 +62,17 @@ public class PublishOptionsTests extends TestBase {
 
     @Test
     public void testProperties() {
+        // plain milliseconds
         Properties p = new Properties();
-        p.setProperty(PublishOptions.PROP_PUBLISH_TIMEOUT, "PT20M");
+        p.setProperty(PublishOptions.PROP_PUBLISH_TIMEOUT, "1200000");
         PublishOptions po = new PublishOptions.Builder(p).build();
-        assertEquals(Duration.ofMinutes(20), po.getStreamTimeout(), "20M timeout");
+        assertEquals(1200000, po.getStreamTimeout(), "millis timeout");
+
+        // ISO-8601 duration form (accepted, converted to millis)
+        p = new Properties();
+        p.setProperty(PublishOptions.PROP_PUBLISH_TIMEOUT, "PT20M");
+        po = new PublishOptions.Builder(p).build();
+        assertEquals(1200000, po.getStreamTimeout(), "20M timeout");
 
         p = new Properties();
         po = new PublishOptions.Builder(p).build();

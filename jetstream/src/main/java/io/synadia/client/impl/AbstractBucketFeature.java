@@ -8,7 +8,6 @@ import io.synadia.client.api.PushOrderedConsumerCreator;
 import io.synadia.client.utils.JsValidator;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -102,11 +101,11 @@ public abstract class AbstractBucketFeature {
             sub = js.pushSubscribe(streamName, creator);
         }
 
-        Duration timeout = js.getTimeout();
+        long timeoutMillis = js.getTimeout();
         try {
             long pending = sub.getConsumerInfo().getCalculatedPending();
             while (pending > 0) { // no need to loop if nothing pending
-                Message m = sub.nextMessage(timeout);
+                Message m = sub.nextMessage(timeoutMillis);
                 if (m == null) {
                     return; // if there are no messages by the timeout, we are done.
                 }

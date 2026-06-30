@@ -511,7 +511,7 @@ public class TestBase {
         String data = data(null);
         Subscription sub = conn.subscribe(subject);
         conn.publish(subject, data.getBytes());
-        Message m = sub.nextMessage(Duration.ofSeconds(2));
+        Message m = sub.nextMessage(2000L);
         assertNotNull(m);
         assertEquals(data, new String(m.getData()));
     }
@@ -524,11 +524,11 @@ public class TestBase {
     }
 
     public static void flushConnection(NatsConnection conn, long timeoutMillis) {
-        flushConnection(conn, Duration.ofMillis(timeoutMillis));
+        try { conn.flush(timeoutMillis); } catch (Exception exp) { /* ignored */ }
     }
 
     public static void flushConnection(NatsConnection conn, Duration timeout) {
-        try { conn.flush(timeout); } catch (Exception exp) { /* ignored */ }
+        flushConnection(conn, timeout == null ? 0 : timeout.toMillis());
     }
 
     public static void assertTrueByTimeout(long millis, Supplier<Boolean> test) {

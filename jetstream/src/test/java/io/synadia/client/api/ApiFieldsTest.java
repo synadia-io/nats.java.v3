@@ -73,9 +73,9 @@ public class ApiFieldsTest {
         assertEquals(7777, limits.getMaxAckPending());
 
         // ---- millis form ----
-        ConsumerLimitsCreator c2 = new ConsumerLimitsCreator().inactiveThreshold(12_000L);
+        ConsumerLimitsCreator c2 = new ConsumerLimitsCreator().inactiveThreshold(12000L);
         ConsumerLimits l2 = new ConsumerLimits(lj(c2.toJson()));
-        assertEquals(Duration.ofMillis(12_000), l2.getInactiveThreshold());
+        assertEquals(Duration.ofMillis(12000), l2.getInactiveThreshold());
 
         // ---- from-counterpart constructor ----
         ConsumerLimits original = new ConsumerLimits(lj("{\"inactive_threshold\":60000000000,\"max_ack_pending\":100}"));

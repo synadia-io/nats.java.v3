@@ -5,7 +5,6 @@ import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -71,7 +70,7 @@ public class ConnectionListenerTests extends TestBase {
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         }
 
-        try { nc.flush(Duration.ofMillis(250)); } catch (Exception exp) { /* ignored */ }
+        try { nc.flush(250); } catch (Exception exp) { /* ignored */ }
 
         listener.validate();
         assertNull(nc.getConnectedUrl());

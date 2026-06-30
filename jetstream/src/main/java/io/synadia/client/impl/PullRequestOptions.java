@@ -3,10 +3,9 @@ package io.synadia.client.impl;
 import io.nats.json.JsonSerializable;
 import org.jspecify.annotations.NonNull;
 
-import java.time.Duration;
-
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 import static io.synadia.client.utils.Validator.validateGtZero;
 
 /**
@@ -17,8 +16,8 @@ public class PullRequestOptions implements JsonSerializable {
     private final int batchSize;
     private final long maxBytes;
     private final boolean noWait;
-    private final Duration expiresIn;
-    private final Duration idleHeartbeat;
+    private final long expiresIn;
+    private final long idleHeartbeat;
     private final String group;
     private final int priority;
     private final long minPending;
@@ -47,8 +46,8 @@ public class PullRequestOptions implements JsonSerializable {
         addField(sb, BATCH, batchSize);
         addField(sb, MAX_BYTES, maxBytes);
         addField(sb, NO_WAIT, noWait);
-        addFieldAsNanos(sb, EXPIRES, expiresIn);
-        addFieldAsNanos(sb, IDLE_HEARTBEAT, idleHeartbeat);
+        addFieldWhenGtZero(sb, EXPIRES, expiresIn * NANOS_PER_MILLI);
+        addFieldWhenGtZero(sb, IDLE_HEARTBEAT, idleHeartbeat * NANOS_PER_MILLI);
         addField(sb, GROUP, group);
         addFieldWhenGtZero(sb, PRIORITY, priority);
         addField(sb, ID, getPinId());
@@ -86,18 +85,18 @@ public class PullRequestOptions implements JsonSerializable {
     }
 
     /**
-     * Get the expires in option value
-     * @return the expires in duration
+     * Get the expires in option value in milliseconds
+     * @return the expires in milliseconds, 0 if not set
      */
-    public Duration getExpiresIn() {
+    public long getExpiresIn() {
         return expiresIn;
     }
 
     /**
-     * Get the idle heartbeat option value
-     * @return the idle heartbeat duration
+     * Get the idle heartbeat option value in milliseconds
+     * @return the idle heartbeat milliseconds, 0 if not set
      */
-    public Duration getIdleHeartbeat() {
+    public long getIdleHeartbeat() {
         return idleHeartbeat;
     }
 
@@ -156,8 +155,8 @@ public class PullRequestOptions implements JsonSerializable {
         private int batchSize;
         private long maxBytes;
         private boolean noWait;
-        private Duration expiresIn;
-        private Duration idleHeartbeat;
+        private long expiresIn;
+        private long idleHeartbeat;
         private String group;
         private int priority;
         private long minPending = -1;
@@ -209,41 +208,21 @@ public class PullRequestOptions implements JsonSerializable {
 
         /**
          * Set the expires time in millis
-         * @param expiresInMillis the millis
+         * @param millis the millis
          * @return the builder
          */
-        public Builder expiresIn(long expiresInMillis) {
-            this.expiresIn = Duration.ofMillis(expiresInMillis);
-            return this;
-        }
-
-        /**
-         * Set the expires duration
-         * @param expiresIn the duration
-         * @return the builder
-         */
-        public Builder expiresIn(Duration expiresIn) {
-            this.expiresIn = expiresIn;
+        public Builder expiresIn(long millis) {
+            this.expiresIn = millis <= 0 ? 0 : millis;
             return this;
         }
 
         /**
          * Set the idle heartbeat time in millis
-         * @param idleHeartbeatMillis the millis
+         * @param millis the millis
          * @return the builder
          */
-        public Builder idleHeartbeat(long idleHeartbeatMillis) {
-            this.idleHeartbeat = Duration.ofMillis(idleHeartbeatMillis);
-            return this;
-        }
-
-        /**
-         * Set the idle heartbeat duration
-         * @param idleHeartbeat the duration
-         * @return the builder
-         */
-        public Builder idleHeartbeat(Duration idleHeartbeat) {
-            this.idleHeartbeat = idleHeartbeat;
+        public Builder idleHeartbeat(long millis) {
+            this.idleHeartbeat = millis <= 0 ? 0 : millis;
             return this;
         }
 
@@ -299,16 +278,12 @@ public class PullRequestOptions implements JsonSerializable {
             if (priority < 0 || priority > 9) {
                 throw new IllegalArgumentException("Priority must be between 0 and 9 inclusive.");
             }
-            if (idleHeartbeat != null) {
-                long idleNanosTemp = idleHeartbeat.toNanos() * 2;
-                if (idleNanosTemp > 0) {
-                    if (expiresIn == null) {
-                        throw new IllegalArgumentException("Idle Heartbeat not allowed without expiration.");
-                    }
-                    long expiresNanos = expiresIn.toNanos();
-                    if (idleNanosTemp > expiresNanos) {
-                        throw new IllegalArgumentException("Idle Heartbeat cannot be more than half the expiration.");
-                    }
+            if (idleHeartbeat > 0) {
+                if (expiresIn <= 0) {
+                    throw new IllegalArgumentException("Idle Heartbeat not allowed without expiration.");
+                }
+                if (idleHeartbeat * 2 > expiresIn) {
+                    throw new IllegalArgumentException("Idle Heartbeat cannot be more than half the expiration.");
                 }
             }
             return new PullRequestOptions(this);

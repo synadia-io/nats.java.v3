@@ -5,7 +5,6 @@ import io.synadia.client.Subscription;
 import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.impl.NatsConnection;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -29,6 +28,7 @@ public class Discovery {
     public static final int DEFAULT_DISCOVERY_MAX_RESULTS = 10;
 
     private final NatsConnection conn;
+    private final long maxTimeMillis;
     private final long maxTimeNanos;
     private final int maxResults;
 
@@ -50,7 +50,8 @@ public class Discovery {
      */
     public Discovery(NatsConnection conn, long maxTimeMillis, int maxResults) {
         this.conn = conn;
-        this.maxTimeNanos = (maxTimeMillis < 1 ? DEFAULT_DISCOVERY_MAX_TIME_MILLIS : maxTimeMillis) * NANOS_PER_MILLI;
+        this.maxTimeMillis = maxTimeMillis < 1 ? DEFAULT_DISCOVERY_MAX_TIME_MILLIS : maxTimeMillis;
+        this.maxTimeNanos = maxTimeMillis * NANOS_PER_MILLI;
         this.maxResults = maxResults < 1 ? DEFAULT_DISCOVERY_MAX_RESULTS : maxResults;
         setInboxSupplier(null);
     }
@@ -171,7 +172,7 @@ public class Discovery {
     private byte[] discoverOne(String action, String serviceName, String serviceId) {
         String subject = Service.toDiscoverySubject(action, serviceName, serviceId);
         try {
-            Message m = conn.request(subject, null, Duration.ofNanos(maxTimeNanos));
+            Message m = conn.request(subject, null, maxTimeMillis);
             if (m != null) {
                 return m.getData();
             }
@@ -195,16 +196,17 @@ public class Discovery {
 
             int resultsLeft = maxResults;
             long start = NatsSystemClock.nanoTime();
-            long timeLeft = maxTimeNanos;
-            while (resultsLeft > 0 && timeLeft > 0) {
-                Message msg = sub.nextMessage(Duration.ofNanos(timeLeft));
+            long timeLeftNanos = maxTimeNanos;
+            while (resultsLeft > 0 && timeLeftNanos > 0) {
+                long timeoutMillis = Math.max(1, timeLeftNanos / NANOS_PER_MILLI);
+                Message msg = sub.nextMessage(timeoutMillis);
                 if (msg == null) {
                     return;
                 }
                 dataConsumer.accept(msg.getData());
                 resultsLeft--;
                 // try again while we have time
-                timeLeft = maxTimeNanos - (NatsSystemClock.nanoTime() - start);
+                timeLeftNanos = maxTimeNanos - (NatsSystemClock.nanoTime() - start);
             }
         }
         catch (InterruptedException e) {

@@ -217,18 +217,18 @@ public class BaseConsumeOptions implements JsonSerializable, Serializable {
          * before issuing a replacement pull.
          * <p>Zero or less will default to {@value BaseConsumeOptions#DEFAULT_EXPIRES_IN_MILLIS},
          * otherwise, cannot be less than {@value BaseConsumeOptions#MIN_EXPIRES_MILLS}</p>
-         * @param expiresInMillis the expiration time in milliseconds
+         * @param millis the expiration time in milliseconds
          * @return the builder
          */
-        public B expiresIn(long expiresInMillis) {
-            if (expiresInMillis < 1) {
+        public B expiresIn(long millis) {
+            if (millis < 1) {
                 expiresIn = DEFAULT_EXPIRES_IN_MILLIS;
             }
-            else if (expiresInMillis < MIN_EXPIRES_MILLS) {
+            else if (millis < MIN_EXPIRES_MILLS) {
                 throw new IllegalArgumentException("Expires must be greater than or equal to " + MIN_EXPIRES_MILLS);
             }
             else {
-                expiresIn = expiresInMillis;
+                expiresIn = millis;
             }
             return getThis();
         }

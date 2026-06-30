@@ -20,7 +20,6 @@ import io.synadia.client.utils.ByteArrayBuilder;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
-import java.time.Duration;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -197,8 +196,8 @@ public class NatsConnectionWriter implements Runnable {
 
     @Override
     public void run() {
-        Duration outgoingTimeout = Duration.ofMinutes(2); // This can be long since no one is sending
-        Duration reconnectTimeout = Duration.ofMillis(1); // This should be short, since we are trying to get the reconnect through
+        long outgoingTimeoutMillis = 2 * 60 * 1000L; // 2 minutes; can be long since no one is sending
+        long reconnectTimeoutMillis = 1L; // This should be short, since we are trying to get the reconnect through
 
         try {
             dataPort = this.dataPortFuture.get(); // Will wait for the future to complete
@@ -207,10 +206,10 @@ public class NatsConnectionWriter implements Runnable {
             while (running.get() && !Thread.interrupted()) {
                 NatsMessage msg;
                 if (mode.get() == Mode.Normal) {
-                    msg = this.normalOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, outgoingTimeout);
+                    msg = this.normalOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, outgoingTimeoutMillis);
                 }
                 else {
-                    msg = this.reconnectOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, reconnectTimeout);
+                    msg = this.reconnectOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, reconnectTimeoutMillis);
                 }
                 if (msg != null) {
                     sendMessageBatch(msg, dataPort, stats);

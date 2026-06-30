@@ -17,7 +17,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -68,20 +67,20 @@ public class SocketDataPort implements DataPort {
                 socket.connect(inetSocketAddress, (int) timeout);
             }
 
-            if (options.getSocketReadTimeoutMillis() > 0) {
-                socket.setSoTimeout(options.getSocketReadTimeoutMillis());
+            if (options.getSocketReadTimeout() > 0) {
+                socket.setSoTimeout((int) options.getSocketReadTimeout()); // SO_TIMEOUT is millis and int-typed; a read timeout never exceeds int range
             }
 
             if (options.getSocketSoLinger() > 0) {
                 socket.setSoLinger(true, options.getSocketSoLinger());
             }
 
-            if (options.getReceiveBufferSize() > 0) {
-                socket.setReceiveBufferSize(options.getReceiveBufferSize());
+            if (options.getSocketReceiveBufferSize() > 0) {
+                socket.setReceiveBufferSize(options.getSocketReceiveBufferSize());
             }
 
-            if (options.getSendBufferSize() > 0) {
-                socket.setSendBufferSize(options.getSendBufferSize());
+            if (options.getSocketSendBufferSize() > 0) {
+                socket.setSendBufferSize(options.getSocketSendBufferSize());
             }
 
             if (nuri.isWebsocket()) {
@@ -119,7 +118,6 @@ public class SocketDataPort implements DataPort {
         SSLContext context = options.getSslContext();
 
         SSLSocketFactory factory = context.getSocketFactory();
-        Duration timeout = options.getConnectionTimeout();
 
         SSLSocket sslSocket = (SSLSocket) factory.createSocket(socket, host, port, true);
         sslSocket.setUseClientMode(true);
@@ -131,7 +129,7 @@ public class SocketDataPort implements DataPort {
         sslSocket.startHandshake();
 
         try {
-            waitForHandshake.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+            waitForHandshake.get(options.getConnectionTimeout(), TimeUnit.MILLISECONDS);
         } catch (Exception ex) {
             connection.handleCommunicationIssue(ex);
             return;

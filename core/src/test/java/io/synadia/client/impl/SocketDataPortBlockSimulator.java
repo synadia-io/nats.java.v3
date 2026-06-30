@@ -8,15 +8,17 @@ import io.synadia.client.utils.ScheduledTask;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.client.OptionsConstants.DEFAULT_SOCKET_WRITE_TIMEOUT;
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
 @SuppressWarnings("ClassEscapesDefinedScope") // NatsConnection
 public class SocketDataPortBlockSimulator extends SocketDataPort {
 
     private long writeTimeoutNanos;
-    private long delayPeriodMillis;
+    private long delayPeriodNanos;
     private ScheduledTask writeWatchTask;
     private final AtomicLong writeMustBeDoneBy;
 
@@ -27,21 +29,15 @@ public class SocketDataPortBlockSimulator extends SocketDataPort {
     @Override
     public void afterConstruct(@NonNull Options options) {
         super.afterConstruct(options);
-        long writeTimeoutMillis;
-        if (options.getSocketWriteTimeout() == null) {
-            writeTimeoutMillis = DEFAULT_SOCKET_WRITE_TIMEOUT.toMillis();
-        }
-        else {
-            writeTimeoutMillis = options.getSocketWriteTimeout().toMillis();
-        }
-        delayPeriodMillis = writeTimeoutMillis * 51 / 100;
-        writeTimeoutNanos = writeTimeoutMillis * 1_000_000;
+        long millis = options.getSocketWriteTimeout();
+        writeTimeoutNanos = (millis <= 0 ? DEFAULT_SOCKET_WRITE_TIMEOUT : millis) * NANOS_PER_MILLI;
+        delayPeriodNanos = writeTimeoutNanos * 51 / 100;
     }
 
     @Override
     public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {
         super.connect(conn, nuri, timeoutNanos);
-        writeWatchTask = new ScheduledTask(conn.getScheduledExecutor(), delayPeriodMillis,
+        writeWatchTask = new ScheduledTask(conn.getScheduledExecutor(), delayPeriodNanos, TimeUnit.NANOSECONDS,
             () -> {
                 //  if now is after when it was supposed to be done by
                 if (NatsSystemClock.nanoTime() > writeMustBeDoneBy.get()) {

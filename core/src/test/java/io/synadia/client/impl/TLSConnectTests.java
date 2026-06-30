@@ -17,7 +17,6 @@ import java.net.SocketException;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.time.Duration;
 import java.util.Date;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -46,7 +45,7 @@ public class TLSConnectTests extends TestBase {
         Options options;
         Properties props = SslTestingHelper.createTestSSLProperties();
         props.setProperty(PROP_SERVERS, String.join(",", servers));
-        props.setProperty(PROP_MAX_RECONNECT, "0");
+        props.setProperty(PROP_MAX_RECONNECTS, "0");
         options = new OptionsBuilder(props).build();
         return options;
     }
@@ -108,13 +107,13 @@ public class TLSConnectTests extends TestBase {
             String[] servers = NatsTestServer.getLocalhostUris("opentls", ts1);
             Options options = optionsBuilder(servers)
                 .maxReconnects(0)
-                .opentls()
+                .openTls()
                 .build();
             assertCanConnectAndPubSub(options);
 
             Properties props = new Properties();
             props.setProperty(PROP_SERVERS, String.join(",", servers));
-            props.setProperty(PROP_MAX_RECONNECT, "0");
+            props.setProperty(PROP_MAX_RECONNECTS, "0");
             props.setProperty(PROP_OPEN_TLS, "true");
             assertCanConnectAndPubSub(new OptionsBuilder(props).build());
         });
@@ -127,13 +126,13 @@ public class TLSConnectTests extends TestBase {
                 String[] servers = NatsTestServer.getLocalhostUris("opentls", ts1, ts2);
                 Options options = optionsBuilder(servers)
                     .maxReconnects(0)
-                    .opentls()
+                    .openTls()
                     .build();
                 assertCanConnectAndPubSub(options);
 
                 Properties props = new Properties();
                 props.setProperty(PROP_SERVERS, String.join(",", servers));
-                props.setProperty(PROP_MAX_RECONNECT, "0");
+                props.setProperty(PROP_MAX_RECONNECTS, "0");
                 props.setProperty(PROP_OPEN_TLS, "true");
                 assertCanConnectAndPubSub(new OptionsBuilder(props).build());
             }));
@@ -169,13 +168,13 @@ public class TLSConnectTests extends TestBase {
             Options options = optionsBuilder()
                 .server(servers)
                 .maxReconnects(0)
-                .opentls()
+                .openTls()
                 .build();
             assertCanConnectAndPubSub(options);
 
             Properties props = new Properties();
             props.setProperty(PROP_SERVERS, servers);
-            props.setProperty(PROP_MAX_RECONNECT, "0");
+            props.setProperty(PROP_MAX_RECONNECTS, "0");
             props.setProperty(PROP_OPEN_TLS, "true");
             assertCanConnectAndPubSub(new OptionsBuilder(props).build());
         });
@@ -338,7 +337,7 @@ public class TLSConnectTests extends TestBase {
             .truststorePath("truststorePath")
             .truststorePassword("tsp".toCharArray())
             .secure()
-            .opentls()
+            .openTls()
             .tlsAlgorithm("tlsAlgorithm")
             .build();
 
@@ -431,7 +430,7 @@ public class TLSConnectTests extends TestBase {
                 .server(ts.getNatsLocalhostUri())
                 .sslContext(sslContext)
                 .maxReconnects(1)
-                .connectionTimeout(Duration.ofSeconds(2))
+                .connectionTimeout(2000)
                 .errorListener(el)
                 .build();
 
@@ -464,7 +463,7 @@ public class TLSConnectTests extends TestBase {
                     .server(ts.getNatsLocalhostUri())
                     .sslContext(expiring.sslContext)
                     .maxReconnects(1)
-                    .connectionTimeout(Duration.ofSeconds(5))
+                    .connectionTimeout(5000)
                     .errorListener(el)
                     .build();
 
@@ -508,7 +507,7 @@ public class TLSConnectTests extends TestBase {
                         .noRandomize()
                         .sslContext(expiring.sslContext)
                         .maxReconnects(1)
-                        .connectionTimeout(Duration.ofSeconds(5))
+                        .connectionTimeout(5000)
                         .connectionListener(cl)
                         .errorListener(el)
                         .build();
@@ -547,7 +546,7 @@ public class TLSConnectTests extends TestBase {
                     .server(ts.getNatsLocalhostUri())
                     .sslContext(expiring.sslContext)
                     .maxReconnects(1)
-                    .connectionTimeout(Duration.ofSeconds(5))
+                    .connectionTimeout(5000)
                     .connectionListener(cl)
                     .errorListener(el)
                     .build();

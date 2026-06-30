@@ -6,7 +6,7 @@ import io.synadia.client.MessageHandler;
 import io.synadia.client.Subscription;
 import org.jspecify.annotations.Nullable;
 
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -124,25 +124,21 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessage(long timeoutMillis) throws InterruptedException, IllegalStateException {
-        return nextMessageInternal(Duration.ofMillis(timeoutMillis));
+    public Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException{
+        return nextMessage(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessage(Duration timeout) throws InterruptedException, IllegalStateException {
-        return nextMessageInternal(timeout);
-    }
-
-    protected NatsMessage nextMessageInternal(Duration timeout) throws InterruptedException {
+    public @Nullable Message nextMessage(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException {
         if (this.dispatcher != null) {
-            throw new IllegalStateException(
-                    "Subscriptions that belong to a dispatcher cannot respond to nextMessage directly.");
-        } else if (this.incoming == null) {
+            throw new IllegalStateException("Subscriptions that belong to a dispatcher cannot respond to nextMessage directly.");
+        }
+        else if (this.incoming == null) {
             throw new IllegalStateException("This subscription is inactive.");
         }
 
-        NatsMessage msg = incoming.pop(timeout);
+        NatsMessage msg = incoming.pop(timeout, timeoutUnit);
 
         if (this.incoming == null || !this.incoming.isRunning()) { // We were unsubscribed while waiting
             throw new IllegalStateException("This subscription became inactive.");

@@ -12,7 +12,6 @@ import org.junit.jupiter.api.parallel.Isolated;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -83,7 +82,7 @@ public class ReconnectTests {
             assertNotNull(msg);
 
             nc.publish(subsubject, null);
-            msg = sub.nextMessage(Duration.ofMillis(100));
+            msg = sub.nextMessage(100L);
             assertNotNull(msg);
 
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
@@ -110,7 +109,7 @@ public class ReconnectTests {
 
             // make sure the subscription survived
             nc.publish(subsubject, null);
-            msg = sub.nextMessage(Duration.ofMillis(100));
+            msg = sub.nextMessage(100L);
             assertNotNull(msg);
         }
 
@@ -161,7 +160,7 @@ public class ReconnectTests {
 
             // make sure the subscription survived
             nc.publish(subsubject, null);
-            msg = sub.nextMessage(Duration.ofMillis(100));
+            msg = sub.nextMessage(100L);
             assertNotNull(msg);
         }
 
@@ -196,14 +195,14 @@ public class ReconnectTests {
             final NatsConnection nnc = nc;
             Dispatcher d = nc.createDispatcher(msg -> nnc.publish(msg.getReplyTo(), msg.getData()));
             d.subscribe(dispatchSubject);
-            nc.flush(Duration.ofMillis(1000));
+            nc.flush(1000);
 
             Future<Message> inc = nc.requestAsync(dispatchSubject, "test".getBytes(StandardCharsets.UTF_8));
             Message msg = inc.get();
             assertNotNull(msg);
 
             nc.publish(subsubject, null);
-            msg = sub.nextMessage(Duration.ofMillis(100));
+            msg = sub.nextMessage(100L);
             assertNotNull(msg);
 
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
@@ -234,10 +233,10 @@ public class ReconnectTests {
             assertNotNull(msg);
 
             // Check the two we sent to subscriber
-            msg = sub.nextMessage(Duration.ofMillis(500));
+            msg = sub.nextMessage(500L);
             assertNotNull(msg);
 
-            msg = sub.nextMessage(Duration.ofMillis(500));
+            msg = sub.nextMessage(500L);
             assertNotNull(msg);
         }
 
@@ -325,8 +324,8 @@ public class ReconnectTests {
                 Options options = optionsBuilder(mockTs2)
                     .connectionListener(listener)
                     .maxReconnects(-1)
-                    .connectionTimeout(Duration.ofSeconds(5))
-                    .reconnectWait(1_000L)
+                    .connectionTimeout(5000)
+                    .reconnectWait(1000L)
                     .build();
                 nc = standardConnect(options);
                 assertEquals(mockTs2.getServerUri(), nc.getConnectedUrl());
@@ -376,7 +375,7 @@ public class ReconnectTests {
                 .maxReconnects(5)
                 .connectionListener(listener)
                 .reconnectBufferSize(-1)
-                .reconnectWait(30_000L)
+                .reconnectWait(30000L)
                 .build();
             nc = managedConnect(options);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
@@ -386,7 +385,7 @@ public class ReconnectTests {
         listener.validate();
 
         byte[] payload = new byte[1024];
-        for (int i=0;i<1_000;i++) {
+        for (int i=0;i<1000;i++) {
             nc.publish("test", payload);
         }
 
@@ -521,7 +520,7 @@ public class ReconnectTests {
 
             // Test 1. tls Scheme
             Options options = optionsBuilder(ts, "tls")
-                .connectionTimeout(Duration.ofSeconds(5))
+                .connectionTimeout(5000)
                 .maxReconnects(0)
                 .build();
             assertCanConnect(options);
@@ -538,7 +537,7 @@ public class ReconnectTests {
                 .connectionListener(listener)
                 .maxReconnects(20)
                 .reconnectWait(100L)
-                .connectionTimeout(Duration.ofSeconds(5))
+                .connectionTimeout(5000)
                 .noRandomize()
                 .build();
 
@@ -600,7 +599,7 @@ public class ReconnectTests {
         try (NatsTestServer ts = new NatsTestServer(port)) {
             Options options = optionsBuilder(ts)
                 .maxReconnects(-1)
-                .connectionTimeout(Duration.ofSeconds(1))
+                .connectionTimeout(1000)
                 .reconnectWait(250L)
                 .connectionListener(listener)
                 .build();
@@ -665,39 +664,27 @@ public class ReconnectTests {
         ForceReconnectOptions fro = ForceReconnectOptions.builder().build();
         assertFalse(fro.isForceClose());
         assertFalse(fro.isFlush());
-        assertNull(fro.getFlushWait());
+        assertEquals(0, fro.getFlushWait());
 
         fro = ForceReconnectOptions.builder().forceClose().build();
         assertTrue(fro.isForceClose());
         assertFalse(fro.isFlush());
-        assertNull(fro.getFlushWait());
+        assertEquals(0, fro.getFlushWait());
 
         fro = ForceReconnectOptions.builder().flush(42).build();
         assertFalse(fro.isForceClose());
         assertTrue(fro.isFlush());
-        assertNotNull(fro.getFlushWait());
-        assertEquals(42, fro.getFlushWait().toMillis());
+        assertEquals(42, fro.getFlushWait());
 
-        fro = ForceReconnectOptions.builder().flush(Duration.ofMillis(42)).build();
-        assertFalse(fro.isForceClose());
-        assertTrue(fro.isFlush());
-        assertNotNull(fro.getFlushWait());
-        assertEquals(42, fro.getFlushWait().toMillis());
-
-        fro = ForceReconnectOptions.builder().flush(null).build();
+        fro = ForceReconnectOptions.builder().flush(0).build();
         assertFalse(fro.isForceClose());
         assertFalse(fro.isFlush());
-        assertNull(fro.getFlushWait());
+        assertEquals(0, fro.getFlushWait());
 
         fro = ForceReconnectOptions.builder().flush(-1).build();
         assertFalse(fro.isForceClose());
         assertFalse(fro.isFlush());
-        assertNull(fro.getFlushWait());
-
-        fro = ForceReconnectOptions.builder().flush(Duration.ofNanos(1)).build();
-        assertFalse(fro.isForceClose());
-        assertFalse(fro.isFlush());
-        assertNull(fro.getFlushWait());
+        assertEquals(0, fro.getFlushWait());
     }
 
     @Test
@@ -855,7 +842,7 @@ public class ReconnectTests {
             try (NatsConnection nc = Nats.connect(options)) {
                 Subscription sub = nc.subscribe(subject);
                 while (!subscriberDone.get()) {
-                    Message m = sub.nextMessage(100);
+                    Message m = sub.nextMessage(100L);
                     if (m != null) {
                         String next = "" + (lastNotSkipped + 1);
                         String md = new String(m.getData());
@@ -883,9 +870,9 @@ public class ReconnectTests {
         Listener listener = new Listener();
         OptionsBuilder builder = Options.builder()
             .noRandomize()
-            .socketWriteTimeout(5000) // long time ensures we can get to OUTPUT_QUEUE_IS_FULL
-            .writeQueuePushTimeout(Duration.ofSeconds(5))
-            .pingInterval(Duration.ofSeconds(100)) // avoid pings messing the test
+            .socketWriteTimeout(5000) // millis; long enough that we reach OUTPUT_QUEUE_IS_FULL first
+            .writeQueuePushTimeout(5000)
+            .pingInterval(100000) // avoid pings messing the test
             .maxMessagesInOutgoingQueue(100)
             .dataPortType(SocketDataPortBlockSimulator.class.getCanonicalName())
             .connectionListener(listener)

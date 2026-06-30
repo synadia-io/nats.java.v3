@@ -27,11 +27,11 @@ public class DrainTests {
             final NatsConnection nc = managedConnect(optionsBuilder(ts).maxReconnects(0).build());
 
             nc.subscribe(random());
-            nc.flush(Duration.ofSeconds(1)); // Get the sub to the server, so drain has things to do
+            nc.flush(1000); // Get the sub to the server, so drain has things to do
 
             ts.shutdown(); // shut down the server to fail drain and subsequent close
 
-            assertThrows(Exception.class, () -> nc.drain(Duration.ofSeconds(1)));
+            assertThrows(Exception.class, () -> nc.drain(1000));
 
             closeAndConfirm(nc);
         }
@@ -42,19 +42,19 @@ public class DrainTests {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null); // publish 2
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
+            Message msg = sub.nextMessage(1000L); // read 1
             assertNotNull(msg);
 
-            subCon.flush(Duration.ofSeconds(1));
-            CompletableFuture<Boolean> tracker = sub.drain(Duration.ofSeconds(1));
+            subCon.flush(1000);
+            CompletableFuture<Boolean> tracker = sub.drain(1000);
 
-            msg = sub.nextMessage(Duration.ofSeconds(1)); // read the second one, should be there because we drained
+            msg = sub.nextMessage(1000L); // read the second one, should be there because we drained
             assertNotNull(msg);
 
             assertTrue(tracker.get(1, TimeUnit.SECONDS));
@@ -75,16 +75,16 @@ public class DrainTests {
             String subject = random();
             d.subscribe(subject);
             d.subscribe(subject, msg -> count.incrementAndGet());
-            subCon.flush(Duration.ofSeconds(5)); // Get the sub to the server
+            subCon.flush(5000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
-            subCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
+            subCon.flush(1000);
 
             // Drain will unsub the dispatcher, only messages that already arrived
             // are there
-            CompletableFuture<Boolean> tracker = d.drain(Duration.ofSeconds(8));
+            CompletableFuture<Boolean> tracker = d.drain(8000);
 
             assertTrue(tracker.get(10, TimeUnit.SECONDS)); // wait for the drain to complete
             assertEquals(4, count.get()); // Should get both, two times.
@@ -105,20 +105,20 @@ public class DrainTests {
             d.subscribe(subject);
 
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
             sleep(500); // give the msgs time to get to subCon
 
-            CompletableFuture<Boolean> tracker = subCon.drain(Duration.ofSeconds(5));
+            CompletableFuture<Boolean> tracker = subCon.drain(5000);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1));
+            Message msg = sub.nextMessage(1000L);
             assertNotNull(msg);
-            msg = sub.nextMessage(Duration.ofSeconds(1));
+            msg = sub.nextMessage(1000L);
             assertNotNull(msg);
 
             assertTrue(tracker.get(2, TimeUnit.SECONDS));
@@ -140,20 +140,20 @@ public class DrainTests {
             d.subscribe(subject);
 
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
             sleep(500); // give the msgs time to get to subCon
 
-            CompletableFuture<Boolean> tracker = subCon.drain(null);
+            CompletableFuture<Boolean> tracker = subCon.drain(0);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1));
+            Message msg = sub.nextMessage(1000L);
             assertNotNull(msg);
-            msg = sub.nextMessage(Duration.ofSeconds(1));
+            msg = sub.nextMessage(1000L);
             assertNotNull(msg);
 
             assertTrue(tracker.get(2, TimeUnit.SECONDS));
@@ -168,19 +168,19 @@ public class DrainTests {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null); // publish 2
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
+            Message msg = sub.nextMessage(1000L); // read 1
             assertNotNull(msg);
 
-            subCon.flush(Duration.ofSeconds(1));
-            CompletableFuture<Boolean> tracker = sub.drain(Duration.ZERO);
+            subCon.flush(1000);
+            CompletableFuture<Boolean> tracker = sub.drain(0);
 
-            msg = sub.nextMessage(Duration.ofSeconds(1)); // read the second one, should be there because we drained
+            msg = sub.nextMessage(1000L); // read the second one, should be there because we drained
             assertNotNull(msg);
 
             assertTrue(tracker.get(1, TimeUnit.SECONDS));
@@ -193,14 +193,14 @@ public class DrainTests {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
             subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
-            subCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
+            subCon.flush(1000);
 
-            subCon.drain(Duration.ofSeconds(500));
+            subCon.drain(500000);
 
             // Try to subscribe while we are draining the sub
             assertThrows(IllegalStateException.class, () -> subCon.subscribe(random()));
@@ -212,15 +212,15 @@ public class DrainTests {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
             subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
 
-            subCon.drain(Duration.ofSeconds(500));
+            subCon.drain(500000);
 
             assertThrows(IllegalStateException.class, () -> subCon.createDispatcher(msg -> {}));
         });
@@ -238,25 +238,25 @@ public class DrainTests {
             d.subscribe(subject);
 
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
             sleep(500); // give the msgs time to get to subCon
 
-            CompletableFuture<Boolean> tracker = subCon.drain(Duration.ofSeconds(5));
+            CompletableFuture<Boolean> tracker = subCon.drain(5000);
 
             sleep(1000); // give the drain time to get started
 
             sub.unsubscribe();
             d.unsubscribe(subject);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1));
+            Message msg = sub.nextMessage(1000L);
             assertNotNull(msg);
-            msg = sub.nextMessage(Duration.ofSeconds(1));
+            msg = sub.nextMessage(1000L);
             assertNotNull(msg);
 
             assertTrue(tracker.get(2, TimeUnit.SECONDS));
@@ -273,18 +273,18 @@ public class DrainTests {
             AtomicReference<CompletableFuture<Boolean>> tracker = new AtomicReference<>();
             Dispatcher d = subCon.createDispatcher(msg -> {
                 count.incrementAndGet();
-                tracker.set(dispatcher.get().drain(Duration.ofSeconds(1)));
+                tracker.set(dispatcher.get().drain(1000));
             });
             String subject = random();
             d.subscribe(subject);
             dispatcher.set(d);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
             sleep(500); // give the msgs time to get to subCon
 
             assertTrue(tracker.get().get(5, TimeUnit.SECONDS)); // wait for the drain to complete
@@ -306,27 +306,27 @@ public class DrainTests {
             d.subscribe(subject);
 
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
             sleep(500); // give the msgs time to get to subCon
 
-            CompletableFuture<Boolean> tracker = subCon.drain(Duration.ofSeconds(5));
+            CompletableFuture<Boolean> tracker = subCon.drain(5000);
 
-            assertSame(tracker, sub.drain(Duration.ZERO));
-            assertSame(tracker, sub.drain(Duration.ZERO));
-            assertSame(tracker, d.drain(Duration.ZERO));
-            assertSame(tracker, d.drain(Duration.ZERO));
-            assertSame(tracker, subCon.drain(Duration.ZERO));
-            assertSame(tracker, subCon.drain(Duration.ZERO));
+            assertSame(tracker, sub.drain(0));
+            assertSame(tracker, sub.drain(0));
+            assertSame(tracker, d.drain(0));
+            assertSame(tracker, d.drain(0));
+            assertSame(tracker, subCon.drain(0));
+            assertSame(tracker, subCon.drain(0));
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1));
+            Message msg = sub.nextMessage(1000L);
             assertNotNull(msg);
-            msg = sub.nextMessage(Duration.ofSeconds(1));
+            msg = sub.nextMessage(1000L);
             assertNotNull(msg);
 
             assertTrue(tracker.get(2, TimeUnit.SECONDS));
@@ -340,20 +340,20 @@ public class DrainTests {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             Dispatcher d = pubCon.createDispatcher(msg -> pubCon.publish(msg.getReplyTo(), null));
             String reply = random();
             d.subscribe(reply);
-            pubCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            pubCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.drain(Duration.ofSeconds(500));
+            subCon.drain(500000);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
+            Message msg = sub.nextMessage(1000L); // read 1
             assertNotNull(msg);
 
             assertThrows(IllegalStateException.class, () -> subCon.requestAsync(reply, null));
@@ -365,23 +365,23 @@ public class DrainTests {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
             Subscription sub = subCon.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             Dispatcher d = pubCon.createDispatcher(msg -> pubCon.publish(msg.getReplyTo(), null));
             String reply = random();
             d.subscribe(reply);
-            pubCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            pubCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
             CompletableFuture<Message> response = subCon.requestAsync(reply, null);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
             assertNotNull(response.get(1, TimeUnit.SECONDS));
-            subCon.drain(Duration.ofSeconds(1));
+            subCon.drain(1000);
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
+            Message msg = sub.nextMessage(1000L); // read 1
             assertNotNull(msg);
             CompletableFuture<Message> cancelled = subCon.requestAsync(reply, null);
             CancellationException ce = assertThrows(CancellationException.class, () -> cancelled.get(20, TimeUnit.SECONDS));
@@ -392,7 +392,7 @@ public class DrainTests {
     @Test
     public void testQueueHandoffWithDrain() throws Exception {
         runInSharedOwnNc(optionsBuilder().maxReconnects(0), pubCon -> {
-            final int total = 5_000;
+            final int total = 5000;
             final long sleepBetweenDrains = 250;
             final long sleepBetweenMessages = 5;
             final Duration testTimeout = Duration.ofMillis(5 * total * (sleepBetweenDrains + sleepBetweenMessages));
@@ -409,7 +409,7 @@ public class DrainTests {
             String subject = random();
             String queue = random();
             drainingD = (NatsDispatcher) draining.createDispatcher(msg -> count.incrementAndGet()).subscribe(subject, queue);
-            draining.flush(Duration.ofSeconds(5));
+            draining.flush(5000);
 
             Thread pubThread = new Thread(() -> {
                 for (int i = 0; i < total; i++) {
@@ -425,11 +425,11 @@ public class DrainTests {
                 working = SharedServer.connectionForSameServer(pubCon, optionsBuilder().maxReconnects(0));
                 assertConnected(working);
                 workingD = (NatsDispatcher) working.createDispatcher(msg -> count.incrementAndGet()).subscribe(subject, queue);
-                working.flush(Duration.ofSeconds(5));
+                working.flush(5000);
 
                 sleep(sleepBetweenDrains);
 
-                CompletableFuture<Boolean> tracker = draining.drain(testTimeout);
+                CompletableFuture<Boolean> tracker = draining.drain(testTimeout.toMillis());
 
                 assertTrue(tracker.get(waitTimeout.toMillis(), TimeUnit.MILLISECONDS)); // wait for the drain to complete
                 assertTrue(drainingD.isDrained());
@@ -456,7 +456,7 @@ public class DrainTests {
             Subscription sub = subCon.subscribe(subject);
 
             sub.setPendingLimits(5 * total, -1);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             // Sub should cache them in the pending queue
             for (int i = 0; i < total; i++) {
@@ -464,17 +464,17 @@ public class DrainTests {
                 sleep(1); // use a nice stead pace to avoid slow consumers
             }
             try {
-                pubCon.flush(Duration.ofSeconds(5));
+                pubCon.flush(5000);
             } catch (Exception ignored) {}
 
-            Message msg = sub.nextMessage(Duration.ofSeconds(1)); // read 1
+            Message msg = sub.nextMessage(1000L); // read 1
             assertNotNull(msg);
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
 
-            CompletableFuture<Boolean> tracker = sub.drain(Duration.ofSeconds(10));
+            CompletableFuture<Boolean> tracker = sub.drain(10000);
 
             for (int i = 1; i < total; i++) { // we read 1 so start there
-                msg = sub.nextMessage(Duration.ofSeconds(1)); // read the second one, should be there because we drained
+                msg = sub.nextMessage(1000L); // read the second one, should be there because we drained
                 assertNotNull(msg);
             }
 
@@ -501,16 +501,16 @@ public class DrainTests {
             });
             String subject = random();
             d.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
             sleep(500); // give the msgs time to get to subCon
 
-            CompletableFuture<Boolean> tracker = subCon.drain(Duration.ofSeconds(4));
+            CompletableFuture<Boolean> tracker = subCon.drain(4000);
 
             assertTrue(tracker.get(10, TimeUnit.SECONDS));
             assertTrue(((NatsConnection) subCon).isDrained());
@@ -538,17 +538,17 @@ public class DrainTests {
             });
             String subject = random();
             d.subscribe(subject);
-            subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+            subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
             pubCon.publish(subject, null);
-            pubCon.flush(Duration.ofSeconds(1));
+            pubCon.flush(1000);
 
-            subCon.flush(Duration.ofSeconds(1));
+            subCon.flush(1000);
             sleep(500); // give the msgs time to get to subCon
 
             assertEquals(0, listener.getExceptionCount());
-            CompletableFuture<Boolean> tracker = subCon.drain(Duration.ofSeconds(2));
+            CompletableFuture<Boolean> tracker = subCon.drain(2000);
 
             assertFalse(tracker.get(10, TimeUnit.SECONDS));
             assertFalse(((NatsConnection) subCon).isDrained());
@@ -563,13 +563,13 @@ public class DrainTests {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
             try (NatsConnection subCon = managedConnect(options)) {
-                subCon.flush(Duration.ofSeconds(1)); // Get the sub to the server
+                subCon.flush(1000); // Get the sub to the server
 
                 listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
                 ts.close(); // make the drain flush fail
                 listener.validate();
 
-                assertThrows(TimeoutException.class, () -> subCon.drain(Duration.ofSeconds(1)));
+                assertThrows(TimeoutException.class, () -> subCon.drain(1000));
             }
         }
     }
@@ -578,7 +578,7 @@ public class DrainTests {
     public void testThrowIfClosing() throws Exception {
         runInSharedOwnNc(optionsBuilder().maxReconnects(0), subCon -> {
             subCon.close();
-            assertThrows(IllegalStateException.class, () -> subCon.drain(Duration.ofSeconds(1)));
+            assertThrows(IllegalStateException.class, () -> subCon.drain(1000));
         });
     }
 }

@@ -5,6 +5,7 @@ import io.synadia.client.api.ConsumerInfo;
 import io.synadia.client.global.NatsSystemClock;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static io.synadia.client.impl.BaseConsumeOptions.MIN_EXPIRES_MILLS;
 import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
@@ -124,7 +125,7 @@ class NatsFetchMessageConsumer extends NatsMessageConsumerBase implements FetchM
                 return msg;
             }
 
-            Message msg = sub._nextUnmanaged(timeLeftNanos, pullSubject);
+            Message msg = sub._nextUnmanaged(timeLeftNanos, TimeUnit.NANOSECONDS, pullSubject); // passes nanos; guarded >= 1ms above
             if (msg == null) {
                 if (isNoWaitNoExpires) {
                     // no message and no wait, go ahead and finish

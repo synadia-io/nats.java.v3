@@ -140,9 +140,9 @@ public class NatsMessageTests extends TestBase {
     public void notJetStream() throws Exception {
         NatsMessage m = testMessage();
         m.ack();
-        m.ackSync(Duration.ZERO);
+        m.ackSync(0);
         m.nak();
-        m.nakWithDelay(Duration.ZERO);
+        m.nakWithDelay(Duration.ofSeconds(1));
         m.nakWithDelay(0);
         m.inProgress();
         m.term();
@@ -276,7 +276,7 @@ public class NatsMessageTests extends TestBase {
             h.put("one", "A");
             NatsMessage m = new NatsMessage(subject, null, h, null);
             nc.publish(m);
-            Message incoming = sub.nextMessage(1000);
+            Message incoming = sub.nextMessage(1000L);
             assertEquals(1, incoming.getHeaders().size());
 
             // headers are no longer copied, just referenced
@@ -284,13 +284,13 @@ public class NatsMessageTests extends TestBase {
             // as the local copy
             h.put("two", "B");
             nc.publish(m);
-            incoming = sub.nextMessage(1000);
+            incoming = sub.nextMessage(1000L);
             assertEquals(2, incoming.getHeaders().size());
 
             // also if you get the headers from the message
             m.getHeaders().put("three", "C");
             nc.publish(m);
-            incoming = sub.nextMessage(1000);
+            incoming = sub.nextMessage(1000L);
             assertEquals(3, incoming.getHeaders().size());
         });
     }

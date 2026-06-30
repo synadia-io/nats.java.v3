@@ -4,7 +4,6 @@ import io.synadia.client.*;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -176,7 +175,7 @@ public class DispatcherTests extends TestBase {
 
             String subject = random();
             d.subscribe(subject);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             nc.publish(subject, new byte[16]);
 
@@ -204,7 +203,7 @@ public class DispatcherTests extends TestBase {
 
             String subject = random();
             d.subscribe(subject);
-            nc.flush(Duration.ofMillis(5000));// Get them all to the server
+            nc.flush(5000);// Get them all to the server
 
             nc.publish(subject, new byte[16]);
 
@@ -240,7 +239,7 @@ public class DispatcherTests extends TestBase {
 
             d.subscribe(subject1);
             d.subscribe(subject2);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             nc.publish(subject1, new byte[16]);
             nc.publish(subject2, new byte[16]);
@@ -273,13 +272,13 @@ public class DispatcherTests extends TestBase {
             String subject = random();
             d.subscribe(subject);
             d.subscribe("done");
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish("done", new byte[16]);
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
 
             done.get(500, TimeUnit.MILLISECONDS);
 
@@ -312,12 +311,12 @@ public class DispatcherTests extends TestBase {
             d.subscribe(subject);
             d.subscribe(phase1);
             d.subscribe(phase2);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             nc.publish(subject, new byte[16]);
             nc.publish(phase1, null);
 
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
             fPhase1.get(200, TimeUnit.MILLISECONDS);
 
             assertEquals(1, received.size());
@@ -329,7 +328,7 @@ public class DispatcherTests extends TestBase {
             // This won't arrive
             nc.publish(phase2, new byte[16]);
 
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
             assertThrows(TimeoutException.class, () -> fPhase2.get(200, TimeUnit.MILLISECONDS));
         });
     }
@@ -373,7 +372,7 @@ public class DispatcherTests extends TestBase {
             d2.subscribe(subject, queue);
             d1.subscribe(done);
             d2.subscribe(done);
-            nc.flush(Duration.ofMillis(500));
+            nc.flush(500);
 
             for (int i = 0; i < msgs; i++) {
                 nc.publish(subject, new byte[16]);
@@ -381,7 +380,7 @@ public class DispatcherTests extends TestBase {
 
             nc.publish(done, null);
 
-            nc.flush(Duration.ofMillis(500));
+            nc.flush(500);
             done1.get(500, TimeUnit.MILLISECONDS);
             done2.get(500, TimeUnit.MILLISECONDS);
 
@@ -401,7 +400,7 @@ public class DispatcherTests extends TestBase {
 
             String subject = random();
             d.subscribe(subject);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             nc.publish(subject, new byte[16]);
 
@@ -421,7 +420,7 @@ public class DispatcherTests extends TestBase {
 
             String subject = random();
             d.subscribe(subject);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             nc.publish(subject, new byte[16]);
 
@@ -443,7 +442,7 @@ public class DispatcherTests extends TestBase {
             final CompletableFuture<Message> msgFuture = new CompletableFuture<>();
             Dispatcher d = nc.createDispatcher(msg -> {
                 try {
-                    nc.flush(Duration.ofMillis(1000));
+                    nc.flush(1000);
                 }
                 catch (Exception ex) {
                     ex.printStackTrace();
@@ -452,7 +451,7 @@ public class DispatcherTests extends TestBase {
             });
 
             d.subscribe(subject);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             nc.publish(subject, new byte[16]); // publish one to kick it off
 
@@ -492,24 +491,24 @@ public class DispatcherTests extends TestBase {
             d.subscribe(subject);
             d.subscribe(phase1);
             d.subscribe(phase2);
-            nc.flush(Duration.ofMillis(1000));// Get them all to the server
+            nc.flush(1000);// Get them all to the server
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(phase1, new byte[16]);
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
 
             fPhase1.get(5000, TimeUnit.MILLISECONDS);
 
             d.unsubscribe(subject);
-            nc.flush(Duration.ofMillis(1000));// Get them all to the server
+            nc.flush(1000);// Get them all to the server
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(phase2, new byte[16]);
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
 
             fPhase2.get(1000, TimeUnit.MILLISECONDS); // make sure we got them
 
@@ -546,14 +545,14 @@ public class DispatcherTests extends TestBase {
             d.subscribe(subject);
             d.subscribe(phase1);
             d.subscribe(phase2);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(phase1, new byte[16]);
 
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
             fPhase1.get(1000, TimeUnit.MILLISECONDS); // make sure we got them
 
             assertEquals(msgCount, q.size());
@@ -565,7 +564,7 @@ public class DispatcherTests extends TestBase {
             }
             nc.publish(phase2, new byte[16]);
 
-            nc.flush(Duration.ofMillis(1000)); // Wait for it all to get processed
+            nc.flush(1000); // Wait for it all to get processed
             fPhase2.get(1000, TimeUnit.MILLISECONDS); // make sure we got them
 
             assertEquals(msgCount + 1, q.size());
@@ -597,12 +596,12 @@ public class DispatcherTests extends TestBase {
 
             d.subscribe(subject);
             d.subscribe(done);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             nc.publish(subject, new byte[16]);
             nc.publish(subject, new byte[16]);
             nc.publish(done, new byte[16]); // when we get this we know the others are dispatched
-            nc.flush(Duration.ofMillis(1000)); // Wait for the publish, or we will get multiples for sure
+            nc.flush(1000); // Wait for the publish, or we will get multiples for sure
             fDone.get(200, TimeUnit.MILLISECONDS); // make sure we got them
 
             assertEquals(1, q.size());
@@ -634,13 +633,13 @@ public class DispatcherTests extends TestBase {
 
             d.subscribe(subject);
             d.subscribe(done);
-            nc.flush(Duration.ofMillis(1000));// Get them all to the server
+            nc.flush(1000);// Get them all to the server
 
             nc.publish(subject, new byte[16]);
             nc.publish(subject, new byte[16]);
             nc.publish(subject, new byte[16]);
             nc.publish(done, new byte[16]); // when we get this we know the others are dispatched
-            nc.flush(Duration.ofMillis(1000)); // Wait for the publish
+            nc.flush(1000); // Wait for the publish
 
             fDone.get(200, TimeUnit.MILLISECONDS); // make sure we got them
 
@@ -699,14 +698,14 @@ public class DispatcherTests extends TestBase {
 
             d.subscribe(subject);
             d.subscribe(done);
-            nc.flush(Duration.ofMillis(500));// Get them all to the server
+            nc.flush(500);// Get them all to the server
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(done, new byte[16]);
 
-            nc.flush(Duration.ofMillis(1000)); // wait for them to go through
+            nc.flush(1000); // wait for them to go through
             fDone.get(200, TimeUnit.MILLISECONDS);
 
             assertEquals(msgCount, q.size());
@@ -754,13 +753,13 @@ public class DispatcherTests extends TestBase {
             });
 
             d.subscribe(subject).subscribe(subject).subscribe(subject).subscribe(done);
-            nc.flush(Duration.ofSeconds(5)); // wait for them to go through
+            nc.flush(5000); // wait for them to go through
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(done, new byte[16]);
-            nc.flush(Duration.ofSeconds(5)); // wait for them to go through
+            nc.flush(5000); // wait for them to go through
 
             fDone.get(5, TimeUnit.SECONDS);
 
@@ -787,13 +786,13 @@ public class DispatcherTests extends TestBase {
             d.subscribe(subject, queue, msg -> count.incrementAndGet());
             d.subscribe(done, msg -> fDone.complete(Boolean.TRUE));
 
-            nc.flush(Duration.ofSeconds(5)); // wait for them to go through
+            nc.flush(5000); // wait for them to go through
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(done, new byte[16]);
-            nc.flush(Duration.ofSeconds(5)); // wait for them to go through
+            nc.flush(5000); // wait for them to go through
 
             fDone.get(5, TimeUnit.SECONDS);
 
@@ -819,13 +818,13 @@ public class DispatcherTests extends TestBase {
             Subscription doneSub = d.subscribe(done, msg -> fDone1.complete(Boolean.TRUE));
             d.subscribe(subject, msg -> count.incrementAndGet());
 
-            nc.flush(Duration.ofSeconds(5)); // wait for the subs to go through
+            nc.flush(5000); // wait for the subs to go through
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(done, new byte[16]);
-            nc.flush(Duration.ofSeconds(5)); // wait for the messages to go through
+            nc.flush(5000); // wait for the messages to go through
 
             fDone1.get(5, TimeUnit.SECONDS);
 
@@ -835,13 +834,13 @@ public class DispatcherTests extends TestBase {
             d.unsubscribe(s1);
             d.unsubscribe(doneSub);
             d.subscribe(done, msg -> fDone2.complete(Boolean.TRUE));
-            nc.flush(Duration.ofSeconds(5)); // wait for the unsub to go through
+            nc.flush(5000); // wait for the unsub to go through
 
             for (int i = 0; i < msgCount; i++) {
                 nc.publish(subject, new byte[16]);
             }
             nc.publish(done, new byte[16]);
-            nc.flush(Duration.ofSeconds(5)); // wait for the messages to go through
+            nc.flush(5000); // wait for the messages to go through
 
             fDone2.get(5, TimeUnit.SECONDS);
 

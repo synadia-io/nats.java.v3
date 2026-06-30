@@ -41,7 +41,7 @@ public interface OptionsProperties {
     /**
      * Property used to configure max pings out. {@value}
      */
-    String PROP_MAX_PINGS = PFX + "maxPings";
+    String PROP_MAX_PINGS_OUT = PFX + "maxPingsOut";
     /**
      * Property used to configure ping interval. {@value}
      */
@@ -49,7 +49,7 @@ public interface OptionsProperties {
     /**
      * Property used to configure request cleanup interval. {@value}
      */
-    String PROP_CLEANUP_INTERVAL = PFX + "cleanupInterval";
+    String PROP_REQUEST_CLEANUP_INTERVAL = PFX + "requestCleanupInterval";
     /**
      * Property used to configure write queue push timeout. {@value}
      */
@@ -83,7 +83,7 @@ public interface OptionsProperties {
     /**
      * Property used to configure reconnect buffer size. {@value}
      */
-    String PROP_RECONNECT_BUF_SIZE = PFX + "reconnectBufSize";
+    String PROP_RECONNECT_BUFFER_SIZE = PFX + "reconnectBufferSize";
     /**
      * Property used to configure reconnect wait, in milliseconds (plain integer). {@value}
      */
@@ -91,7 +91,7 @@ public interface OptionsProperties {
     /**
      * Property used to configure max reconnects. {@value}
      */
-    String PROP_MAX_RECONNECT = PFX + "maxReconnect";
+    String PROP_MAX_RECONNECTS = PFX + "maxReconnects";
     /**
      * Property used to configure reconnect jitter, in milliseconds (plain integer). {@value}
      */
@@ -133,7 +133,7 @@ public interface OptionsProperties {
     String PROP_NO_RANDOMIZE = PFX + "noRandomize";
     /**
      * Property used to configure hostname resolve mode. {@value}
-     * Takes precedence over PROP_NO_RESOLVE_HOSTNAMES and PROP_FAST_FALLBACK.
+     * The value is the case-insensitive name of a {@link HostnameResolveMode} constant.
      */
     String PROP_HOSTNAME_RESOLVE_MODE = PFX + "hostnameResolveMode";
     /**
@@ -359,20 +359,30 @@ public interface OptionsProperties {
         }
     }
 
-    static void durationProperty(Properties props, String key, Consumer<Duration> consumer) {
+    /**
+     * Reads a millisecond timing property. The value may be a plain integer number of milliseconds
+     * (e.g. {@code 2000}) or an ISO-8601 duration string (e.g. {@code PT2S}), which is converted to
+     * whole milliseconds. The plain millisecond number is tried first (the common case). Negative
+     * values are ignored (the default is kept); a value that is neither throws {@link IllegalArgumentException}.
+     */
+    static void millisProperty(Properties props, String key, Consumer<Long> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
+            long millis;
             try {
-                Duration d = Duration.parse(value);
-                if (d.toNanos() >= 0) {
-                    consumer.accept(d);
+                millis = Long.parseLong(value); // plain milliseconds (the common case)
+            }
+            catch (NumberFormatException nfe) {
+                try {
+                    millis = Duration.parse(value).toMillis(); // ISO-8601 duration form, e.g. PT2S
+                }
+                catch (DateTimeParseException pe) {
+                    throw new IllegalArgumentException("Property '" + key + "' value '" + value
+                        + "' is not a valid number of milliseconds or an ISO-8601 duration.");
                 }
             }
-            catch (DateTimeParseException pe) {
-                int ms = Integer.parseInt(value);
-                if (ms >= 0) {
-                    consumer.accept(Duration.ofMillis(ms));
-                }
+            if (millis >= 0) {
+                consumer.accept(millis);
             }
         }
     }

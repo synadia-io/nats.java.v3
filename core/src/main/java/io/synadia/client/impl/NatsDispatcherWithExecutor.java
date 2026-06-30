@@ -2,6 +2,8 @@ package io.synadia.client.impl;
 
 import io.synadia.client.MessageHandler;
 
+import java.util.concurrent.TimeUnit;
+
 class NatsDispatcherWithExecutor extends NatsDispatcher {
 
     NatsDispatcherWithExecutor(NatsConnection conn, MessageHandler handler) {
@@ -12,7 +14,7 @@ class NatsDispatcherWithExecutor extends NatsDispatcher {
     public void run() {
         try {
             while (running.get() && !Thread.interrupted()) {
-                NatsMessage msg = this.incoming.pop(this.waitForMessage);
+                NatsMessage msg = this.incoming.pop(WAIT_FOR_MESSAGE_MINUTES, TimeUnit.MINUTES);
                 if (msg != null) {
                     NatsSubscription sub = msg.getNatsSubscription();
                     if (sub != null && sub.isActive()) {

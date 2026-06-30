@@ -279,7 +279,7 @@ public class NatsMessage implements Message {
      * {@inheritDoc}
      */
     @Override
-    public void ackSync(Duration d) throws InterruptedException, TimeoutException {
+    public void ackSync(long timeoutMillis) throws InterruptedException, TimeoutException {
         // do nothing. faster. saves checking whether a message is jetstream or not
     }
 
@@ -295,7 +295,7 @@ public class NatsMessage implements Message {
      * {@inheritDoc}
      */
     @Override
-    public void nakWithDelay(Duration nakDelay) {
+    public void nakWithDelay(long nakDelayMillis) {
         // do nothing. faster. saves checking whether a message is jetstream or not
     }
 
@@ -303,7 +303,7 @@ public class NatsMessage implements Message {
      * {@inheritDoc}
      */
     @Override
-    public void nakWithDelay(long nakDelayMillis) {
+    public void nakWithDelay(Duration nakDelay) {
         // do nothing. faster. saves checking whether a message is jetstream or not
     }
 

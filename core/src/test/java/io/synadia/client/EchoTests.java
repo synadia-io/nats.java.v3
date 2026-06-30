@@ -8,7 +8,6 @@ import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.time.Duration;
 
 import static io.synadia.client.utils.ConnectionUtils.assertCanConnect;
 import static io.synadia.client.utils.OptionsUtils.options;
@@ -39,24 +38,24 @@ public class EchoTests extends TestBase {
                 // Echo is on so both sub should get messages from both pub
                 String subject = random();
                 Subscription sub1 = nc1.subscribe(subject);
-                nc1.flush(Duration.ofSeconds(1));
+                nc1.flush(1000);
                 Subscription sub2 = nc2.subscribe(subject);
-                nc2.flush(Duration.ofSeconds(1));
+                nc2.flush(1000);
 
                 // Pub from connect 1
                 nc1.publish(subject, null);
-                nc1.flush(Duration.ofSeconds(1));
-                Message msg = sub1.nextMessage(Duration.ofSeconds(1));
+                nc1.flush(1000);
+                Message msg = sub1.nextMessage(1000L);
                 assertNotNull(msg);
-                msg = sub2.nextMessage(Duration.ofSeconds(1));
+                msg = sub2.nextMessage(1000L);
                 assertNotNull(msg);
 
                 // Pub from connect 2
                 nc2.publish(subject, null);
-                nc2.flush(Duration.ofSeconds(1));
-                msg = sub1.nextMessage(Duration.ofSeconds(1));
+                nc2.flush(1000);
+                msg = sub1.nextMessage(1000L);
                 assertNotNull(msg);
-                msg = sub2.nextMessage(Duration.ofSeconds(1));
+                msg = sub2.nextMessage(1000L);
                 assertNotNull(msg);
             }
         });
@@ -69,24 +68,24 @@ public class EchoTests extends TestBase {
 
             String subject = random();
             Subscription sub1 = nc1.subscribe(subject);
-            nc1.flush(Duration.ofSeconds(1));
+            nc1.flush(1000);
             Subscription sub2 = nc2.subscribe(subject);
-            nc2.flush(Duration.ofSeconds(1));
+            nc2.flush(1000);
 
             // Pub from connect 1
             nc1.publish(subject, null);
-            nc1.flush(Duration.ofSeconds(1));
-            Message msg = sub1.nextMessage(Duration.ofSeconds(1));
+            nc1.flush(1000);
+            Message msg = sub1.nextMessage(1000L);
             assertNull(msg); // no message for sub1 from pub 1
-            msg = sub2.nextMessage(Duration.ofSeconds(1));
+            msg = sub2.nextMessage(1000L);
             assertNotNull(msg);
 
             // Pub from connect 2
             nc2.publish(subject, null);
-            nc2.flush(Duration.ofSeconds(1));
-            msg = sub1.nextMessage(Duration.ofSeconds(1));
+            nc2.flush(1000);
+            msg = sub1.nextMessage(1000L);
             assertNotNull(msg);
-            msg = sub2.nextMessage(Duration.ofSeconds(1));
+            msg = sub2.nextMessage(1000L);
             assertNotNull(msg); // nc2 is not no echo
         });
     }

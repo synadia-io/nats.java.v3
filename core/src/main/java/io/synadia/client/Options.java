@@ -13,7 +13,6 @@ import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.CharBuffer;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -63,20 +62,20 @@ public class Options {
     final boolean verbose;
     final boolean pedantic;
     final SSLContext sslContext;
-    final int maxReconnect;
+    final int maxReconnects;
     final int maxControlLine;
     final long reconnectWait;
     final long reconnectJitter;
     final long reconnectJitterTls;
-    final Duration connectionTimeout;
-    final int socketReadTimeoutMillis;
-    final Duration socketWriteTimeout;
+    final long connectionTimeout;
+    final long socketReadTimeout;
+    final long socketWriteTimeout;
     final int socketSoLinger;
-    final int receiveBufferSize;
-    final int sendBufferSize;
-    final Duration pingInterval;
-    final Duration requestCleanupInterval;
-    final Duration writeQueuePushTimeout;
+    final int socketReceiveBufferSize;
+    final int socketSendBufferSize;
+    final long pingInterval;
+    final long requestCleanupInterval;
+    final long writeQueuePushTimeout;
     final int maxPingsOut;
     final long reconnectBufferSize;
     final char[] username;
@@ -196,16 +195,16 @@ public class Options {
         this.verbose = b.verbose;
         this.pedantic = b.pedantic;
         this.sslContext = b.sslContext;
-        this.maxReconnect = b.maxReconnect;
+        this.maxReconnects = b.maxReconnects;
         this.reconnectWait = b.reconnectWait;
         this.reconnectJitter = b.reconnectJitter;
         this.reconnectJitterTls = b.reconnectJitterTls;
         this.connectionTimeout = b.connectionTimeout;
-        this.socketReadTimeoutMillis = b.socketReadTimeoutMillis;
+        this.socketReadTimeout = b.socketReadTimeout;
         this.socketWriteTimeout = b.socketWriteTimeout;
         this.socketSoLinger = b.socketSoLinger;
-        this.receiveBufferSize = b.receiveBufferSize;
-        this.sendBufferSize = b.sendBufferSize;
+        this.socketReceiveBufferSize = b.socketReceiveBufferSize;
+        this.socketSendBufferSize = b.socketSendBufferSize;
         this.pingInterval = b.pingInterval;
         this.requestCleanupInterval = b.requestCleanupInterval;
         this.writeQueuePushTimeout = b.writeQueuePushTimeout;
@@ -428,7 +427,7 @@ public class Options {
                     es.shutdown();
                     try {
                         //noinspection ResultOfMethodCallIgnored
-                        es.awaitTermination(getConnectionTimeout().toNanos(), TimeUnit.NANOSECONDS);
+                        es.awaitTermination(connectionTimeout, TimeUnit.MILLISECONDS);
                     }
                     finally {
                         es.shutdownNow();
@@ -550,7 +549,7 @@ public class Options {
     public DataPort buildDataPort() {
         DataPort dp;
         if (dataPortType.equals(DEFAULT_DATA_PORT_TYPE)) {
-            if (socketWriteTimeout == null) {
+            if (socketWriteTimeout <= 0) {
                 dp = new SocketDataPort();
             }
             else {
@@ -698,18 +697,18 @@ public class Options {
     }
 
     /**
-     * the maxReconnect attempts to make before failing, see {@link OptionsBuilder#maxReconnects(int) maxReconnects()} in the builder doc
-     * @return the maxReconnect attempts
+     * the maxReconnects attempts to make before failing, see {@link OptionsBuilder#maxReconnects(int) maxReconnects()} in the builder doc
+     * @return the maxReconnects attempts
      */
-    public int getMaxReconnect() {
-        return maxReconnect;
+    public int getMaxReconnects() {
+        return maxReconnects;
     }
 
     /**
      * the reconnect wait in milliseconds, used between reconnect attempts, see {@link OptionsBuilder#reconnectWait(long) reconnectWait()} in the builder doc
      * @return the reconnect wait in milliseconds
      */
-    public long getReconnectWaitMillis() {
+    public long getReconnectWait() {
         return reconnectWait;
     }
 
@@ -717,7 +716,7 @@ public class Options {
      * the reconnect jitter in milliseconds, used between reconnect attempts to vary the reconnect wait, see {@link OptionsBuilder#reconnectJitter(long) reconnectJitter()} in the builder doc
      * @return the reconnect jitter in milliseconds
      */
-    public long getReconnectJitterMillis() {
+    public long getReconnectJitter() {
         return reconnectJitter;
     }
 
@@ -725,31 +724,31 @@ public class Options {
      * the reconnect jitter in milliseconds for tls/secure connections, used between reconnect attempts to vary the reconnect wait, see {@link OptionsBuilder#reconnectJitterTls(long) reconnectJitterTls()} in the builder doc
      * @return the reconnect jitter in milliseconds for tls/secure
      */
-    public long getReconnectJitterTlsMillis() {
+    public long getReconnectJitterTls() {
         return reconnectJitterTls;
     }
 
     /**
-     * the connectionTimeout, see {@link OptionsBuilder#connectionTimeout(Duration) connectionTimeout()} in the builder doc
-     * @return the connectionTimeout
+     * the connectionTimeout in milliseconds, see {@link OptionsBuilder#connectionTimeout(long) connectionTimeout()} in the builder doc
+     * @return the connectionTimeout in milliseconds
      */
-    public Duration getConnectionTimeout() {
+    public long getConnectionTimeout() {
         return connectionTimeout;
     }
 
     /**
-     * the socketReadTimeoutMillis, see {@link OptionsBuilder#socketReadTimeoutMillis(int) socketReadTimeoutMillis} in the builder doc
-     * @return the socketReadTimeoutMillis
+     * the socketReadTimeout in milliseconds, see {@link OptionsBuilder#socketReadTimeout(long) socketReadTimeout} in the builder doc
+     * @return the socketReadTimeout in milliseconds
      */
-    public int getSocketReadTimeoutMillis() {
-        return socketReadTimeoutMillis;
+    public long getSocketReadTimeout() {
+        return socketReadTimeout;
     }
 
     /**
-     * the socketWriteTimeout, see {@link OptionsBuilder#socketWriteTimeout(long) socketWriteTimeout} in the builder doc
-     * @return the socketWriteTimeout
+     * the socketWriteTimeout in milliseconds, see {@link OptionsBuilder#socketWriteTimeout(long) socketWriteTimeout} in the builder doc
+     * @return the socketWriteTimeout in milliseconds, {@code <= 0} means disabled
      */
-    public Duration getSocketWriteTimeout() {
+    public long getSocketWriteTimeout() {
         return socketWriteTimeout;
     }
 
@@ -765,39 +764,39 @@ public class Options {
      * the number of bytes to set the for the SO_RCVBUF property on the socket
      * @return the number of bytes
      */
-    public int getReceiveBufferSize() {
-        return receiveBufferSize;
+    public int getSocketReceiveBufferSize() {
+        return socketReceiveBufferSize;
     }
 
     /**
      * the number of bytes to set the for the SO_SNDBUF property on the socket
      * @return the number of bytes
      */
-    public int getSendBufferSize() {
-        return sendBufferSize;
+    public int getSocketSendBufferSize() {
+        return socketSendBufferSize;
     }
 
     /**
-     * the pingInterval, see {@link OptionsBuilder#pingInterval(Duration) pingInterval()} in the builder doc
-     * @return interval
+     * the pingInterval in milliseconds, see {@link OptionsBuilder#pingInterval(long) pingInterval()} in the builder doc
+     * @return the interval in milliseconds, {@code <= 0} means disabled
      */
-    public Duration getPingInterval() {
+    public long getPingInterval() {
         return pingInterval;
     }
 
     /**
-     * the request cleanup interval, see {@link OptionsBuilder#requestCleanupInterval(Duration) requestCleanupInterval()} in the builder doc
-     * @return the interval
+     * the request cleanup interval in milliseconds, see {@link OptionsBuilder#requestCleanupInterval(long) requestCleanupInterval()} in the builder doc
+     * @return the interval in milliseconds
      */
-    public Duration getRequestCleanupInterval() {
+    public long getRequestCleanupInterval() {
         return requestCleanupInterval;
     }
 
     /**
-     * the write queue push timeout, see {@link OptionsBuilder#writeQueuePushTimeout(Duration) writeQueuePushTimeout()} in the builder doc
-     * @return the time given to lock and offer a message to the outgoing queue
+     * the write queue push timeout in milliseconds, see {@link OptionsBuilder#writeQueuePushTimeout(long) writeQueuePushTimeout()} in the builder doc
+     * @return the time in milliseconds given to lock and offer a message to the outgoing queue
      */
-    public Duration getWriteQueuePushTimeout() {
+    public long getWriteQueuePushTimeout() {
         return writeQueuePushTimeout;
     }
 
@@ -827,7 +826,7 @@ public class Options {
     }
 
     /**
-     * the username to use for basic authentication, see {@link OptionsBuilder#userInfo(String, String) userInfo()} in the builder doc
+     * the username to use for basic authentication, see {@link OptionsBuilder#userInfo(char[], char[]) userInfo()} in the builder doc
      * @return the username
      */
     public char[] getUsername() {
@@ -835,7 +834,7 @@ public class Options {
     }
 
     /**
-     * the password to use for basic authentication, see {@link OptionsBuilder#userInfo(String, String) userInfo()} in the builder doc
+     * the password to use for basic authentication, see {@link OptionsBuilder#userInfo(char[], char[]) userInfo()} in the builder doc
      * @return the password
      */
     public char[] getPassword() {

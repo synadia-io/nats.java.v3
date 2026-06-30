@@ -40,7 +40,7 @@ import static io.synadia.client.OptionsConstants.DEFAULT_URL;
  * <li>Pass an opentls:// url to the connect method, or in the options. The library will create a special
  * SSLContext that has no client certificates and trusts any server. <strong>This is less secure, but useful for
  * testing and behind a firewall.</strong>
- * <li>Call the {@link OptionsBuilder#opentls() opentls} method on the builder when creating your options, again
+ * <li>Call the {@link OptionsBuilder#openTls() opentls} method on the builder when creating your options, again
  * the all trusting, non-verifiable client is created.
  * </ul>
  * 

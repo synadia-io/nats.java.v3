@@ -3,12 +3,13 @@ package io.synadia.client.impl;
 import io.synadia.client.Consumer;
 import io.synadia.client.global.NatsSystemClock;
 
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
 abstract class NatsConsumer implements Consumer {
 
@@ -160,13 +161,13 @@ abstract class NatsConsumer implements Consumer {
     * flush the unsubscribe call(s) insuring that any publish calls made by this client are included. When all messages
     * are processed the consumer effectively becomes unsubscribed.
     * 
-    * @param timeout The time to wait for the drain to succeed, pass 0 to wait
+    * @param timeoutMillis The time in milliseconds to wait for the drain to succeed, pass 0 or less to wait
     *                    forever. Drain involves moving messages to and from the server
     *                    so a very short timeout is not recommended.
     * @return A future that can be used to check if the drain has completed
     * @throws InterruptedException if the thread is interrupted
     */
-   public CompletableFuture<Boolean> drain(Duration timeout) throws InterruptedException {
+   public CompletableFuture<Boolean> drain(long timeoutMillis) throws InterruptedException {
        if (!this.isActive() || this.connection==null) {
            throw new IllegalStateException("Consumer is closed");
        }
@@ -180,7 +181,7 @@ abstract class NatsConsumer implements Consumer {
        this.sendUnsubForDrain();
 
        try {
-            this.connection.flush(timeout); // Flush and wait up to the timeout
+            this.connection.flush(timeoutMillis); // Flush and wait up to the timeout
        } catch (TimeoutException e) {
            this.connection.processException(e);
        }
@@ -191,8 +192,7 @@ abstract class NatsConsumer implements Consumer {
         // Skipped if conn is draining
         connection.getExecutor().submit(() -> {
             try {
-                long timeoutNanos = (timeout == null || timeout.toNanos() <= 0)
-                    ? Long.MAX_VALUE : timeout.toNanos();
+                long timeoutNanos = timeoutMillis <= 0 ? Long.MAX_VALUE : timeoutMillis * NANOS_PER_MILLI;
                 long startTime = System.nanoTime();
                 while (NatsSystemClock.nanoTime() - startTime < timeoutNanos && !Thread.interrupted()) {
                     if (this.isDrained()) {

@@ -2,9 +2,9 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.ConsumerInfo;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.time.Duration;
 
 class NatsIterableMessageConsumer extends NatsMessageConsumer implements IterableMessageConsumer {
 
@@ -16,9 +16,9 @@ class NatsIterableMessageConsumer extends NatsMessageConsumer implements Iterabl
      * {@inheritDoc}
      */
     @Override
-    public Message nextMessage(Duration timeout) throws InterruptedException, JetStreamStatusCheckedException {
+    public Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException {
         try {
-            Message msg = sub.nextMessage(timeout);
+            Message msg = sub.nextMessage(timeoutMillis);
             if (msg != null) {
                 updateProcessed(msg);
             }
@@ -32,13 +32,5 @@ class NatsIterableMessageConsumer extends NatsMessageConsumer implements Iterabl
             // drained/unsubscribed, so don't pass it on if it's expected
             return null;
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Message nextMessage(long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException {
-        return nextMessage(Duration.ofMillis(timeoutMillis));
     }
 }

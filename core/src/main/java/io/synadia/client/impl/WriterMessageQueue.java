@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.global.NatsSystemClock;
+import org.jspecify.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -10,26 +10,25 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static io.synadia.client.OptionsConstants.MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT;
 import static io.synadia.client.impl.MarkerMessage.POISON_PILL;
-import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_BUSY;
-import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
+import static io.synadia.client.utils.NatsConstants.*;
 
 class WriterMessageQueue extends MessageQueueBase {
-    protected static final long MIN_PUSH_TIMEOUT_NANOS = MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT.toNanos();
+    protected static final long MIN_PUSH_TIMEOUT_NANOS = MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT * NANOS_PER_MILLI;
 
     protected final int maxMessagesInOutgoingQueue;
     protected final boolean discardWhenFull;
     protected final Lock editLock;
     protected final long pushTimeoutNanos;
 
-    WriterMessageQueue(Duration pushTimeout) {
-        this(-1, false, pushTimeout);
+    WriterMessageQueue(long pushTimeoutMillis) {
+        this(-1, false, pushTimeoutMillis);
     }
 
-    WriterMessageQueue(int maxMessagesInOutgoingQueue, boolean discardWhenFull, Duration pushTimeout) {
+    WriterMessageQueue(int maxMessagesInOutgoingQueue, boolean discardWhenFull, long pushTimeoutMillis) {
         super(maxMessagesInOutgoingQueue);
         this.maxMessagesInOutgoingQueue = queueCapacity;
         this.discardWhenFull = discardWhenFull;
-        this.pushTimeoutNanos = Math.max(MIN_PUSH_TIMEOUT_NANOS, pushTimeout.toNanos());
+        this.pushTimeoutNanos = Math.max(MIN_PUSH_TIMEOUT_NANOS, pushTimeoutMillis * NANOS_PER_MILLI);
         this.editLock = new ReentrantLock();
     }
 
@@ -93,12 +92,15 @@ class WriterMessageQueue extends MessageQueueBase {
     // maxBytesToAccumulate and maxMessagesToAccumulate are both checked
     // and if either is exceeded the method returns.
     //
-    // A timeout of 0 will wait forever (or until the queue is stopped/drained)
+    // timeoutMillis follows the shared _poll convention (it is the head-message wait):
+    //   null          -> poll once for the head message and return immediately
+    //   <= 0 (e.g. 0) -> wait forever for the head message (or until the queue is stopped/drained)
+    //   > 0           -> wait up to that many millis for the head message
     //
     // Only works in writer mode, because we want to maintain order.
     // accumulate reads off the concurrent queue one at a time, so if multiple
     // readers are present, you could get out of order message delivery.
-    NatsMessage accumulate(long maxBytesToAccumulate, long maxMessagesToAccumulate, Duration timeout)
+    NatsMessage accumulate(long maxBytesToAccumulate, long maxMessagesToAccumulate, @Nullable Long timeoutMillis)
         throws InterruptedException {
 
         if (!isRunning()) {
@@ -107,7 +109,7 @@ class WriterMessageQueue extends MessageQueueBase {
 
         // _poll returns null if no messages or was a POISON_PILL
         // MarkerMessage is a termination, is not counted, but is returned
-        NatsMessage headMessage = _poll(timeout);
+        NatsMessage headMessage = _poll(timeoutMillis, TimeUnit.MILLISECONDS);
         if (headMessage == null || headMessage instanceof MarkerMessage) {
             return headMessage;
         }

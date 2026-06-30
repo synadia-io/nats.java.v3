@@ -1,8 +1,12 @@
 package io.synadia.client.impl;
 
-import java.time.Duration;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
-class ConsumerMessageQueue extends MessageQueueBase {
+import java.util.concurrent.TimeUnit;
+
+@NullMarked
+public class ConsumerMessageQueue extends MessageQueueBase {
 
     ConsumerMessageQueue() {
         super();
@@ -15,13 +19,22 @@ class ConsumerMessageQueue extends MessageQueueBase {
         }
     }
 
-    NatsMessage pop(Duration timeout) throws InterruptedException {
+    /**
+     * timeoutMillis follows the shared reader-chain convention:
+     *   null           -> poll once and return immediately (whatever is buffered, or null) -- no waiting
+     *   <= 0 (e.g. 0)  -> wait forever (until a message arrives, including a POISON_PILL)
+     *   > 0            -> wait up to that many time units
+     * @param timeout the timeout amount
+     * @param timeoutUnit the time unit of the timeout
+     * @return a message or null
+     * @throws InterruptedException if the polling was interrupted
+     */
+    @Nullable NatsMessage pop(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException {
         if (!isRunning()) {
             return null;
         }
 
-        NatsMessage msg = _poll(timeout);
-
+        NatsMessage msg = _poll(timeout, timeoutUnit);
         if (msg == null) {
             return null;
         }

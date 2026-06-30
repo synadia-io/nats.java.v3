@@ -1,6 +1,7 @@
 package io.synadia.client.impl;
 
-import java.time.Duration;
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -75,30 +76,31 @@ abstract class MessageQueueBase {
         return sizeInBytes.get();
     }
 
-    // this is just a helper method to poll a message from
-    // the queue handling various forms of timeouts
-    // if the polled message was a POISON_PILL, return null
-    NatsMessage _poll(Duration timeout) throws InterruptedException {
+    // Poll a message off the queue, honoring the timeout convention shared by the whole incoming-message
+    // reader chain (Subscription.nextMessage -> nextMessageInternal -> pop -> _poll). The timeout is a
+    // @Nullable Long number of milliseconds/nanoseconds
+    //   null           -> poll once and return immediately (whatever is buffered, or null) -- no waiting
+    //   <= 0 (e.g. 0)  -> wait forever (until a message arrives, or pause() enqueues a POISON_PILL)
+    //   > 0            -> wait up to that many milliseconds/nanoseconds
+    // This method owns the actual wait, so it hands the unit straight to queue.poll. If the polled message
+    // was a POISON_PILL, return null.
+    @Nullable NatsMessage _poll(@Nullable Long timeoutMillis, TimeUnit timeoutUnit) throws InterruptedException {
         NatsMessage msg = null;
-
-        if (timeout == null || this.isDraining()) { // try immediately
+        if (timeoutMillis == null || this.isDraining()) { // try immediately (poll once)
             msg = queue.poll(); // may get null
         }
-        else {
-            long nanos = timeout.toNanos();
-            if (nanos < 1) {
-                // A value < 1 means poll forever until a message
-                // Calling pause will put a POISON_PILL so will break this loop
-                while (isRunning()) {
-                    msg = queue.poll(3650, TimeUnit.DAYS);
-                    if (msg != null) {
-                        break;
-                    }
+        else if (timeoutMillis <= 0) {
+            // poll forever until a message
+            // Calling pause will put a POISON_PILL so will break this loop
+            while (isRunning()) {
+                msg = queue.poll(3650, TimeUnit.DAYS);
+                if (msg != null) {
+                    break;
                 }
             }
-            else {
-                msg = queue.poll(nanos, TimeUnit.NANOSECONDS); // may get null
-            }
+        }
+        else {
+            msg = queue.poll(timeoutMillis, timeoutUnit); // may get null
         }
 
         return msg == null || msg == POISON_PILL ? null : msg;

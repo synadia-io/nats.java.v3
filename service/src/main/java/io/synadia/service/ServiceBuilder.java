@@ -3,7 +3,6 @@ package io.synadia.service;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.impl.NatsConnection;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,18 +18,13 @@ public class ServiceBuilder {
      */
     public static final long DEFAULT_DRAIN_TIMEOUT_MILLIS = 5000;
 
-    /**
-     * Constant for the default drain timeout as duration
-     */
-    public static final Duration DEFAULT_DRAIN_TIMEOUT = Duration.ofMillis(DEFAULT_DRAIN_TIMEOUT_MILLIS);
-
     NatsConnection conn;
     String name;
     String description;
     String version;
     Map<String, String> metadata;
     final Map<String, ServiceEndpoint> serviceEndpoints = new HashMap<>();
-    Duration drainTimeout = DEFAULT_DRAIN_TIMEOUT;
+    long drainTimeout = DEFAULT_DRAIN_TIMEOUT_MILLIS;
     Dispatcher pingDispatcher;
     Dispatcher infoDispatcher;
     Dispatcher statsDispatcher;
@@ -101,22 +95,13 @@ public class ServiceBuilder {
     }
 
     /**
-     * The timeout when stopping a service. Defaults to {@value #DEFAULT_DRAIN_TIMEOUT_MILLIS} milliseconds
-     * @param drainTimeout the drain timeout
+     * The timeout when stopping a service, in milliseconds. A value less than 1 re-defaults to
+     * {@value #DEFAULT_DRAIN_TIMEOUT_MILLIS} milliseconds.
+     * @param millis the drain timeout in milliseconds
      * @return the ServiceBuilder
      */
-    public ServiceBuilder drainTimeout(Duration drainTimeout) {
-        this.drainTimeout = drainTimeout == null ? DEFAULT_DRAIN_TIMEOUT : drainTimeout;
-        return this;
-    }
-
-    /**
-     * The timeout when stopping a service. Defaults to {@value #DEFAULT_DRAIN_TIMEOUT_MILLIS} milliseconds
-     * @param drainTimeoutMillis the drain timeout in milliseconds
-     * @return the ServiceBuilder
-     */
-    public ServiceBuilder drainTimeout(long drainTimeoutMillis) {
-        this.drainTimeout = Duration.ofMillis(drainTimeoutMillis);
+    public ServiceBuilder drainTimeout(long millis) {
+        this.drainTimeout = millis <= 0 ? DEFAULT_DRAIN_TIMEOUT_MILLIS : millis;
         return this;
     }
 

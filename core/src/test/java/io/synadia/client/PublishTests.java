@@ -32,7 +32,7 @@ public class PublishTests extends TestBase {
             assertThrows(IllegalStateException.class, () -> nc.publish(random(), random(), null));
 
             // flush after close always times out
-            assertThrows(TimeoutException.class, () -> nc.flush(null));
+            assertThrows(TimeoutException.class, () -> nc.flush(0));
 
             // a normal api call after close
             assertThrows(IOException.class, nc::RTT);

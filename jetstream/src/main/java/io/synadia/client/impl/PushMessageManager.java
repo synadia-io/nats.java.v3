@@ -34,7 +34,7 @@ public class PushMessageManager extends MessageManager {
             fc = false;
         }
         else {
-            configureIdleHeartbeat(cc.getIdleHeartbeat(), subConf.getMessageAlarmTime());
+            configureIdleHeartbeat(cc.getIdleHeartbeat() == null ? 0 : cc.getIdleHeartbeat().toMillis(), subConf.getMessageAlarmTime());
             fc = hb.get() && cc.isFlowControl(); // can't have fc w/o heartbeat
         }
     }

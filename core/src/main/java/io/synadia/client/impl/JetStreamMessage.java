@@ -5,7 +5,6 @@ import java.util.concurrent.TimeoutException;
 
 import static io.synadia.client.impl.AckType.*;
 import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
-import static io.synadia.client.utils.Validator.validateDurationRequired;
 
 public class JetStreamMessage extends IncomingMessage {
 
@@ -27,11 +26,10 @@ public class JetStreamMessage extends IncomingMessage {
      * {@inheritDoc}
      */
     @Override
-    public void ackSync(Duration d) throws InterruptedException, TimeoutException {
+    public void ackSync(long timeoutMillis) throws InterruptedException, TimeoutException {
         if (ackHasntBeenTermed()) {
-            validateDurationRequired(d);
             NatsConnection nc = getJetStreamValidatedConnection();
-            if (nc.request(replyTo, AckAck.bytes, d) == null) {
+            if (nc.request(replyTo, AckAck.bytes, timeoutMillis) == null) {
                 throw new TimeoutException("Ack response timed out.");
             }
             lastAck = AckAck;
@@ -50,16 +48,16 @@ public class JetStreamMessage extends IncomingMessage {
      * {@inheritDoc}
      */
     @Override
-    public void nakWithDelay(Duration nakDelay) {
-        ackReply(AckNak, nakDelay.toNanos());
+    public void nakWithDelay(long nakDelayMillis) {
+        ackReply(AckNak, nakDelayMillis * NANOS_PER_MILLI);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void nakWithDelay(long nakDelayMillis) {
-        ackReply(AckNak, nakDelayMillis * NANOS_PER_MILLI);
+    public void nakWithDelay(Duration nakDelay) {
+        ackReply(AckNak, nakDelay.toNanos());
     }
 
     /**

@@ -108,17 +108,17 @@ public class WebsocketConnectTests extends TestBase {
 
     @Test
     public void testWsOpenTLS() throws Exception {
-        runInSharedConfiguredServer("ws.conf", ts -> _test(wsBuilder(ts).opentls()));
+        runInSharedConfiguredServer("ws.conf", ts -> _test(wsBuilder(ts).openTls()));
     }
 
     @Test
     public void testWssOpenTLS() throws Exception {
-        runInSharedConfiguredServer("wss.conf", ts -> _test(wssBuilder(ts).opentls()));
+        runInSharedConfiguredServer("wss.conf", ts -> _test(wssBuilder(ts).openTls()));
     }
 
     @Test
     public void testWssVerifyOpenTLS() throws Exception {
-        runInSharedConfiguredServer("wssverify.conf", ts -> _test(wssBuilder(ts).opentls()));
+        runInSharedConfiguredServer("wssverify.conf", ts -> _test(wssBuilder(ts).openTls()));
     }
 
     @Test

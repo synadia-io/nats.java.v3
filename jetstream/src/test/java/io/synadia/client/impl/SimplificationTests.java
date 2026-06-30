@@ -9,7 +9,6 @@ import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CountDownLatch;
@@ -239,7 +238,7 @@ public class SimplificationTests extends JetStreamTestBase {
             }
             else {
                 consumerName = consumerName + "E";
-                creator.name(consumerName).inactiveThreshold(10_000);
+                creator.name(consumerName).inactiveThreshold(10000);
             }
             ctx.jsm.createOrUpdateConsumer(ctx.stream, creator);
             consumerContext = streamCtx.getConsumerContext(consumerName);
@@ -415,7 +414,7 @@ public class SimplificationTests extends JetStreamTestBase {
                     .deliverPolicy(DeliverPolicy.ByStartTime)
                     .startTime(startTime));
             try (IterableMessageConsumer mc = occtx.iterate()) {
-                Message m = mc.nextMessage(1000);
+                Message m = mc.nextMessage(1000L);
                 assertEquals(2, m.metaData().streamSequence());
             }
 
@@ -427,7 +426,7 @@ public class SimplificationTests extends JetStreamTestBase {
                     .startSequence(2)
             );
             try (IterableMessageConsumer mc = occtx.iterate()) {
-                Message m = mc.nextMessage(1000);
+                Message m = mc.nextMessage(1000L);
                 assertEquals(2, m.metaData().streamSequence());
             }
         });
@@ -463,7 +462,7 @@ public class SimplificationTests extends JetStreamTestBase {
         Thread consumeThread = new Thread(() -> {
             try {
                 while (count.get() < stopCount) {
-                    Message msg = mc.nextMessage(1000);
+                    Message msg = mc.nextMessage(1000L);
                     if (msg != null) {
                         msg.ack();
                         count.incrementAndGet();
@@ -473,11 +472,11 @@ public class SimplificationTests extends JetStreamTestBase {
                 Thread.sleep(50); // allows more messages to come across
                 mc.stop();
 
-                Message msg = mc.nextMessage(1000);
+                Message msg = mc.nextMessage(1000L);
                 while (msg != null) {
                     msg.ack();
                     count.incrementAndGet();
-                    msg = mc.nextMessage(1000);
+                    msg = mc.nextMessage(1000L);
                 }
             }
             catch (Exception e) {
@@ -600,27 +599,29 @@ public class SimplificationTests extends JetStreamTestBase {
             // Consumer[Context]
             ConsumerContext consumerContext = ctx.js.getConsumerContext(ctx.stream, name);
             validateConsumerName(consumerContext, null, name);
+            assertThrows(IllegalArgumentException.class, () -> consumerContext.next(1L)); // max wait too small
 
-            assertThrows(IllegalArgumentException.class, () -> consumerContext.next(1)); // max wait too small
-            assertNotNull(consumerContext.next(1000));
-            assertNotNull(consumerContext.next(Duration.ofMillis(1000)));
-            assertNotNull(consumerContext.next(null));
+            assertNotNull(consumerContext.next(1000L));
+            assertNotNull(consumerContext.next(1000L));
             assertNotNull(consumerContext.next());
-            assertNull(consumerContext.next(1000));
+            assertNotNull(consumerContext.next());
+            assertNull(consumerContext.next(1000L));
 
             StreamContext sctx = ctx.js.getStreamContext(ctx.stream);
-            OrderedConsumerContext occtx = sctx.createOrderedConsumer(new PullOrderedConsumerCreator());
-            assertNull(occtx.getConsumerName());
-            assertThrows(IllegalArgumentException.class, () -> occtx.next(1)); // max wait too small
 
-            assertNotNull(occtx.next(1000));
+            OrderedConsumerContext occtx = sctx.createOrderedConsumer(
+                new PullOrderedConsumerCreator());
+            assertNull(occtx.getConsumerName());
+            assertThrows(IllegalArgumentException.class, () -> occtx.next(1L)); // max wait too small
+
+            assertNotNull(occtx.next(1000L));
             String cname1 = validateConsumerNameForOrdered(occtx, null, null);
 
-            assertNotNull(occtx.next(Duration.ofMillis(1000)));
+            assertNotNull(occtx.next(1000L));
             String cname2 = validateConsumerNameForOrdered(occtx, null, null);
             assertNotEquals(cname1, cname2);
 
-            assertNotNull(occtx.next(null));
+            assertNotNull(occtx.next());
             cname1 = validateConsumerNameForOrdered(occtx, null, null);
             assertNotEquals(cname1, cname2);
 
@@ -628,25 +629,24 @@ public class SimplificationTests extends JetStreamTestBase {
             cname2 = validateConsumerNameForOrdered(occtx, null, null);
             assertNotEquals(cname1, cname2);
 
-            assertNull(occtx.next(1000));
+            assertNull(occtx.next(1000L));
             cname1 = validateConsumerNameForOrdered(occtx, null, null);
             assertNotEquals(cname1, cname2);
 
             String prefix = random();
             OrderedConsumerContext occtxPrefixed = sctx.createOrderedConsumer(
-                new PullOrderedConsumerCreator()
-                    .namePrefix(prefix));
+                new PullOrderedConsumerCreator().namePrefix(prefix));
             assertNull(occtxPrefixed.getConsumerName());
-            assertThrows(IllegalArgumentException.class, () -> occtxPrefixed.next(1)); // max wait too small
+            assertThrows(IllegalArgumentException.class, () -> occtxPrefixed.next(1L)); // max wait too small
 
-            assertNotNull(occtxPrefixed.next(1000));
+            assertNotNull(occtxPrefixed.next(1000L));
             cname1 = validateConsumerNameForOrdered(occtxPrefixed, null, prefix);
 
-            assertNotNull(occtxPrefixed.next(Duration.ofMillis(1000)));
+            assertNotNull(occtxPrefixed.next(1000L));
             cname2 = validateConsumerNameForOrdered(occtxPrefixed, null, prefix);
             assertNotEquals(cname1, cname2);
 
-            assertNotNull(occtxPrefixed.next(null));
+            assertNotNull(occtxPrefixed.next(1000L));
             cname1 = validateConsumerNameForOrdered(occtxPrefixed, null, prefix);
             assertNotEquals(cname1, cname2);
 
@@ -654,7 +654,7 @@ public class SimplificationTests extends JetStreamTestBase {
             cname2 = validateConsumerNameForOrdered(occtxPrefixed, null, prefix);
             assertNotEquals(cname1, cname2);
 
-            assertNull(occtxPrefixed.next(1000));
+            assertNull(occtxPrefixed.next(1000L));
             cname1 = validateConsumerNameForOrdered(occtxPrefixed, null, prefix);
             assertNotEquals(cname1, cname2);
         });
@@ -835,7 +835,7 @@ public class SimplificationTests extends JetStreamTestBase {
         assertNull(occtx.getConsumerName());
         // Loop through the messages to make sure I get stream sequence 1 to 6
         while (expectedStreamSeq <= 6) {
-            Message m = occtx.next(1000);
+            Message m = occtx.next(1000L);
             if (m != null) {
                 if (occ.getNamePrefix() != null) {
                     assertTrue(occtx.getConsumerName().startsWith(occ.getNamePrefix()));
@@ -1055,7 +1055,7 @@ public class SimplificationTests extends JetStreamTestBase {
             validateConsumerNameForOrdered(occtx, icon, occ.getNamePrefix());
             // Loop through the messages to make sure I get stream sequence 1 to 5
             while (expectedStreamSeq <= 5) {
-                Message m = icon.nextMessage(Duration.ofSeconds(1)); // use the duration version here for coverage
+                Message m = icon.nextMessage(1000L);
                 if (m != null) {
                     assertEquals(expectedStreamSeq++, m.metaData().streamSequence());
                 }
@@ -1163,7 +1163,7 @@ public class SimplificationTests extends JetStreamTestBase {
             new Thread(() -> {
                 try {
                     // make sure there is enough time to call other methods.
-                    assertNull(occtx.next(1000));
+                    assertNull(occtx.next(1000L));
                 }
                 catch (Exception e) {
                     throw new RuntimeException(e);
@@ -1181,7 +1181,7 @@ public class SimplificationTests extends JetStreamTestBase {
 
             // can do others now
             jsPublishNull(ctx.js, ctx.subject(), 1);
-            Message m = occtx.next(1000);
+            Message m = occtx.next(1000L);
             assertNotNull(m);
             assertEquals(1, m.metaData().streamSequence());
 
@@ -1206,7 +1206,7 @@ public class SimplificationTests extends JetStreamTestBase {
 
             // can do others now
             jsPublishNull(ctx.js, ctx.subject(), 1);
-            m = occtx.next(1000);
+            m = occtx.next(1000L);
             assertNotNull(m);
             assertEquals(seq++, m.metaData().streamSequence());
 
@@ -1215,18 +1215,18 @@ public class SimplificationTests extends JetStreamTestBase {
             try (IterableMessageConsumer ic = occtx.iterate(copts)) {
                 validateCantCallOtherMethods(occtx, true, true);
                 jsPublishNull(ctx.js, ctx.subject(), 1);
-                m = ic.nextMessage(1000);
+                m = ic.nextMessage(1000L);
                 assertNotNull(m);
                 assertEquals(seq++, m.metaData().streamSequence());
                 ic.stop();
                 while (!ic.isFinished()) {
-                    assertNull(ic.nextMessage(100));
+                    assertNull(ic.nextMessage(100L));
                 }
             }
 
             // can do others now
             jsPublishNull(ctx.js, ctx.subject(), 1);
-            m = occtx.next(1000);
+            m = occtx.next(1000L);
             assertNotNull(m);
             assertEquals(seq++, m.metaData().streamSequence());
 
@@ -1252,7 +1252,7 @@ public class SimplificationTests extends JetStreamTestBase {
 
             // can do others now
             jsPublishNull(ctx.js, ctx.subject(), 1);
-            m = occtx.next(1000);
+            m = occtx.next(1000L);
             assertNotNull(m);
             assertEquals(seq, m.metaData().streamSequence());
         });
@@ -1260,7 +1260,7 @@ public class SimplificationTests extends JetStreamTestBase {
 
     @SuppressWarnings("resource")
     private void validateCantCallOtherMethods(OrderedConsumerContext ctx, boolean fetch, boolean consume) {
-        assertThrows(IOException.class, () -> ctx.next(1000));
+        assertThrows(IOException.class, () -> ctx.next(1000L));
         if (fetch) {
             assertThrows(IOException.class, () -> ctx.fetchMessages(1));
         }
@@ -1348,7 +1348,7 @@ public class SimplificationTests extends JetStreamTestBase {
                 .name(cname)
                 .priorityPolicy(PriorityPolicy.Overflow)
                 .priorityGroups(group)
-                .ackWait(10_000)
+                .ackWait(10000)
                 .filterSubjects(ctx.subject());
             ctx.jsm.createOrUpdateConsumer(ctx.stream, pcc);
 
@@ -1409,7 +1409,7 @@ public class SimplificationTests extends JetStreamTestBase {
                 .name(cname)
                 .priorityPolicy(PriorityPolicy.Overflow)
                 .priorityGroups(group)
-                .ackWait(30_000)
+                .ackWait(30000)
                 .filterSubjects(ctx.subject());
             ctx.jsm.createOrUpdateConsumer(ctx.stream, pcc);
 
@@ -1437,7 +1437,7 @@ public class SimplificationTests extends JetStreamTestBase {
                     IterableMessageConsumer ic = ctxOver.iterate(coOver);
                     validateConsumerName(ctxOver, ic, cname);
                     while (left.get() > 0 && !Thread.currentThread().isInterrupted()) {
-                        Message m = ic.nextMessage(100);
+                        Message m = ic.nextMessage(100L);
                         if (m != null) {
                             m.ack();
                             overCount.incrementAndGet();
@@ -1458,7 +1458,7 @@ public class SimplificationTests extends JetStreamTestBase {
                     IterableMessageConsumer ic = ctxPrime.iterate(coPrime);
                     validateConsumerName(ctxPrime, ic, cname);
                     while (left.get() > 0 && !Thread.currentThread().isInterrupted()) {
-                        Message m = ic.nextMessage(100);
+                        Message m = ic.nextMessage(100L);
                         if (m != null) {
                             m.ack();
                             primeCount.incrementAndGet();
@@ -1494,7 +1494,7 @@ public class SimplificationTests extends JetStreamTestBase {
                 .name(cname)
                 .priorityPolicy(PriorityPolicy.Overflow)
                 .priorityGroups(group)
-                .ackWait(30_000)
+                .ackWait(30000)
                 .filterSubjects(ctx.subject());
             ctx.jsm.createOrUpdateConsumer(ctx.stream, pcc);
 

@@ -41,11 +41,11 @@ public class PullOrderedConsumerCreator extends AbstractOrderedConsumerCreator<P
 
     /**
      * Sets the max amount of expire time for the server to allow on pull requests.
-     * @param maxExpires the max expire duration in milliseconds
+     * @param maxExpiresMillis the max expire duration in milliseconds
      * @return this instance for chaining.
      */
-    public PullOrderedConsumerCreator maxExpires(long maxExpires) {
-        _maxExpires(maxExpires);
+    public PullOrderedConsumerCreator maxExpires(long maxExpiresMillis) {
+        _maxExpires(maxExpiresMillis);
         return this;
     }
 

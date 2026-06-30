@@ -2,12 +2,12 @@ package io.synadia.client;
 
 import org.jspecify.annotations.Nullable;
 
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A Subscription encapsulates an incoming queue of messages associated with a single
  * subject and optional queue name. Subscriptions can be in one of two modes. Either the
- * subscription can be used for synchronous reading of messages with {@link #nextMessage(Duration) nextMessage()}
+ * subscription can be used for synchronous reading of messages with {@link #nextMessage(Long) nextMessage()}
  * or the subscription can be owned by a Dispatcher. When a subscription is owned by a dispatcher
  * it cannot be used to get messages or unsubscribe, those operations must be performed on the dispatcher.
  * 
@@ -65,36 +65,43 @@ public interface Subscription extends Consumer {
      * While useful in some situations, i.e. tests and simple examples, using a
      * Dispatcher is generally easier and likely preferred for application code.
      *
-     * <p>Will return null if the calls times out.
+     * <p>Will return null if the call times out (or, for an immediate poll, if nothing is buffered).
      *
-     * <p>Use a timeout of 0 to wait indefinitely. This could still be interrupted if
-     * the subscription is unsubscribed or the client connection is closed.
+     * <p>The {@code timeoutMillis} value selects the behavior:
+     * <ul>
+     *   <li>{@code null} &mdash; poll once and return immediately with whatever message is already buffered (or {@code null} if none); no waiting.</li>
+     *   <li>{@code <= 0} (or any value {@code <= 0}) &mdash; wait indefinitely. This can still be interrupted if the subscription is unsubscribed or the connection is closed.</li>
+     *   <li>{@code > 0} &mdash; wait up to that many milliseconds.</li>
+     * </ul>
      *
-     *
-     * @param timeout the maximum time to wait
-     * @return the next message for this subscriber or null if there is a timeout
+     * @param timeoutMillis the wait in milliseconds: {@code null} = return immediately, {@code <= 0} = wait forever, {@code > 0} = wait up to that long
+     * @return the next message for this subscriber, or null on timeout / immediate-empty
      * @throws IllegalStateException if the subscription belongs to a dispatcher, or is not active
      * @throws InterruptedException if one occurs while waiting for the message
      */
-    Message nextMessage(Duration timeout) throws InterruptedException, IllegalStateException;
+    @Nullable Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException;
 
     /**
      * Read the next message for a subscription, or block until one is available.
      * While useful in some situations, i.e. tests and simple examples, using a
      * Dispatcher is generally easier and likely preferred for application code.
      *
-     * <p>Will return null if the calls times out.
+     * <p>Will return null if the call times out (or, for an immediate poll, if nothing is buffered).
      *
-     * <p>Use a timeout of 0 to wait indefinitely. This could still be interrupted if
-     * the subscription is unsubscribed or the client connection is closed.
+     * <p>The {@code timeout} value selects the behavior:
+     * <ul>
+     *   <li>{@code null} &mdash; poll once and return immediately with whatever message is already buffered (or {@code null} if none); no waiting.</li>
+     *   <li>{@code <= 0} (or any value {@code <= 0}) &mdash; wait indefinitely. This can still be interrupted if the subscription is unsubscribed or the connection is closed.</li>
+     *   <li>{@code > 0} &mdash; wait up to that many time units.</li>
+     * </ul>
      *
-     *
-     * @param timeoutMillis the maximum time to wait in millis
-     * @return the next message for this subscriber or null if there is a timeout
+     * @param timeout the wait amount: {@code null} = return immediately, {@code <= 0} = wait forever, {@code > 0} = wait up to that long
+     * @param timeoutUnit the time unit of the timeout
+     * @return the next message for this subscriber, or null on timeout / immediate-empty
      * @throws IllegalStateException if the subscription belongs to a dispatcher, or is not active
      * @throws InterruptedException if one occurs while waiting for the message
      */
-    Message nextMessage(long timeoutMillis) throws InterruptedException, IllegalStateException;
+    @Nullable Message nextMessage(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException;
 
     /**
      * Unsubscribe this subscription and stop listening for messages.
@@ -117,7 +124,7 @@ public interface Subscription extends Consumer {
      * <p>Supports chaining so that you can do things like:
      * <pre>
      * nc = Nats.connect()
-     * m = nc.subscribe("hello").unsubscribe(1).nextMessage(Duration.ZERO);
+     * m = nc.subscribe("hello").unsubscribe(1).nextMessage(0L);
      * </pre>
      * 
      * @param after the number of messages to accept before unsubscribing
