@@ -860,7 +860,7 @@ public class ReconnectTests {
                 }
             }
             catch (Exception e) {
-                e.printStackTrace();
+                fail(e);
             }
         }
     }

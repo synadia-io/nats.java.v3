@@ -3,7 +3,6 @@ package io.synadia.client;
 import io.synadia.client.impl.DataPort;
 import io.synadia.client.impl.DispatcherFactory;
 import io.synadia.client.impl.SocketDataPort;
-import io.synadia.client.impl.SocketDataPortWithWriteTimeout;
 import io.synadia.client.utils.HttpRequest;
 import io.synadia.client.utils.NatsUri;
 import org.jspecify.annotations.NonNull;
@@ -302,7 +301,7 @@ public class Options {
     private ScheduledExecutorService _getInternalScheduledExecutor() {
         String threadPrefix = nullOrEmpty(this.connectionName) ? DEFAULT_THREAD_NAME_PREFIX : this.connectionName;
         // the core pool size of 3 is chosen considering where we know the scheduler is used.
-        // 1. Ping timer, 2. cleanup timer, 3. SocketDataPortWithWriteTimeout
+        // 1. Ping timer, 2. cleanup timer, 3. SocketDataPort write-timeout watch
         // Pull message managers also use a scheduler, but we don't even know if this will be consuming
         ScheduledThreadPoolExecutor stpe = new ScheduledThreadPoolExecutor(3, new DefaultThreadFactory(threadPrefix));
         stpe.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
@@ -543,18 +542,13 @@ public class Options {
     }
 
     /**
-     * the data port described by these options
+     * create a new instance of the data port described by these options
      * @return the data port
      */
-    public DataPort buildDataPort() {
+    public DataPort createDataPort() {
         DataPort dp;
         if (dataPortType.equals(DEFAULT_DATA_PORT_TYPE)) {
-            if (socketWriteTimeout <= 0) {
-                dp = new SocketDataPort();
-            }
-            else {
-                dp = new SocketDataPortWithWriteTimeout();
-            }
+            dp = new SocketDataPort();
         }
         else {
             dp = (DataPort) createInstanceOf(dataPortType);

@@ -88,16 +88,15 @@ public abstract class OptionsUtils {
         }
 
         return Options.builder()
-            .connectionTimeout(10000)
+            .connectionTimeout(4000)
             .executor(EX)
             .scheduledExecutor(SC)
             .callbackExecutor(Executors.newSingleThreadExecutor(new TestThreadFactory("CB")))
             .connectExecutor(Executors.newSingleThreadExecutor(new TestThreadFactory("CN")))
             .errorListener(NOOP_EL)
 
-            // This forces to use the plain SocketDataPort instead of
-            // SocketDataPortWithWriteTimeout, we just don't need it for testing.
-            // This saves running the scheduled task in the SocketDataPortWithWriteTimeout
+            // socketWriteTimeout(0) disables the write-timeout watch in SocketDataPort —
+            // we don't need the scheduled write-watch task for testing.
             .socketWriteTimeout(0);
     }
 

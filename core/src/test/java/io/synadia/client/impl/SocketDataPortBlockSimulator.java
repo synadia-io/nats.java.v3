@@ -28,7 +28,8 @@ public class SocketDataPortBlockSimulator extends SocketDataPort {
 
     @Override
     public void afterConstruct(@NonNull Options options) {
-        super.afterConstruct(options);
+        // intentionally NOT calling super.afterConstruct: this simulator runs its own write-watch,
+        // so we keep the base SocketDataPort's writeTimeoutNanos at 0 (no second, redundant watch).
         long millis = options.getSocketWriteTimeout();
         writeTimeoutNanos = (millis <= 0 ? DEFAULT_SOCKET_WRITE_TIMEOUT : millis) * NANOS_PER_MILLI;
         delayPeriodNanos = writeTimeoutNanos * 51 / 100;

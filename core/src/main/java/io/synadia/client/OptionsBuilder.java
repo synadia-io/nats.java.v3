@@ -728,13 +728,13 @@ public class OptionsBuilder {
 
     /**
      * Set the timeout to use around socket writes, in milliseconds.
-     * A value below {@link OptionsConstants#MINIMUM_SOCKET_WRITE_TIMEOUT} (including {@code <= 0}) disables the write timeout.
+     * A value below {@link OptionsConstants#MINIMUM_SOCKET_WRITE_TIMEOUT} (including {@code <= 0}) means no write timeout.
      *
      * @param millis the timeout milliseconds
      * @return the Builder for chaining
      */
     public OptionsBuilder socketWriteTimeout(long millis) {
-        this.socketWriteTimeout = millis <= MINIMUM_SOCKET_WRITE_TIMEOUT ? MINIMUM_SOCKET_WRITE_TIMEOUT : millis; // below the minimum (incl. <= 0) disables
+        this.socketWriteTimeout = millis < MINIMUM_SOCKET_WRITE_TIMEOUT ? 0 : millis; // below the minimum (incl. <= 0) means no write timeout
         return this;
     }
 

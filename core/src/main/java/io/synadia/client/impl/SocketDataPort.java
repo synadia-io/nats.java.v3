@@ -1,9 +1,12 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.ForceReconnectOptions;
 import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
+import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.utils.HappyEyeballsConnector;
 import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ScheduledTask;
 import io.synadia.client.utils.WebSocket;
 import org.jspecify.annotations.NonNull;
 
@@ -19,13 +22,14 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
+import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 import static io.synadia.client.utils.NatsConstants.SECURE_WEBSOCKET_PROTOCOL;
 
 /**
  * This class is not thread-safe.  Caller must ensure thread safety.
  */
-@SuppressWarnings("ClassEscapesDefinedScope") // NatsConnection
 public class SocketDataPort implements DataPort {
 
     protected NatsConnection connection;
@@ -37,6 +41,23 @@ public class SocketDataPort implements DataPort {
 
     protected InputStream in;
     protected OutputStream out;
+
+    // Write-timeout watch, gated on socketWriteTimeout > 0;
+    // - when it is <= 0, there is no watch.
+    private long writeTimeoutNanos;
+    private long delayPeriodNanos;
+    private ScheduledTask writeWatchTask;
+    private final AtomicLong writeMustBeDoneBy = new AtomicLong(Long.MAX_VALUE);
+
+    @Override
+    public void afterConstruct(@NonNull Options options) {
+        long millis = options.getSocketWriteTimeout();
+        if (millis > 0) {
+            writeTimeoutNanos = millis * NANOS_PER_MILLI;
+            delayPeriodNanos = writeTimeoutNanos * 51 / 100;
+        }
+        // millis <= 0 -> writeTimeoutNanos stays 0 -> no write-timeout watch
+    }
 
     @Override
     public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {
@@ -107,6 +128,27 @@ public class SocketDataPort implements DataPort {
             }
             throw new IOException(e);
         }
+
+        if (writeTimeoutNanos > 0) {
+            writeWatchTask = new ScheduledTask(connection.getScheduledExecutor(), delayPeriodNanos, TimeUnit.NANOSECONDS,
+                () -> {
+                    // if now is after when the write was supposed to be done by, the socket write is stuck
+                    if (NatsSystemClock.nanoTime() > writeMustBeDoneBy.get()) {
+                        writeWatchTask.shutdown(); // connection is going to be closed; no need to repeat this
+                        connection.notifyErrorListener((c, el) -> el.socketWriteTimeout(c));
+                        try {
+                            connection.forceReconnect(ForceReconnectOptions.FORCE_CLOSE_INSTANCE);
+                        }
+                        catch (IOException e) {
+                            // retry maybe?
+                        }
+                        catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            // This task is going to re-run anyway, so no point in throwing
+                        }
+                    }
+                });
+        }
     }
 
     /**
@@ -149,7 +191,14 @@ public class SocketDataPort implements DataPort {
     }
 
     public void write(byte[] src, int toWrite) throws IOException {
-        out.write(src, 0, toWrite);
+        if (writeTimeoutNanos > 0) {
+            writeMustBeDoneBy.set(NatsSystemClock.nanoTime() + writeTimeoutNanos);
+            out.write(src, 0, toWrite);
+            writeMustBeDoneBy.set(Long.MAX_VALUE);
+        }
+        else {
+            out.write(src, 0, toWrite);
+        }
     }
 
     public void shutdownInput() throws IOException {
@@ -160,6 +209,9 @@ public class SocketDataPort implements DataPort {
     }
 
     public void close() throws IOException {
+        if (writeWatchTask != null) {
+            writeWatchTask.shutdown();
+        }
         if (socket != null) {
             socket.close();
         }

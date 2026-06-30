@@ -928,28 +928,19 @@ public class OptionsTests extends TestBase {
 
 
     @Test
-    public void testDefaultDataPort() {
+    public void testDataPort() {
         Options o = new OptionsBuilder().socketWriteTimeout(0).build();
-        DataPort dataPort = o.buildDataPort();
+        DataPort dataPort = o.createDataPort();
         assertNotNull(dataPort);
-        assertEquals(DEFAULT_DATA_PORT_TYPE, dataPort.getClass().getCanonicalName(), "old default dataPort");
+        assertEquals(DEFAULT_DATA_PORT_TYPE, dataPort.getClass().getCanonicalName());
 
-        o = new OptionsBuilder().build();
-        dataPort = o.buildDataPort();
-        assertNotNull(dataPort);
-        assertEquals(SocketDataPortWithWriteTimeout.class.getCanonicalName(), dataPort.getClass().getCanonicalName(), "new default dataPort");
-    }
-
-    @Test
-    public void testPropertyDataPortType() {
         Properties props = new Properties();
         props.setProperty(PROP_DATA_PORT_TYPE, CloseOnUpgradeAttempt.class.getCanonicalName());
 
-        Options o = new OptionsBuilder(props).build();
+        o = new OptionsBuilder(props).build();
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
 
-        assertEquals(CloseOnUpgradeAttempt.class.getCanonicalName(), o.buildDataPort().getClass().getCanonicalName(),
-            "property data port class");
+        assertEquals(CloseOnUpgradeAttempt.class.getCanonicalName(), o.createDataPort().getClass().getCanonicalName());
     }
 
     @Test

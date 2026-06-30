@@ -1,6 +1,6 @@
 package io.synadia.client;
 
-import io.synadia.client.impl.SocketDataPortWithWriteTimeout;
+import io.synadia.client.impl.SocketDataPort;
 import io.synadia.client.utils.NatsConstants;
 
 import java.util.concurrent.ExecutorService;
@@ -115,7 +115,7 @@ public interface OptionsConstants {
      * <p><em>This option is currently provided only for testing and experimentation; the default
      * should be used in almost all cases.</em></p>
      */
-    String DEFAULT_DATA_PORT_TYPE = SocketDataPortWithWriteTimeout.class.getCanonicalName();
+    String DEFAULT_DATA_PORT_TYPE = SocketDataPort.class.getCanonicalName();
 
     /**
      * Default size for buffers in the connection.

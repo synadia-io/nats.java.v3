@@ -511,7 +511,7 @@ public class NatsConnection implements AutoCloseable {
             cleanUpPongQueue();
 
             timeLeftNanos = timeCheck(end);
-            DataPort newDataPort = this.options.buildDataPort();
+            DataPort newDataPort = this.options.createDataPort();
             newDataPort.connect(this, resolved, timeLeftNanos);
 
             // Notify any threads waiting on the sockets
