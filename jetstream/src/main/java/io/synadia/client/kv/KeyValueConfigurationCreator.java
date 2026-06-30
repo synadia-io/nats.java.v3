@@ -66,6 +66,17 @@ public class KeyValueConfigurationCreator {
     }
 
     /**
+     * Sets the maximum age for a value in this configuration.
+     * @param ttlMillis the maximum age
+     * @return this instance for chaining
+     */
+    public KeyValueConfigurationCreator ttl(Long ttlMillis) {
+        this.ttl = ttlMillis == null || ttlMillis < 0 ? Duration.ZERO : Duration.ofMillis(ttlMillis);
+        streamCreator.maxAge(this.ttl);
+        return this;
+    }
+
+    /**
      * Sets the storage type in the configuration.
      * @param storageType the storage type
      * @return this instance for chaining
@@ -188,7 +199,7 @@ public class KeyValueConfigurationCreator {
      * @param limitMarkerTtl the TTL duration
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator limitMarker(Duration limitMarkerTtl) {
+    public KeyValueConfigurationCreator limitMarkerTtl(Duration limitMarkerTtl) {
         this.limitMarkerTtl = validateDurationNotRequiredGtOrEqSeconds(1, limitMarkerTtl, null, "Limit Marker Ttl");
         return this;
     }
@@ -198,7 +209,7 @@ public class KeyValueConfigurationCreator {
      * @param limitMarkerTtlMillis the TTL duration
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator limitMarker(long limitMarkerTtlMillis) {
+    public KeyValueConfigurationCreator limitMarkerTtl(long limitMarkerTtlMillis) {
         if (limitMarkerTtlMillis <= 0) {
             this.limitMarkerTtl = null;
         }

@@ -67,6 +67,17 @@ public class ObjectStoreConfigurationCreator {
     }
 
     /**
+     * Sets the maximum age for a value in this configuration.
+     * @param ttlMillis the maximum age
+     * @return this instance for chaining
+     */
+    public ObjectStoreConfigurationCreator ttl(Long ttlMillis) {
+        this.ttl = ttlMillis == null || ttlMillis < 0 ? Duration.ZERO : Duration.ofMillis(ttlMillis);
+        streamCreator.maxAge(this.ttl);
+        return this;
+    }
+
+    /**
      * Sets the storage type in the configuration.
      * @param storageType the storage type
      * @return this instance for chaining
