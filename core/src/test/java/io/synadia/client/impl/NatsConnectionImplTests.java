@@ -6,14 +6,10 @@ import io.synadia.client.OptionsBuilder;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.synadia.client.utils.ConnectionUtils.closeAndConfirm;
-import static io.synadia.client.utils.ConnectionUtils.managedConnect;
+import static io.synadia.client.utils.ConnectionUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class NatsConnectionImplTests extends TestBase {
@@ -218,6 +214,27 @@ public class NatsConnectionImplTests extends TestBase {
             Thread.sleep(250); // allow time for callbacks to happen
             assertEquals(1, count1.get());
             assertEquals(2, count2.get());
+        });
+    }
+
+    @Test
+    public void testOutgoingPendingCountCoverage() throws Exception {
+        runInOwnServer(nc -> {
+            // Stop the writer so nothing drains the outgoing queue, giving a deterministic backlog
+            // to exercise the pending-count getters against. Reading them while the writer is live
+            // is an unwinnable race (a fast machine drains to 0; a slow machine backs up past the
+            // reconnect buffer and the publish throws), and they can't be read during reconnect at
+            // all because that path holds closeSocketLock for the whole reconnect.
+            nc.getWriter().stop().get(DEFAULT_WAIT, TimeUnit.MILLISECONDS);
+
+            String subject = random();
+            byte[] data = new byte[2 * 1024]; // > 1000 bytes so pending bytes > count * 1000
+            for (int x = 0; x < 20; x++) {
+                nc.publish(subject, data);
+            }
+
+            assertTrue(nc.outgoingPendingMessageCount() > 0);
+            assertTrue(nc.outgoingPendingBytes() > nc.outgoingPendingMessageCount() * 1000);
         });
     }
 }

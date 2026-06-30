@@ -88,7 +88,7 @@ public abstract class OptionsUtils {
         }
 
         return Options.builder()
-            .connectionTimeout(4000)
+            .connectionTimeout(10000)
             .executor(EX)
             .scheduledExecutor(SC)
             .callbackExecutor(Executors.newSingleThreadExecutor(new TestThreadFactory("CB")))

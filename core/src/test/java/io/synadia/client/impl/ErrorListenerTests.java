@@ -123,8 +123,16 @@ public class ErrorListenerTests extends TestBase {
 
             assertEquals(3, sub.getDroppedCount());
 
-            nc.close(); // should force the exception listener through
+            nc.close();
 
+            // The slow-consumer listener runs on the callback executor. In these tests that
+            // executor is user-supplied, so close() does not drain it (close only shuts down
+            // internal executors). Wait for the listener's exception to be recorded rather
+            // than reading the counter immediately after close.
+            long stopAt = System.currentTimeMillis() + DEFAULT_WAIT;
+            while (nc.getStatistics().getExceptions() == 0 && System.currentTimeMillis() < stopAt) {
+                Thread.sleep(50);
+            }
             assertTrue(nc.getStatistics().getExceptions() > 0);
         }
     }

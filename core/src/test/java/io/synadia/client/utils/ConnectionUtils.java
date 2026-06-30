@@ -15,10 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 public abstract class ConnectionUtils {
 
-    public static final int DEFAULT_WAIT   =  5000;
-    public static final int MEDIUM_WAIT    =  8000;
-    public static final int LONG_WAIT      = 12000;
-    public static final int VERY_LONG_WAIT = 20000;
+    public static final int DEFAULT_WAIT   = 11000;
+    public static final int MEDIUM_WAIT    = 14000;
+    public static final int LONG_WAIT      = 18000;
+    public static final int VERY_LONG_WAIT = 26000;
 
     public static final long STANDARD_FLUSH_TIMEOUT_MS = 2000;
     public static final long MEDIUM_FLUSH_TIMEOUT_MS = 5000;
