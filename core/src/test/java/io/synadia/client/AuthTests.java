@@ -485,7 +485,8 @@ public class AuthTests extends TestBase {
             String uri = ts.getLocalhostUri("wss");
             Options options = optionsBuilder(uri).maxReconnects(0).sslContext(ctx)
                 .authHandler(getUserCredsAuthHander()).build();
-            assertCanConnect(options);
+            NatsConnection conn = managedConnect(options);
+            assertTrue(conn.getServerInfo().isTLSAvailable());
         });
     }
 
