@@ -523,8 +523,9 @@ public class SimplificationTests extends JetStreamTestBase {
             try (MessageConsumer mcon = consumerContext.consume(handler)) {
                 validateConsumerName(consumerContext, mcon, ctx.consumerName());
                 latch.await();
+                awaitMoreThan(atomicCount, stopCount); // healthy consume over-delivers fast; a genuine stall times out and the assert below still fails
                 stopAndWaitForFinished(mcon);
-                assertTrue(atomicCount.get() > 500);
+                assertTrue(atomicCount.get() > stopCount);
             }
 
             StreamContext sctx = ctx.js.getStreamContext(ctx.stream);
@@ -545,8 +546,9 @@ public class SimplificationTests extends JetStreamTestBase {
             try (MessageConsumer mcon = orderedConsumerContext.consume(handler)) {
                 validateConsumerNameForOrdered(orderedConsumerContext, mcon, null);
                 orderedLatch.await();
+                awaitMoreThan(atomicCount, stopCount); // healthy consume over-delivers fast; a genuine stall times out and the assert below still fails
                 stopAndWaitForFinished(mcon);
-                assertTrue(atomicCount.get() > 500);
+                assertTrue(atomicCount.get() > stopCount);
             }
 
             String prefix = random();
@@ -567,8 +569,9 @@ public class SimplificationTests extends JetStreamTestBase {
             try (MessageConsumer mcon = orderedConsumerContextPrefixed.consume(handler)) {
                 validateConsumerNameForOrdered(orderedConsumerContextPrefixed, mcon, prefix);
                 orderedLatchPrefixed.await();
+                awaitMoreThan(atomicCount, stopCount); // healthy consume over-delivers fast; a genuine stall times out and the assert below still fails
                 stopAndWaitForFinished(mcon);
-                assertTrue(atomicCount.get() > 500);
+                assertTrue(atomicCount.get() > stopCount);
             }
         });
     }
@@ -582,6 +585,18 @@ public class SimplificationTests extends JetStreamTestBase {
             if (++fin >= 500) {
                 break;
             }
+        }
+    }
+
+    // Wait (bounded) for the consumer to deliver past 'floor'. This removes the race between the latch
+    // (which fires at exactly the floor) and asserting the consumer over-delivered: a healthy endless
+    // consume passes this in milliseconds, while a genuine stall at the batch boundary times out here
+    // and leaves count == floor so the caller's assertion still fails.
+    private static void awaitMoreThan(AtomicInteger count, int floor) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (count.get() <= floor && System.currentTimeMillis() < deadline) {
+            //noinspection BusyWait
+            Thread.sleep(20);
         }
     }
 
