@@ -10,6 +10,7 @@ import static io.synadia.client.utils.Validator.emptyAsNull;
 
 /**
  * Group is way to organize endpoints by serving as a common prefix to all endpoints registered in it.
+ * The constructor validates the name and throws {@link IllegalArgumentException} for an invalid value.
  */
 public class Group {
     private final String name;
@@ -19,6 +20,7 @@ public class Group {
      * Construct a group.
      * <p>Group names are considered 'Restricted Terms' and must only contain A-Z, a-z, 0-9, '-' or '_'</p>
      * @param name the group name
+     * @throws IllegalArgumentException if the name is null or empty, or is not a valid subject term (for example, it contains '>')
      */
     public Group(String name) {
         name = emptyAsNull(name);

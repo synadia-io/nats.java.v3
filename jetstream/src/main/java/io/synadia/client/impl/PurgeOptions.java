@@ -9,6 +9,7 @@ import static io.synadia.client.utils.Validator.validateSubjectStrict;
 
 /**
  * The PurgeOptions class specifies the options for purging a stream
+ * The builder validates its values and throws {@link IllegalArgumentException} for invalid input.
  */
 public class PurgeOptions implements JsonSerializable {
 
@@ -90,6 +91,7 @@ public class PurgeOptions implements JsonSerializable {
          * Set the subject to filter the purge. Wildcards allowed.
          * @param subject the subject
          * @return the builder
+         * @throws IllegalArgumentException if the subject is not a valid subject
          */
         public Builder subject(final String subject) {
             this.subject = validateSubjectStrict(subject, false);
@@ -119,6 +121,7 @@ public class PurgeOptions implements JsonSerializable {
         /**
          * Build the PurgeOptions
          * @return the built PurgeOptions
+         * @throws IllegalArgumentException if both sequence and keep are set (they are mutually exclusive)
          */
         public PurgeOptions build() {
             if (seq > 0 && keep > 0) {

@@ -14,6 +14,7 @@ import static io.synadia.client.utils.Validator.nullOrEmpty;
  * An object that represents a map of keys to a list of values. It does not accept
  * null or invalid keys. It ignores null values, accepts empty string as a value
  * and rejects invalid values.
+ * The add and put methods validate keys and values and throw {@link IllegalArgumentException} for invalid input.
  * !!!
  * THIS CLASS IS NOT THREAD SAFE
  */
@@ -188,6 +189,8 @@ public class Headers {
 	 * null values are ignored. If all values are null, the put is ignored
 	 * @param map the map
 	 * @return the Headers object
+	 * @throws IllegalArgumentException if the key is null or empty or contains invalid characters
+	 *         -or- if any value contains invalid characters
 	 */
 	public Headers put(Map<String, List<String>> map) {
 		if (readOnly) {

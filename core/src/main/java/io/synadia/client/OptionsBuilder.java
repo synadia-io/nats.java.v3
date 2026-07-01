@@ -40,6 +40,7 @@ import static io.synadia.client.utils.Validator.emptyOrNullAs;
  * be created from a properties object using the property names defined with the
  * prefix PROP_ in this class.
  * <p>A common usage for testing might be {@code new Options.Builder().server(myserverurl).noReconnect.build()}
+ * <p>Builder methods validate their arguments and throw {@link IllegalArgumentException} for an invalid value; see individual methods for specifics.
  */
 public class OptionsBuilder {
     // ----------------------------------------------------------------------------------------------------
@@ -141,8 +142,9 @@ public class OptionsBuilder {
      * <p>Methods called on the builder after construction can override the properties.</p>
      *
      * @param props the {@link Properties} object
+     * @throws IllegalArgumentException if the properties object is null
      */
-    public OptionsBuilder(Properties props) throws IllegalArgumentException {
+    public OptionsBuilder(Properties props) {
         properties(props);
     }
 
@@ -1435,6 +1437,7 @@ public class OptionsBuilder {
      * Construction an Options.Builder copying an existing Options
      *
      * @param o the options
+     * @throws IllegalArgumentException if the options is null
      */
     public OptionsBuilder(Options o) {
         if (o == null) {

@@ -20,6 +20,7 @@ import static io.synadia.client.utils.ApiConstants.*;
 
 /**
  * Base class for service responses Info, Ping and Stats
+ * Parsing constructors throw {@link IllegalArgumentException} when required fields are missing or the type does not match.
  */
 public abstract class ServiceResponse implements JsonSerializable {
     protected final String type;
@@ -42,6 +43,12 @@ public abstract class ServiceResponse implements JsonSerializable {
         this(type, template.id, template.name, template.version, template.metadata);
     }
 
+    /**
+     * Construct a ServiceResponse by parsing the given JSON value.
+     * @param type the expected type
+     * @param jv the JSON value to parse
+     * @throws IllegalArgumentException if the type is null or empty, the type does not match the expected type, or the id, name, or version is null or empty
+     */
     protected ServiceResponse(String type, JsonValue jv) {
         String jvType = readString(jv, TYPE);
         if (Validator.emptyAsNull(jvType) == null) {

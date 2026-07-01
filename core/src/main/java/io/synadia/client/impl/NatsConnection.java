@@ -28,6 +28,11 @@ import static io.synadia.client.utils.NatsConstants.*;
 import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/**
+ * The connection to a NATS server.
+ *
+ * <p>Publish, subscribe, and request methods validate their arguments and throw {@link IllegalArgumentException} for an invalid subject, reply subject, or message.
+ */
 public class NatsConnection implements AutoCloseable {
 
     protected final Options options;
@@ -938,6 +943,12 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
+    /**
+     * Send a message to the specified subject.
+     * @param subject the subject to send the message to
+     * @param data the message data
+     * @throws IllegalArgumentException if the subject is invalid
+     */
     public void publish(@NonNull String subject, byte @Nullable [] data) {
         publish(subject, null, null, data, false);
     }
@@ -961,6 +972,7 @@ public class NatsConnection implements AutoCloseable {
      * @param headers Optional headers to publish with the message.
      * @param data the message data
      * @throws IllegalStateException if the reconnect buffer is exceeded
+     * @throws IllegalArgumentException if the subject is invalid, or the headers are not supported by the connected server
      */
     public void publish(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data) {
         publish(subject, null, headers, data, false);
@@ -988,17 +1000,20 @@ public class NatsConnection implements AutoCloseable {
      * @param replyTo the subject the receiver should send any response to
      * @param data the message data
      * @throws IllegalStateException if the reconnect buffer is exceeded
+     * @throws IllegalArgumentException if the subject is invalid, or the reply subject is invalid
      */
     public void publish(@NonNull String subject, @Nullable String replyTo, byte @Nullable [] data) {
         publish(subject, replyTo, null, data, false);
     }
 
     /**
+     * Send a message to the specified subject.
      * @param subject the subject to send the message to
      * @param replyTo the subject the receiver should send any response to
      * @param headers Optional headers to publish with the message.
      * @param data the message data
      * @throws IllegalStateException if the reconnect buffer is exceeded
+     * @throws IllegalArgumentException if the subject is invalid, or the reply subject is invalid, or the headers are not supported by the connected server
      */
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data) {
         subject = subjectValidate(subject);
@@ -1007,6 +1022,15 @@ public class NatsConnection implements AutoCloseable {
         _publish(new InternalPublishableMessage(data, subject, replyTo, headers, false));
     }
 
+    /**
+     * Send a message to the specified subject.
+     * @param subject the subject to send the message to
+     * @param replyTo the subject the receiver should send any response to
+     * @param headers Optional headers to publish with the message.
+     * @param data the message data
+     * @param flushImmediatelyAfterPublish whether to flush the outgoing buffer immediately after publishing
+     * @throws IllegalArgumentException if the subject is invalid, or the reply subject is invalid, or the headers are not supported by the connected server
+     */
     public void publish(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable [] data, boolean flushImmediatelyAfterPublish) {
         subject = subjectValidate(subject);
         replyTo = replyValidate(replyTo);
@@ -1014,6 +1038,11 @@ public class NatsConnection implements AutoCloseable {
         _publish(new InternalPublishableMessage(data, subject, replyTo, headers, flushImmediatelyAfterPublish));
     }
 
+    /**
+     * Send a message.
+     * @param message the message to send
+     * @throws IllegalArgumentException if the message is null, the subject or reply subject is invalid, or the headers are not supported by the connected server
+     */
     public void publish(@NonNull NatsMessage message) {
         Validator.validateNotNull(message, "Message");
         subjectValidate(message.getSubject());
@@ -1022,6 +1051,12 @@ public class NatsConnection implements AutoCloseable {
         _publish(new InternalPublishableMessage(message, false));
     }
 
+    /**
+     * Send a message.
+     * @param message the message to send
+     * @param flushImmediatelyAfterPublish whether to flush the outgoing buffer immediately after publishing
+     * @throws IllegalArgumentException if the message is null, the subject or reply subject is invalid, or the headers are not supported by the connected server
+     */
     public void publish(@NonNull NatsMessage message, boolean flushImmediatelyAfterPublish) {
         Validator.validateNotNull(message, "Message");
         subjectValidate(message.getSubject());
@@ -1067,6 +1102,7 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param subject the subject to subscribe to
      * @return an object representing the subscription
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
     public Subscription subscribe(@NonNull String subject) {
@@ -1088,6 +1124,7 @@ public class NatsConnection implements AutoCloseable {
      * @param subject the subject to subscribe to
      * @param queueName the queue group to join
      * @return an object representing the subscription
+     * @throws IllegalArgumentException if the subject or the queue name is invalid
      */
     @NonNull
     public Subscription subscribe(@NonNull String subject, @NonNull String queueName) {
@@ -1305,6 +1342,7 @@ public class NatsConnection implements AutoCloseable {
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @Nullable
     public Message request(@NonNull String subject, byte @Nullable [] data, long timeoutMillis) throws InterruptedException {
@@ -1322,6 +1360,7 @@ public class NatsConnection implements AutoCloseable {
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @Nullable
     public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis) throws InterruptedException {
@@ -1341,6 +1380,7 @@ public class NatsConnection implements AutoCloseable {
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
      * @return the reply message or null if the timeout is reached
      * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
+     * @throws IllegalArgumentException if the message is null, or the subject is invalid
      */
     @Nullable
     public Message request(@NonNull Message message, long timeoutMillis) throws InterruptedException {
@@ -1348,11 +1388,19 @@ public class NatsConnection implements AutoCloseable {
         return request(message.getSubject(), message.getHeaders(), message.getData(), timeoutMillis, CancelAction.REPORT, forceFlushOnRequest);
     }
 
+    /**
+     * Send a request and returns the reply or null.
+     * @throws IllegalArgumentException if the subject is invalid
+     */
     @Nullable
     public Message request(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis, @NonNull CancelAction cancelAction) throws InterruptedException {
         return request(subject, headers, data, timeoutMillis, cancelAction, forceFlushOnRequest);
     }
 
+    /**
+     * Send a request and returns the reply or null.
+     * @throws IllegalArgumentException if the subject is invalid
+     */
     @Nullable
     public Message request(@NonNull String subject,
                            @Nullable Headers headers,
@@ -1378,6 +1426,7 @@ public class NatsConnection implements AutoCloseable {
      * @param subject the subject for the service that will handle the request
      * @param data the content of the message
      * @return a Future for the response, which may be cancelled on error or timed out
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] data) {
@@ -1392,6 +1441,7 @@ public class NatsConnection implements AutoCloseable {
      * @param headers Optional headers to publish with the message.
      * @param data the content of the message
      * @return a Future for the response, which may be cancelled on error or timed out
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data) {
@@ -1406,6 +1456,7 @@ public class NatsConnection implements AutoCloseable {
      * @param data the content of the message
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
      * @return a Future for the response, which may be cancelled on error or timed out
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, byte @Nullable [] data, long timeoutMillis) {
@@ -1421,6 +1472,7 @@ public class NatsConnection implements AutoCloseable {
      * @param headers Optional headers to publish with the message.
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
      * @return a Future for the response, which may be cancelled on error or timed out
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis) {
@@ -1438,6 +1490,7 @@ public class NatsConnection implements AutoCloseable {
      * @param message the message
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
      * @return a Future for the response, which may be cancelled on error or timed out
+     * @throws IllegalArgumentException if the message is null, or the subject is invalid
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull Message message, long timeoutMillis) {
@@ -1455,6 +1508,7 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param message the message
      * @return a Future for the response, which may be cancelled on error or timed out
+     * @throws IllegalArgumentException if the message is null, or the subject is invalid
      */
     @NonNull
     public CompletableFuture<Message> request(@NonNull Message message) {
@@ -1474,6 +1528,7 @@ public class NatsConnection implements AutoCloseable {
      * @param cancelAction what to do with the future if the request is cancelled (cancel, report, or complete)
      * @param flushImmediatelyAfterPublish whether to flush the outgoing buffer immediately after publishing the request
      * @return a Future for the response, which may be cancelled on error or timed out
+     * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
     public CompletableFuture<Message> requestAsync(@NonNull String subject,
@@ -1610,6 +1665,7 @@ public class NatsConnection implements AutoCloseable {
      * <p>Once closed the dispatcher will throw an exception on subsequent subscribe or unsubscribe calls.
      *
      * @param d the dispatcher to close
+     * @throws IllegalArgumentException if the dispatcher was not created by this connection, or has already been closed
      */
     public void closeDispatcher(@NonNull Dispatcher d) {
         if (isClosed()) {

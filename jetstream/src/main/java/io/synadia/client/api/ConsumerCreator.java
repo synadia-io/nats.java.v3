@@ -18,6 +18,7 @@ import static io.synadia.client.utils.JsValidator.*;
 /**
  * Base class for consumer creators, providing setters common to all consumer types
  * (full, ephemeral, and ordered).
+ * Setter methods validate their arguments and throw {@link IllegalArgumentException} for invalid values; see individual methods for specifics.
  */
 @NullMarked
 public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements JsonSerializable {
@@ -402,6 +403,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * Replaces any other filter subjects.
      * @param filterSubjects one or more filter subjects
      * @return this instance for chaining.
+     * @throws IllegalArgumentException if any filter subject is not a valid subject
      */
     public T filterSubjects(String... filterSubjects) {
         replaceAllStrings(this.filterSubjects, filterSubjects, s -> validateSubjectTermStrict(s, "Subject"));
@@ -414,6 +416,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * Replaces any other filter subjects.
      * @param filterSubjects the list of filter subjects
      * @return this instance for chaining.
+     * @throws IllegalArgumentException if any filter subject is not a valid subject
      */
     public T filterSubjects(@Nullable List<String> filterSubjects) {
         replaceAllStrings(this.filterSubjects, filterSubjects, s -> validateSubjectTermStrict(s, "Subject"));
@@ -458,6 +461,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * Sets the idle heart beat wait time
      * @param idleHeartbeat the idle heart beat duration
      * @return this instance for chaining.
+     * @throws IllegalArgumentException if the idle heartbeat is greater than zero but below the 100ms minimum
      */
     public T idleHeartbeat(@Nullable Duration idleHeartbeat) {
         _idleHeartbeat(idleHeartbeat);
@@ -469,6 +473,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * Sets the idle heart beat wait time
      * @param idleHeartbeatMillis the idle heart beat duration in milliseconds
      * @return this instance for chaining.
+     * @throws IllegalArgumentException if the idle heartbeat is greater than zero but below the 100ms minimum
      */
     public T idleHeartbeat(long idleHeartbeatMillis) {
         _idleHeartbeat(idleHeartbeatMillis);
@@ -528,11 +533,21 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     // PROTECTED DELEGATE SETTERS (for subclasses that selectively expose)
     // ----------------------------------------------------------------------------------------------------
 
+    /**
+     * Sets the durable name.
+     * @param durable the durable name
+     * @throws IllegalArgumentException if the durable is not printable or contains '*', '.', '&gt;', '\' or '/', or does not match a previously set name
+     */
     protected void _durable(@Nullable String durable) {
         this.durable = validateDurable(emptyAsNull(durable), false);
         validateMustMatchIfBothSupplied(name, durable, JsConsumerNameDurableMismatch);
     }
 
+    /**
+     * Sets the consumer name.
+     * @param name the consumer name
+     * @throws IllegalArgumentException if the name is not printable or contains '*', '.', '&gt;', '\' or '/', or does not match a previously set durable
+     */
     protected void _name(@Nullable String name) {
         this.name = validateConsumerName(emptyAsNull(name), false);
         validateMustMatchIfBothSupplied(name, durable, JsConsumerNameDurableMismatch);
@@ -596,6 +611,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         }
     }
 
+    /**
+     * Sets flow control and the idle heartbeat.
+     * @param idleHeartbeat the idle heartbeat duration
+     * @throws IllegalArgumentException if the idle heartbeat is not set, or is below the 100ms minimum
+     */
     protected void _flowControl(@Nullable Duration idleHeartbeat) {
         _idleHeartbeat(idleHeartbeat);
         if (idleHeartbeat == null) {
@@ -604,6 +624,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.flowControl = true;
     }
 
+    /**
+     * Sets flow control and the idle heartbeat.
+     * @param idleHeartbeatMillis the idle heartbeat duration in milliseconds
+     * @throws IllegalArgumentException if the idle heartbeat is not set, or is below the 100ms minimum
+     */
     protected void _flowControl(long idleHeartbeatMillis) {
         _idleHeartbeat(idleHeartbeatMillis);
         if (idleHeartbeat == null) {
@@ -636,6 +661,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.maxBytes = normalizeLong(maxBytes, 1);
     }
 
+    /**
+     * Sets the number of replicas.
+     * @param numReplicas the number of replicas
+     * @throws IllegalArgumentException if the number of replicas is set but not between 1 and 5
+     */
     protected void _numReplicas(int numReplicas) {
         this.numReplicas = numReplicas < 1 ? UNSET : validateNumberOfReplicas(numReplicas);
     }
@@ -648,6 +678,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         this.memStorage = memStorage;
     }
 
+    /**
+     * Sets the backoff durations.
+     * @param backoffs one or more backoff durations
+     * @throws IllegalArgumentException if any backoff value is negative
+     */
     protected void _backoff(Duration... backoffs) {
         backoff.clear();
         for (Duration d : backoffs) {
@@ -658,6 +693,11 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         }
     }
 
+    /**
+     * Sets the backoff durations.
+     * @param backoffMillis one or more backoff durations in milliseconds
+     * @throws IllegalArgumentException if any backoff value is negative
+     */
     protected void _backoff(long... backoffMillis) {
         backoff.clear();
         for (long l : backoffMillis) {

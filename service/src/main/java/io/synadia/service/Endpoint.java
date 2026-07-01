@@ -22,6 +22,7 @@ import static io.synadia.client.utils.Validator.validateIsRestrictedTerm;
  * <p>To create an Endpoint, either use a direct constructor or use the Endpoint builder
  * via the static method <code>builder()</code> or <code>new Endpoint.Builder() to get an instance.</code>
  * </p>
+ * <p>Constructors and the builder validate their arguments and throw {@link IllegalArgumentException} for invalid values.</p>
  */
 public class Endpoint implements JsonSerializable {
     /**
@@ -37,6 +38,7 @@ public class Endpoint implements JsonSerializable {
     /**
      * Directly construct an Endpoint with a name, which becomes the subject
      * @param name the name
+     * @throws IllegalArgumentException if the name is null, blank, or not a valid restricted term
      */
     public Endpoint(String name) {
         this(name, null, DEFAULT_QGROUP, null, true);
@@ -46,6 +48,7 @@ public class Endpoint implements JsonSerializable {
      * Directly construct an Endpoint with a name, which becomes the subject, and metadata
      * @param name the name
      * @param metadata the metadata
+     * @throws IllegalArgumentException if the name is null, blank, or not a valid restricted term
      */
     public Endpoint(String name, Map<String, String> metadata) {
         this(name, null, DEFAULT_QGROUP, metadata, true);
@@ -55,6 +58,7 @@ public class Endpoint implements JsonSerializable {
      * Directly construct an Endpoint with a name and a subject
      * @param name the name
      * @param subject the subject
+     * @throws IllegalArgumentException if the name is null, blank, or not a valid restricted term; or the subject is invalid
      */
     public Endpoint(String name, String subject) {
         this(name, subject, DEFAULT_QGROUP, null, true);
@@ -65,6 +69,7 @@ public class Endpoint implements JsonSerializable {
      * @param name the name
      * @param subject the subject
      * @param metadata the metadata
+     * @throws IllegalArgumentException if the name is null, blank, or not a valid restricted term; or the subject is invalid
      */
     public Endpoint(String name, String subject, Map<String, String> metadata) {
         this(name, subject, DEFAULT_QGROUP, metadata, true);
@@ -76,6 +81,7 @@ public class Endpoint implements JsonSerializable {
      * @param subject the subject
      * @param queueGroup the queueGroup
      * @param metadata the metadata
+     * @throws IllegalArgumentException if the name is null, blank, or not a valid restricted term; the subject is invalid; or the queue group is invalid
      */
     public Endpoint(String name, String subject, String queueGroup, Map<String, String> metadata) {
         this(name, subject, queueGroup, metadata, true);
@@ -258,6 +264,7 @@ public class Endpoint implements JsonSerializable {
         /**
          * Build the Endpoint instance.
          * @return the Endpoint instance
+         * @throws IllegalArgumentException if the name is null, blank, or not a valid restricted term; the subject is invalid; or the queue group is invalid
          */
         public Endpoint build() {
             return new Endpoint(this);

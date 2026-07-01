@@ -20,6 +20,7 @@ import static io.synadia.client.utils.NatsConstants.DOT;
  * <p>To create a ServiceEndpoint, use the ServiceEndpoint builder, which can be instantiated
  * via the static method <code>builder()</code> or <code>new ServiceEndpoint.Builder() to get an instance.</code>
  * </p>
+ * <p>The builder validates its values and throws {@link IllegalArgumentException} for invalid input.</p>
  */
 public class ServiceEndpoint {
     private final Group group;
@@ -222,6 +223,7 @@ public class ServiceEndpoint {
         /**
          * Build the ServiceEndpoint instance.
          * @return the ServiceEndpoint instance
+         * @throws IllegalArgumentException if the handler is null, or the endpoint name, subject, or queue group is invalid
          */
         public ServiceEndpoint build() {
             Endpoint endpoint = endpointBuilder.build();

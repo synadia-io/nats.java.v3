@@ -10,6 +10,7 @@ import static io.synadia.client.utils.Validator.validateGtZero;
 
 /**
  * The PullRequestOptions class specifies the options for pull requests
+ * The builder validates its values and throws {@link IllegalArgumentException} for invalid input.
  */
 public class PullRequestOptions implements JsonSerializable {
 
@@ -272,6 +273,7 @@ public class PullRequestOptions implements JsonSerializable {
          * <p>Validates that the batch size is greater than 0</p>
          * <p>If supplied, validates that the idle heartbeat is valid for the expiration</p>
          * @return the built PullRequestOptions
+         * @throws IllegalArgumentException if the batch size is not greater than zero, the priority is not between 0 and 9, the idle heartbeat is set without an expiration, or the idle heartbeat is greater than half the expiration
          */
         public PullRequestOptions build() {
             validateGtZero(batchSize, "Pull batch size");

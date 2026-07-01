@@ -10,6 +10,7 @@ import static io.synadia.client.utils.Validator.emptyAsNull;
 
 /**
  * Constants and static functions used by {@link Options} and the connection machinery.
+ * These property helpers throw {@link IllegalArgumentException} when a property value cannot be parsed or applied.
  */
 public interface OptionsProperties {
     // ----------------------------------------------------------------------------------------------------
@@ -325,6 +326,10 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads an integer property and passes it to the consumer when present.
+     * @throws IllegalArgumentException if the property value is not a valid integer
+     */
     static void intProperty(Properties props, String key, Consumer<Integer> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
@@ -332,6 +337,10 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads an integer property and passes it to the consumer when present and greater than or equal to zero.
+     * @throws IllegalArgumentException if the property value is not a valid integer
+     */
     static void intGtEqZeroProperty(Properties props, String key, Consumer<Integer> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
@@ -342,6 +351,10 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads a long property and passes it to the consumer when present.
+     * @throws IllegalArgumentException if the property value is not a valid long
+     */
     static void longProperty(Properties props, String key, Consumer<Long> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
@@ -349,6 +362,10 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads a long property and passes it to the consumer when present and greater than or equal to zero.
+     * @throws IllegalArgumentException if the property value is not a valid long
+     */
     static void longGtEqZeroProperty(Properties props, String key, Consumer<Long> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
@@ -364,6 +381,7 @@ public interface OptionsProperties {
      * (e.g. {@code 2000}) or an ISO-8601 duration string (e.g. {@code PT2S}), which is converted to
      * whole milliseconds. The plain millisecond number is tried first (the common case). Negative
      * values are ignored (the default is kept); a value that is neither throws {@link IllegalArgumentException}.
+     * @throws IllegalArgumentException if the property value is not a valid milliseconds value or ISO-8601 duration
      */
     static void millisProperty(Properties props, String key, Consumer<Long> consumer) {
         String value = getPropertyValue(props, key);
@@ -387,10 +405,18 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads a class name property, instantiates the named class, and passes the instance to the consumer when present.
+     * @throws IllegalArgumentException if the class cannot be found, has no no-argument constructor, or cannot be instantiated
+     */
     static void classnameProperty(Properties props, String key, Consumer<Object> consumer) {
         stringProperty(props, key, className -> consumer.accept(createInstanceOf(className)));
     }
 
+    /**
+     * Creates an instance of the named class using its no-argument constructor.
+     * @throws IllegalArgumentException if the class cannot be found, has no no-argument constructor, or cannot be instantiated
+     */
     static Object createInstanceOf(String className) {
         try {
             Class<?> clazz = Class.forName(className);

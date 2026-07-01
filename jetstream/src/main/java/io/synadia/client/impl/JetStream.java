@@ -18,6 +18,9 @@ import static io.synadia.client.utils.JsValidator.validateStreamName;
 import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 import static io.synadia.client.utils.Validator.*;
 
+/**
+ * Publish, subscribe, and context methods validate their arguments and throw {@link IllegalArgumentException} for an invalid subject, stream name, or a null message.
+ */
 @NullMarked
 public class JetStream extends JetStreamImpl {
     @Nullable
@@ -94,11 +97,19 @@ public class JetStream extends JetStreamImpl {
         return publishSyncInternal(subject, headers, null, data, options);
     }
 
+    /**
+     * Publish a message.
+     * @throws IllegalArgumentException if the message is null
+     */
     public PublishAck publish(Message message) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
         return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, null);
     }
 
+    /**
+     * Publish a message.
+     * @throws IllegalArgumentException if the message is null
+     */
     public PublishAck publish(Message message, PublishOptions options) throws IOException, JetStreamApiException {
         validateNotNull(message, "Message");
         return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options);
@@ -256,6 +267,7 @@ public class JetStream extends JetStreamImpl {
      *
      * @param message the message to send
      * @return The future
+     * @throws IllegalArgumentException if the message is null
      */
     public CompletableFuture<PublishAck> publishAsync(Message message) {
         validateNotNull(message, "Message");
@@ -286,6 +298,7 @@ public class JetStream extends JetStreamImpl {
      * @param message the message to publish
      * @param options publisher options
      * @return The future
+     * @throws IllegalArgumentException if the message is null
      */
     public CompletableFuture<PublishAck> publishAsync(Message message, PublishOptions options) {
         validateNotNull(message, "Message");
@@ -480,6 +493,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pushSubscribe
+     * @throws IllegalArgumentException if the subject is invalid
      */
     public JetStreamPushSubscription pushSubscribe(String subject) throws IOException, JetStreamApiException {
         return pushSubscribe(subject, (SubscribeBehavior)null);
@@ -487,6 +501,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pushSubscribe
+     * @throws IllegalArgumentException if the subject is invalid
      */
     public JetStreamPushSubscription pushSubscribe(String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         subject = validateSubject(subject, true);
@@ -500,6 +515,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pushSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator) throws IOException, JetStreamApiException {
         return pushSubscribe(stream, creator, null);
@@ -507,6 +523,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pushSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
@@ -515,6 +532,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pushSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
         return pushSubscribe(stream, creator, null);
@@ -522,6 +540,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pushSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
@@ -558,6 +577,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pullSubscribe
+     * @throws IllegalArgumentException if the subject is invalid
      */
     public JetStreamPullSubscription pullSubscribe(String subject) throws IOException, JetStreamApiException {
         return pullSubscribe(subject, (SubscribeBehavior)null);
@@ -565,6 +585,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pullSubscribe
+     * @throws IllegalArgumentException if the subject is invalid
      */
     public JetStreamPullSubscription pullSubscribe(String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         subject = validateSubject(subject, true);
@@ -578,6 +599,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pullSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, null, null);
@@ -585,6 +607,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pullSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
@@ -592,6 +615,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pullSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, creator, null);
@@ -599,6 +623,7 @@ public class JetStream extends JetStreamImpl {
 
     /**
      * pullSubscribe
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
@@ -611,16 +636,25 @@ public class JetStream extends JetStreamImpl {
      * @throws IOException covers various communication issues with the NATS
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public StreamContext getStreamContext(String streamName) throws IOException, JetStreamApiException {
         validateStreamName(streamName, true);
         return getNatsStreamContext(streamName);
     }
 
+    /**
+     * Create a consumer.
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     */
     public ConsumerContext createConsumer(String stream, String subject) throws IOException, JetStreamApiException {
         return createConsumer(stream, new PullConsumerCreator().filterSubject(subject));
     }
 
+    /**
+     * Create a consumer.
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     */
     public ConsumerContext createConsumer(String stream, PullConsumerCreator creator) throws IOException, JetStreamApiException {
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return getNatsStreamContext(stream).getConsumerContext(ci.getName());
@@ -638,6 +672,7 @@ public class JetStream extends JetStreamImpl {
      * @throws IOException covers various communication issues with the NATS
      *         server such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data.
+     * @throws IllegalArgumentException if the stream name is invalid, or the consumer name is null or empty
      */
     public ConsumerContext getConsumerContext(String streamName, String consumerName) throws IOException, JetStreamApiException {
         validateStreamName(streamName, true);

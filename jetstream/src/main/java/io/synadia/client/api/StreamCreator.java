@@ -19,6 +19,7 @@ import static io.synadia.client.utils.JsValidator.*;
 /**
  * StreamCreator is used to create or update a stream on the server.
  * The constructor requires a stream name.
+ * Setter methods validate their arguments and throw {@link IllegalArgumentException} for invalid values; see individual methods for specifics.
  */
 @NullMarked
 public class StreamCreator implements JsonSerializable {
@@ -72,6 +73,7 @@ public class StreamCreator implements JsonSerializable {
     /**
      * Construct a StreamCreator with the required stream name.
      * @param name the stream name
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public StreamCreator(String name) {
         this.name = validateStreamName(name, true);
@@ -592,6 +594,7 @@ public class StreamCreator implements JsonSerializable {
      * Sets the subjects in the StreamCreator.
      * @param subjects the stream's subjects
      * @return this instance for chaining
+     * @throws IllegalArgumentException if any subject is not a valid subject
      */
     public StreamCreator subjects(String... subjects) {
         replaceAllStrings(this.subjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
@@ -602,6 +605,7 @@ public class StreamCreator implements JsonSerializable {
      * Sets the subjects in the StreamCreator.
      * @param subjects the stream's subjects
      * @return this instance for chaining
+     * @throws IllegalArgumentException if any subject is not a valid subject
      */
     public StreamCreator subjects(@Nullable Collection<String> subjects) {
         replaceAllStrings(this.subjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
@@ -676,6 +680,7 @@ public class StreamCreator implements JsonSerializable {
      * Sets the maximum age in the StreamCreator.
      * @param maxAge the maximum message age
      * @return this instance for chaining
+     * @throws IllegalArgumentException if the maximum age is negative
      */
     public StreamCreator maxAge(@Nullable Duration maxAge) {
         this.maxAge = validateDurationNotRequiredGtOrEqZero(maxAge, null);
@@ -686,6 +691,7 @@ public class StreamCreator implements JsonSerializable {
      * Sets the maximum age in the StreamCreator.
      * @param maxAgeMillis the maximum message age in milliseconds
      * @return this instance for chaining
+     * @throws IllegalArgumentException if the maximum age is negative
      */
     public StreamCreator maxAge(long maxAgeMillis) {
         this.maxAge = validateDurationNotRequiredGtOrEqZero(maxAgeMillis, null);
@@ -718,6 +724,7 @@ public class StreamCreator implements JsonSerializable {
      * Must be 1 to 5 inclusive
      * @param replicas the number of replicas to store this message on
      * @return this instance for chaining
+     * @throws IllegalArgumentException if the number of replicas is not between 1 and 5
      */
     public StreamCreator replicas(int replicas) {
         this.replicas = validateNumberOfReplicas(replicas);
@@ -760,6 +767,7 @@ public class StreamCreator implements JsonSerializable {
      * disables duplicate checking.  Duplicate checking is disabled by default.
      * @param window duration to hold message ids for duplicate checking.
      * @return this instance for chaining
+     * @throws IllegalArgumentException if the window is negative
      */
     public StreamCreator duplicateWindow(@Nullable Duration window) {
         this.duplicateWindow = validateDurationNotRequiredGtOrEqZero(window, null);
@@ -771,6 +779,7 @@ public class StreamCreator implements JsonSerializable {
      * disables duplicate checking.  Duplicate checking is disabled by default.
      * @param windowMillis duration to hold message ids for duplicate checking.
      * @return this instance for chaining
+     * @throws IllegalArgumentException if the window is negative
      */
     public StreamCreator duplicateWindow(long windowMillis) {
         this.duplicateWindow = validateDurationNotRequiredGtOrEqZero(windowMillis, null);
@@ -1031,6 +1040,7 @@ public class StreamCreator implements JsonSerializable {
      * null has the effect of clearing the subject delete marker TTL
      * @param subjectDeleteMarkerTtl the TTL duration
      * @return this instance for chaining
+     * @throws IllegalArgumentException if the TTL is set but less than 1 second
      */
     public StreamCreator subjectDeleteMarkerTtl(@Nullable Duration subjectDeleteMarkerTtl) {
         this.subjectDeleteMarkerTtl = validateDurationNotRequiredGtOrEqSeconds(1, subjectDeleteMarkerTtl, null, "Subject Delete Marker Ttl");
@@ -1042,6 +1052,7 @@ public class StreamCreator implements JsonSerializable {
      * 0 or less has the effect of clearing the subject delete marker TTL
      * @param subjectDeleteMarkerTtlMillis the TTL duration in milliseconds
      * @return this instance for chaining
+     * @throws IllegalArgumentException if the TTL is set but less than 1 second
      */
     public StreamCreator subjectDeleteMarkerTtl(long subjectDeleteMarkerTtlMillis) {
         this.subjectDeleteMarkerTtl = subjectDeleteMarkerTtlMillis <= 0 ? null

@@ -10,6 +10,7 @@ import java.io.IOException;
 /**
  * The Consumer Context provides a convenient interface around a defined JetStream Consumer
  * <p> Note: ConsumerContext requires a <b>pull consumer</b>.
+ * <p>Methods validate their arguments and throw {@link IllegalArgumentException} for invalid values.
  */
 public interface BaseConsumerContext {
     /**
@@ -77,6 +78,7 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the fetch consume options are null
      */
     @NonNull
     FetchMessageConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException;
@@ -100,6 +102,7 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the consume options are null
      */
     @NonNull
     IterableMessageConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws IOException, JetStreamApiException;
@@ -112,6 +115,7 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the handler is null
      */
     @NonNull
     MessageConsumer consume(@NonNull MessageHandler handler) throws IOException, JetStreamApiException;
@@ -124,6 +128,7 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the handler is null
      */
     @NonNull
     MessageConsumer consume(@Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
@@ -137,6 +142,7 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the consume options or the handler is null
      */
     @NonNull
     MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
@@ -150,6 +156,7 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the consume options or the handler is null
      */
     @NonNull
     MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;

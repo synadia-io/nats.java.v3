@@ -12,11 +12,13 @@ package io.synadia.client;
  * a set of messages that require a lot of work and a set of fast moving messages, or create other threads as necessary.
  * The Dispatcher will only use one.
  *
- * <p>Dispatchers are created from the connection using {@link NatsConnection#createDispatcher(MessageHandler) createDispatcher()}
- * and can be closed using {@link NatsConnection#closeDispatcher(Dispatcher) closeDispatcher()}. Closing a dispatcher will
+ * <p>Dispatchers are created from the connection using {@link io.synadia.client.impl.NatsConnection#createDispatcher(MessageHandler) createDispatcher()}
+ * and can be closed using {@link io.synadia.client.impl.NatsConnection#closeDispatcher(Dispatcher) closeDispatcher()}. Closing a dispatcher will
  * clean up the thread it is using for message deliver.
  *
  * <p><em>See the documentation on {@link Consumer Consumer} for configuring behavior in a slow consumer situation.</em>
+ *
+ * <p>Subscribe and unsubscribe methods validate their arguments and throw {@link IllegalArgumentException} for invalid values.
  */
 public interface Dispatcher extends Consumer {
 
@@ -40,6 +42,7 @@ public interface Dispatcher extends Consumer {
      * @param subject The subject to subscribe to.
      * @return The Dispatcher, so calls can be chained.
      * @throws IllegalStateException if the dispatcher was previously closed
+     * @throws IllegalArgumentException if the subject is invalid
      */
     Dispatcher subscribe(String subject);
 
@@ -56,6 +59,7 @@ public interface Dispatcher extends Consumer {
      * @param queue The queue group to join.
      * @return The Dispatcher, so calls can be chained.
      * @throws IllegalStateException if the dispatcher was previously closed
+     * @throws IllegalArgumentException if the subject or the queue is invalid
      */
     Dispatcher subscribe(String subject, String queue);
 
@@ -74,6 +78,7 @@ public interface Dispatcher extends Consumer {
      * @param handler The target for the messages
      * @return The Subscription, so subscriptions may be later unsubscribed manually.
      * @throws IllegalStateException if the dispatcher was previously closed
+     * @throws IllegalArgumentException if the subject is invalid, or the handler is null
      */
     Subscription subscribe(String subject, MessageHandler handler);
 
@@ -93,6 +98,7 @@ public interface Dispatcher extends Consumer {
      * @param handler The target for the messages
      * @return The Subscription, so subscriptions may be later unsubscribed manually.
      * @throws IllegalStateException if the dispatcher was previously closed
+     * @throws IllegalArgumentException if the subject or the queue is invalid, or the handler is null
      */
     Subscription subscribe(String subject, String queue, MessageHandler handler);
 
@@ -104,6 +110,7 @@ public interface Dispatcher extends Consumer {
      * @param subject The subject to unsubscribe from.
      * @return The Dispatcher, so calls can be chained.
      * @throws IllegalStateException if the dispatcher was previously closed
+     * @throws IllegalArgumentException if the subject is null or empty
      */
     Dispatcher unsubscribe(String subject);
 
@@ -117,7 +124,7 @@ public interface Dispatcher extends Consumer {
      * @param subscription The Subscription to unsubscribe from.
      * @return The Dispatcher, so calls can be chained.
      * @throws IllegalStateException if the dispatcher was previously closed
-     * @throws IllegalStateException if the Subscription is not managed by this dispatcher
+     * @throws IllegalArgumentException if the subscription was not created by this dispatcher
      */
     Dispatcher unsubscribe(Subscription subscription);
 
@@ -141,6 +148,7 @@ public interface Dispatcher extends Consumer {
      * @param after The number of messages to accept before unsubscribing
      * @return The Dispatcher, so calls can be chained.
      * @throws IllegalStateException if the dispatcher was previously closed
+     * @throws IllegalArgumentException if the subject is null or empty
      */
     Dispatcher unsubscribe(String subject, int after);
 
@@ -161,7 +169,7 @@ public interface Dispatcher extends Consumer {
      * @param after The number of messages to accept before unsubscribing
      * @return The Dispatcher, so calls can be chained.
      * @throws IllegalStateException if the dispatcher was previously closed
-     * @throws IllegalStateException if the Subscription is not managed by this dispatcher
+     * @throws IllegalArgumentException if the subscription is not managed by this dispatcher
      */
     Dispatcher unsubscribe(Subscription subscription, int after);
 }

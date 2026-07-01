@@ -11,6 +11,7 @@ import static io.synadia.client.utils.Validator.*;
 /**
  * Build a Service using a fluent builder.
  * Use the Service static method <code>builder()</code> or <code>new ServiceBuilder()</code> to get an instance.
+ * Builder methods validate their arguments and throw {@link IllegalArgumentException} for a null or otherwise invalid value.
  */
 public class ServiceBuilder {
     /**
@@ -48,6 +49,7 @@ public class ServiceBuilder {
      * The simple name of the service
      * @param name the name
      * @return the ServiceBuilder
+     * @throws IllegalArgumentException if the name is null, empty, or not a valid restricted term (A-Z, a-z, 0-9, '-' or '_')
      */
     public ServiceBuilder name(String name) {
         this.name = validateIsRestrictedTerm(name, "Service Name", true);
@@ -68,6 +70,7 @@ public class ServiceBuilder {
      * The simple version of the service.
      * @param version the version
      * @return the ServiceBuilder
+     * @throws IllegalArgumentException if the version is null, empty, or not a valid semantic version
      */
     public ServiceBuilder version(String version) {
         this.version = validateSemVer(version, "Service Version", true);
@@ -138,6 +141,7 @@ public class ServiceBuilder {
     /**
      * Build the Service instance.
      * @return the Service instance
+     * @throws IllegalArgumentException if the connection is null, or the name or version is null or empty
      */
     public Service build() {
         required(conn, "NatsConnection");

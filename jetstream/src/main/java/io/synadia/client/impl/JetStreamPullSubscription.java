@@ -13,6 +13,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.client.impl.MessageManager.ManageResult.MESSAGE;
 
+/**
+ * The pull methods validate their arguments and throw {@link IllegalArgumentException} for invalid values.
+ */
 public class JetStreamPullSubscription extends JetStreamSubscription implements Subscription {
 
     private final AtomicLong pullSubjectIdHolder;
@@ -73,6 +76,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
      *
      * @param batchSize the size of the batch
      * @param expiresInMillis how long from now this request should be expired from the server wait list, in milliseconds
+     * @throws IllegalArgumentException if expiresInMillis is not greater than zero
      */
     public void pullNoWait(int batchSize, long expiresInMillis) {
         durationGtZeroRequired(expiresInMillis, "NoWait Expires In");
@@ -93,6 +97,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
      *
      * @param batchSize the size of the batch
      * @param expiresInMillis how long from now this request should be expired from the server wait list, in milliseconds
+     * @throws IllegalArgumentException if expiresInMillis is not greater than zero
      */
     public void pullExpiresIn(int batchSize, long expiresInMillis) {
         durationGtZeroRequired(expiresInMillis, "Expires In");
@@ -109,6 +114,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
      * @param maxWaitMillis the maximum time to wait to collect messages for the batch, in milliseconds.
      *
      * @return the list of messages
+     * @throws IllegalArgumentException if maxWaitMillis is not greater than zero
      */
     public List<Message> fetch(int batchSize, long maxWaitMillis) {
         durationGtZeroRequired(maxWaitMillis, "Fetch");
@@ -207,6 +213,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
      * @param maxWaitMillis the maximum time to wait for the first message, in milliseconds.
      *
      * @return the message iterator
+     * @throws IllegalArgumentException if maxWaitMillis is not greater than zero
      */
     public Iterator<Message> iterate(final int batchSize, long maxWaitMillis) {
         durationGtZeroRequired(maxWaitMillis, "Iterate");
