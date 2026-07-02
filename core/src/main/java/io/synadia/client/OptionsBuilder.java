@@ -109,12 +109,16 @@ public class OptionsBuilder {
     ReadListener readListener = null;
     StatisticsCollector statisticsCollector = null;
     String dataPortType = DEFAULT_DATA_PORT_TYPE;
-    ExecutorService userExecutor = null;
-    ScheduledExecutorService userScheduledExecutor = null;
-    ExecutorService userConnectExecutor = null;
-    ExecutorService userCallbackExecutor = null;
     ThreadFactory userConnectThreadFactory = null;
     ThreadFactory userCallbackThreadFactory = null;
+    ThreadFactory userReaderThreadFactory = null;
+    ThreadFactory userWriterThreadFactory = null;
+    ScheduledExecutorService userScheduledExecutor = null;
+    ExecutorService userExecutor = null;
+    ExecutorService userConnectExecutor = null;
+    ExecutorService userCallbackExecutor = null;
+    ExecutorService userReaderExecutor = null;
+    ExecutorService userWriterExecutor = null;
     List<Consumer<HttpRequest>> httpRequestInterceptors = null;
     Proxy proxy = null;
 
@@ -254,12 +258,18 @@ public class OptionsBuilder {
 
         classnameProperty(props, PROP_SERVERS_POOL_IMPLEMENTATION_CLASS, o -> serverPool((ServerPool) o));
         classnameProperty(props, PROP_DISPATCHER_FACTORY_CLASS, o -> dispatcherFactory((DispatcherFactory) o));
+
+        classnameProperty(props, PROP_CONNECT_THREAD_FACTORY_CLASS, o -> connectThreadFactory((ThreadFactory) o));
+        classnameProperty(props, PROP_CALLBACK_THREAD_FACTORY_CLASS, o -> callbackThreadFactory((ThreadFactory) o));
+        classnameProperty(props, PROP_READER_THREAD_FACTORY_CLASS, o -> readerThreadFactory((ThreadFactory) o));
+        classnameProperty(props, PROP_WRITER_THREAD_FACTORY_CLASS, o -> writerThreadFactory((ThreadFactory) o));
+
+        classnameProperty(props, PROP_SCHEDULED_EXECUTOR_SERVICE_CLASS, o -> scheduledExecutor((ScheduledExecutorService) o));
         classnameProperty(props, PROP_EXECUTOR_SERVICE_CLASS, o -> executor((ExecutorService) o));
         classnameProperty(props, PROP_CONNECT_EXECUTOR_SERVICE_CLASS, o -> connectExecutor((ExecutorService) o));
         classnameProperty(props, PROP_CALLBACK_EXECUTOR_SERVICE_CLASS, o -> callbackExecutor((ExecutorService) o));
-        classnameProperty(props, PROP_SCHEDULED_EXECUTOR_SERVICE_CLASS, o -> scheduledExecutor((ScheduledExecutorService) o));
-        classnameProperty(props, PROP_CONNECT_THREAD_FACTORY_CLASS, o -> connectThreadFactory((ThreadFactory) o));
-        classnameProperty(props, PROP_CALLBACK_THREAD_FACTORY_CLASS, o -> callbackThreadFactory((ThreadFactory) o));
+        classnameProperty(props, PROP_READER_EXECUTOR_SERVICE_CLASS, o -> readerExecutor((ExecutorService) o));
+        classnameProperty(props, PROP_WRITER_EXECUTOR_SERVICE_CLASS, o -> writerExecutor((ExecutorService) o));
         return this;
     }
 
@@ -1092,6 +1102,58 @@ public class OptionsBuilder {
     }
 
     /**
+     * Sets a custom {@link ExecutorService} used to run the connection's reader.
+     * Takes precedence over {@link #readerThreadFactory(ThreadFactory) readerThreadFactory}; the caller
+     * owns this executor's lifecycle (it is not shut down by the connection). When neither is set, the
+     * reader uses the shared connection executor.
+     *
+     * @param readerExecutor the executor service to run the reader
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder readerExecutor(ExecutorService readerExecutor) {
+        this.userReaderExecutor = readerExecutor;
+        return this;
+    }
+
+    /**
+     * Sets a custom {@link ExecutorService} used to run the connection's writer.
+     * Takes precedence over {@link #writerThreadFactory(ThreadFactory) writerThreadFactory}; the caller
+     * owns this executor's lifecycle (it is not shut down by the connection). When neither is set, the
+     * writer uses the shared connection executor.
+     *
+     * @param writerExecutor the executor service to run the writer
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder writerExecutor(ExecutorService writerExecutor) {
+        this.userWriterExecutor = writerExecutor;
+        return this;
+    }
+
+    /**
+     * Sets a custom thread factory used to run the connection's reader.
+     * If both readerThreadFactory and readerExecutor are set, only readerExecutor is used.
+     *
+     * @param threadFactory the thread factory to use for the reader
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder readerThreadFactory(ThreadFactory threadFactory) {
+        this.userReaderThreadFactory = threadFactory;
+        return this;
+    }
+
+    /**
+     * Sets a custom thread factory used to run the connection's writer.
+     * If both writerThreadFactory and writerExecutor are set, only writerExecutor is used.
+     *
+     * @param threadFactory the thread factory to use for the writer
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder writerThreadFactory(ThreadFactory threadFactory) {
+        this.userWriterThreadFactory = threadFactory;
+        return this;
+    }
+
+    /**
      * Add an HttpRequest interceptor which can be used to modify the HTTP request when using websockets
      *
      * @param interceptor The interceptor
@@ -1497,6 +1559,10 @@ public class OptionsBuilder {
         this.userCallbackExecutor = o.userCallbackExecutor;
         this.userCallbackThreadFactory = o.userCallbackThreadFactory;
         this.userConnectThreadFactory = o.userConnectThreadFactory;
+        this.userReaderExecutor = o.userReaderExecutor;
+        this.userWriterExecutor = o.userWriterExecutor;
+        this.userReaderThreadFactory = o.userReaderThreadFactory;
+        this.userWriterThreadFactory = o.userWriterThreadFactory;
 
         this.httpRequestInterceptors = o.httpRequestInterceptors;
         this.proxy = o.proxy;

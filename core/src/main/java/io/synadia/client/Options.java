@@ -107,12 +107,16 @@ public class Options {
 
     final ReentrantLock executorsLock;
 
-    final ExecutorService userExecutor;
-    final ScheduledExecutorService userScheduledExecutor;
     final ThreadFactory userConnectThreadFactory;
     final ThreadFactory userCallbackThreadFactory;
+    final ThreadFactory userReaderThreadFactory;
+    final ThreadFactory userWriterThreadFactory;
+    final ScheduledExecutorService userScheduledExecutor;
+    final ExecutorService userExecutor;
     final ExecutorService userConnectExecutor;
     final ExecutorService userCallbackExecutor;
+    final ExecutorService userReaderExecutor;
+    final ExecutorService userWriterExecutor;
 
     final ServerPool serverPool;
     final DispatcherFactory dispatcherFactory;
@@ -122,10 +126,12 @@ public class Options {
 
     // these are not final b/c they are lazy initialized
     // and nulled during shutdownInternalExecutors
-    ExecutorService resolvedExecutor;
     ScheduledExecutorService resolvedScheduledExecutor;
+    ExecutorService resolvedExecutor;
     ExecutorService resolvedConnectExecutor;
     ExecutorService resolvedCallbackExecutor;
+    ExecutorService resolvedReaderExecutor;
+    ExecutorService resolvedWriterExecutor;
 
     // other state variables
     int executorUseCount = 0;
@@ -233,12 +239,16 @@ public class Options {
         this.trackAdvancedStats = b.trackAdvancedStats;
 
         executorsLock = new ReentrantLock();
-        this.userExecutor = b.userExecutor;
+        this.userConnectThreadFactory = b.userConnectThreadFactory;
+        this.userCallbackThreadFactory = b.userCallbackThreadFactory;
+        this.userReaderThreadFactory = b.userReaderThreadFactory;
+        this.userWriterThreadFactory = b.userWriterThreadFactory;
         this.userScheduledExecutor = b.userScheduledExecutor;
+        this.userExecutor = b.userExecutor;
         this.userConnectExecutor = b.userConnectExecutor;
         this.userCallbackExecutor = b.userCallbackExecutor;
-        this.userCallbackThreadFactory = b.userCallbackThreadFactory;
-        this.userConnectThreadFactory = b.userConnectThreadFactory;
+        this.userReaderExecutor = b.userReaderExecutor;
+        this.userWriterExecutor = b.userWriterExecutor;
 
         this.httpRequestInterceptors = b.httpRequestInterceptors;
         this.proxy = b.proxy;
@@ -275,10 +285,17 @@ public class Options {
 
     private ExecutorService _getInternalExecutor() {
         String threadPrefix = nullOrEmpty(this.connectionName) ? DEFAULT_THREAD_NAME_PREFIX : this.connectionName;
+        return _getInternalExecutor(new DefaultThreadFactory(threadPrefix));
+    }
+
+    // a cached pool that creates a thread per task from the given factory (so each submitted task — e.g.
+    // a reader/writer loop that is re-submitted on reconnect — gets its own thread and never serializes
+    // behind a not-yet-returned prior task, even when an Options is shared across connections)
+    private ExecutorService _getInternalExecutor(ThreadFactory threadFactory) {
         return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
             500L, TimeUnit.MILLISECONDS,
             new SynchronousQueue<>(),
-            new DefaultThreadFactory(threadPrefix));
+            threadFactory);
     }
 
     /**
@@ -362,6 +379,56 @@ public class Options {
     }
 
     /**
+     * the reader executor, used to run the connection's reader, see
+     * {@link OptionsBuilder#readerExecutor(ExecutorService) readerExecutor()} and
+     * {@link OptionsBuilder#readerThreadFactory(ThreadFactory) readerThreadFactory()} in the builder doc.
+     * Falls back to the shared connection executor when neither is set.
+     * @return the executor
+     */
+    public ExecutorService getReaderExecutor() {
+        if (userReaderExecutor == null && userReaderThreadFactory == null) {
+            return getExecutor();
+        }
+        executorsLock.lock();
+        try {
+            if (resolvedReaderExecutor == null || resolvedReaderExecutor.isShutdown()) {
+                resolvedReaderExecutor = userReaderExecutor != null
+                    ? userReaderExecutor
+                    : _getInternalExecutor(userReaderThreadFactory);
+            }
+            return resolvedReaderExecutor;
+        }
+        finally {
+            executorsLock.unlock();
+        }
+    }
+
+    /**
+     * the writer executor, used to run the connection's writer, see
+     * {@link OptionsBuilder#writerExecutor(ExecutorService) writerExecutor()} and
+     * {@link OptionsBuilder#writerThreadFactory(ThreadFactory) writerThreadFactory()} in the builder doc.
+     * Falls back to the shared connection executor when neither is set.
+     * @return the executor
+     */
+    public ExecutorService getWriterExecutor() {
+        if (userWriterExecutor == null && userWriterThreadFactory == null) {
+            return getExecutor();
+        }
+        executorsLock.lock();
+        try {
+            if (resolvedWriterExecutor == null || resolvedWriterExecutor.isShutdown()) {
+                resolvedWriterExecutor = userWriterExecutor != null
+                    ? userWriterExecutor
+                    : _getInternalExecutor(userWriterThreadFactory);
+            }
+            return resolvedWriterExecutor;
+        }
+        finally {
+            executorsLock.unlock();
+        }
+    }
+
+    /**
      * whether the general executor is the internal one versus a user supplied one
      * @return true if the executor is internal
      */
@@ -394,6 +461,26 @@ public class Options {
     }
 
     /**
+     * whether the reader executor is an internal, dedicated one this Options created (from a supplied
+     * reader thread factory) and shuts down — as opposed to a user-supplied executor (caller owns it) or
+     * the shared connection executor used when neither is supplied
+     * @return true if the reader executor is internal/dedicated
+     */
+    public boolean readerExecutorIsInternal() {
+        return userReaderExecutor == null && userReaderThreadFactory != null;
+    }
+
+    /**
+     * whether the writer executor is an internal, dedicated one this Options created (from a supplied
+     * writer thread factory) and shuts down — as opposed to a user-supplied executor (caller owns it) or
+     * the shared connection executor used when neither is supplied
+     * @return true if the writer executor is internal/dedicated
+     */
+    public boolean writerExecutorIsInternal() {
+        return userWriterExecutor == null && userWriterThreadFactory != null;
+    }
+
+    /**
      * Called by NatsConnection to let the options know the executors are being used
      * Fixes the problem of executors being closed if the actual instance of Options
      * is shared among multiple connections.
@@ -419,6 +506,9 @@ public class Options {
         executorsLock.lock();
         try {
             if (--executorUseCount == 0) {
+                // internal here means a dedicated executor built from a user-supplied factory (the
+                // no-factory case uses the shared executor handled below); we created those, so we shut them down
+
                 if (resolvedCallbackExecutor != null && callbackExecutorIsInternal()) {
                     // we don't just shutdownNow to give any callbacks a chance to finish
                     ExecutorService es = resolvedCallbackExecutor;
@@ -449,6 +539,18 @@ public class Options {
                     ScheduledExecutorService ses = resolvedScheduledExecutor;
                     resolvedScheduledExecutor = null;
                     ses.shutdownNow(); // There's no need to wait...
+                }
+
+                if (resolvedReaderExecutor != null && readerExecutorIsInternal()) {
+                    ExecutorService es = resolvedReaderExecutor;
+                    resolvedReaderExecutor = null;
+                    es.shutdownNow(); // There's no need to wait...
+                }
+
+                if (resolvedWriterExecutor != null && writerExecutorIsInternal()) {
+                    ExecutorService es = resolvedWriterExecutor;
+                    resolvedWriterExecutor = null;
+                    es.shutdownNow(); // There's no need to wait...
                 }
             }
         }

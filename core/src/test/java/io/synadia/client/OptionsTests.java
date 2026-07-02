@@ -1150,6 +1150,75 @@ public class OptionsTests extends TestBase {
         connectFuture.get(5, TimeUnit.SECONDS);
     }
 
+    @Test
+    public void testReaderExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadFactory threadFactory = r -> new Thread(r, "test");
+        Options options = new OptionsBuilder()
+                .readerThreadFactory(threadFactory)
+                .build();
+        assertTrue(options.readerExecutorIsInternal());
+        Future<?> readerFuture = options.getReaderExecutor().submit(
+            () -> assertEquals("test", Thread.currentThread().getName()));
+        readerFuture.get(5, TimeUnit.SECONDS);
+
+        // copy constructor preserves the factory
+        Options copy = new OptionsBuilder(options).build();
+        Future<?> copyFuture = copy.getReaderExecutor().submit(
+            () -> assertEquals("test", Thread.currentThread().getName()));
+        copyFuture.get(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testWriterExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadFactory threadFactory = r -> new Thread(r, "test");
+        Options options = new OptionsBuilder()
+                .writerThreadFactory(threadFactory)
+                .build();
+        assertTrue(options.writerExecutorIsInternal());
+        Future<?> writerFuture = options.getWriterExecutor().submit(
+            () -> assertEquals("test", Thread.currentThread().getName()));
+        writerFuture.get(5, TimeUnit.SECONDS);
+
+        // copy constructor preserves the factory
+        Options copy = new OptionsBuilder(options).build();
+        Future<?> copyFuture = copy.getWriterExecutor().submit(
+            () -> assertEquals("test", Thread.currentThread().getName()));
+        copyFuture.get(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testReaderWriterExecutorDefaultsToSharedExecutor() {
+        Options options = new OptionsBuilder().build();
+        // neither an executor nor a factory supplied -> fall back to the shared general executor
+        assertSame(options.getExecutor(), options.getReaderExecutor());
+        assertSame(options.getExecutor(), options.getWriterExecutor());
+        assertFalse(options.readerExecutorIsInternal());
+        assertFalse(options.writerExecutorIsInternal());
+    }
+
+    @Test
+    public void testReaderWriterExecutorPrecedence() {
+        // a supplied executor wins over a supplied factory, and the caller owns it (not internal)
+        ExecutorService readerEs = Executors.newSingleThreadExecutor();
+        ExecutorService writerEs = Executors.newSingleThreadExecutor();
+        try {
+            Options options = new OptionsBuilder()
+                    .readerExecutor(readerEs)
+                    .readerThreadFactory(r -> new Thread(r, "test"))
+                    .writerExecutor(writerEs)
+                    .writerThreadFactory(r -> new Thread(r, "test"))
+                    .build();
+            assertSame(readerEs, options.getReaderExecutor());
+            assertSame(writerEs, options.getWriterExecutor());
+            assertFalse(options.readerExecutorIsInternal());
+            assertFalse(options.writerExecutorIsInternal());
+        }
+        finally {
+            readerEs.shutdownNow();
+            writerEs.shutdownNow();
+        }
+    }
+
     String[] schemes = new String[]   { "NATS", "unk",  "tls",  "opentls",  "ws",   "wss", "nats"};
     boolean[] secures = new boolean[] { false,  false,  true,   true,       false,  true,  false};
     boolean[] wses = new boolean[]    { false,  false,  false,  false,      true,   true,  false};

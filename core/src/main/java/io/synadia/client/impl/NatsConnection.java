@@ -91,6 +91,8 @@ public class NatsConnection implements AutoCloseable {
     protected ExecutorService callbackExecutor;
     protected ExecutorService executor;
     protected ExecutorService connectExecutor;
+    protected ExecutorService readerExecutor;
+    protected ExecutorService writerExecutor;
     protected ScheduledExecutorService scheduledExecutor;
 
     protected final boolean advancedTracking;
@@ -160,6 +162,8 @@ public class NatsConnection implements AutoCloseable {
         this.executor = options.getExecutor();
         this.callbackExecutor = options.getCallbackExecutor();
         this.connectExecutor = options.getConnectExecutor();
+        this.readerExecutor = options.getReaderExecutor();
+        this.writerExecutor = options.getWriterExecutor();
         this.scheduledExecutor = options.getScheduledExecutor();
 
         this.reader = new NatsConnectionReader(this);
@@ -858,6 +862,8 @@ public class NatsConnection implements AutoCloseable {
         callbackExecutor = null;
         executor = null;
         connectExecutor = null;
+        readerExecutor = null;
+        writerExecutor = null;
         scheduledExecutor = null;
         options.shutdownExecutors();
 
@@ -871,10 +877,12 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    // these four *ExecutorIsClosed() are only used for tests
+    // these *ExecutorIsClosed() are only used for tests
     protected boolean callbackExecutorIsClosed() { return callbackExecutor == null; }
     protected boolean executorIsClosed() { return executor == null; }
     protected boolean connectExecutorIsClosed() { return connectExecutor == null; }
+    protected boolean readerExecutorIsClosed() { return readerExecutor == null; }
+    protected boolean writerExecutorIsClosed() { return writerExecutor == null; }
     protected boolean scheduledExecutorIsClosed() { return scheduledExecutor == null; }
 
     // Should only be called from closeSocket or close
@@ -2263,6 +2271,14 @@ public class NatsConnection implements AutoCloseable {
 
     protected ExecutorService getExecutor() {
         return executor;
+    }
+
+    protected ExecutorService getReaderExecutor() {
+        return readerExecutor;
+    }
+
+    protected ExecutorService getWriterExecutor() {
+        return writerExecutor;
     }
 
     protected ScheduledExecutorService getScheduledExecutor() {

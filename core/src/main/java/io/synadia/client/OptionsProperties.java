@@ -281,6 +281,22 @@ public interface OptionsProperties {
      * Property used to set class name for the Callback Thread Factory. {@value}
      */
     String PROP_CALLBACK_THREAD_FACTORY_CLASS = PFX + "callbackThreadFactoryClass";
+    /**
+     * Property used to set class name for the Reader Executor Service. {@value}
+     */
+    String PROP_READER_EXECUTOR_SERVICE_CLASS = PFX + "readerExecutorServiceClass";
+    /**
+     * Property used to set class name for the Writer Executor Service. {@value}
+     */
+    String PROP_WRITER_EXECUTOR_SERVICE_CLASS = PFX + "writerExecutorServiceClass";
+    /**
+     * Property used to set class name for the Reader Thread Factory. {@value}
+     */
+    String PROP_READER_THREAD_FACTORY_CLASS = PFX + "readerThreadFactoryClass";
+    /**
+     * Property used to set class name for the Writer Thread Factory. {@value}
+     */
+    String PROP_WRITER_THREAD_FACTORY_CLASS = PFX + "writerThreadFactoryClass";
 
     static String getPropertyValue(Properties props, String key) {
         String value = emptyAsNull(props.getProperty(key));
