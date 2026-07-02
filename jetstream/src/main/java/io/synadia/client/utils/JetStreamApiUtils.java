@@ -1,9 +1,9 @@
-package io.synadia.client.impl;
+package io.synadia.client.utils;
 
-import io.synadia.client.utils.ApiUtils;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -13,16 +13,51 @@ import java.util.function.Function;
  * Internal utility methods for the JetStream API implementation.
  */
 @NullMarked
-public abstract class JetStreamApiUtils extends ApiUtils {
+public abstract class JetStreamApiUtils {
 
     private JetStreamApiUtils() {}  /* ensures cannot be constructed */
+
+    /**
+     * Constant used to unset a Duration setting in the builder
+     */
+    public static final @Nullable Duration DURATION_UNSET = null;
+
+    /**
+     * Constant used to unset a long setting in the builder
+     */
+    public static final long UNSET = -1;
+
+    /**
+     * Constant used to unset a long that represents an unsigned long setting in the builder
+     */
+    public static final long ULONG_UNSET = 0;
+
+    public static long normalizeLong(@Nullable Long l, long min) {
+        return l == null || l < min ? UNSET : l;
+    }
+
+    public static int normalizeInt(@Nullable Integer i, int min) {
+        return i == null || i < min ? (int) UNSET : i;
+    }
+
+    public static long normalizeULong(@Nullable Long u) {
+        return u == null || u <= ULONG_UNSET ? ULONG_UNSET : u;
+    }
+
+    public static @Nullable Duration normalizeDuration(@Nullable Duration d, @Nullable Duration dftl) {
+        return d == null ? dftl : d.toNanos() <= 0 ? dftl : d;
+    }
+
+    public static @Nullable Duration normalizeDuration(@Nullable Long millis, @Nullable Duration dftl) {
+        return millis == null || millis <= 0 ? dftl : Duration.ofMillis(millis);
+    }
 
     /**
      * Generate a random consumer name.
      * @return the generated consumer name
      */
     public static String generateConsumerName() {
-        return randomString();
+        return ApiUtils.randomString();
     }
 
     /**
@@ -32,7 +67,7 @@ public abstract class JetStreamApiUtils extends ApiUtils {
      * @return the generated consumer name
      */
     public static String generateConsumerName(@Nullable String prefix) {
-        return prefix == null ? randomString() : prefix + "-" + randomString();
+        return prefix == null ? ApiUtils.randomString() : prefix + "-" + ApiUtils.randomString();
     }
 
     /**

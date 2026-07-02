@@ -12,8 +12,8 @@ import java.util.Objects;
 import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonValueUtils.readStringMapOrNull;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.utils.ApiConstants.*;
 import static io.synadia.client.utils.Validator.validateIsRestrictedTerm;
+import static io.synadia.service.ServiceConstants.*;
 
 /**
  * Endpoint encapsulates the name, subject and metadata for a {@link ServiceEndpoint}.

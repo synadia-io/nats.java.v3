@@ -2,9 +2,10 @@ package io.synadia.client.impl;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.*;
 
-import static io.synadia.client.impl.JetStreamApiUtils.*;
+import static io.synadia.client.utils.JetStreamApiUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamApiUtilsTests {
@@ -241,5 +242,83 @@ public class JetStreamApiUtilsTests {
         List<String> target = new ArrayList<>();
         replaceAllStrings(target, new String[]{"a", "", "b"}, String::toUpperCase);
         assertEquals(Arrays.asList("A", "B"), target);
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // constants + normalize* (moved from ApiUtils)
+    // ----------------------------------------------------------------------------------------------------
+
+    @Test
+    public void constants() {
+        assertNull(DURATION_UNSET);
+        assertEquals(-1L, UNSET);
+        assertEquals(0L, ULONG_UNSET);
+    }
+
+    @Test
+    public void normalizeLong_withMin() {
+        // null -> UNSET
+        assertEquals(UNSET, normalizeLong(null, 0L));
+        // below min -> UNSET
+        assertEquals(UNSET, normalizeLong(-1L, 0L));
+        assertEquals(UNSET, normalizeLong(0L, 1L));
+        // at or above min -> kept
+        assertEquals(0L, normalizeLong(0L, 0L));
+        assertEquals(5L, normalizeLong(5L, 0L));
+        assertEquals(1L, normalizeLong(1L, 1L));
+    }
+
+    @Test
+    public void normalizeInt_withMin() {
+        // null -> UNSET (-1)
+        assertEquals((int) UNSET, normalizeInt(null, 0));
+        // below min -> UNSET
+        assertEquals((int) UNSET, normalizeInt(-1, 0));
+        assertEquals((int) UNSET, normalizeInt(0, 1));
+        // at or above min -> kept
+        assertEquals(0, normalizeInt(0, 0));
+        assertEquals(5, normalizeInt(5, 0));
+        assertEquals(1, normalizeInt(1, 1));
+    }
+
+    @Test
+    public void normalizeULong_singleArg() {
+        // null or <= 0 -> ULONG_UNSET (0)
+        assertEquals(ULONG_UNSET, normalizeULong(null));
+        assertEquals(ULONG_UNSET, normalizeULong(0L));
+        assertEquals(ULONG_UNSET, normalizeULong(-5L));
+        // > 0 kept
+        assertEquals(1L, normalizeULong(1L));
+        assertEquals(100L, normalizeULong(100L));
+    }
+
+    @Test
+    public void normalizeDuration_durationOverload() {
+        Duration dflt = Duration.ofSeconds(10);
+        // null -> default
+        assertEquals(dflt, normalizeDuration((Duration) null, dflt));
+        //noinspection ConstantValue
+        assertNull(normalizeDuration((Duration) null, null));
+        // zero / negative -> default
+        assertEquals(dflt, normalizeDuration(Duration.ZERO, dflt));
+        assertEquals(dflt, normalizeDuration(Duration.ofMillis(-1), dflt));
+        // positive -> kept
+        Duration d = Duration.ofSeconds(5);
+        assertEquals(d, normalizeDuration(d, dflt));
+    }
+
+    @Test
+    public void normalizeDuration_millisOverload() {
+        Duration dflt = Duration.ofSeconds(10);
+        // null -> default
+        assertEquals(dflt, normalizeDuration((Long) null, dflt));
+        //noinspection ConstantValue
+        assertNull(normalizeDuration((Long) null, null));
+        // zero / negative -> default
+        assertEquals(dflt, normalizeDuration(0L, dflt));
+        assertEquals(dflt, normalizeDuration(-1L, dflt));
+        assertNull(normalizeDuration(0L, null));
+        // positive -> Duration.ofMillis
+        assertEquals(Duration.ofMillis(250), normalizeDuration(250L, dflt));
     }
 }

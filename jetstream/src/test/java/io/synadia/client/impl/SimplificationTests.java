@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.client.impl.BaseConsumeOptions.*;
-import static io.synadia.client.utils.ApiUtils.ULONG_UNSET;
+import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;

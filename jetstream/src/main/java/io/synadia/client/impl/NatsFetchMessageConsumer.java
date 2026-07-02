@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static io.synadia.client.impl.BaseConsumeOptions.MIN_EXPIRES_MILLS;
-import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
+import static io.synadia.client.utils.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
 class NatsFetchMessageConsumer extends NatsMessageConsumerBase implements FetchMessageConsumer {

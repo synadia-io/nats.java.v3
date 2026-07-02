@@ -322,13 +322,6 @@ public class ValidatorTests {
     }
 
     @Test
-    public void testNatsJetStreamClientError() {
-        // coverage
-        JetStreamClientError err = new JetStreamClientError("TEST", 999999, "desc");
-        assertEquals("[TEST-999999] desc", err.message());
-    }
-
-    @Test
     public void testSemver() {
         String label = "Version";
         validateSemVer("0.0.4", label, true);

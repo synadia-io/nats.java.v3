@@ -1,4 +1,4 @@
-package io.synadia.client;
+package io.synadia.client.api;
 
 import io.synadia.client.utils.Validator;
 

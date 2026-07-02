@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
 import static io.synadia.client.utils.ApiConstants.CLUSTER;
 import static io.synadia.client.utils.ApiConstants.TAGS;
+import static io.synadia.client.utils.JetStreamApiUtils.replaceAllStrings;
 import static io.synadia.client.utils.Validator.emptyAsNull;
 
 /**

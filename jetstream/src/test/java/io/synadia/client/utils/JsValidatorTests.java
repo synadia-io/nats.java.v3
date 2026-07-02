@@ -1,8 +1,5 @@
-package io.synadia.client.support;
+package io.synadia.client.utils;
 
-import io.synadia.client.utils.JetStreamClientError;
-import io.synadia.client.utils.JsValidator;
-import io.synadia.client.utils.ValidatorTests;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -151,6 +148,13 @@ public class JsValidatorTests extends ValidatorTests {
         assertEquals("x", validateMustMatchIfBothSupplied("x", " ", err));
         assertEquals("x", validateMustMatchIfBothSupplied("x", "x", err));
         assertThrows(IllegalArgumentException.class, () -> validateMustMatchIfBothSupplied("x", "y", err));
+    }
+
+    @Test
+    public void testNatsJetStreamClientError() {
+        // coverage
+        JetStreamClientError err = new JetStreamClientError("TEST", 999999, "desc");
+        assertEquals("[TEST-999999] desc", err.message());
     }
 
     @Test

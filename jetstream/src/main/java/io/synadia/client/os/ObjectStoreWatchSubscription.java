@@ -9,7 +9,7 @@ import org.jspecify.annotations.NonNull;
 import java.io.IOException;
 import java.util.Collections;
 
-import static io.synadia.client.impl.JetStreamApiUtils.ULONG_UNSET;
+import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
 
 
 public class ObjectStoreWatchSubscription extends NatsWatchSubscription<ObjectInfo> {

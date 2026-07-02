@@ -11,8 +11,8 @@ import java.util.Objects;
 import static io.nats.json.JsonValueUtils.*;
 import static io.nats.json.JsonWriteUtils.addField;
 import static io.nats.json.JsonWriteUtils.addJsons;
-import static io.synadia.client.utils.ApiConstants.DESCRIPTION;
-import static io.synadia.client.utils.ApiConstants.ENDPOINTS;
+import static io.synadia.service.ServiceConstants.DESCRIPTION;
+import static io.synadia.service.ServiceConstants.ENDPOINTS;
 
 /**
  * Info response class forms the info json payload, for example:

@@ -13,10 +13,10 @@ import java.util.Map;
 
 import static io.nats.json.LazyJsonValueUtils.*;
 import static io.synadia.client.api.ConsumerCreator.*;
-import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.ApiConstants.*;
 import static io.synadia.client.utils.ApiUtils.readUnsignedBigIntegerOrZero;
 import static io.synadia.client.utils.ApiUtils.readUnsignedLongOrZero;
+import static io.synadia.client.utils.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.NatsConstants.UNDEFINED;
 
 /**

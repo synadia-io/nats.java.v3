@@ -9,11 +9,8 @@ import java.time.Duration;
 import java.util.*;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.impl.JetStreamApiUtils.replaceAll;
-import static io.synadia.client.impl.JetStreamApiUtils.replaceAllStrings;
 import static io.synadia.client.utils.ApiConstants.*;
-import static io.synadia.client.utils.ApiUtils.normalizeInt;
-import static io.synadia.client.utils.ApiUtils.normalizeLong;
+import static io.synadia.client.utils.JetStreamApiUtils.*;
 import static io.synadia.client.utils.JsValidator.*;
 
 /**

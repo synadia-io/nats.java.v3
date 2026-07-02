@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.MessageTtl;
+import io.synadia.client.api.MessageTtl;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Properties;

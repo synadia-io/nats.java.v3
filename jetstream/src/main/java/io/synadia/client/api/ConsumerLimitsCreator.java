@@ -8,9 +8,9 @@ import java.time.Duration;
 import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.impl.JetStreamApiUtils.*;
 import static io.synadia.client.utils.ApiConstants.INACTIVE_THRESHOLD;
 import static io.synadia.client.utils.ApiConstants.MAX_ACK_PENDING;
+import static io.synadia.client.utils.JetStreamApiUtils.*;
 
 /**
  * ConsumerLimitsCreator is used to create a ConsumerLimits configuration for use in a StreamCreator.

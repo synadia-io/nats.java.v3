@@ -10,8 +10,8 @@ import java.time.ZonedDateTime;
 import java.util.*;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.impl.JetStreamApiUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.JetStreamApiUtils.*;
 import static io.synadia.client.utils.JetStreamClientError.JsConsumerNameDurableMismatch;
 import static io.synadia.client.utils.JsValidator.*;
 

@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonValueUtils.readStringMapOrNull;
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.service.ServiceConstants.*;
 
 /**
  * Base class for service responses Info, Ping and Stats

@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Objects;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.impl.JetStreamApiUtils.replaceAll;
 import static io.synadia.client.impl.JetStreamOptions.convertDomainToPrefix;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.JetStreamApiUtils.replaceAll;
 import static io.synadia.client.utils.JsValidator.validateStreamName;
 
 /**

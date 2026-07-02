@@ -9,8 +9,8 @@ import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.readDate;
 import static io.nats.json.LazyJsonValueUtils.readString;
-import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
 import static io.synadia.client.utils.ApiConstants.*;
+import static io.synadia.client.utils.ApiUtils.mapToList;
 import static io.synadia.client.utils.ApiUtils.readStringOrEmpty;
 
 /**

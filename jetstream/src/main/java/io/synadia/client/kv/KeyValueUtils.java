@@ -1,7 +1,7 @@
 package io.synadia.client.kv;
 
 import io.synadia.client.Message;
-import io.synadia.client.MessageTtl;
+import io.synadia.client.api.MessageTtl;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.JetStreamConstants;
 import io.synadia.client.impl.PublishOptions;

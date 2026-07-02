@@ -8,9 +8,9 @@ import java.time.Duration;
 
 import static io.nats.json.LazyJsonValueUtils.readLong;
 import static io.nats.json.LazyJsonValueUtils.readNanosAsDuration;
-import static io.synadia.client.impl.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.ApiConstants.INACTIVE_THRESHOLD;
 import static io.synadia.client.utils.ApiConstants.MAX_ACK_PENDING;
+import static io.synadia.client.utils.JetStreamApiUtils.UNSET;
 
 /**
  * ConsumerLimits returned from the server.

@@ -1,6 +1,6 @@
 package io.synadia.client.api;
 
-import io.synadia.client.impl.JetStreamApiUtils;
+import io.synadia.client.utils.JetStreamApiUtils;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 

@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
-import static io.synadia.client.impl.JetStreamApiUtils.mapToList;
+import static io.synadia.client.utils.ApiUtils.mapToList;
 
 /**
  * Information about a stream being sourced

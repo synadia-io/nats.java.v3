@@ -90,13 +90,13 @@ public class PublishOptionsTests extends TestBase {
         po = PublishOptions.builder().messageTtlNever().build();
         assertEquals("never", po.getMessageTtl());
 
-        po = PublishOptions.builder().messageTtl(MessageTtl.seconds(3)).build();
+        po = PublishOptions.builder().messageTtl(io.synadia.client.api.MessageTtl.seconds(3)).build();
         assertEquals("3s", po.getMessageTtl());
 
-        po = PublishOptions.builder().messageTtl(MessageTtl.custom("abcd")).build();
+        po = PublishOptions.builder().messageTtl(io.synadia.client.api.MessageTtl.custom("abcd")).build();
         assertEquals("abcd", po.getMessageTtl());
 
-        po = PublishOptions.builder().messageTtl(MessageTtl.never()).build();
+        po = PublishOptions.builder().messageTtl(io.synadia.client.api.MessageTtl.never()).build();
         assertEquals("never", po.getMessageTtl());
 
         po = PublishOptions.builder().messageTtlSeconds(0).build();
@@ -114,11 +114,11 @@ public class PublishOptionsTests extends TestBase {
         po = PublishOptions.builder().messageTtl(null).build();
         assertNull(po.getMessageTtl());
 
-        assertThrows(IllegalArgumentException.class, () -> MessageTtl.seconds(0));
-        assertThrows(IllegalArgumentException.class, () -> MessageTtl.seconds(-1));
-        assertThrows(IllegalArgumentException.class, () -> MessageTtl.custom(null));
-        assertThrows(IllegalArgumentException.class, () -> MessageTtl.custom(""));
+        assertThrows(IllegalArgumentException.class, () -> io.synadia.client.api.MessageTtl.seconds(0));
+        assertThrows(IllegalArgumentException.class, () -> io.synadia.client.api.MessageTtl.seconds(-1));
+        assertThrows(IllegalArgumentException.class, () -> io.synadia.client.api.MessageTtl.custom(null));
+        assertThrows(IllegalArgumentException.class, () -> io.synadia.client.api.MessageTtl.custom(""));
 
-        assertTrue(MessageTtl.seconds(3).toString().contains("3s")); // COVERAGE
+        assertTrue(io.synadia.client.api.MessageTtl.seconds(3).toString().contains("3s")); // COVERAGE
     }
 }

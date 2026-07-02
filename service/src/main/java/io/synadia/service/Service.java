@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static io.nats.json.JsonWriteUtils.*;
-import static io.synadia.client.utils.ApiConstants.*;
 import static io.synadia.client.utils.Validator.nullOrEmpty;
+import static io.synadia.service.ServiceConstants.*;
 
 /**
  * The Services Framework introduces a higher-level API for implementing services with NATS.

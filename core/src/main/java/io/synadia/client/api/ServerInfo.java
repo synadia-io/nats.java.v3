@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static io.nats.json.LazyJsonValueUtils.*;
-import static io.synadia.client.utils.ApiConstants.*;
 import static io.synadia.client.utils.NatsConstants.UNDEFINED;
 
 /**
@@ -50,7 +49,7 @@ public class ServerInfo {
      * @return true if server is in lame duck mode
      */
     public boolean isLameDuckMode() {
-        return readBoolean(ljv, LAME_DUCK_MODE, false);
+        return readBoolean(ljv, "ldm", false);
     }
 
     /**
@@ -58,7 +57,7 @@ public class ServerInfo {
      * @return the server id
      */
     public String getServerId() {
-        return ApiUtils.readString(ljv, SERVER_ID, UNDEFINED);
+        return ApiUtils.readString(ljv, "server_id", UNDEFINED);
     }
 
     /**
@@ -66,7 +65,7 @@ public class ServerInfo {
      * @return the server name
      */
     public String getServerName() {
-        return ApiUtils.readString(ljv, SERVER_NAME, UNDEFINED);
+        return ApiUtils.readString(ljv, "server_name", UNDEFINED);
     }
 
     /**
@@ -75,7 +74,7 @@ public class ServerInfo {
      */
     public String getVersion() {
         if (_version == null) {
-            _version = ApiUtils.readString(ljv, VERSION, "0.0.0");
+            _version = ApiUtils.readString(ljv, "version", "0.0.0");
         }
         return _version;
     }
@@ -85,7 +84,7 @@ public class ServerInfo {
      * @return the go version the server is built with
      */
     public String getGoVersion() {
-        return ApiUtils.readString(ljv, GO, "0.0.0");
+        return ApiUtils.readString(ljv, "go", "0.0.0");
     }
 
     /**
@@ -93,7 +92,7 @@ public class ServerInfo {
      * @return the server host
      */
     public String getHost() {
-        return ApiUtils.readString(ljv, HOST, UNDEFINED);
+        return ApiUtils.readString(ljv, "host", UNDEFINED);
     }
 
     /**
@@ -101,7 +100,7 @@ public class ServerInfo {
      * @return the server port
      */
     public int getPort() {
-        return readInteger(ljv, PORT, 0);
+        return readInteger(ljv, "port", 0);
     }
 
     /**
@@ -109,7 +108,7 @@ public class ServerInfo {
      * @return the server protocol version
      */
     public int getProtocolVersion() {
-        return readInteger(ljv, PROTO, 0);
+        return readInteger(ljv, "proto", 0);
     }
 
     /**
@@ -117,7 +116,7 @@ public class ServerInfo {
      * @return true if headers are supported by the server
      */
     public boolean isHeadersSupported() {
-        return readBoolean(ljv, HEADERS, false);
+        return readBoolean(ljv, "headers", false);
     }
 
     /**
@@ -125,7 +124,7 @@ public class ServerInfo {
      * @return true if authorization is required by the server
      */
     public boolean isAuthRequired() {
-        return readBoolean(ljv, AUTH_REQUIRED, false);
+        return readBoolean(ljv, "auth_required", false);
     }
 
     /**
@@ -133,7 +132,7 @@ public class ServerInfo {
      * @return true if TLS is required by the server
      */
     public boolean isTLSRequired() {
-        return readBoolean(ljv, TLS_REQUIRED, false);
+        return readBoolean(ljv, "tls_required", false);
     }
 
     /**
@@ -141,7 +140,7 @@ public class ServerInfo {
      * @return true if TLS is available on the server
      */
     public boolean isTLSAvailable() {
-        return readBoolean(ljv, TLS_AVAILABLE, false);
+        return readBoolean(ljv, "tls_available", false);
     }
 
     /**
@@ -149,7 +148,7 @@ public class ServerInfo {
      * @return the max payload
      */
     public long getMaxPayload() {
-        return readLong(ljv, MAX_PAYLOAD, 0);
+        return readLong(ljv, "max_payload", 0);
     }
 
     /**
@@ -157,7 +156,7 @@ public class ServerInfo {
      * @return the connectable urls
      */
     public List<String> getConnectURLs() {
-        return readStringListOrEmpty(ljv, CONNECT_URLS, true);
+        return readStringListOrEmpty(ljv, "connect_urls", true);
     }
 
     /**
@@ -165,7 +164,7 @@ public class ServerInfo {
      * @return the nonce
      */
     public byte @Nullable [] getNonce() {
-        String s = readString(ljv, NONCE);
+        String s = readString(ljv, "nonce");
         return s == null ? null : s.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -174,7 +173,7 @@ public class ServerInfo {
      * @return true if the server supports JetStream
      */
     public boolean isJetStreamAvailable() {
-        return readBoolean(ljv, JETSTREAM, false);
+        return readBoolean(ljv, "jetstream", false);
     }
 
     /**
@@ -182,7 +181,7 @@ public class ServerInfo {
      * @return the client id
      */
     public int getClientId() {
-        return readInteger(ljv, CLIENT_ID, 0);
+        return readInteger(ljv, "client_id", 0);
     }
 
     /**
@@ -190,7 +189,7 @@ public class ServerInfo {
      * @return the client ip
      */
     public String getClientIp() {
-        return ApiUtils.readString(ljv, CLIENT_IP, "0.0.0.0");
+        return ApiUtils.readString(ljv, "client_ip", "0.0.0.0");
     }
 
     /**
@@ -199,7 +198,7 @@ public class ServerInfo {
      */
     @Nullable
     public String getCluster() {
-        return readString(ljv, CLUSTER);
+        return readString(ljv, "cluster");
     }
 
     /**

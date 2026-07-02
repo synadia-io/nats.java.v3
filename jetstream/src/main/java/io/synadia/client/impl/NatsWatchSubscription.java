@@ -9,7 +9,7 @@ import io.synadia.client.api.Watcher;
 import java.io.IOException;
 import java.util.List;
 
-import static io.synadia.client.impl.JetStreamApiUtils.ULONG_UNSET;
+import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
 
 public class NatsWatchSubscription<T> implements AutoCloseable {
     private final JetStream js;
