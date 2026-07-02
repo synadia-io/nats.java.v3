@@ -2152,7 +2152,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public Statistics getStatistics() {
-        return this.statistics;
+        return this.statistics.getStatistics();
     }
 
     protected StatisticsCollector getStatisticsCollector() {

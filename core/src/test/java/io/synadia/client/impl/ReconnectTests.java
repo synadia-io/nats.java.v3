@@ -113,8 +113,8 @@ public class ReconnectTests {
             assertNotNull(msg);
         }
 
-        assertEquals(1, nc.getStatisticsCollector().getReconnects(), "reconnect count");
-        assertTrue(nc.getStatisticsCollector().getExceptions() > 0, "exception count");
+        assertEquals(1, nc.getStatistics().getReconnects(), "reconnect count");
+        assertTrue(nc.getStatistics().getExceptions() > 0, "exception count");
         closeAndConfirm(nc);
     }
 
@@ -164,8 +164,8 @@ public class ReconnectTests {
             assertNotNull(msg);
         }
 
-        assertEquals(1, nc.getStatisticsCollector().getReconnects(), "reconnect count");
-        assertTrue(nc.getStatisticsCollector().getExceptions() > 0, "exception count");
+        assertEquals(1, nc.getStatistics().getReconnects(), "reconnect count");
+        assertTrue(nc.getStatistics().getExceptions() > 0, "exception count");
         closeAndConfirm(nc);
     }
 
@@ -240,8 +240,8 @@ public class ReconnectTests {
             assertNotNull(msg);
         }
 
-        assertEquals(1, nc.getStatisticsCollector().getReconnects(), "reconnect count");
-        assertTrue(nc.getStatisticsCollector().getExceptions() > 0, "exception count");
+        assertEquals(1, nc.getStatistics().getReconnects(), "reconnect count");
+        assertTrue(nc.getStatistics().getExceptions() > 0, "exception count");
         closeAndConfirm(nc);
     }
 
@@ -479,7 +479,7 @@ public class ReconnectTests {
             }
         }
 
-        assertEquals(2 * thrashCount, nc.getStatisticsCollector().getReconnects(), "reconnect count");
+        assertEquals(2 * thrashCount, nc.getStatistics().getReconnects(), "reconnect count");
         closeAndConfirm(nc);
     }
 

@@ -764,15 +764,20 @@ public class OptionsTests extends TestBase {
         assertNotNull(stats);
 
         stats.incrementOut(42);
-        assertEquals(1, stats.getOutMsgs());
-        assertEquals(42, stats.getOutBytes());
+        assertEquals(1, stats.getStatistics().getOutMsgs());
+        assertEquals(42, stats.getStatistics().getOutBytes());
     }
 
     @Test
     public void testStatisticsCoverage() {
-        validateStatisticsCollector(new NatsStatistics());
+        validateStatistics(new NatsStatistics(), true);
 
-        StatisticsCollector stats = new StatisticsCollector() {};
+        // exercise the write methods of a concrete collector; only incrementOut is tracked by this one
+        StatisticsCollector stats = new CoverageStatisticsCollector();
+
+        validateStatistics(stats.getStatistics(), true);
+
+        // none of the these are tracked, so the read view is still all zeros
         stats.setAdvancedTracking(true);
         stats.incrementPingCount();
         stats.incrementReconnects();
@@ -785,16 +790,19 @@ public class OptionsTests extends TestBase {
         stats.incrementDuplicateRepliesReceived();
         stats.incrementOrphanRepliesReceived();
         stats.incrementIn(42);
-        stats.incrementOut(73);
         stats.incrementFlushCounter();
         stats.incrementOutstandingRequests();
         stats.decrementOutstandingRequests();
         stats.registerRead(142);
         stats.registerWrite(173);
-        validateStatisticsCollector(stats);
+
+        // incrementOut is the one metric this collector tracks
+        stats.incrementOut(73);
+
+        validateStatistics(stats.getStatistics(), false);
     }
 
-    private static void validateStatisticsCollector(StatisticsCollector stats) {
+    private static void validateStatistics(Statistics stats, boolean empty) {
         assertEquals(0, stats.getPings());
         assertEquals(0, stats.getReconnects());
         assertEquals(0, stats.getDroppedCount());
@@ -806,11 +814,18 @@ public class OptionsTests extends TestBase {
         assertEquals(0, stats.getDuplicateRepliesReceived());
         assertEquals(0, stats.getOrphanRepliesReceived());
         assertEquals(0, stats.getInMsgs());
-        assertEquals(0, stats.getOutMsgs());
         assertEquals(0, stats.getInBytes());
-        assertEquals(0, stats.getOutBytes());
         assertEquals(0, stats.getFlushCounter());
         assertEquals(0, stats.getOutstandingRequests());
+
+        if (empty) {
+            assertEquals(0, stats.getOutMsgs());
+            assertEquals(0, stats.getOutBytes());
+        }
+        else {
+            assertEquals(1, stats.getOutMsgs());
+            assertEquals(73, stats.getOutBytes());
+        }
     }
 
     @Test

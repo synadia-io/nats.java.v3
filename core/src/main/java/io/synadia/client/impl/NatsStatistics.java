@@ -1,13 +1,15 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.Statistics;
 import io.synadia.client.StatisticsCollector;
+import org.jspecify.annotations.NonNull;
 
 import java.text.NumberFormat;
 import java.util.LongSummaryStatistics;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class NatsStatistics implements StatisticsCollector {
+public class NatsStatistics implements StatisticsCollector, Statistics {
     private final ReentrantLock readStatsLock;
     private final ReentrantLock writeStatsLock;
 
@@ -168,79 +170,102 @@ public class NatsStatistics implements StatisticsCollector {
         }
     }
 
+    /** {@inheritDoc} */
+    @Override
+    @NonNull
+    public Statistics getStatistics() {
+        return this;
+    }
+
+    /** {@inheritDoc} */
     @Override
     public long getPings() {
         return this.pingCount.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getDroppedCount() {
         return this.droppedCount.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getOKs() {
         return this.okCount.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getErrs() {
         return this.errCount.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getExceptions() {
         return this.exceptionCount.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getRequestsSent() {
         return this.requestsSent.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getReconnects() {
         return this.reconnects.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getInMsgs() {
         return this.inMsgs.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getOutMsgs() {
         return this.outMsgs.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getInBytes() {
         return this.inBytes.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getOutBytes() {
         return this.outBytes.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getFlushCounter() {
         return flushCounter.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getOutstandingRequests() {
         return outstandingRequests.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getRepliesReceived() { return repliesReceived.get(); }
 
+    /** {@inheritDoc} */
     @Override
     public long getDuplicateRepliesReceived() {
         return duplicateRepliesReceived.get();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long getOrphanRepliesReceived() { return orphanRepliesReceived.get(); }
 
