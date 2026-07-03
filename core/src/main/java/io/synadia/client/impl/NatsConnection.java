@@ -1113,7 +1113,7 @@ public class NatsConnection implements AutoCloseable {
      * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
-    public Subscription subscribe(@NonNull String subject) {
+    public NatsSubscription subscribe(@NonNull String subject) {
         subjectValidate(subject);
         return createSubscriptionInternal(subject, null, null, null);
     }
@@ -1135,7 +1135,7 @@ public class NatsConnection implements AutoCloseable {
      * @throws IllegalArgumentException if the subject or the queue name is invalid
      */
     @NonNull
-    public Subscription subscribe(@NonNull String subject, @NonNull String queueName) {
+    public NatsSubscription subscribe(@NonNull String subject, @NonNull String queueName) {
         subjectValidate(subject);
         Validator.validateQueueName(queueName, true);
         return createSubscriptionInternal(subject, queueName, null, null);

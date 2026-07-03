@@ -154,10 +154,7 @@ public interface ErrorListener {
             sb.append(", Consumer: ").append(slowConsumer.hashCode());
         }
         if (sub != null) {
-            sb.append(", Subscription: ").append(sub.hashCode());
-            if (sub.getConsumerName() != null) {
-                sb.append(", Consumer Name: ").append(sub.getConsumerName());
-            }
+            sb.append(", Subscription: ").append(sub.getSID());
         }
         if (pairs != null && pairs.length % 2 == 0) {
             for (int x = 0; x < pairs.length; x++) {

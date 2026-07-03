@@ -1,6 +1,9 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
+import io.synadia.client.Consumer;
+import io.synadia.client.Dispatcher;
+import io.synadia.client.ErrorListener;
+import io.synadia.client.Message;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +20,7 @@ public class SlowConsumerTests extends TestBase {
     public void testDefaultPendingLimits() throws Exception {
         runInSharedOwnNc(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             Dispatcher d = nc.createDispatcher((Message m) -> {});
 
             assertEquals(Consumer.DEFAULT_MAX_MESSAGES, sub.getPendingMessageLimit());
@@ -34,7 +37,7 @@ public class SlowConsumerTests extends TestBase {
         runInSharedOwnNc(nc -> {
             String subject = random();
             int expectedPending = subject.length() + 12;
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             sub.setPendingLimits(1, -1);
 
             assertEquals(1, sub.getPendingMessageLimit());
@@ -67,7 +70,7 @@ public class SlowConsumerTests extends TestBase {
             String subject = random();
             int maxBytes = subject.length() + 3;
             int expectedPending = maxBytes + 9;
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             sub.setPendingLimits(-1, maxBytes); // will take the first, not the second
 
             assertEquals(maxBytes, sub.getPendingByteLimit());

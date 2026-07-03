@@ -1,5 +1,7 @@
 package io.synadia.client;
 
+import io.synadia.client.impl.NatsSubscription;
+
 /**
  * This library uses the concept of a Dispatcher to organize message callbacks in a way that the
  * application can control. Each dispatcher has a single {@link MessageHandler MessageHandler} that
@@ -40,11 +42,11 @@ public interface Dispatcher extends Consumer {
      *
      *
      * @param subject The subject to subscribe to.
-     * @return The Dispatcher, so calls can be chained.
+     * @return The NatsSubscription.
      * @throws IllegalStateException if the dispatcher was previously closed
      * @throws IllegalArgumentException if the subject is invalid
      */
-    Dispatcher subscribe(String subject);
+    NatsSubscription subscribe(String subject);
 
     /**
      * Create a subscription to the specified subject and queue under the control of
@@ -57,11 +59,11 @@ public interface Dispatcher extends Consumer {
      *
      * @param subject The subject to subscribe to.
      * @param queue The queue group to join.
-     * @return The Dispatcher, so calls can be chained.
+     * @return The NatsSubscription.
      * @throws IllegalStateException if the dispatcher was previously closed
      * @throws IllegalArgumentException if the subject or the queue is invalid
      */
-    Dispatcher subscribe(String subject, String queue);
+    NatsSubscription subscribe(String subject, String queue);
 
     /**
      * Create a subscription to the specified subject under the control of this
@@ -76,11 +78,11 @@ public interface Dispatcher extends Consumer {
      *
      * @param subject The subject to subscribe to.
      * @param handler The target for the messages
-     * @return The Subscription, so subscriptions may be later unsubscribed manually.
+     * @return The NatsSubscription, so subscriptions may be later unsubscribed manually.
      * @throws IllegalStateException if the dispatcher was previously closed
      * @throws IllegalArgumentException if the subject is invalid, or the handler is null
      */
-    Subscription subscribe(String subject, MessageHandler handler);
+    NatsSubscription subscribe(String subject, MessageHandler handler);
 
     /**
      * Create a subscription to the specified subject under the control of this
@@ -96,11 +98,11 @@ public interface Dispatcher extends Consumer {
      * @param subject The subject to subscribe to.
      * @param queue The queue group to join.
      * @param handler The target for the messages
-     * @return The Subscription, so subscriptions may be later unsubscribed manually.
+     * @return The NatsSubscription, so subscriptions may be later unsubscribed manually.
      * @throws IllegalStateException if the dispatcher was previously closed
      * @throws IllegalArgumentException if the subject or the queue is invalid, or the handler is null
      */
-    Subscription subscribe(String subject, String queue, MessageHandler handler);
+    NatsSubscription subscribe(String subject, String queue, MessageHandler handler);
 
     /**
      * Unsubscribe from the specified subject, the queue is implicit.
@@ -141,7 +143,8 @@ public interface Dispatcher extends Consumer {
      * <blockquote><pre>
      * nc = Nats.connect()
      * d = nc.createDispatcher(myHandler);
-     * d.subscribe("hello").unsubscribe("hello", 1);
+     * d.subscribe("hello");
+     * d.unsubscribe("hello", 1);
      * </pre></blockquote>
      *
      * @param subject The subject to unsubscribe from.

@@ -1,6 +1,9 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.*;
+import io.synadia.client.Dispatcher;
+import io.synadia.client.Message;
+import io.synadia.client.MessageHandler;
+import io.synadia.client.NUID;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -747,7 +750,10 @@ public class DispatcherTests extends TestBase {
                 }
             });
 
-            d.subscribe(subject).subscribe(subject).subscribe(subject).subscribe(done);
+            d.subscribe(subject);
+            d.subscribe(subject);
+            d.subscribe(subject);
+            d.subscribe(done);
             nc.flush(5000); // wait for them to go through
 
             for (int i = 0; i < msgCount; i++) {
@@ -809,8 +815,8 @@ public class DispatcherTests extends TestBase {
             final AtomicInteger count = new AtomicInteger(0);
             Dispatcher d = nc.createDispatcher(msg -> {
             });
-            Subscription s1 = d.subscribe(subject, msg -> count.incrementAndGet());
-            Subscription doneSub = d.subscribe(done, msg -> fDone1.complete(Boolean.TRUE));
+            NatsSubscription s1 = d.subscribe(subject, msg -> count.incrementAndGet());
+            NatsSubscription doneSub = d.subscribe(done, msg -> fDone1.complete(Boolean.TRUE));
             d.subscribe(subject, msg -> count.incrementAndGet());
 
             nc.flush(5000); // wait for the subs to go through

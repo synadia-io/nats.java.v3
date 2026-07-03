@@ -443,7 +443,7 @@ public class JetStream extends JetStreamImpl {
         }
 
         AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler, cc);
-        return dispatcher.subscribeImplJetStream(inbox, cc.getDeliverGroup(), amh, subFactory);
+        return dispatcher.subscribeImplByFactory(inbox, cc.getDeliverGroup(), amh, subFactory);
     }
 
     static class AsyncMessageHandler implements MessageHandler {

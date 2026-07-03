@@ -3,7 +3,6 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.NatsServerProtocolMock;
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
-import io.synadia.client.Subscription;
 import io.synadia.client.utils.ConnectionUtils;
 import io.synadia.client.utils.IncomingHeadersProcessor;
 import io.synadia.client.utils.TestBase;
@@ -270,7 +269,7 @@ public class NatsMessageTests extends TestBase {
     public void testHeadersMutableBeforePublish() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
 
             Headers h = new Headers();
             h.put("one", "A");

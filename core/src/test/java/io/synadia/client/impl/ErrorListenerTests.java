@@ -111,7 +111,7 @@ public class ErrorListenerTests extends TestBase {
              NatsConnection nc = Nats.connect(optionsBuilder(ts).errorListener(listener).build())) {
 
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             sub.setPendingLimits(1, -1);
 
             nc.publish(subject, null);

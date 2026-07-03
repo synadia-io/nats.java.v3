@@ -4,6 +4,7 @@ import io.nats.NatsServerRunner;
 import io.synadia.client.*;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsMessage;
+import io.synadia.client.impl.NatsSubscription;
 import io.synadia.client.impl.SharedServer;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterAll;
@@ -509,7 +510,7 @@ public class TestBase {
     public static void assertPubSub(NatsConnection conn) throws InterruptedException {
         String subject = random();
         String data = data(null);
-        Subscription sub = conn.subscribe(subject);
+        NatsSubscription sub = conn.subscribe(subject);
         conn.publish(subject, data.getBytes());
         Message m = sub.nextMessage(2000L);
         assertNotNull(m);

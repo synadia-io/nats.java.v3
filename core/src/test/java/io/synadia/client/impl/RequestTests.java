@@ -234,7 +234,7 @@ public class RequestTests extends TestBase {
             });
             d.subscribe("request-subject");
 
-            Subscription sub = nc.subscribe("reply-to");
+            NatsSubscription sub = nc.subscribe("reply-to");
 
             nc.publish("request-subject", "reply-to", "hello".getBytes(StandardCharsets.UTF_8));
 

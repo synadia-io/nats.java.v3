@@ -2,6 +2,7 @@ package io.synadia.client;
 
 import io.synadia.client.NatsServerProtocolMock.ExitAt;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.impl.NatsSubscription;
 import io.synadia.client.impl.SharedServer;
 import io.synadia.client.utils.ConnectionUtils;
 import io.synadia.client.utils.TestBase;
@@ -37,9 +38,9 @@ public class EchoTests extends TestBase {
             try (NatsConnection nc2 = ConnectionUtils.managedConnect(options(nc1))) {
                 // Echo is on so both sub should get messages from both pub
                 String subject = random();
-                Subscription sub1 = nc1.subscribe(subject);
+                NatsSubscription sub1 = nc1.subscribe(subject);
                 nc1.flush(1000);
-                Subscription sub2 = nc2.subscribe(subject);
+                NatsSubscription sub2 = nc2.subscribe(subject);
                 nc2.flush(1000);
 
                 // Pub from connect 1
@@ -67,9 +68,9 @@ public class EchoTests extends TestBase {
             NatsConnection nc2 = SharedServer.sharedConnectionForSameServer(nc1);
 
             String subject = random();
-            Subscription sub1 = nc1.subscribe(subject);
+            NatsSubscription sub1 = nc1.subscribe(subject);
             nc1.flush(1000);
-            Subscription sub2 = nc2.subscribe(subject);
+            NatsSubscription sub2 = nc2.subscribe(subject);
             nc2.flush(1000);
 
             // Pub from connect 1

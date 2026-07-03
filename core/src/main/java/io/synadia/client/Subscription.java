@@ -1,5 +1,6 @@
 package io.synadia.client;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.TimeUnit;
@@ -31,34 +32,25 @@ public interface Subscription extends Consumer {
      * the subject associated with this subscription, will be non-null
      * @return the subject
      */
-    String getSubject();
+    @NonNull String getSubject();
 
     /**
      * the queue associated with this subscription, may be null.
      * @return the queue name
      */
-    String getQueueName();
+    @Nullable String getQueueName();
 
     /**
      * the Dispatcher that owns this subscription, or null
      * @return the dispatcher instance
      */
-    Dispatcher getDispatcher();
+    @Nullable Dispatcher getDispatcher();
 
     /**
      * Get the subscription unique id
      * @return the id
      */
-    String getSID();
-
-    /**
-     * Gets the consumer name associated with the subscription.
-     * Not all subscriptions have consumer names
-     * @return the consumer name
-     */
-    default @Nullable String getConsumerName() {
-        return null;
-    }
+    @NonNull String getSID();
 
     /**
      * Read the next message for a subscription, or block until one is available.

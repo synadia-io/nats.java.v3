@@ -41,7 +41,7 @@ public class DrainTests {
     public void testSimpleSubDrain() throws Exception {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
@@ -104,7 +104,7 @@ public class DrainTests {
             String subject = random();
             d.subscribe(subject);
 
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
@@ -139,7 +139,7 @@ public class DrainTests {
             String subject = random();
             d.subscribe(subject);
 
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
@@ -167,7 +167,7 @@ public class DrainTests {
     public void testDrainWithZeroTimeout() throws Exception {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
@@ -237,7 +237,7 @@ public class DrainTests {
             String subject = random();
             d.subscribe(subject);
 
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
@@ -305,7 +305,7 @@ public class DrainTests {
             String subject = random();
             d.subscribe(subject);
 
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             pubCon.publish(subject, null);
@@ -339,7 +339,7 @@ public class DrainTests {
     public void testFirstTimeRequestReplyDuringDrain() throws Exception {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             Dispatcher d = pubCon.createDispatcher(msg -> pubCon.publish(msg.getReplyTo(), null));
@@ -364,7 +364,7 @@ public class DrainTests {
     public void testRequestReplyDuringDrain() throws Exception {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             String subject = random();
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
             subCon.flush(1000); // Get the sub to the server
 
             Dispatcher d = pubCon.createDispatcher(msg -> pubCon.publish(msg.getReplyTo(), null));
@@ -408,7 +408,8 @@ public class DrainTests {
 
             String subject = random();
             String queue = random();
-            drainingD = (NatsDispatcher) draining.createDispatcher(msg -> count.incrementAndGet()).subscribe(subject, queue);
+            drainingD = (NatsDispatcher) draining.createDispatcher(msg -> count.incrementAndGet());
+            drainingD.subscribe(subject, queue);
             draining.flush(5000);
 
             Thread pubThread = new Thread(() -> {
@@ -424,7 +425,8 @@ public class DrainTests {
             while (count.get() < total && Duration.between(start, now).compareTo(testTimeout) < 0) {
                 working = SharedServer.connectionForSameServer(pubCon, optionsBuilder().maxReconnects(0));
                 assertConnected(working);
-                workingD = (NatsDispatcher) working.createDispatcher(msg -> count.incrementAndGet()).subscribe(subject, queue);
+                workingD = (NatsDispatcher) working.createDispatcher(msg -> count.incrementAndGet());
+                workingD.subscribe(subject, queue);
                 working.flush(5000);
 
                 sleep(sleepBetweenDrains);
@@ -453,7 +455,7 @@ public class DrainTests {
         runInSharedOwnNcs(optionsBuilder().maxReconnects(0), (subCon, pubCon) -> {
             int total = 1000;
             String subject = random();
-            Subscription sub = subCon.subscribe(subject);
+            NatsSubscription sub = subCon.subscribe(subject);
 
             sub.setPendingLimits(5 * total, -1);
             subCon.flush(1000); // Get the sub to the server

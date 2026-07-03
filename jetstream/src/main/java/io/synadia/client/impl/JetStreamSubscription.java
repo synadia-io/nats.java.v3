@@ -44,7 +44,6 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
      * Gets the consumer name associated with the subscription.
      * @return the consumer name
      */
-    @Override
     public String getConsumerName() {
         return consumerName;
     }

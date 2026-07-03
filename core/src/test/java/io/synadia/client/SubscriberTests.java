@@ -1,6 +1,7 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.impl.NatsSubscription;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -28,7 +29,7 @@ public class SubscriberTests {
     public void testSingleMessage() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             nc.publish(subject, new byte[16]);
 
             Message msg = sub.nextMessage(500L);
@@ -45,7 +46,7 @@ public class SubscriberTests {
     public void testMessageFromSubscriptionContainsConnection() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             nc.publish(subject, new byte[16]);
 
             Message msg = sub.nextMessage(500L);
@@ -96,7 +97,7 @@ public class SubscriberTests {
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(receiveMessageCustomizer)) {
             try (NatsConnection nc = standardConnect(mockTs)) {
                 String subject = random();
-                Subscription sub = nc.subscribe(subject);
+                NatsSubscription sub = nc.subscribe(subject);
 
                 gotSub.get();
                 sendMsg.complete(Boolean.TRUE);
@@ -117,7 +118,7 @@ public class SubscriberTests {
     public void testMultiMessage() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             nc.publish(subject, new byte[16]);
             nc.publish(subject, new byte[16]);
             nc.publish(subject, new byte[16]);
@@ -148,8 +149,8 @@ public class SubscriberTests {
 
             String subject = random();
             String queue = random();
-            Subscription sub1 = nc.subscribe(subject, queue);
-            Subscription sub2 = nc.subscribe(subject, queue);
+            NatsSubscription sub1 = nc.subscribe(subject, queue);
+            NatsSubscription sub2 = nc.subscribe(subject, queue);
 
             for (int i = 0; i < msgs; i++) {
                 nc.publish(subject, new byte[16]);
@@ -190,7 +191,7 @@ public class SubscriberTests {
     public void testUnsubscribe() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             nc.publish(subject, new byte[16]);
 
             Message msg = sub.nextMessage(500L);
@@ -241,7 +242,7 @@ public class SubscriberTests {
     public void testOnlyOneUnsubscribe() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             sub.unsubscribe();
             assertThrows(IllegalStateException.class, sub::unsubscribe);
         });
@@ -266,7 +267,7 @@ public class SubscriberTests {
     public void testUnsubscribeInAnotherThread() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             new Thread(sub::unsubscribe).start();
             assertThrows(IllegalStateException.class, () -> sub.nextMessage(5000L));
         });
@@ -276,7 +277,7 @@ public class SubscriberTests {
     public void testAutoUnsubAfterMaxIsReached() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
 
             int msgCount = 10;
             for (int i = 0; i < msgCount; i++) {
@@ -327,7 +328,7 @@ public class SubscriberTests {
     public void testSubscribesThatExceptionAfterClose() throws Exception {
         // own nc b/c we will close
         runInSharedOwnNc(nc -> {
-            Subscription sub = nc.subscribe(random());
+            NatsSubscription sub = nc.subscribe(random());
             nc.close();
 
             /// can't subscribe when closed
@@ -345,7 +346,7 @@ public class SubscriberTests {
     public void testUnsubscribeWhileWaiting() throws Exception {
         runInShared(nc -> {
             String subject = random();
-            Subscription sub = nc.subscribe(subject);
+            NatsSubscription sub = nc.subscribe(subject);
             nc.flush(1000);
 
             new Thread(() -> {

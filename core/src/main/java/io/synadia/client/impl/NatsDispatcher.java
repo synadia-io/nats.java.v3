@@ -3,6 +3,8 @@ package io.synadia.client.impl;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.Subscription;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -205,34 +207,27 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
         }
     }
 
-    public Dispatcher subscribe(String subject) {
+    public NatsSubscription subscribe(String subject) {
         if (defaultHandler == null) {
             throw new IllegalStateException("Dispatcher was made without a default handler.");
         }
         connection.subjectValidate(subject);
-        this.subscribeImplCore(subject, null, null);
-        return this;
-    }
-
-    NatsSubscription subscribeReturningSubscription(String subject) {
-        connection.subjectValidate(subject);
         return this.subscribeImplCore(subject, null, null);
     }
 
-    public Subscription subscribe(String subject, MessageHandler handler) {
+    public NatsSubscription subscribe(String subject, MessageHandler handler) {
         connection.subjectValidate(subject);
         required(handler, "Handler");
         return this.subscribeImplCore(subject, null, handler);
     }
 
-    public Dispatcher subscribe(String subject, String queueName) {
+    public NatsSubscription subscribe(String subject, String queueName) {
         connection.subjectValidate(subject);
         validateQueueName(queueName, true);
-        this.subscribeImplCore(subject, queueName, null);
-        return this;
+        return this.subscribeImplCore(subject, queueName, null);
     }
 
-    public Subscription subscribe(String subject, String queueName,  MessageHandler handler) {
+    public NatsSubscription subscribe(String subject, String queueName,  MessageHandler handler) {
         connection.subjectValidate(subject);
         validateQueueName(queueName, true);
         if (handler == null) {
@@ -242,7 +237,7 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
     }
 
     // Assumes the subj/queuename checks are done, does check for closed status
-    NatsSubscription subscribeImplCore(String subject, String queueName, MessageHandler handler) {
+    NatsSubscription subscribeImplCore(@NonNull String subject, @Nullable String queueName, @Nullable MessageHandler handler) {
         checkBeforeSubImpl();
 
         // If the handler is null, then we use the default handler, which will not allow
@@ -264,7 +259,7 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
         return _subscribeImplHandlerProvided(subject, queueName, handler, null);
     }
 
-    public NatsSubscription subscribeImplJetStream(String subject, String queueName, MessageHandler handler, NatsSubscriptionFactory nsf) {
+    NatsSubscription subscribeImplByFactory(@NonNull String subject, @Nullable String queueName, @NonNull MessageHandler handler, @NonNull NatsSubscriptionFactory nsf) {
         checkBeforeSubImpl();
         return _subscribeImplHandlerProvided(subject, queueName, handler, nsf);
     }

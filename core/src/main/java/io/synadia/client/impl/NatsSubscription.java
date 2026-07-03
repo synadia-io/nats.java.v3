@@ -4,6 +4,7 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.Subscription;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.TimeUnit;
@@ -94,10 +95,25 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
         return this.incoming;
     }
 
+    /** {@inheritDoc} */
+    @Override
+    @NonNull
+    public String getSubject() {
+        return this.subject;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Nullable
+    public String getQueueName() {
+        return this.queueName;
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
+    @Nullable
     public Dispatcher getDispatcher() {
         return this.dispatcher;
     }
@@ -106,20 +122,9 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
      * Get the subscription unique id
      * @return the id
      */
+    @NonNull
     public String getSID() {
         return this.sid;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public String getSubject() {
-        return this.subject;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public String getQueueName() {
-        return this.queueName;
     }
 
     /** {@inheritDoc} */

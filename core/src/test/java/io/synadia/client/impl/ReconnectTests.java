@@ -55,7 +55,7 @@ public class ReconnectTests {
         nsrb.port(port); // set the port into the builder
         Listener listener = new Listener();
         NatsConnection nc;
-        Subscription sub;
+        NatsSubscription sub;
         long start;
         long end;
         String subsubject = random();
@@ -123,7 +123,7 @@ public class ReconnectTests {
         NatsConnection nc;
         Listener listener = new Listener();
         int port;
-        Subscription sub;
+        NatsSubscription sub;
 
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts)
@@ -174,7 +174,7 @@ public class ReconnectTests {
         NatsConnection nc;
         Listener listener = new Listener();
         int port = NatsTestServer.nextPort();
-        Subscription sub;
+        NatsSubscription sub;
         long start;
         long end;
         String[] customArgs = {"--user","stephen","--pass","password"};
@@ -840,7 +840,7 @@ public class ReconnectTests {
         public void run() {
             Options options = options(port);
             try (NatsConnection nc = Nats.connect(options)) {
-                Subscription sub = nc.subscribe(subject);
+                NatsSubscription sub = nc.subscribe(subject);
                 while (!subscriberDone.get()) {
                     Message m = sub.nextMessage(100L);
                     if (m != null) {

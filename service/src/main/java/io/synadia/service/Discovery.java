@@ -1,9 +1,9 @@
 package io.synadia.service;
 
 import io.synadia.client.Message;
-import io.synadia.client.Subscription;
 import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.impl.NatsSubscription;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -186,7 +186,7 @@ public class Discovery {
     }
 
     private void discoverMany(String action, String serviceName, Consumer<byte[]> dataConsumer) {
-        Subscription sub = null;
+        NatsSubscription sub = null;
         try {
             String replyTo = inboxSupplier.get();
             sub = conn.subscribe(replyTo);
