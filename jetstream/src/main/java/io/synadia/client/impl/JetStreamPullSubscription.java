@@ -86,7 +86,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
      * Initiate pull for all messages available before expiration.
      * This can only be used when the subscription is pull based.
      * <p>
-     * <code>sub.nextMessage(timeout)</code> can return a:
+     * {@code sub.nextMessage(timeoutMillis)} can return a:
      * <ul>
      * <li>regular JetStream message
      * <li>null
@@ -105,8 +105,8 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
 
     /**
      * Fetch a list of messages up to the batch size, waiting no longer than maxWait.
-     * This uses <code>pullExpiresIn</code> under the covers, and manages all responses
-     * from <code>sub.nextMessage(...)</code> to only return regular JetStream messages.
+     * This uses {@code pullExpiresIn} under the covers, and manages all responses
+     * from {@code sub.nextMessage(...)} to only return regular JetStream messages.
      * This can only be used when the subscription is pull based.
      *
      * @param batchSize the size of the batch
@@ -202,7 +202,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
     }
 
     /**
-     * Prepares an iterator. This uses <code>pullExpiresIn</code> under the covers,
+     * Prepares an iterator. This uses {@code pullExpiresIn} under the covers,
      * and manages all responses. The iterator will have no messages if it does not
      * receive the first message within the max wait period. It will stop if the batch is
      * fulfilled or if there are fewer than batch size messages. 408 Status messages

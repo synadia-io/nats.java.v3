@@ -16,7 +16,7 @@ import static io.synadia.service.ServiceConstants.ENDPOINTS;
 
 /**
  * Info response class forms the info json payload, for example:
- * <code>{"id":"JlkwZvmHAXCQGwwxiPwaBJ","name":"MyService","version":"0.0.1","endpoints":[{"name":"MyEndpoint","subject":"myend"}],"type":"io.nats.micro.v1.info_response"}</code>
+ * {@code {"id":"JlkwZvmHAXCQGwwxiPwaBJ","name":"MyService","version":"0.0.1","endpoints":[{"name":"MyEndpoint","subject":"myend"}],"type":"io.nats.micro.v1.info_response"}}
  */
 public class InfoResponse extends ServiceResponse {
     /**

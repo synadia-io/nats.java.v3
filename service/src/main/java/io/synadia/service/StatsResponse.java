@@ -15,7 +15,7 @@ import static io.synadia.service.ServiceConstants.STARTED;
 
 /**
  * Stats response class forms the stats json payload, for example:
- * <code>
+ * <pre>{@code
  * {
  * "id": "ZP1oVevzLGu4CBORMXKKke",
  * "name": "Service1",
@@ -49,7 +49,7 @@ import static io.synadia.service.ServiceConstants.STARTED;
  * "started": "2023-08-15T13:51:41.319000000Z",
  * "type": "io.nats.micro.v1.stats_response"
  * }
- * </code>
+ * }</pre>
  */
 public class StatsResponse extends ServiceResponse {
     /**

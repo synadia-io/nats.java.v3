@@ -10,7 +10,7 @@ import static io.synadia.client.utils.Validator.*;
 
 /**
  * Build a Service using a fluent builder.
- * Use the Service static method <code>builder()</code> or <code>new ServiceBuilder()</code> to get an instance.
+ * Use the Service static method {@code builder()} or {@code new ServiceBuilder()} to get an instance.
  * Builder methods validate their arguments and throw {@link IllegalArgumentException} for a null or otherwise invalid value.
  */
 public class ServiceBuilder {

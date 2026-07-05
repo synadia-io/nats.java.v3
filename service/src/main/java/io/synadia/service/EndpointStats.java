@@ -14,45 +14,40 @@ import static io.synadia.service.ServiceConstants.*;
 
 /**
  * Endpoints stats contains various stats and custom data for an endpoint.
- * <code>
+ * <pre>{@code
  * {
- * "id": "ZP1oVevzLGu4CBORMXKKke",
- * "name": "Service1",
- * "version": "0.0.1",
- * "endpoints": [{
- *     "name": "SortEndpointAscending",
- *     "subject": "sort.ascending",
- *     "queue_group": "q",
- *     "num_requests": 1,
- *     "processing_time": 538900,
- *     "average_processing_time": 538900,
- *     "started": "2023-08-15T13:51:41.318000000Z"
+ *     "id": "ZP1oVevzLGu4CBORMXKKke",
+ *     "name": "Service1",
+ *     "version": "0.0.1",
+ *     "endpoints": [{
+ *         "name": "SortEndpointAscending",
+ *         "subject": "sort.ascending",
+ *         "queue_group": "q",
+ *         "num_requests": 1,
+ *         "processing_time": 538900,
+ *         "average_processing_time": 538900,
+ *         "started": "2023-08-15T13:51:41.318000000Z"
+ *     }, {
+ *         "name": "SortEndpointDescending",
+ *         "subject": "sort.descending",
+ *         "num_requests": 1,
+ *         "processing_time": 88400,
+ *         "average_processing_time": 88400,
+ *         "started": "2023-08-15T13:51:41.318000000Z"
+ *     }, {
+ *         "name": "EchoEndpoint",
+ *         "subject": "echo",
+ *         "num_requests": 5,
+ *         "processing_time": 1931600,
+ *         "average_processing_time": 386320,
+ *         "data": {
+ *             "idata": 2,
+ *             "sdata": "s-996409223"
+ *         },
+ *         "started": "2023-08-15T13:51:41.318000000Z"
+ *     }]
  * }
- * </code>
- * <code>
- * {
- *     "name": "SortEndpointDescending",
- *     "subject": "sort.descending",
- *     "num_requests": 1,
- *     "processing_time": 88400,
- *     "average_processing_time": 88400,
- *     "started": "2023-08-15T13:51:41.318000000Z"
- * }
- * </code>
- * <code>
- * {
- *     "name": "EchoEndpoint",
- *     "subject": "echo",
- *     "num_requests": 5,
- *     "processing_time": 1931600,
- *     "average_processing_time": 386320,
- *     "data": {
- *          "idata": 2,
- *          "sdata": "s-996409223"
- *     },
- *     "started": "2023-08-15T13:51:41.318000000Z"
- * }
- * </code>
+ * }</pre>
  */
 public class EndpointStats implements JsonSerializable {
     private final String name;

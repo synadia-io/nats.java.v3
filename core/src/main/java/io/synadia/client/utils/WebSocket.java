@@ -40,7 +40,7 @@ public class WebSocket extends Socket {
             throws IOException {
         closeLock = new ReentrantLock();
         this.wrappedSocket = wrappedSocket;
-        handshake(wrappedSocket, host, interceptors, getPathOrDefault(path, DEFAULT_PATH));
+        handshake(wrappedSocket, host, interceptors, getPathOrDefault(path));
         this.in = new WebsocketInputStream(wrappedSocket.getInputStream());
         this.out = new WebsocketOutputStream(wrappedSocket.getOutputStream(), true);
     }
@@ -89,7 +89,7 @@ public class WebSocket extends Socket {
             if (null == line) {
                 throw new IllegalStateException("Expected HTTP header to not exceed " + MAX_LINE_LEN);
             }
-            if ("".equals(line)) {
+            if (line.isEmpty()) {
                 break;
             }
             int colon = line.indexOf(':');
@@ -161,15 +161,12 @@ public class WebSocket extends Socket {
     /**
      * Returns the given path if not empty otherwise return the fallback.
      *
-     * @param path
-     *         the path to return if not null or empty.
-     * @param fallback
-     *         in case the path is empty or null return the fallback.
-     * @return the path if not empty otherwise <code>fallback</code>
+     * @param path the path to return if not null or empty.
+     * @return the path if it is not null or empty, otherwise the fallback value
      */
-    private String getPathOrDefault(String path, String fallback) {
+    private String getPathOrDefault(String path) {
         if (path == null || path.isEmpty()) {
-            return fallback;
+            return WebSocket.DEFAULT_PATH;
         }
         return path;
     }

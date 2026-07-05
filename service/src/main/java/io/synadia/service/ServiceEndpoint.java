@@ -18,7 +18,7 @@ import static io.synadia.client.utils.NatsConstants.DOT;
  * <li>It gives you a hook to provide custom data for the {@link EndpointStats}</li>
  * </ul>
  * <p>To create a ServiceEndpoint, use the ServiceEndpoint builder, which can be instantiated
- * via the static method <code>builder()</code> or <code>new ServiceEndpoint.Builder() to get an instance.</code>
+ * via the static method {@code builder()} or {@code new ServiceEndpoint.Builder()} to get an instance.
  * </p>
  * <p>The builder validates its values and throws {@link IllegalArgumentException} for invalid input.</p>
  */

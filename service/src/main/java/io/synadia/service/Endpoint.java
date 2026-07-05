@@ -20,7 +20,7 @@ import static io.synadia.service.ServiceConstants.*;
  * <p>Endpoints can be used directly or as part of a group. {@link ServiceEndpoint} and {@link Group}</p>
  * <p>Endpoint names and subjects are considered 'Restricted Terms' and must only contain A-Z, a-z, 0-9, '-' or '_'</p>
  * <p>To create an Endpoint, either use a direct constructor or use the Endpoint builder
- * via the static method <code>builder()</code> or <code>new Endpoint.Builder() to get an instance.</code>
+ * via the static method {@code builder()} or {@code new Endpoint.Builder()} to get an instance.
  * </p>
  * <p>Constructors and the builder validate their arguments and throw {@link IllegalArgumentException} for invalid values.</p>
  */

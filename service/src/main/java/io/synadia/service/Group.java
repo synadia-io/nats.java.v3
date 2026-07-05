@@ -54,13 +54,13 @@ public class Group {
     /**
      * Get the resolved subject of a group by concatenating the group name and any groups.
      * For example, this:
-     * <code>
+     * <pre>{@code
      * Group g = new Group("A")
      *     .appendGroup(new Group("B"))
      *     .appendGroup(new Group("C"))
      *     .appendGroup(new Group("D"));
      * System.out.println(g.getSubject());
-     * </code>
+     * }</pre>
      * prints "A.B.C.D"
      * @return the subject
      */

@@ -110,10 +110,10 @@ public interface Subscription extends Consumer {
      * Unsubscribe this subscription and stop listening for messages, after the
      * specified number of messages.
      * 
-     * <p>If the subscription has already received <code>after</code> messages, it will not receive
-     * more. The provided limit is a lifetime total for the subscription, with the caveat
-     * that if the subscription already received more than <code>after</code> when unsubscribe is called
-     * the client will not travel back in time to stop them.
+     * <p>If the subscription has already received that many messages, it will not receive
+     * more. This limit is a lifetime total for the subscription; if it has already received
+     * more than the limit when unsubscribe is called, the client will not travel back in time
+     * to stop them.
      * 
      * <p>Supports chaining so that you can do things like:
      * <pre>

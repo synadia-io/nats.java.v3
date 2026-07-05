@@ -66,7 +66,7 @@ public class ExternalCreator implements JsonSerializable {
     }
 
     /**
-     * The subject prefix that imports the other account <code>$JS.API.CONSUMER.&gt; subjects</code>
+     * The subject prefix that imports the other account {@code $JS.API.CONSUMER.> subjects}
      * @return the api prefix
      */
     public String getApi() {

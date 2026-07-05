@@ -134,10 +134,10 @@ public interface Dispatcher extends Consumer {
      * Unsubscribe from the specified subject, the queue is implicit, after the
      * specified number of messages.
      *
-     * <p>If the subscription has already received <code>after</code> messages, it will not receive
-     * more. The provided limit is a lifetime total for the subscription, with the caveat
-     * that if the subscription already received more than <code>after</code> when unsubscribe is called
-     * the client will not travel back in time to stop them.
+     * <p>If the subscription has already received that many messages, it will not receive
+     * more. This limit is a lifetime total for the subscription; if it has already received
+     * more than the limit when unsubscribe is called, the client will not travel back in time
+     * to stop them.
      *
      * <p>For example, to get a single asynchronous message, you might do:
      * <blockquote><pre>
@@ -159,10 +159,10 @@ public interface Dispatcher extends Consumer {
      * Unsubscribe from the specified subject, the queue is implicit, after the
      * specified number of messages.
      *
-     * <p>If the subscription has already received <code>after</code> messages, it will not receive
-     * more. The provided limit is a lifetime total for the subscription, with the caveat
-     * that if the subscription already received more than <code>after</code> when unsubscribe is called
-     * the client will not travel back in time to stop them.
+     * <p>If the subscription has already received that many messages, it will not receive
+     * more. This limit is a lifetime total for the subscription; if it has already received
+     * more than the limit when unsubscribe is called, the client will not travel back in time
+     * to stop them.
      *
      * <p>Stops messages to the subscription locally and notifies the server.
      * This method is to be used to unsubscribe from subscriptions created by

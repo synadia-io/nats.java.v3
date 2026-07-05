@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * Ping response class forms the ping json payload, for example:
- * <code>{"id":"JlkwZvmHAXCQGwwxiPwaBJ","name":"MyService","version":"0.0.1","type":"io.nats.micro.v1.ping_response"}</code>
+ * {@code {"id":"JlkwZvmHAXCQGwwxiPwaBJ","name":"MyService","version":"0.0.1","type":"io.nats.micro.v1.ping_response"}}
  */
 public class PingResponse extends ServiceResponse {
     /**
