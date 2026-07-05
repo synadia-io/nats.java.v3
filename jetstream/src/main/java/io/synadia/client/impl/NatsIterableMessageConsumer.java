@@ -2,9 +2,10 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.ConsumerInfo;
-import org.jspecify.annotations.Nullable;
+import io.synadia.client.utils.MessageSupplier;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 class NatsIterableMessageConsumer extends NatsMessageConsumer implements IterableMessageConsumer {
 
@@ -12,13 +13,34 @@ class NatsIterableMessageConsumer extends NatsMessageConsumer implements Iterabl
         super(subscriptionMaker, cachedConsumerInfo, opts, null, null);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
-    public Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException {
+    public Message nextMessage(long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException {
+        return process(() -> sub.nextMessage(timeoutMillis));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException, JetStreamStatusCheckedException {
+        return process(() -> sub.nextMessage(timeout, unit));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Message nextMessageNoWait() throws InterruptedException, JetStreamStatusCheckedException {
+        return process(sub::nextMessageNoWait);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Message nextMessageWaitForever() throws InterruptedException, JetStreamStatusCheckedException {
+        return process(sub::nextMessageWaitForever);
+    }
+
+    // Shared status/processed handling for all four nextMessage variants.
+    private Message process(MessageSupplier supplier) throws InterruptedException, JetStreamStatusCheckedException {
         try {
-            Message msg = sub.nextMessage(timeoutMillis);
+            Message msg = supplier.get();
             if (msg != null) {
                 updateProcessed(msg);
             }

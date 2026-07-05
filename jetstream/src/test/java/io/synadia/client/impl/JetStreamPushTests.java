@@ -100,10 +100,10 @@ public class JetStreamPushTests extends JetStreamTestBase {
             nc.flush(1000); // flush outgoing communication with/to the server
             sleep(1000); // give time to make sure the messages get to the client
 
-            Message m = sub4.nextMessage(0L);
+            Message m = sub4.nextMessageWaitForever();
             assertNotNull(m);
             m.ack();
-            m = sub4.nextMessage(null);
+            m = sub4.nextMessageNoWait();
             assertNotNull(m);
             m.ack();
 

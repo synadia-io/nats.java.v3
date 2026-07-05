@@ -81,19 +81,39 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException, IllegalStateException {
-        if (timeoutMillis == null) {
-            return _nextUnmanagedNoWait(null);       // poll once, return immediately
+    public @Nullable Message nextMessage(long timeoutMillis) throws InterruptedException {
+        if (timeoutMillis < 1) {
+            throw new IllegalArgumentException("Timeout must be at least 1 millisecond.");
         }
-        if (timeoutMillis <= 0) {
-            return _nextUnmanagedWaitForever();      // wait forever
-        }
-        return _nextUnmanaged(timeoutMillis, TimeUnit.MILLISECONDS, null);  // wait up to timeoutMillis
+        return _nextUnmanaged(timeoutMillis, TimeUnit.MILLISECONDS, null);
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public @Nullable Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException {
+        if (timeout < 1) {
+            throw new IllegalArgumentException("Timeout must be at least 1 " + unit + ".");
+        }
+        return _nextUnmanaged(timeout, unit, null);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public @Nullable Message nextMessageNoWait() throws InterruptedException {
+        return _nextUnmanagedNoWait(null);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public @Nullable Message nextMessageWaitForever() throws InterruptedException {
+        return _nextUnmanagedWaitForever();
+    }
+
+    // The reason this does not have an expectedPullSubject parameter is because it happens
+    // that it is only called internally from place(s) that do not have an expected subject
     protected Message _nextUnmanagedWaitForever() throws InterruptedException {
         while (true) {
-            Message msg = nextMessage(0L, TimeUnit.MILLISECONDS); // 0 = wait forever, unit is irrelevant
+            Message msg = nextMessageInternal(0L, TimeUnit.MILLISECONDS); // 0 = wait forever, unit is irrelevant
             if (msg != null) { // null shouldn't happen, so just a code guard b/c nextMessageInternal can return null
                 switch (manager.manage(msg)) {
                     case MESSAGE:
@@ -108,7 +128,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
 
     protected Message _nextUnmanagedNoWait(String expectedPullSubject) throws InterruptedException {
         while (true) {
-            Message msg = nextMessage(null, TimeUnit.MILLISECONDS); // null = try once, no wait, unit is irrelevant
+            Message msg = nextMessageInternal(null, TimeUnit.MILLISECONDS); // null = try once, no wait, unit is irrelevant
             if (msg == null) {
                 return null;
             }
@@ -140,7 +160,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
         long timeLeftNanos = timeoutNanos;
         long start = NatsSystemClock.nanoTime();
         while (timeLeftNanos > 0) {
-            Message msg = nextMessage(timeLeftNanos, TimeUnit.NANOSECONDS);
+            Message msg = nextMessageInternal(timeLeftNanos, TimeUnit.NANOSECONDS);
             if (msg == null) {
                 return null; // normal timeout
             }

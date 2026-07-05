@@ -1,20 +1,51 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Message;
-import org.jspecify.annotations.Nullable;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * A simplified consumer that does endless consume on the style of an iterator
  */
 public interface IterableMessageConsumer extends MessageConsumer {
     /**
-     * Read the next message. Return null on timeout (or, for an immediate poll, if nothing is buffered).
-     * @param timeoutMillis the wait in milliseconds: {@code null} = poll once / return immediately,
-     *                       {@code <= 0} = wait forever (can still be interrupted by unsubscribe/close), {@code > 0} = wait up to that long
-     * @return the next message for this subscriber or null if there is a timeout
+     * Read the next message, waiting up to {@code timeoutMillis}.
+     * @param timeoutMillis the maximum time to wait, in milliseconds; must be at least 1
+     * @return the next message, or null if the wait elapsed with no message
+     * @throws IllegalArgumentException if {@code timeoutMillis} is less than 1
      * @throws InterruptedException if one is thrown, in order to propagate it up
      * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
      */
-    Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException;
+    Message nextMessage(long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException;
+
+    /**
+     * Read the next message, waiting up to {@code timeout} of the given unit.
+     * @param timeout the maximum time to wait, in {@code unit}s; must be at least 1
+     * @param unit the time unit of {@code timeout}
+     * @return the next message, or null if the wait elapsed with no message
+     * @throws IllegalArgumentException if {@code timeout} is less than 1
+     * @throws InterruptedException if one is thrown, in order to propagate it up
+     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     *         such as the consumer was deleted on the server in the middle of use.
+     */
+    Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException, JetStreamStatusCheckedException;
+
+    /**
+     * Poll once for an already-buffered message and return immediately, without waiting.
+     * @return the next buffered message, or null if none is currently available
+     * @throws InterruptedException if one is thrown, in order to propagate it up
+     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     *         such as the consumer was deleted on the server in the middle of use.
+     */
+    Message nextMessageNoWait() throws InterruptedException, JetStreamStatusCheckedException;
+
+    /**
+     * Read the next message, blocking indefinitely until one is available (interruptible by unsubscribe/close).
+     * @return the next message, or null if the subscription became inactive
+     * @throws InterruptedException if one is thrown, in order to propagate it up
+     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     *         such as the consumer was deleted on the server in the middle of use.
+     */
+    Message nextMessageWaitForever() throws InterruptedException, JetStreamStatusCheckedException;
 }

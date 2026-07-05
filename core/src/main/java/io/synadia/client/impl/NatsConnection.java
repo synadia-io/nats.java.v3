@@ -775,7 +775,7 @@ public class NatsConnection implements AutoCloseable {
 
     /**
      * Close the connection and release all blocking calls like {@link #flush flush}
-     * and {@link Subscription#nextMessage(Long) nextMessage}.
+     * and {@code Subscription.nextMessage}.
      * If close() is called after {@link #drain(long) drain} it will wait up to the connection timeout
      * to return, but it will not initiate a close. The drain takes precedence and will initiate the close.
      * <p>If the calling thread is interrupted while close is waiting, the close stops waiting,
@@ -1100,7 +1100,7 @@ public class NatsConnection implements AutoCloseable {
     /**
      * Create a synchronous subscription to the specified subject.
      *
-     * <p>Use the {@link Subscription#nextMessage(Long) nextMessage}
+     * <p>Use the {@code Subscription.nextMessage}
      * method to read messages for this subscription.
      *
      * <p>See {@link #createDispatcher(MessageHandler) createDispatcher} for
@@ -1121,7 +1121,7 @@ public class NatsConnection implements AutoCloseable {
     /**
      * Create a synchronous subscription to the specified subject and queue.
      *
-     * <p>Use the {@link Subscription#nextMessage(Long) nextMessage} method to read
+     * <p>Use the {@code Subscription.nextMessage} method to read
      * messages for this subscription.
      *
      * <p>See {@link #createDispatcher(MessageHandler) createDispatcher} for

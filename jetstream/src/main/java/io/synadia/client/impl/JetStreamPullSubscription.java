@@ -3,7 +3,6 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
 import io.synadia.client.global.NatsSystemClock;
-import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -137,7 +136,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
             long maxWaitNanos = maxWaitMillis * NANOS_PER_MILLI;
             long timeLeftNanos = maxWaitNanos;
             while (batchLeft > 0 && timeLeftNanos > 0) {
-                Message msg = nextMessage(timeLeftNanos, TimeUnit.NANOSECONDS);
+                Message msg = nextMessageInternal(timeLeftNanos, TimeUnit.NANOSECONDS);
                 if (msg == null) {
                     return messages; // normal timeout
                 }
@@ -175,7 +174,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
         List<Message> messages = new ArrayList<>(batchSize);
         try {
             while (true) {
-                Message msg = nextMessage(null, TimeUnit.MILLISECONDS); // null = try once, no wait, unit is irrelevant
+                Message msg = nextMessageInternal(null, TimeUnit.MILLISECONDS); // raw poll once; drain manages messages itself
                 if (msg == null) {
                     return messages; // no more message currently queued
                 }
@@ -302,8 +301,20 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
             sub.pull(batchSize);
         }
     
-        public Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException {
+        public Message nextMessage(long timeoutMillis) throws InterruptedException {
             return track(sub.nextMessage(timeoutMillis));
+        }
+
+        public Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException {
+            return track(sub.nextMessage(timeout, unit));
+        }
+
+        public Message nextMessageNoWait() throws InterruptedException {
+            return track(sub.nextMessageNoWait());
+        }
+
+        public Message nextMessageWaitForever() throws InterruptedException {
+            return track(sub.nextMessageWaitForever());
         }
 
         private Message track(Message msg) {

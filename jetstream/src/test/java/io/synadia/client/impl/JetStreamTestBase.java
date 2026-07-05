@@ -116,9 +116,20 @@ public class JetStreamTestBase extends TestBase {
         return readMessagesAck(sub, false, timeoutMillis, max);
     }
 
+    // Test-helper convenience: preserve the old timeoutMillis magic values by dispatching to the named methods.
+    private static Message nextMessageByMode(JetStreamSubscription sub, @Nullable Long timeoutMillis) throws InterruptedException {
+        if (timeoutMillis == null) {
+            return sub.nextMessageNoWait();
+        }
+        if (timeoutMillis <= 0) {
+            return sub.nextMessageWaitForever();
+        }
+        return sub.nextMessage(timeoutMillis);
+    }
+
     public static List<Message> readMessagesAck(JetStreamSubscription sub, boolean noisy, @Nullable Long timeoutMillis, int max) throws InterruptedException {
         List<Message> messages = new ArrayList<>();
-        Message msg = sub.nextMessage(timeoutMillis);
+        Message msg = nextMessageByMode(sub, timeoutMillis);
         while (msg != null) {
             messages.add(msg);
             if (msg.isJetStream()) {
@@ -138,7 +149,7 @@ public class JetStreamTestBase extends TestBase {
             if (messages.size() == max) {
                 return messages;
             }
-            msg = sub.nextMessage(timeoutMillis);
+            msg = nextMessageByMode(sub, timeoutMillis);
         }
         return messages;
     }

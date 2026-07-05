@@ -129,13 +129,37 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessage(@Nullable Long timeoutMillis) throws InterruptedException{
-        return nextMessage(timeoutMillis, TimeUnit.MILLISECONDS);
+    public @Nullable Message nextMessage(long timeoutMillis) throws InterruptedException {
+        if (timeoutMillis < 1) {
+            throw new IllegalArgumentException("Timeout must be at least 1 millisecond.");
+        }
+        return nextMessageInternal(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
     /** {@inheritDoc} */
     @Override
-    public @Nullable Message nextMessage(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException {
+    public @Nullable Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException {
+        if (timeout < 1) {
+            throw new IllegalArgumentException("Timeout must be at least 1 " + unit + ".");
+        }
+        return nextMessageInternal(timeout, unit);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public @Nullable Message nextMessageNoWait() throws InterruptedException {
+        return nextMessageInternal(null, TimeUnit.MILLISECONDS);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public @Nullable Message nextMessageWaitForever() throws InterruptedException {
+        return nextMessageInternal(0L, TimeUnit.MILLISECONDS);
+    }
+
+    // Raw primitive: null = poll once (no wait), <= 0 = wait forever, > 0 = wait that long. No arg validation.
+    // Public nextMessage* methods validate and delegate here; JetStream subclasses use it for unmanaged reads.
+    protected @Nullable Message nextMessageInternal(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException {
         if (this.dispatcher != null) {
             throw new IllegalStateException("Subscriptions that belong to a dispatcher cannot respond to nextMessage directly.");
         }

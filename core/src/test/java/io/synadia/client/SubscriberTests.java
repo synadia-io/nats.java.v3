@@ -35,6 +35,7 @@ public class SubscriberTests {
             Message msg = sub.nextMessage(500L);
 
             assertTrue(sub.isActive());
+            assertNotNull(msg);
             assertEquals(subject, msg.getSubject());
             assertEquals(sub, msg.getSubscription());
             assertNull(msg.getReplyTo());
@@ -52,6 +53,7 @@ public class SubscriberTests {
             Message msg = sub.nextMessage(500L);
 
             assertTrue(sub.isActive());
+            assertNotNull(msg);
             assertEquals(subject, msg.getSubject());
             assertEquals(sub, msg.getSubscription());
             assertNull(msg.getReplyTo());
@@ -102,7 +104,7 @@ public class SubscriberTests {
                 gotSub.get();
                 sendMsg.complete(Boolean.TRUE);
 
-                Message msg = sub.nextMessage(0L);
+                Message msg = sub.nextMessageWaitForever();
 
                 assertTrue(sub.isActive());
                 assertNotNull(msg);
@@ -125,6 +127,7 @@ public class SubscriberTests {
 
             Message msg = sub.nextMessage(500L);
 
+            assertNotNull(msg);
             assertEquals(subject, msg.getSubject());
             assertEquals(sub, msg.getSubscription());
             assertNull(msg.getReplyTo());
@@ -159,7 +162,7 @@ public class SubscriberTests {
             nc.flush(200);// Get them all to the server
 
             for (int i = 0; i < msgs; i++) {
-                msg = sub1.nextMessage(null);
+                msg = sub1.nextMessageNoWait();
 
                 if (msg != null) {
                     assertEquals(subject, msg.getSubject());
@@ -171,7 +174,7 @@ public class SubscriberTests {
             }
 
             for (int i = 0; i < msgs; i++) {
-                msg = sub2.nextMessage(null);
+                msg = sub2.nextMessageNoWait();
 
                 if (msg != null) {
                     assertEquals(subject, msg.getSubject());
@@ -287,7 +290,7 @@ public class SubscriberTests {
             nc.flush(1000); // Slow things down so we have time to unsub
 
             for (int i = 0; i < msgCount; i++) {
-                sub.nextMessage(null);
+                sub.nextMessageNoWait();
             }
 
             sub.unsubscribe(msgCount); // we already have that many
