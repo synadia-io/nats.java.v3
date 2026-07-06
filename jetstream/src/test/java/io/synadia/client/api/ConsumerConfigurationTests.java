@@ -42,10 +42,10 @@ public class ConsumerConfigurationTests extends TestBase {
         creator.headersOnly(true);
         creator.metadata(Map.of("meta-test-key", "meta-test-value"));
         if (multipleFilterSubjects) {
-            creator.filterSubjects("sub.a", "sub.b");
+            creator.subjects("sub.a", "sub.b");
         }
         else {
-            creator.filterSubject("sub.single");
+            creator.subjects("sub.single");
         }
     }
 

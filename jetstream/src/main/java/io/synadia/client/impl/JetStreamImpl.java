@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.synadia.client.utils.JetStreamApiUtils.generateConsumerName;
-import static io.synadia.client.utils.JetStreamClientError.JsConsumerCreate290NotAvailable;
-import static io.synadia.client.utils.JetStreamClientError.JsMultipleFilterSubjects210NotAvailable;
 import static io.synadia.client.utils.JsValidator.validateStreamName;
 import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 
@@ -94,18 +92,9 @@ public class JetStreamImpl implements JetStreamConstants {
 
     ConsumerInfo _createConsumer(String stream, ConsumerCreator<?> creator, ConsumerCreateRequest.Action action) throws IOException, JetStreamApiException {
         validateStreamName(stream, true);
-        // ConsumerConfiguration validates that name and durable are the same if both are supplied.
+
         String consumerName = creator.getName();
-        if (consumerName != null && !consumerCreate290Available) {
-            throw JsConsumerCreate290NotAvailable.instance();
-        }
-
         boolean hasMultipleFilterSubjects = creator.hasMultipleFilterSubjects();
-
-        // seems strange that this could happen, but checking anyway...
-        if (hasMultipleFilterSubjects && !multipleSubjectFilter210Available) {
-            throw JsMultipleFilterSubjects210NotAvailable.instance();
-        }
 
         // the creator does not require setting the deliver subject,
         // so we do it here if the creator is push, and it doesn't have one.
@@ -118,7 +107,7 @@ public class JetStreamImpl implements JetStreamConstants {
         String durable = creator.getDurable();
         String subj;
         // new consumer create not available before 290 and can't be used with multiple filter subjects
-        if (consumerCreate290Available && !hasMultipleFilterSubjects) {
+        if (!hasMultipleFilterSubjects) {
             if (consumerName == null) {
                 // if both consumerName and durable are null, generate a name
                 consumerName = durable == null ? generateConsumerName() : durable;

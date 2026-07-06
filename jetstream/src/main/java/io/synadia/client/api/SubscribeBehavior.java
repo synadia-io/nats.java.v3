@@ -18,11 +18,12 @@ public class SubscribeBehavior {
      */
     public final static SubscribeBehavior DEFAULT_SUBSCRIBE_BEHAVIOR = new SubscribeBehavior();
 
-    private @Nullable NatsDispatcher dispatcher;
-    private @Nullable MessageHandler handler;
-    private long messageAlarmTime;
+    protected @Nullable NatsDispatcher dispatcher;
+    protected @Nullable MessageHandler handler;
+    protected long messageAlarmTime;
 
-    // Only applicable for non-dispatched (sync) push consumers.
+    // Configures a synchronous (non-dispatched) push subscription's own queue.
+    // Async delivery is bounded by the dispatcher's own limits; pull by its batch size.
     private long pendingMessageLimit = Consumer.DEFAULT_MAX_MESSAGES;
     private long pendingByteLimit = Consumer.DEFAULT_MAX_BYTES;
 
@@ -59,7 +60,7 @@ public class SubscribeBehavior {
     }
 
     /**
-     * Gets the pending message limit. Only applicable for non-dispatched (sync) push consumers.
+     * Gets the pending message limit, the cap on a synchronous push subscription's own queue.
      *
      * @return the message limit
      */
@@ -68,7 +69,7 @@ public class SubscribeBehavior {
     }
 
     /**
-     * Gets the pending byte limit. Only applicable for non-dispatched (sync) push consumers.
+     * Gets the pending byte limit, the cap on a synchronous push subscription's own queue.
      *
      * @return the byte limit
      */
@@ -122,11 +123,14 @@ public class SubscribeBehavior {
     }
 
     /**
-     * Set the maximum number of messages that non-dispatched push subscriptions can hold
-     * in the internal (pending) message queue. Defaults to 512 * 1024  (Consumer.DEFAULT_MAX_MESSAGES)
-     * 0 or negative indicates no limit. Only applies to push consumer
+     * Set the maximum number of messages the internal (pending) queue may hold before messages
+     * are dropped; 0 or negative means no limit. Defaults to {@code Consumer.DEFAULT_MAX_MESSAGES}.
+     * <p>Applies to a synchronous (non-dispatched) push subscription, which owns its own queue.
+     * Asynchronous delivery is bounded by the dispatcher's own limits (set them on the dispatcher) —
+     * that queue can still back up when a message handler is slow to return. Pull subscriptions
+     * don't use this; each pull requests a bounded batch.
      * @param pendingMessageLimit the number of messages.
-     * @return the builder
+     * @return this instance for chaining.
      */
     public SubscribeBehavior pendingMessageLimit(long pendingMessageLimit) {
         this.pendingMessageLimit = pendingMessageLimit < 1 ? 0 : pendingMessageLimit;
@@ -134,11 +138,14 @@ public class SubscribeBehavior {
     }
 
     /**
-     * Set the maximum number of bytes that non-dispatched push subscriptions can hold
-     * in the internal (pending) message queue. Defaults to 64 * 1024 * 1024 (Consumer.DEFAULT_MAX_BYTES)
-     * 0 or negative indicates no limit. Only applies to push consumer
+     * Set the maximum number of bytes the internal (pending) queue may hold before messages
+     * are dropped; 0 or negative means no limit. Defaults to {@code Consumer.DEFAULT_MAX_BYTES}.
+     * <p>Applies to a synchronous (non-dispatched) push subscription, which owns its own queue.
+     * Asynchronous delivery is bounded by the dispatcher's own limits (set them on the dispatcher) —
+     * that queue can still back up when a message handler is slow to return. Pull subscriptions
+     * don't use this; each pull requests a bounded batch.
      * @param pendingByteLimit the number of bytes.
-     * @return the builder
+     * @return this instance for chaining.
      */
     public SubscribeBehavior pendingByteLimit(long pendingByteLimit) {
         this.pendingByteLimit = pendingByteLimit < 1 ? 0 : pendingByteLimit;

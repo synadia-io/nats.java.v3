@@ -396,42 +396,43 @@ public class DispatcherTests extends TestBase {
     }
 
     @Test
-    public void testCantUnsubSubFromDispatcher() throws Exception {
+    public void testV3AllowsUnsubSubFromDispatcher() throws Exception {
         runInShared(nc -> {
             final CompletableFuture<Message> msgFuture = new CompletableFuture<>();
             Dispatcher d = nc.createDispatcher(msgFuture::complete);
 
             String subject = random();
             d.subscribe(subject);
-            nc.flush(500);// Get them all to the server
+            nc.flush(500);
 
-            nc.publish(subject, new byte[16]);
+            nc.publish(subject, null);
 
             Message msg = msgFuture.get(500, TimeUnit.MILLISECONDS);
-
-            assertThrows(IllegalStateException.class, () -> msg.getSubscription().unsubscribe());
-
+            assertNotNull(msg);
+            msg.getSubscription().unsubscribe();
             nc.closeDispatcher(d);
+            assertFalse(d.isActive());
         });
     }
 
     @Test
-    public void testCantAutoUnsubSubFromDispatcher() throws Exception {
+    public void testV3AllowsAutoUnsubSubFromDispatcher() throws Exception {
         runInShared(nc -> {
             final CompletableFuture<Message> msgFuture = new CompletableFuture<>();
             Dispatcher d = nc.createDispatcher(msgFuture::complete);
 
             String subject = random();
-            d.subscribe(subject);
+            NatsSubscription sub = d.subscribe(subject);
             nc.flush(500);// Get them all to the server
+            sub.unsubscribe(1);
 
-            nc.publish(subject, new byte[16]);
+            nc.publish(subject, null);
 
             Message msg = msgFuture.get(500, TimeUnit.MILLISECONDS);
-
-            assertThrows(IllegalStateException.class, () -> msg.getSubscription().unsubscribe(1));
+            assertNotNull(msg);
 
             nc.closeDispatcher(d);
+            assertFalse(d.isActive());
         });
     }
 

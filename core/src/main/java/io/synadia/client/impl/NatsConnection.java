@@ -1150,8 +1150,8 @@ public class NatsConnection implements AutoCloseable {
         CharSequence sid = sub.getSID();
         subscribers.remove(sid);
 
-        if (sub.getNatsDispatcher() != null) {
-            sub.getNatsDispatcher().remove(sub);
+        if (sub.getDispatcher() != null) {
+            sub.getDispatcher().remove(sub);
         }
     }
 
@@ -2009,7 +2009,7 @@ public class NatsConnection implements AutoCloseable {
         if (sub != null) {
             msg.setSubscription(sub);
 
-            NatsDispatcher d = sub.getNatsDispatcher();
+            NatsDispatcher d = sub.getDispatcher();
             NatsConsumer c = (d == null) ? sub : d;
             ConsumerMessageQueue q = ((d == null) ? sub.getMessageQueue() : d.getMessageQueue());
 

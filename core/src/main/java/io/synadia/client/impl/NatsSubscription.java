@@ -1,6 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.Subscription;
@@ -39,7 +38,7 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
         setBeforeQueueProcessorFunction(null);
     }
 
-    public void reSubscribe(String newDeliverSubject) {
+    void reSubscribe(String newDeliverSubject) {
         connection.sendUnsub(this, 0);
         if (dispatcher == null) {
             connection.remove(this);
@@ -60,7 +59,7 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
         return (this.dispatcher != null || this.incoming != null);
     }
 
-    public void setBeforeQueueProcessorFunction(@Nullable Function<NatsMessage, Boolean> beforeQueueProcessor) {
+    void setBeforeQueueProcessorFunction(@Nullable Function<NatsMessage, Boolean> beforeQueueProcessor) {
         this.beforeQueueProcessor = beforeQueueProcessor == null ? m -> true : beforeQueueProcessor;
     }
 
@@ -68,7 +67,7 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
         return beforeQueueProcessor;
     }
 
-    protected void invalidate() {
+    void invalidate() {
         if (this.incoming != null) {
             this.incoming.pause();
         }
@@ -84,10 +83,6 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
         long max = this.unSubMessageLimit.get();
         long recv = this.getDeliveredCount();
         return (max > 0) && (max <= recv);
-    }
-
-    public NatsDispatcher getNatsDispatcher() {
-        return this.dispatcher;
     }
 
     @Override
@@ -114,7 +109,7 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
      */
     @Override
     @Nullable
-    public Dispatcher getDispatcher() {
+    public NatsDispatcher getDispatcher() {
         return this.dispatcher;
     }
 
@@ -159,7 +154,7 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
 
     // Raw primitive: null = poll once (no wait), <= 0 = wait forever, > 0 = wait that long. No arg validation.
     // Public nextMessage* methods validate and delegate here; JetStream subclasses use it for unmanaged reads.
-    protected @Nullable Message nextMessageInternal(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException {
+    @Nullable Message nextMessageInternal(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException {
         if (this.dispatcher != null) {
             throw new IllegalStateException("Subscriptions that belong to a dispatcher cannot respond to nextMessage directly.");
         }
@@ -187,35 +182,25 @@ public class NatsSubscription extends NatsConsumer implements Subscription {
     /** {@inheritDoc} */
     @Override
     public void unsubscribe() {
-        if (this.dispatcher != null) {
-            throw new IllegalStateException(
-                    "Subscriptions that belong to a dispatcher cannot respond to unsubscribe directly.");
-        } else if (this.incoming == null) {
-            throw new IllegalStateException("This subscription is inactive.");
-        }
-
-        if (isDraining()) { // No op while draining
-            return;
-        }
-
-        this.connection.unsubscribe(this, -1);
+        unsubscribe(-1);
     }
 
     /** {@inheritDoc} */
     @Override
     public Subscription unsubscribe(int after) {
-        if (this.dispatcher != null) {
-            throw new IllegalStateException(
-                    "Subscriptions that belong to a dispatcher cannot respond to unsubscribe directly.");
-        } else if (this.incoming == null) {
-            throw new IllegalStateException("This subscription is inactive.");
-        }
+        if (dispatcher == null) {
+            if (isDraining()) { // No op while draining
+                return this;
+            }
+            if (incoming == null) {
+                throw new IllegalStateException("This subscription is inactive.");
+            }
 
-        if (isDraining()) { // No op while draining
+            connection.unsubscribe(this, after);
             return this;
         }
 
-        this.connection.unsubscribe(this, after);
+        dispatcher.unsubscribe(this, after);
         return this;
     }
 

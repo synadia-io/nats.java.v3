@@ -47,7 +47,7 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
                 .deliverPolicy(deliverPolicy)
                 .startSequence(fromRevision)
                 .headersOnly(headersOnly)
-                .filterSubjects(subscribeSubjects);
+                .subjects(subscribeSubjects);
         SubscribeBehavior sb = new SubscribeBehavior().handler(handler).dispatcher(dispatcher);
         sub = js.pullSubscribe(fb.getStreamName(), creator, sb);
         if (!handler.endOfDataSent) {

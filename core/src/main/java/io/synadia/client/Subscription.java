@@ -1,5 +1,6 @@
 package io.synadia.client;
 
+import io.synadia.client.impl.NatsDispatcher;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -44,7 +45,7 @@ public interface Subscription extends Consumer {
      * the Dispatcher that owns this subscription, or null
      * @return the dispatcher instance
      */
-    @Nullable Dispatcher getDispatcher();
+    @Nullable NatsDispatcher getDispatcher();
 
     /**
      * Get the subscription unique id

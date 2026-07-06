@@ -190,42 +190,4 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
                 () -> ctx.js.lenientGetConsumerInfo(random(), random()));
         });
     }
-//
-//    @Test
-//    public void testGetJetStreamValidatedConnectionCoverage() {
-//        NatsJetStreamMessage njsm = new NatsJetStreamMessage(null);
-//        IllegalStateException ise = assertThrows(IllegalStateException.class, njsm::getJetStreamValidatedConnection);
-//        assertTrue(ise.getMessage().contains("subscription"));
-//
-//        // make a dummy connection so we can make a subscription
-//        // notice we never nc.connect();
-//        Options options = Options.builder().build();
-//        NatsConnection nc = new NatsConnection(options);
-//        njsm.subscription = new NatsSubscription("sid", "sub", "q", nc, null);
-//        // remove the connection so we can test the coverage
-//        njsm.subscription.connection = null;
-//        ise = assertThrows(IllegalStateException.class, njsm::getJetStreamValidatedConnection);
-//        assertTrue(ise.getMessage().contains("connection"));
-//    }
-//
-//    @Test
-//    public void testRequestNoResponder() throws Exception {
-//        runInSharedCustom((ncCancel, ctx) -> {
-//            Options optReport = optionsBuilder(ncCancel).reportNoResponders().build();
-//            try (NatsConnection ncReport = ConnectionUtils.managedConnect(optReport)) {
-//                assertThrows(CancellationException.class, () -> ncCancel.requestAsync(random(), null).get());
-//                ExecutionException ee = assertThrows(ExecutionException.class, () -> ncReport.requestAsync(random(), null).get());
-//                assertInstanceOf(JetStreamStatusException.class, ee.getCause());
-//                assertTrue(ee.getMessage().contains("503 No Responders Available For Request"));
-//
-//                JetStream jsCancel = ncCancel.jetStream();
-//                JetStream jsReport = ncReport.jetStream();
-//
-//                IOException ioe = assertThrows(IOException.class, () -> jsCancel.publish("not-exist", null));
-//                assertTrue(ioe.getMessage().contains("503"));
-//                ioe = assertThrows(IOException.class, () -> jsReport.publish("trnrNotExist", null));
-//                assertTrue(ioe.getMessage().contains("503"));
-//            }
-//        });
-//    }
 }

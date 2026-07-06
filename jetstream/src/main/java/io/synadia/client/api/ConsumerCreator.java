@@ -383,17 +383,14 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     /**
-     * Sets the filter subject.
+     * Sets the filter subjects.
      * Replaces any other filter subjects.
-     * @param filterSubject the filter subject
+     * @param subjects one or more filter subjects
      * @return this instance for chaining.
+     * @throws IllegalArgumentException if any filter subject is not a valid subject
      */
-    public T filterSubject(String filterSubject) {
-        this.filterSubjects.clear();
-        String fs = emptyAsNull(filterSubject);
-        if (fs != null) {
-            this.filterSubjects.add(filterSubject);
-        }
+    public T subjects(String... subjects) {
+        replaceAllStrings(this.filterSubjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
         //noinspection unchecked
         return (T)this;
     }
@@ -401,25 +398,12 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     /**
      * Sets the filter subjects.
      * Replaces any other filter subjects.
-     * @param filterSubjects one or more filter subjects
+     * @param subjects the list of filter subjects
      * @return this instance for chaining.
      * @throws IllegalArgumentException if any filter subject is not a valid subject
      */
-    public T filterSubjects(String... filterSubjects) {
-        replaceAllStrings(this.filterSubjects, filterSubjects, s -> validateSubjectTermStrict(s, "Subject"));
-        //noinspection unchecked
-        return (T)this;
-    }
-
-    /**
-     * Sets the filter subjects.
-     * Replaces any other filter subjects.
-     * @param filterSubjects the list of filter subjects
-     * @return this instance for chaining.
-     * @throws IllegalArgumentException if any filter subject is not a valid subject
-     */
-    public T filterSubjects(@Nullable List<String> filterSubjects) {
-        replaceAllStrings(this.filterSubjects, filterSubjects, s -> validateSubjectTermStrict(s, "Subject"));
+    public T subjects(@Nullable List<String> subjects) {
+        replaceAllStrings(this.filterSubjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
         //noinspection unchecked
         return (T)this;
     }

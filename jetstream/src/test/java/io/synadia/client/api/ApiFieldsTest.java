@@ -408,7 +408,7 @@ public class ApiFieldsTest {
             .numReplicas(3)
             .pauseUntil(ZDT_A)
             .memStorage(true)
-            .filterSubject("the.subject")
+            .subjects("the.subject")
             .priorityGroups("pg-1", "pg-2")
             .priorityPolicy(PriorityPolicy.PinnedClient)
             .priorityTimeout(Duration.ofSeconds(20))
@@ -455,7 +455,7 @@ public class ApiFieldsTest {
 
         // ---- multiple filter subjects ----
         PullConsumerCreator multi = new PullConsumerCreator()
-            .filterSubjects("a.>", "b.>", "c.>");
+            .subjects("a.>", "b.>", "c.>");
         assertTrue(multi.hasMultipleFilterSubjects());
         ConsumerConfiguration multiCc = new ConsumerConfiguration(lj(multi.toJson()));
         assertNull(multiCc.getFilterSubject());
@@ -482,7 +482,7 @@ public class ApiFieldsTest {
             .priorityTimeout(Duration.ofSeconds(2))
             .sampleFrequency("50")
             .pauseUntil(ZDT_A)
-            .filterSubject("f.>")
+            .subjects("f.>")
             .priorityGroups("g1", "g2")
             .deliverPolicy(DeliverPolicy.New)
             .ackPolicy(AckPolicy.None)
@@ -512,19 +512,19 @@ public class ApiFieldsTest {
         // ---- filterSubject(empty) clears (filterSubjects list becomes empty) ----
         // Setup chain set filterSubject("f.>"); verify empty resets it.
         assertEquals("f.>", c.getFilterSubject());
-        c.filterSubject("");
+        c.subjects("");
         assertNull(c.getFilterSubject());
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.filterSubject("a.>").filterSubject("");
+        c.subjects("a.>").subjects("");
         assertTrue(c.getFilterSubjects().isEmpty());
 
         // ---- filterSubjects array/list null -> clears ----
-        c.filterSubjects("a.>", "b.>");
+        c.subjects("a.>", "b.>");
         assertEquals(2, c.getFilterSubjects().size());
-        assertThrows(NullPointerException.class, () -> c.filterSubjects((String[]) null));
+        assertThrows(NullPointerException.class, () -> c.subjects((String[]) null));
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.filterSubjects("a.>", "b.>");
-        c.filterSubjects((List<String>) null);
+        c.subjects("a.>", "b.>");
+        c.subjects((List<String>) null);
         assertTrue(c.getFilterSubjects().isEmpty());
 
         // ---- priorityGroups null -> clears ----
@@ -1306,16 +1306,16 @@ public class ApiFieldsTest {
         PullConsumerCreator c = new PullConsumerCreator();
         assertNotNull(c.getFilterSubjects());
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.filterSubjects("a.>", "b.>");
+        c.subjects("a.>", "b.>");
         assertEquals(2, c.getFilterSubjects().size());
-        c.filterSubjects(new ArrayList<>());
+        c.subjects(new ArrayList<>());
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.filterSubjects("a.>", "b.>");
-        c.filterSubjects();
+        c.subjects("a.>", "b.>");
+        c.subjects();
         assertTrue(c.getFilterSubjects().isEmpty());
         // List form is @Nullable
-        c.filterSubjects("a.>", "b.>");
-        c.filterSubjects((List<String>) null);
+        c.subjects("a.>", "b.>");
+        c.subjects((List<String>) null);
         assertTrue(c.getFilterSubjects().isEmpty());
 
         // ---- backoff (both Duration... and long... varargs overloads exist; no-arg

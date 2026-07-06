@@ -344,12 +344,11 @@ public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable
             throw new IllegalArgumentException("Subscription is not managed by this Dispatcher");
         }
 
-        // We can probably optimize this path by adding getSID() to the Subscription interface.
-        if (!(subscription instanceof NatsSubscription)) {
+        // This should never, ever happen
+        if (!(subscription instanceof NatsSubscription ns)) {
             throw new IllegalArgumentException("This Subscription implementation class type is not managed by the Dispatcher implementation");
         }
         
-        NatsSubscription ns = ((NatsSubscription) subscription);
         // Grab the NatsSubscription to verify we weren't given a different manager's subscription.
         NatsSubscription sub = subWithNonDefaultHandlerBySid.get(ns.getSID());
 

@@ -226,7 +226,6 @@ abstract class NatsConsumer implements Consumer {
     /**
      * Called during drain to tell the consumer to send appropriate unsub requests
      * to the connection.
-     * 
      * A subscription will unsub itself, while a dispatcher will unsub all of its
      * subscriptions.
      */

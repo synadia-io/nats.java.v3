@@ -1,5 +1,6 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
+import static io.synadia.client.api.SubscribeBehavior.DEFAULT_SUBSCRIBE_BEHAVIOR;
 import static io.synadia.client.impl.ConsumerCreateRequest.Action.Create;
 import static io.synadia.client.impl.MessageManager.ManageResult;
 import static io.synadia.client.utils.JetStreamClientError.JsSubNoMatchingStreamForSubject;
@@ -393,18 +395,10 @@ public class JetStream extends JetStreamImpl {
                                         @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
                                         @Nullable PullMessageManager pmmInstance)
     {
-        JetStreamSubscribeConfig jssc = new JetStreamSubscribeConfig(consumerInfo, subscribeBehavior, orderedCreator);
+        JetStreamSubscribeConfig jssc = new JetStreamSubscribeConfig(consumerInfo, subscribeBehavior, orderedCreator, conn::createDispatcher);
         ConsumerConfiguration cc = jssc.consumerInfo.getConsumerConfiguration();
         MessageHandler handler = jssc.getHandler();
         NatsDispatcher dispatcher = jssc.getDispatcher();
-        if (handler == null) {
-            if (dispatcher != null) {
-                throw new IllegalArgumentException("Dispatcher without a handler cannot receive messages");
-            }
-        }
-        else if (dispatcher == null) {
-            jssc.dispatcher(dispatcher = conn.createDispatcher());
-        }
 
         String inbox = cc.getDeliverSubject();
         boolean isPull = inbox == null;
@@ -464,141 +458,391 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * pushSubscribe
+     * Push subscribe, binding to the consumer described by {@code consumerInfo}. Messages are
+     * consumed synchronously from the returned subscription.
+     * @param consumerInfo describes the consumer to bind to
+     * @return the push subscription
      */
-    public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo) {
         return (JetStreamPushSubscription) createSubscription(consumerInfo, null, null, null);
     }
 
     /**
-     * pushSubscribe
+     * Push subscribe, binding to the consumer described by {@code consumerInfo}. Messages are
+     * delivered asynchronously to {@code messageHandler} on a newly created {@link Dispatcher}.
+     * @param consumerInfo describes the consumer to bind to
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the push subscription
+     * @throws IllegalArgumentException if {@code messageHandler} is null
      */
-    public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo, MessageHandler messageHandler) {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPushSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
-     * pushSubscribe
+     * Push subscribe, binding to the consumer described by {@code consumerInfo}. The subscription
+     * is set up according to {@code subscribeBehavior}.
+     * @param consumerInfo describes the consumer to bind to
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the push subscription
+     * @throws IllegalArgumentException if {@code subscribeBehavior} is null
+     */
+    public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo, SubscribeBehavior subscribeBehavior) {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
+        return (JetStreamPushSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
+    }
+
+    /**
+     * Push subscribe, binding to the existing consumer {@code consumerName} on {@code stream}, which
+     * is looked up on the server. Messages are consumed synchronously from the returned subscription.
+     * @param stream the stream name
+     * @param consumerName the name of the existing consumer
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
      */
     public JetStreamPushSubscription pushSubscribe(String stream, String consumerName) throws IOException, JetStreamApiException {
         return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
     /**
-     * pushSubscribe
+     * Push subscribe, binding to the existing consumer {@code consumerName} on {@code stream}, which
+     * is looked up on the server. Messages are delivered asynchronously to {@code messageHandler} on a
+     * newly created {@link Dispatcher}.
+     * @param stream the stream name
+     * @param consumerName the name of the existing consumer
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws IllegalArgumentException if {@code messageHandler} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
-     * pushSubscribe
-     * @throws IllegalArgumentException if the subject is invalid
+     * Push subscribe, binding to the existing consumer {@code consumerName} on {@code stream}, which
+     * is looked up on the server. The subscription is set up according to {@code subscribeBehavior}.
+     * @param stream the stream name
+     * @param consumerName the name of the existing consumer
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws IllegalArgumentException if {@code subscribeBehavior} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String subject) throws IOException, JetStreamApiException {
-        return pushSubscribe(subject, (SubscribeBehavior)null);
+    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
+        return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
-     * pushSubscribe
+     * Push subscribe to {@code subject}. The single stream carrying the subject is looked up and a new
+     * ephemeral, unnamed consumer is created on it. Messages are consumed synchronously from the
+     * returned subscription.
+     * @param subject the subject to subscribe to
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if the subject is invalid
+     * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPushSubscription pushSubscribe(String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String subject) throws IOException, JetStreamApiException {
+        return pushSubscribe(subject, DEFAULT_SUBSCRIBE_BEHAVIOR);
+    }
+
+    /**
+     * Push subscribe to {@code subject}. The single stream carrying the subject is looked up and a new
+     * ephemeral, unnamed consumer is created on it. Messages are delivered asynchronously to
+     * {@code messageHandler} on a newly created {@link Dispatcher}.
+     * @param subject the subject to subscribe to
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the subject is invalid or {@code messageHandler} is null
+     * @throws IllegalStateException if no single stream carries the subject
+     */
+    public JetStreamPushSubscription pushSubscribe(String subject, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
+        return pushSubscribe(subject, subscribeBehavior);
+    }
+
+    /**
+     * Push subscribe to {@code subject}. The single stream carrying the subject is looked up and a new
+     * ephemeral, unnamed consumer is created on it. The subscription is set up according to
+     * {@code subscribeBehavior}.
+     * @param subject the subject to subscribe to
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the subject is invalid or {@code subscribeBehavior} is null
+     * @throws IllegalStateException if no single stream carries the subject
+     */
+    public JetStreamPushSubscription pushSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         subject = validateSubject(subject, true);
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
         String stream = lookupStreamBySubject(subject);
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PushConsumerCreator creator = new PushConsumerCreator().filterSubject(subject);
+        PushConsumerCreator creator = new PushConsumerCreator().subjects(subject);
         return pushSubscribe(stream, creator, subscribeBehavior);
     }
 
     /**
-     * pushSubscribe
+     * Push subscribe, creating the consumer described by {@code creator} on {@code stream}. Messages
+     * are consumed synchronously from the returned subscription.
+     * @param stream the stream name
+     * @param creator describes the consumer to create
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator) throws IOException, JetStreamApiException {
-        return pushSubscribe(stream, creator, null);
+        return pushSubscribe(stream, creator, DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 
     /**
-     * pushSubscribe
-     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     * Push subscribe, creating the consumer described by {@code creator} on {@code stream}. Messages
+     * are delivered asynchronously to {@code messageHandler} on a newly created {@link Dispatcher}.
+     * @param stream the stream name
+     * @param creator describes the consumer to create
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, null, null);
     }
 
     /**
-     * pushSubscribe
-     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     * Push subscribe, creating the consumer described by {@code creator} on {@code stream}. The
+     * subscription is set up according to {@code subscribeBehavior}.
+     * @param stream the stream name
+     * @param creator describes the consumer to create
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
-        return pushSubscribe(stream, creator, null);
+    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, null, null);
     }
 
     /**
-     * pushSubscribe
+     * Push subscribe with an ordered consumer, creating the consumer described by {@code creator} on
+     * {@code stream}. Messages are consumed synchronously from the returned subscription.
+     * @param stream the stream name
+     * @param creator describes the ordered consumer to create
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+        return pushSubscribe(stream, creator, DEFAULT_SUBSCRIBE_BEHAVIOR);
+    }
+
+    /**
+     * Push subscribe with an ordered consumer, creating the consumer described by {@code creator} on
+     * {@code stream}. Messages are delivered asynchronously to {@code messageHandler} on a newly
+     * created {@link Dispatcher}.
+     * @param stream the stream name
+     * @param creator describes the ordered consumer to create
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
+     */
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
+        return pushSubscribe(stream, creator, subscribeBehavior);
+    }
+
+    /**
+     * Push subscribe with an ordered consumer, creating the consumer described by {@code creator} on
+     * {@code stream}. The subscription is set up according to {@code subscribeBehavior}.
+     * @param stream the stream name
+     * @param creator describes the ordered consumer to create
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the push subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
+     */
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, creator, null);
     }
 
     /**
-     * pullSubscribe
+     * Pull subscribe, binding to the consumer described by {@code consumerInfo}. Messages are
+     * consumed synchronously from the returned subscription.
+     * @param consumerInfo describes the consumer to bind to
+     * @return the pull subscription
      */
-    public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo) {
         return (JetStreamPullSubscription) createSubscription(consumerInfo, null, null, null);
     }
 
     /**
-     * pullSubscribe
+     * Pull subscribe, binding to the consumer described by {@code consumerInfo}. Messages are
+     * delivered asynchronously to {@code messageHandler} on a newly created {@link Dispatcher}.
+     * @param consumerInfo describes the consumer to bind to
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the pull subscription
+     * @throws IllegalArgumentException if {@code messageHandler} is null
      */
-    public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo, MessageHandler messageHandler) {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPullSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
-     * pullSubscribe
+     * Pull subscribe, binding to the consumer described by {@code consumerInfo}. The subscription
+     * is set up according to {@code subscribeBehavior}.
+     * @param consumerInfo describes the consumer to bind to
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the pull subscription
+     * @throws IllegalArgumentException if {@code subscribeBehavior} is null
+     */
+    public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo, SubscribeBehavior subscribeBehavior) {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
+        return (JetStreamPullSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
+    }
+
+    /**
+     * Pull subscribe, binding to the existing consumer {@code consumerName} on {@code stream}, which
+     * is looked up on the server. Messages are consumed synchronously from the returned subscription.
+     * @param stream the stream name
+     * @param consumerName the name of the existing consumer
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
      */
     public JetStreamPullSubscription pullSubscribe(String stream, String consumerName) throws IOException, JetStreamApiException {
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
     /**
-     * pullSubscribe
+     * Pull subscribe, binding to the existing consumer {@code consumerName} on {@code stream}, which
+     * is looked up on the server. Messages are delivered asynchronously to {@code messageHandler} on a
+     * newly created {@link Dispatcher}.
+     * @param stream the stream name
+     * @param consumerName the name of the existing consumer
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws IllegalArgumentException if {@code messageHandler} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
-     * pullSubscribe
-     * @throws IllegalArgumentException if the subject is invalid
+     * Pull subscribe, binding to the existing consumer {@code consumerName} on {@code stream}, which
+     * is looked up on the server. The subscription is set up according to {@code subscribeBehavior}.
+     * @param stream the stream name
+     * @param consumerName the name of the existing consumer
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws IllegalArgumentException if {@code subscribeBehavior} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String subject) throws IOException, JetStreamApiException {
-        return pullSubscribe(subject, (SubscribeBehavior)null);
+    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
+        return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
-     * pullSubscribe
+     * Pull subscribe to {@code subject}. The single stream carrying the subject is looked up and a new
+     * ephemeral, unnamed consumer is created on it. Messages are consumed synchronously from the
+     * returned subscription.
+     * @param subject the subject to subscribe to
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if the subject is invalid
+     * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPullSubscription pullSubscribe(String subject, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String subject) throws IOException, JetStreamApiException {
+        return pullSubscribe(subject, DEFAULT_SUBSCRIBE_BEHAVIOR);
+    }
+
+    /**
+     * Pull subscribe to {@code subject}. The single stream carrying the subject is looked up and a new
+     * ephemeral, unnamed consumer is created on it. Messages are delivered asynchronously to
+     * {@code messageHandler} on a newly created {@link Dispatcher}.
+     * @param subject the subject to subscribe to
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the subject is invalid or {@code messageHandler} is null
+     * @throws IllegalStateException if no single stream carries the subject
+     */
+    public JetStreamPullSubscription pullSubscribe(String subject, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
+        return pullSubscribe(subject, subscribeBehavior);
+    }
+
+    /**
+     * Pull subscribe to {@code subject}. The single stream carrying the subject is looked up and a new
+     * ephemeral, unnamed consumer is created on it. The subscription is set up according to
+     * {@code subscribeBehavior}.
+     * @param subject the subject to subscribe to
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the subject is invalid or {@code subscribeBehavior} is null
+     * @throws IllegalStateException if no single stream carries the subject
+     */
+    public JetStreamPullSubscription pullSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
         subject = validateSubject(subject, true);
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
         String stream = lookupStreamBySubject(subject);
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PullConsumerCreator creator = new PullConsumerCreator().filterSubject(subject);
+        PullConsumerCreator creator = new PullConsumerCreator().subjects(subject);
         return pullSubscribe(stream, creator, subscribeBehavior);
     }
 
     /**
-     * pullSubscribe
+     * Pull subscribe, creating the consumer described by {@code creator} on {@code stream}. Messages
+     * are consumed synchronously from the returned subscription.
+     * @param stream the stream name
+     * @param creator describes the consumer to create
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator) throws IOException, JetStreamApiException {
@@ -606,15 +850,46 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * pullSubscribe
-     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     * Pull subscribe, creating the consumer described by {@code creator} on {@code stream}. Messages
+     * are delivered asynchronously to {@code messageHandler} on a newly created {@link Dispatcher}.
+     * @param stream the stream name
+     * @param creator describes the consumer to create
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
     }
 
     /**
-     * pullSubscribe
+     * Pull subscribe, creating the consumer described by {@code creator} on {@code stream}. The
+     * subscription is set up according to {@code subscribeBehavior}.
+     * @param stream the stream name
+     * @param creator describes the consumer to create
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
+     */
+    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
+        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
+    }
+
+    /**
+     * Pull subscribe with an ordered consumer, creating the consumer described by {@code creator} on
+     * {@code stream}. Messages are consumed synchronously from the returned subscription.
+     * @param stream the stream name
+     * @param creator describes the ordered consumer to create
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
@@ -622,10 +897,36 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * pullSubscribe
-     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     * Pull subscribe with an ordered consumer, creating the consumer described by {@code creator} on
+     * {@code stream}. Messages are delivered asynchronously to {@code messageHandler} on a newly
+     * created {@link Dispatcher}.
+     * @param stream the stream name
+     * @param creator describes the ordered consumer to create
+     * @param messageHandler the handler used to consume messages asynchronously; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, @Nullable SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+        Validator.required(messageHandler, "MessageHandler");
+        SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
+        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
+    }
+
+    /**
+     * Pull subscribe with an ordered consumer, creating the consumer described by {@code creator} on
+     * {@code stream}. The subscription is set up according to {@code subscribeBehavior}.
+     * @param stream the stream name
+     * @param creator describes the ordered consumer to create
+     * @param subscribeBehavior the behavior controlling the subscription; required
+     * @return the pull subscription
+     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
+     */
+    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+        Validator.required(subscribeBehavior, "SubscribeBehavior");
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
     }
 
@@ -648,7 +949,7 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public ConsumerContext createConsumer(String stream, String subject) throws IOException, JetStreamApiException {
-        return createConsumer(stream, new PullConsumerCreator().filterSubject(subject));
+        return createConsumer(stream, new PullConsumerCreator().subjects(subject));
     }
 
     /**

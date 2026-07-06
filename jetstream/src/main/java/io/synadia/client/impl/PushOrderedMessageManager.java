@@ -1,6 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Message;
+import io.synadia.client.api.ConsumerInfo;
 import io.synadia.client.api.PushOrderedConsumerCreator;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -73,7 +74,8 @@ public class PushOrderedMessageManager extends PushMessageManager {
                 new PushOrderedConsumerCreator(
                     (PushOrderedConsumerCreator)subConf.orderedCreator, lastStreamSeq, null);
             creator.deliverSubject(newDeliverSubject);
-            js._createConsumer(subConf.consumerInfo.getStreamName(), creator, ConsumerCreateRequest.Action.Create); // this can fail when a server is down.
+            ConsumerInfo ci = js._createConsumer(subConf.consumerInfo.getStreamName(), creator, ConsumerCreateRequest.Action.Create); // this can fail when a server is down.
+            sub.setConsumerName(ci.getName());
 
             // 3. restart the manager.
             startup(sub);

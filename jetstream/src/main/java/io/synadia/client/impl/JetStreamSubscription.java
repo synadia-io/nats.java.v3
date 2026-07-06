@@ -40,6 +40,10 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
         manager.startup(this);
     }
 
+    void setConsumerName(String consumerName) {
+        this.consumerName = consumerName;
+    }
+
     /**
      * Gets the consumer name associated with the subscription.
      * @return the consumer name
