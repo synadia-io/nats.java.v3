@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.synadia.client.utils.Validator.required;
 import static io.synadia.client.utils.Validator.validateQueueName;
 
-public class NatsDispatcher extends NatsConsumer implements Dispatcher, Runnable {
+public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runnable {
 
     // 5 minutes; idle nap only — a message or the POISON pill wakes poll() immediately, so this only bounds
     // how often an otherwise idle dispatcher wakes to re-check its run flags.

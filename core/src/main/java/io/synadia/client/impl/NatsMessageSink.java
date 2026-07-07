@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Consumer;
+import io.synadia.client.OptionsConstants;
 import io.synadia.client.global.NatsSystemClock;
 
 import java.util.concurrent.CompletableFuture;
@@ -11,20 +11,20 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
-abstract class NatsConsumer implements Consumer {
+abstract class NatsMessageSink {
 
     protected NatsConnection connection;
-    private final AtomicLong maxMessages;
-    private final AtomicLong maxBytes;
+    private volatile long maxMessages;
+    private volatile long maxBytes;
     private final AtomicLong droppedMessages;
     private final AtomicLong messagesDelivered;
     private final AtomicBoolean slow;
     private final AtomicReference<CompletableFuture<Boolean>> drainingFuture;
 
-    NatsConsumer(NatsConnection conn) {
+    NatsMessageSink(NatsConnection conn) {
         this.connection = conn;
-        this.maxMessages = new AtomicLong(Consumer.DEFAULT_MAX_MESSAGES);
-        this.maxBytes = new AtomicLong(Consumer.DEFAULT_MAX_BYTES);
+        this.maxMessages = OptionsConstants.DEFAULT_MAX_MESSAGES;
+        this.maxBytes = OptionsConstants.DEFAULT_MAX_BYTES;
         this.droppedMessages = new AtomicLong();
         this.messagesDelivered = new AtomicLong(0);
         this.slow = new AtomicBoolean(false);
@@ -33,21 +33,21 @@ abstract class NatsConsumer implements Consumer {
 
     /**
      * Set limits on the maximum number of messages, or maximum size of messages
-     * this consumer will hold before it starts to drop new messages waiting.
+     * this sink will hold before it starts to drop new messages waiting.
      * <p>
      * Messages are dropped as they encounter a full queue, which is to say, new
      * messages are dropped rather than old messages. If a queue is 10 deep and
      * fills up, the 11th message is dropped.
      * <p>
-     * Any value less than or equal to zero means unlimited and will be stored as 0.
+     * Any value less than or equal to zero means unlimited, which the getters report as -1.
      * @param maxMessages the maximum message count to hold, defaults to
-     *                    {@value #DEFAULT_MAX_MESSAGES}.
+     *                    {@value OptionsConstants#DEFAULT_MAX_MESSAGES}.
      * @param maxBytes    the maximum bytes to hold, defaults to
-     *                    {@value #DEFAULT_MAX_BYTES}.
+     *                    {@value OptionsConstants#DEFAULT_MAX_BYTES}.
      */
     public void setPendingLimits(long maxMessages, long maxBytes) {
-        this.maxMessages.set(maxMessages <= 0 ? 0 : maxMessages);
-        this.maxBytes.set(maxBytes <= 0 ? 0 : maxBytes);
+        this.maxMessages = maxMessages <= 0 ? Long.MAX_VALUE : maxMessages;
+        this.maxBytes = maxBytes <= 0 ? Long.MAX_VALUE : maxBytes;
     }
 
     /**
@@ -55,7 +55,7 @@ abstract class NatsConsumer implements Consumer {
      *         setPendingLimits}.
      */
     public long getPendingMessageLimit() {
-        return this.maxMessages.get();
+        return this.maxMessages == Long.MAX_VALUE ? -1 : this.maxMessages;
     }
 
     /**
@@ -63,7 +63,7 @@ abstract class NatsConsumer implements Consumer {
      *         setPendingLimits}.
      */
     public long getPendingByteLimit() {
-        return this.maxBytes.get();
+        return this.maxBytes == Long.MAX_VALUE ? -1 : this.maxBytes;
     }
 
     /**
@@ -83,7 +83,7 @@ abstract class NatsConsumer implements Consumer {
     }
 
     /**
-     * @return the total number of messages delivered to this consumer, for all
+     * @return the total number of messages delivered to this sink, for all
      *         time.
      */
     public long getDeliveredCount() {
@@ -99,7 +99,7 @@ abstract class NatsConsumer implements Consumer {
     }
 
     /**
-     * @return the number of messages dropped from this consumer, since the last
+     * @return the number of messages dropped from this sink, since the last
      *         call to {@link #clearDroppedCount}.
      */
     public long getDroppedCount() {
@@ -126,12 +126,7 @@ abstract class NatsConsumer implements Consumer {
     }
 
     boolean hasReachedPendingLimits() {
-        long ml = maxMessages.get();
-        if (ml > 0 && getPendingMessageCount() >= ml) {
-            return true;
-        }
-        long bl = maxBytes.get();
-        return bl > 0 && getPendingByteCount() >= bl;
+        return getPendingMessageCount() >= maxMessages || getPendingByteCount() >= maxBytes;
     }
 
     void markDraining(CompletableFuture<Boolean> future) {
@@ -157,9 +152,9 @@ abstract class NatsConsumer implements Consumer {
     }
 
     /**
-    * Drain tells the consumer to process in flight, or cached messages, but stop receiving new ones. The library will
+    * Drain tells the sink to process in flight, or cached messages, but stop receiving new ones. The library will
     * flush the unsubscribe call(s) insuring that any publish calls made by this client are included. When all messages
-    * are processed the consumer effectively becomes unsubscribed.
+    * are processed the sink effectively becomes unsubscribed.
     * 
     * @param timeoutMillis The time in milliseconds to wait for the drain to succeed, pass 0 or less to wait
     *                    forever. Drain involves moving messages to and from the server
@@ -169,7 +164,7 @@ abstract class NatsConsumer implements Consumer {
     */
    public CompletableFuture<Boolean> drain(long timeoutMillis) throws InterruptedException {
        if (!this.isActive() || this.connection==null) {
-           throw new IllegalStateException("Consumer is closed");
+           throw new IllegalStateException("Message sink is closed");
        }
 
        if (isDraining()) {
@@ -188,7 +183,7 @@ abstract class NatsConsumer implements Consumer {
 
        this.markUnsubedForDrain();
 
-        // Wait for the timeout or consumer is drained
+        // Wait for the timeout or sink is drained
         // Skipped if conn is draining
         connection.getExecutor().submit(() -> {
             try {
@@ -215,7 +210,7 @@ abstract class NatsConsumer implements Consumer {
    }
 
     /**
-     * @return whether this consumer is still processing messages. For a
+     * @return whether this sink is still processing messages. For a
      *         subscription the answer is false after unsubscribe. For a dispatcher,
      *         false after stop.
      */
@@ -224,7 +219,7 @@ abstract class NatsConsumer implements Consumer {
     abstract ConsumerMessageQueue getMessageQueue();
 
     /**
-     * Called during drain to tell the consumer to send appropriate unsub requests
+     * Called during drain to tell the sink to send appropriate unsub requests
      * to the connection.
      * A subscription will unsub itself, while a dispatcher will unsub all of its
      * subscriptions.

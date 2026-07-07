@@ -1,18 +1,17 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Consumer;
-import io.synadia.client.Dispatcher;
-import io.synadia.client.ErrorListener;
-import io.synadia.client.Message;
+import io.synadia.client.*;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SlowConsumerTests extends TestBase {
 
@@ -23,11 +22,11 @@ public class SlowConsumerTests extends TestBase {
             NatsSubscription sub = nc.subscribe(subject);
             Dispatcher d = nc.createDispatcher((Message m) -> {});
 
-            assertEquals(Consumer.DEFAULT_MAX_MESSAGES, sub.getPendingMessageLimit());
-            assertEquals(Consumer.DEFAULT_MAX_BYTES, sub.getPendingByteLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_MESSAGES, sub.getPendingMessageLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_BYTES, sub.getPendingByteLimit());
 
-            assertEquals(Consumer.DEFAULT_MAX_MESSAGES, d.getPendingMessageLimit());
-            assertEquals(Consumer.DEFAULT_MAX_BYTES, d.getPendingByteLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_MESSAGES, d.getPendingMessageLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_BYTES, d.getPendingByteLimit());
             nc.closeDispatcher(d);
         });
     }
@@ -41,7 +40,7 @@ public class SlowConsumerTests extends TestBase {
             sub.setPendingLimits(1, -1);
 
             assertEquals(1, sub.getPendingMessageLimit());
-            assertEquals(0, sub.getPendingByteLimit());
+            assertEquals(-1, sub.getPendingByteLimit());
             assertEquals(0, sub.getDroppedCount());
 
             nc.publish(subject, null);
@@ -74,7 +73,7 @@ public class SlowConsumerTests extends TestBase {
             sub.setPendingLimits(-1, maxBytes); // will take the first, not the second
 
             assertEquals(maxBytes, sub.getPendingByteLimit());
-            assertEquals(0, sub.getPendingMessageLimit());
+            assertEquals(-1, sub.getPendingMessageLimit());
             assertEquals(0, sub.getDroppedCount());
 
             nc.publish(subject, null);
@@ -111,7 +110,7 @@ public class SlowConsumerTests extends TestBase {
             d.subscribe(subject);
 
             assertEquals(1, d.getPendingMessageLimit());
-            assertEquals(0, d.getPendingByteLimit());
+            assertEquals(-1, d.getPendingByteLimit());
             assertEquals(0, d.getDroppedCount());
 
             nc.publish(subject, null);
@@ -151,7 +150,7 @@ public class SlowConsumerTests extends TestBase {
             d.setPendingLimits(-1, maxBytes);
             d.subscribe(subject);
 
-            assertEquals(0, d.getPendingMessageLimit());
+            assertEquals(-1, d.getPendingMessageLimit());
             assertEquals(maxBytes, d.getPendingByteLimit());
             assertEquals(0, d.getDroppedCount());
 
@@ -177,16 +176,35 @@ public class SlowConsumerTests extends TestBase {
         });
     }
 
+    @Test
+    public void testDispatcherDeliveredCount() throws Exception {
+        runInSharedOwnNc(nc -> {
+            String subject = random();
+            int count = 5;
+            CountDownLatch latch = new CountDownLatch(count);
+            Dispatcher d = nc.createDispatcher(msg -> latch.countDown());
+            d.subscribe(subject);
+
+            for (int x = 0; x < count; x++) {
+                nc.publish(subject, null);
+            }
+
+            assertTrue(latch.await(5000, TimeUnit.MILLISECONDS));
+            // deliveredCount is bumped before the handler runs, so it has settled once the latch releases
+            assertEquals(count, d.getDeliveredCount());
+        });
+    }
+
     static class SlowConsumerListener implements ErrorListener {
         public CompletableFuture<Boolean> future;
-        public final List<Consumer> consumers = new ArrayList<>();
+        public final List<Subscription> consumers = new ArrayList<>();
 
         public void waitForSlow() {
             future = new CompletableFuture<>();
         }
 
         @Override
-        public void slowConsumerDetected(NatsConnection conn, Consumer slowConsumer) {
+        public void slowConsumerDetected(NatsConnection conn, Subscription slowConsumer) {
             consumers.add(slowConsumer);
             if (future != null) {
                 future.complete(true);

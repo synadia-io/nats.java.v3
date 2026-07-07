@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-public class NatsSubscription extends NatsConsumer implements Subscription {
+public class NatsSubscription extends NatsMessageSink implements Subscription {
 
     private String subject;
     private final String queueName;

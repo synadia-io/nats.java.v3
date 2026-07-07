@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.synadia.client.utils.ConnectionUtils.*;
 import static io.synadia.client.utils.Listener.LONG_VALIDATE_TIMEOUT;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
+import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ErrorListenerTests extends TestBase {
@@ -35,7 +36,7 @@ public class ErrorListenerTests extends TestBase {
                 .errorListener(listener)
                 .maxReconnects(-1)
                 .build();
-            nc = (NatsConnection) Nats.connect(options);
+            nc = Nats.connect(options);
             assertConnected(nc);
             assertEquals(ts.getServerUri(), nc.getConnectedUrl());
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
@@ -100,6 +101,7 @@ public class ErrorListenerTests extends TestBase {
                 .maxReconnects(0)
                 .errorListener(listener)
                 .build();
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(options));
         }
     }
@@ -131,7 +133,7 @@ public class ErrorListenerTests extends TestBase {
             // than reading the counter immediately after close.
             long stopAt = System.currentTimeMillis() + DEFAULT_WAIT;
             while (nc.getStatistics().getExceptions() == 0 && System.currentTimeMillis() < stopAt) {
-                Thread.sleep(50);
+                sleep(50);
             }
             assertTrue(nc.getStatistics().getExceptions() > 0);
         }
@@ -179,7 +181,7 @@ public class ErrorListenerTests extends TestBase {
                 .errorListener(listener)
                 .pingInterval(100_000) // make this long so we don't ping during test
                 .build();
-            NatsConnection nc = (NatsConnection) Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
 
             try {
                 nc.flush(2000);
@@ -267,7 +269,7 @@ public class ErrorListenerTests extends TestBase {
             }
 
             @Override
-            public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
+            public void slowConsumerDetected(NatsConnection conn, Subscription subscription) {
                 slowConsumerDetectedFlag.set(true);
             }
 

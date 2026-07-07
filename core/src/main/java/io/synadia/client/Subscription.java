@@ -4,6 +4,7 @@ import io.synadia.client.impl.NatsDispatcher;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * <p>The other, possibly confusing case, is that unsubscribe is based on total messages. So if you make a subscription and
  * receive 5 messages on it, then say unsubscribe with a maximum of 5, the subscription will immediately stop handling messages.
  */
-public interface Subscription extends Consumer {
+public interface Subscription {
 
     /**
      * the subject associated with this subscription, will be non-null
@@ -52,6 +53,21 @@ public interface Subscription extends Consumer {
      * @return the id
      */
     @NonNull String getSID();
+
+    /**
+     * Whether this subscription is still processing messages; false after unsubscribe.
+     * @return the active state
+     */
+    boolean isActive();
+
+    /**
+     * Drain the subscription: process in-flight/cached messages, stop receiving new ones,
+     * then effectively unsubscribe. The returned future completes when the drain finishes.
+     * @param timeoutMillis time to wait for the drain, in milliseconds; 0 or less waits forever
+     * @return a future that completes true when the drain succeeded
+     * @throws InterruptedException if the thread is interrupted
+     */
+    CompletableFuture<Boolean> drain(long timeoutMillis) throws InterruptedException;
 
     /**
      * Read the next message for a subscription, waiting up to {@code timeoutMillis}.

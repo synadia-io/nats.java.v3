@@ -1,6 +1,5 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Consumer;
 import io.synadia.client.ErrorListener;
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
@@ -28,8 +27,8 @@ public class ErrorListenerConsoleImpl implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void slowConsumerDetected(NatsConnection conn, Consumer consumer) {
-        System.out.println(supplyMessage("[WARN] slowConsumerDetected", conn, consumer, null));
+    public void slowConsumerDetected(NatsConnection conn, Subscription subscription) {
+        System.out.println(supplyMessage("[WARN] slowConsumerDetected", conn, subscription));
     }
 
     /**

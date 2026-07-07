@@ -2,6 +2,8 @@ package io.synadia.client;
 
 import io.synadia.client.impl.NatsSubscription;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * This library uses the concept of a Dispatcher to organize message callbacks in a way that the
  * application can control. Each dispatcher has a single {@link MessageHandler MessageHandler} that
@@ -18,11 +20,11 @@ import io.synadia.client.impl.NatsSubscription;
  * and can be closed using {@link io.synadia.client.impl.NatsConnection#closeDispatcher(Dispatcher) closeDispatcher()}. Closing a dispatcher will
  * clean up the thread it is using for message deliver.
  *
- * <p><em>See the documentation on {@link Consumer Consumer} for configuring behavior in a slow consumer situation.</em>
+ * <p><em>A dispatcher buffers incoming messages in a single queue; if the handler is slow that queue can back up.</em>
  *
  * <p>Subscribe and unsubscribe methods validate their arguments and throw {@link IllegalArgumentException} for invalid values.
  */
-public interface Dispatcher extends Consumer {
+public interface Dispatcher {
 
     /**
      * Start the dispatcher with a given id.
@@ -31,6 +33,76 @@ public interface Dispatcher extends Consumer {
      * @param id the assigned id of the dispatcher
      */
     void start(String id);
+
+    /**
+     * Whether this dispatcher is still processing messages; false after it is stopped.
+     * @return the active state
+     */
+    boolean isActive();
+
+    /**
+     * Drain the dispatcher: process in-flight/cached messages, stop receiving new ones,
+     * then effectively unsubscribe all of its subscriptions. The returned future completes
+     * when the drain finishes.
+     * @param timeoutMillis time to wait for the drain, in milliseconds; 0 or less waits forever
+     * @return a future that completes true when the drain succeeded
+     * @throws InterruptedException if the thread is interrupted
+     */
+    CompletableFuture<Boolean> drain(long timeoutMillis) throws InterruptedException;
+
+    /**
+     * Set the maximum number of messages and/or bytes this dispatcher's delivery queue holds
+     * before it starts dropping newly arriving messages (a &quot;slow consumer&quot;).
+     *
+     * <p>All of a dispatcher's subscriptions share this one queue, so the limit is per-dispatcher,
+     * not per-subscription. It bounds the async slow-consumer case: the server controls the flow of
+     * messages, so if the {@link MessageHandler} is slow the queue backs up, and once a limit is
+     * reached newly arriving messages are dropped (and {@link ErrorListener#slowConsumerDetected}
+     * fires). This is the handler-based (dispatched) equivalent of a synchronous consumer falling
+     * behind on {@code nextMessage}; for a synchronous subscription the limit is set on the
+     * subscription instead.
+     *
+     * <p>Any value less than or equal to zero means unlimited.
+     * @param maxMessages the maximum message count to hold
+     * @param maxBytes the maximum bytes to hold
+     */
+    void setPendingLimits(long maxMessages, long maxBytes);
+
+    /**
+     * @return the pending message limit set by {@link #setPendingLimits(long, long) setPendingLimits}; -1 when unlimited
+     */
+    long getPendingMessageLimit();
+
+    /**
+     * @return the pending byte limit set by {@link #setPendingLimits(long, long) setPendingLimits}; -1 when unlimited
+     */
+    long getPendingByteLimit();
+
+    /**
+     * @return the number of messages currently waiting in this dispatcher's delivery queue
+     */
+    long getPendingMessageCount();
+
+    /**
+     * @return the cumulative size in bytes of the messages currently waiting in this dispatcher's delivery queue
+     */
+    long getPendingByteCount();
+
+    /**
+     * @return the total number of messages this dispatcher has delivered to its handler(s), for all time
+     */
+    long getDeliveredCount();
+
+    /**
+     * @return the number of messages dropped since the last {@link #clearDroppedCount() clearDroppedCount},
+     *         because a pending limit was reached
+     */
+    long getDroppedCount();
+
+    /**
+     * Reset this dispatcher's dropped-message count to 0.
+     */
+    void clearDroppedCount();
 
     /**
      * Create a subscription to the specified subject under the control of this

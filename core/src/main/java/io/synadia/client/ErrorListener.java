@@ -49,16 +49,14 @@ public interface ErrorListener {
      * until the consumer stops being slow. At which point it will be called again if the consumer starts
      * being slow again.
      *
-     * <p>See {@link Consumer#setPendingLimits(long, long) Consumer.setPendingLimits}
-     * for information on how to configure when this method is fired.
-     *
-     * <p> Slow consumers will result in dropped messages each consumer provides a method
-     * for retrieving the count of dropped messages, see {@link Consumer#getDroppedCount() Consumer.getDroppedCount}.
+     * <p>A consumer is slow when its internal pending queue fills up (configured by the pending-limit
+     * settings on the subscription, or on its dispatcher for handler-based delivery); messages are
+     * dropped once the queue is full.
      *
      * @param conn The connection associated with the error
-     * @param slowConsumer The consumer that is being marked slow
+     * @param subscription The subscription whose message hit the full queue
      */
-    default void slowConsumerDetected(NatsConnection conn, Consumer slowConsumer) {}
+    default void slowConsumerDetected(NatsConnection conn, Subscription subscription) {}
 
     /**
      * Called by the connection when a message is discarded.
@@ -139,19 +137,15 @@ public interface ErrorListener {
      * General message producing function which understands the possible parameters to listener calls.
      * @param label the label for the message
      * @param conn The connection that had the issue, if provided.
-     * @param slowConsumer The consumer that is being marked slow, if applicable
      * @param sub the Subscription that this occurred on, if applicable
      * @param pairs custom string pairs. I.E. "foo: ", fooObject, "bar-", barObject will be appended
      *              to the message like ", foo: &lt;fooValue&gt;, bar-&lt;barValue&gt;".
      * @return the message
      */
-    default String supplyMessage(@Nullable String label, @Nullable NatsConnection conn, @Nullable Consumer slowConsumer, @Nullable Subscription sub, @Nullable Object @Nullable... pairs) {
+    default String supplyMessage(@Nullable String label, @Nullable NatsConnection conn, @Nullable Subscription sub, @Nullable Object @Nullable... pairs) {
         StringBuilder sb = new StringBuilder(label == null ? "" : label);
         if (conn != null) {
             sb.append(", NatsConnection: ").append(conn.getServerInfo().getClientId());
-        }
-        if (slowConsumer != null) {
-            sb.append(", Consumer: ").append(slowConsumer.hashCode());
         }
         if (sub != null) {
             sb.append(", Subscription: ").append(sub.getSID());

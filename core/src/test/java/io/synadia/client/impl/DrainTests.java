@@ -59,7 +59,7 @@ public class DrainTests {
 
             assertTrue(tracker.get(1, TimeUnit.SECONDS));
             assertFalse(sub.isActive());
-            assertEquals(0, ((NatsConnection) subCon).getConsumerCount());
+            assertEquals(0, subCon.getSinkCount());
         });
     }
 
@@ -89,7 +89,7 @@ public class DrainTests {
             assertTrue(tracker.get(10, TimeUnit.SECONDS)); // wait for the drain to complete
             assertEquals(4, count.get()); // Should get both, two times.
             assertFalse(d.isActive());
-            assertEquals(0, ((NatsConnection) subCon).getConsumerCount());
+            assertEquals(0, subCon.getSinkCount());
         });
     }
 
@@ -122,7 +122,7 @@ public class DrainTests {
             assertNotNull(msg);
 
             assertTrue(tracker.get(2, TimeUnit.SECONDS));
-            assertTrue(((NatsConnection) subCon).isDrained());
+            assertTrue(subCon.isDrained());
             assertEquals(2, count.get()); // Should get both
             assertClosed(subCon);
         });
@@ -157,7 +157,7 @@ public class DrainTests {
             assertNotNull(msg);
 
             assertTrue(tracker.get(2, TimeUnit.SECONDS));
-            assertTrue(((NatsConnection) subCon).isDrained());
+            assertTrue(subCon.isDrained());
             assertEquals(2, count.get()); // Should get both
             assertClosed(subCon);
         });
@@ -290,7 +290,7 @@ public class DrainTests {
             assertTrue(tracker.get().get(5, TimeUnit.SECONDS)); // wait for the drain to complete
             assertEquals(2, count.get()); // Should get both
             assertFalse(d.isActive());
-            assertEquals(0, ((NatsConnection) subCon).getConsumerCount());
+            assertEquals(0, subCon.getSinkCount());
         });
     }
 
@@ -408,7 +408,7 @@ public class DrainTests {
 
             String subject = random();
             String queue = random();
-            drainingD = (NatsDispatcher) draining.createDispatcher(msg -> count.incrementAndGet());
+            drainingD = draining.createDispatcher(msg -> count.incrementAndGet());
             drainingD.subscribe(subject, queue);
             draining.flush(5000);
 
@@ -425,7 +425,7 @@ public class DrainTests {
             while (count.get() < total && Duration.between(start, now).compareTo(testTimeout) < 0) {
                 working = SharedServer.connectionForSameServer(pubCon, optionsBuilder().maxReconnects(0));
                 assertConnected(working);
-                workingD = (NatsDispatcher) working.createDispatcher(msg -> count.incrementAndGet());
+                workingD = working.createDispatcher(msg -> count.incrementAndGet());
                 workingD.subscribe(subject, queue);
                 working.flush(5000);
 
@@ -435,7 +435,7 @@ public class DrainTests {
 
                 assertTrue(tracker.get(waitTimeout.toMillis(), TimeUnit.MILLISECONDS)); // wait for the drain to complete
                 assertTrue(drainingD.isDrained());
-                assertTrue(((NatsConnection) draining).isDrained());
+                assertTrue(draining.isDrained());
                 draining.close(); // no op, but ide wants this for auto-closable
 
                 draining = working;
@@ -482,7 +482,7 @@ public class DrainTests {
 
             assertTrue(tracker.get(5, TimeUnit.SECONDS));
             assertFalse(sub.isActive());
-            assertEquals(0, ((NatsConnection) subCon).getConsumerCount());
+            assertEquals(0, subCon.getSinkCount());
         });
     }
 
@@ -515,7 +515,7 @@ public class DrainTests {
             CompletableFuture<Boolean> tracker = subCon.drain(4000);
 
             assertTrue(tracker.get(10, TimeUnit.SECONDS));
-            assertTrue(((NatsConnection) subCon).isDrained());
+            assertTrue(subCon.isDrained());
             assertEquals(2, count.get()); // Should get both
             assertClosed(subCon);
         });
@@ -553,7 +553,7 @@ public class DrainTests {
             CompletableFuture<Boolean> tracker = subCon.drain(2000);
 
             assertFalse(tracker.get(10, TimeUnit.SECONDS));
-            assertFalse(((NatsConnection) subCon).isDrained());
+            assertFalse(subCon.isDrained());
             assertEquals(0, listener.getExceptionCount()); // Don't throw during drain from reader
             assertClosed(subCon);
         });

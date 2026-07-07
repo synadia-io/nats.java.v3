@@ -298,7 +298,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void slowConsumerDetected(NatsConnection conn, Consumer slowConsumer) {
+    public void slowConsumerDetected(NatsConnection conn, Subscription subscription) {
         // see SlowConsumerTests.SlowConsumerListener
     }
 

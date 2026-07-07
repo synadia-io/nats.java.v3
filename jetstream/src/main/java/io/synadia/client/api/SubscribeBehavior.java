@@ -1,7 +1,7 @@
 package io.synadia.client.api;
 
-import io.synadia.client.Consumer;
 import io.synadia.client.MessageHandler;
+import io.synadia.client.OptionsConstants;
 import io.synadia.client.impl.NatsDispatcher;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -24,8 +24,8 @@ public class SubscribeBehavior {
 
     // Configures a synchronous (non-dispatched) push subscription's own queue.
     // Async delivery is bounded by the dispatcher's own limits; pull by its batch size.
-    private long pendingMessageLimit = Consumer.DEFAULT_MAX_MESSAGES;
-    private long pendingByteLimit = Consumer.DEFAULT_MAX_BYTES;
+    private long pendingMessageLimit = OptionsConstants.DEFAULT_MAX_MESSAGES;
+    private long pendingByteLimit = OptionsConstants.DEFAULT_MAX_BYTES;
 
     /**
      * Construct a SubscribeBehavior with default settings.
@@ -124,7 +124,7 @@ public class SubscribeBehavior {
 
     /**
      * Set the maximum number of messages the internal (pending) queue may hold before messages
-     * are dropped; 0 or negative means no limit. Defaults to {@code Consumer.DEFAULT_MAX_MESSAGES}.
+     * are dropped; 0 or negative means no limit. Defaults to {@code OptionsConstants.DEFAULT_MAX_MESSAGES}.
      * <p>Applies to a synchronous (non-dispatched) push subscription, which owns its own queue.
      * Asynchronous delivery is bounded by the dispatcher's own limits (set them on the dispatcher) —
      * that queue can still back up when a message handler is slow to return. Pull subscriptions
@@ -139,7 +139,7 @@ public class SubscribeBehavior {
 
     /**
      * Set the maximum number of bytes the internal (pending) queue may hold before messages
-     * are dropped; 0 or negative means no limit. Defaults to {@code Consumer.DEFAULT_MAX_BYTES}.
+     * are dropped; 0 or negative means no limit. Defaults to {@code OptionsConstants.DEFAULT_MAX_BYTES}.
      * <p>Applies to a synchronous (non-dispatched) push subscription, which owns its own queue.
      * Asynchronous delivery is bounded by the dispatcher's own limits (set them on the dispatcher) —
      * that queue can still back up when a message handler is slow to return. Pull subscriptions

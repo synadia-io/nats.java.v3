@@ -425,6 +425,8 @@ public class JetStream extends JetStreamImpl {
             subFactory = (sid, lSubject, lQgroup, lConn, lDispatcher) -> {
                 JetStreamPushSubscription sub =
                     new JetStreamPushSubscription(sid, lSubject, lQgroup, lConn, lDispatcher, this, jssc, mm);
+                // Pending limits only apply to a synchronous push subscription (it owns its own queue).
+                // For async, set limits on the dispatcher directly; pull is bounded by its batch size.
                 if (lDispatcher == null) {
                     sub.setPendingLimits(jssc.getPendingMessageLimit(), jssc.getPendingByteLimit());
                 }
@@ -437,6 +439,7 @@ public class JetStream extends JetStreamImpl {
         }
 
         AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler, cc);
+        //noinspection DataFlowIssue DISPATCHER WILL NEVER BE NULL WHEN THERE IS A HANDLER!
         return dispatcher.subscribeImplByFactory(inbox, cc.getDeliverGroup(), amh, subFactory);
     }
 

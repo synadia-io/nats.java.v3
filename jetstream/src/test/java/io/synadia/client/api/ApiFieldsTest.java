@@ -3,8 +3,8 @@ package io.synadia.client.api;
 import io.nats.json.DateTimeUtils;
 import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
-import io.synadia.client.Consumer;
 import io.synadia.client.MessageHandler;
+import io.synadia.client.OptionsConstants;
 import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.NatsMessage;
 import org.junit.jupiter.api.Test;
@@ -2333,8 +2333,8 @@ public class ApiFieldsTest {
         assertNull(sb.getDispatcher());
         assertNull(sb.getHandler());
         assertEquals(0L, sb.getMessageAlarmTime());
-        assertEquals(Consumer.DEFAULT_MAX_MESSAGES, sb.getPendingMessageLimit());
-        assertEquals(Consumer.DEFAULT_MAX_BYTES, sb.getPendingByteLimit());
+        assertEquals(OptionsConstants.DEFAULT_MAX_MESSAGES, sb.getPendingMessageLimit());
+        assertEquals(OptionsConstants.DEFAULT_MAX_BYTES, sb.getPendingByteLimit());
 
         MessageHandler handler = m -> { /* no-op */ };
 

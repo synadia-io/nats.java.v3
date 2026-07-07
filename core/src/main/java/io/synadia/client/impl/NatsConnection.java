@@ -2010,23 +2010,22 @@ public class NatsConnection implements AutoCloseable {
             msg.setSubscription(sub);
 
             NatsDispatcher d = sub.getDispatcher();
-            NatsConsumer c = (d == null) ? sub : d;
+            NatsMessageSink s = (d == null) ? sub : d;
             ConsumerMessageQueue q = ((d == null) ? sub.getMessageQueue() : d.getMessageQueue());
 
-            if (c.hasReachedPendingLimits()) {
+            if (s.hasReachedPendingLimits()) {
                 // Drop the message and count it
                 this.statistics.incrementDroppedCount();
-                c.incrementDroppedCount();
+                s.incrementDroppedCount();
 
                 // Notify the first time
-                if (!c.isMarkedSlow()) {
-                    c.markSlow();
-                    processSlowConsumer(c);
+                if (!s.isMarkedSlow()) {
+                    s.markSlow();
+                    processSlowConsumer(sub);
                 }
             }
             else if (q != null) {
-                c.markNotSlow();
-
+                s.markNotSlow();
                 // beforeQueueProcessor returns true if the message is allowed to be queued
                 if (sub.getBeforeQueueProcessor().apply(msg)) {
                     q.push(msg);
@@ -2059,8 +2058,8 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    public void processSlowConsumer(Consumer consumer) {
-        makeCallback(() -> options.getErrorListener().slowConsumerDetected(this, consumer));
+    public void processSlowConsumer(Subscription subscription) {
+        makeCallback(() -> options.getErrorListener().slowConsumerDetected(this, subscription));
     }
 
     public void processException(Exception exp) {
@@ -2164,7 +2163,7 @@ public class NatsConnection implements AutoCloseable {
     }
 
     // Used for testing
-    protected int getConsumerCount() {
+    protected int getSinkCount() {
         return this.subscribers.size() + this.dispatchers.size();
     }
 
@@ -2470,7 +2469,7 @@ public class NatsConnection implements AutoCloseable {
 
     /**
      * Drain tells the connection to process in flight messages before closing.
-     * Drain initially drains all the consumers, stopping incoming messages.
+     * Drain initially drains all the sinks, stopping incoming messages.
      * Next, publishing is halted and a flush call is used to insure all published
      * messages have reached the server.
      * Finally, the connection is closed.
@@ -2518,20 +2517,20 @@ public class NatsConnection implements AutoCloseable {
         HashSet<NatsSubscription> pureSubscribers = new HashSet<>(this.subscribers.values());
         pureSubscribers.removeIf((s) -> s.getDispatcher() != null);
 
-        final HashSet<NatsConsumer> consumers = new HashSet<>();
-        consumers.addAll(pureSubscribers);
-        consumers.addAll(this.dispatchers.values());
+        final HashSet<NatsMessageSink> sinks = new HashSet<>();
+        sinks.addAll(pureSubscribers);
+        sinks.addAll(this.dispatchers.values());
 
         NatsDispatcher inboxer = this.inboxDispatcher.get();
 
         if (inboxer != null) {
-            consumers.add(inboxer);
+            sinks.add(inboxer);
         }
 
-        // Stop the consumers NOW so that when this method returns they are blocked
-        consumers.forEach((cons) -> {
-            cons.markDraining(tracker);
-            cons.sendUnsubForDrain();
+        // Stop the sinks NOW so that when this method returns they are blocked
+        sinks.forEach((sink) -> {
+            sink.markDraining(tracker);
+            sink.sendUnsubForDrain();
         });
 
         try {
@@ -2541,16 +2540,16 @@ public class NatsConnection implements AutoCloseable {
             throw e;
         }
 
-        consumers.forEach(NatsConsumer::markUnsubedForDrain);
+        sinks.forEach(NatsMessageSink::markUnsubedForDrain);
 
-        // Wait for the timeout or all consumers are drained
+        // Wait for the timeout or all sinks are drained
         executor.submit(() -> {
             try {
                 long timeoutNanos = timeoutMillis <= 0 ? Long.MAX_VALUE : timeoutMillis * NANOS_PER_MILLI;
                 long startTime = System.nanoTime();
                 while (NatsSystemClock.nanoTime() - startTime < timeoutNanos && !Thread.interrupted()) {
-                    consumers.removeIf(NatsConsumer::isDrained);
-                    if (consumers.isEmpty()) {
+                    sinks.removeIf(NatsMessageSink::isDrained);
+                    if (sinks.isEmpty()) {
                         break;
                     }
                     //noinspection BusyWait
@@ -2570,7 +2569,7 @@ public class NatsConnection implements AutoCloseable {
                     }
                 }
                 this.close(false, false); // close the connection after the last flush
-                tracker.complete(consumers.isEmpty());
+                tracker.complete(sinks.isEmpty());
             } catch (TimeoutException e) {
                 this.processException(e);
             } catch (InterruptedException e) {

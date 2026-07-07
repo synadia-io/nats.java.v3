@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.Consumer;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
+import io.synadia.client.OptionsConstants;
 import io.synadia.client.api.DeliverPolicy;
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.api.PushConsumerCreator;
@@ -395,6 +395,8 @@ public class JetStreamPushTests extends JetStreamTestBase {
             Message m2 = sub.nextMessage(1000L);
             assertMessage(m2, 2);
             Message m3 = sub.nextMessage(1000L);
+            assertNotNull(m3);
+            assertNotNull(m3.metaData());
             assertMessage(m3, 3);
 
             // DeliverPolicy.Last
@@ -494,6 +496,8 @@ public class JetStreamPushTests extends JetStreamTestBase {
             JetStreamPushSubscription sub = ctx.js.pushSubscribe(ctx.stream, new PushConsumerCreator().subjects(ctx.subject()).flowControl(1000));
             for (int x = 0; x < MSG_COUNT; x++) {
                 Message msg = sub.nextMessage(1000L);
+                assertNotNull(msg);
+                assertNotNull(msg.getData());
                 set.add(new String(Arrays.copyOf(msg.getData(), 6)));
                 msg.ack();
                 sleep(5); // slow it down, easier to get flow control
@@ -506,6 +510,8 @@ public class JetStreamPushTests extends JetStreamTestBase {
             sub = ctx.js.pushSubscribe(ctx.stream, new PushConsumerCreator().subjects(ctx.subject()).idleHeartbeat(100));
             for (int x = 0; x < MSG_COUNT; x++) {
                 Message msg = sub.nextMessage(1000L);
+                assertNotNull(msg);
+                assertNotNull(msg.getData());
                 set.add(new String(Arrays.copyOf(msg.getData(), 6)));
                 msg.ack();
                 sleep(5); // slow it down, easier to get flow control
@@ -539,20 +545,20 @@ public class JetStreamPushTests extends JetStreamTestBase {
                 .pendingByteLimit(-1);
 
             JetStreamPushSubscription syncSub = ctx.js.pushSubscribe(ctx.stream, creator, bhDefaultSync);
-            assertEquals(Consumer.DEFAULT_MAX_MESSAGES, syncSub.getPendingMessageLimit());
-            assertEquals(Consumer.DEFAULT_MAX_BYTES, syncSub.getPendingByteLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_MESSAGES, syncSub.getPendingMessageLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_BYTES, syncSub.getPendingByteLimit());
 
             syncSub = ctx.js.pushSubscribe(ctx.stream, creator, bhCustomSync);
             assertEquals(customMessageLimit, syncSub.getPendingMessageLimit());
             assertEquals(customByteLimit, syncSub.getPendingByteLimit());
 
             syncSub = ctx.js.pushSubscribe(ctx.stream, creator, bhCustomSyncUnlimited0);
-            assertEquals(0, syncSub.getPendingMessageLimit());
-            assertEquals(0, syncSub.getPendingByteLimit());
+            assertEquals(-1, syncSub.getPendingMessageLimit());
+            assertEquals(-1, syncSub.getPendingByteLimit());
 
             syncSub = ctx.js.pushSubscribe(ctx.stream, creator, bhCustomSyncUnlimitedUnlimitedNegative);
-            assertEquals(0, syncSub.getPendingMessageLimit());
-            assertEquals(0, syncSub.getPendingByteLimit());
+            assertEquals(-1, syncSub.getPendingMessageLimit());
+            assertEquals(-1, syncSub.getPendingByteLimit());
 
             NatsDispatcher d = nc.createDispatcher();
             d.setPendingLimits(customMessageLimit, customByteLimit);
@@ -563,16 +569,16 @@ public class JetStreamPushTests extends JetStreamTestBase {
             SubscribeBehavior bhAsyncNonDefaultValid = new SubscribeBehavior()
                 .dispatcher(d)
                 .handler(m -> {})
-                .pendingMessageLimit(Consumer.DEFAULT_MAX_MESSAGES)
-                .pendingByteLimit(Consumer.DEFAULT_MAX_BYTES);
+                .pendingMessageLimit(OptionsConstants.DEFAULT_MAX_MESSAGES)
+                .pendingByteLimit(OptionsConstants.DEFAULT_MAX_BYTES);
 
             JetStreamPushSubscription subAsync = ctx.js.pushSubscribe(ctx.stream, creator, bhAsyncDefault);
-            assertEquals(Consumer.DEFAULT_MAX_MESSAGES, subAsync.getPendingMessageLimit());
-            assertEquals(Consumer.DEFAULT_MAX_BYTES, subAsync.getPendingByteLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_MESSAGES, subAsync.getPendingMessageLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_BYTES, subAsync.getPendingByteLimit());
 
             subAsync = ctx.js.pushSubscribe(ctx.stream, creator, bhAsyncNonDefaultValid);
-            assertEquals(Consumer.DEFAULT_MAX_MESSAGES, subAsync.getPendingMessageLimit());
-            assertEquals(Consumer.DEFAULT_MAX_BYTES, subAsync.getPendingByteLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_MESSAGES, subAsync.getPendingMessageLimit());
+            assertEquals(OptionsConstants.DEFAULT_MAX_BYTES, subAsync.getPendingByteLimit());
         });
     }
 }

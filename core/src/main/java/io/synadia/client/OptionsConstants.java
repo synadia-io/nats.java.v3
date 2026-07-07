@@ -144,6 +144,16 @@ public interface OptionsConstants {
     int DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE = 5000;
 
     /**
+     * Default maximum number of messages the pending (incoming) queue holds before it starts to drop them.
+     */
+    long DEFAULT_MAX_MESSAGES = 512 * 1024;
+
+    /**
+     * Default maximum number of bytes the pending (incoming) queue holds before it starts to drop messages.
+     */
+    long DEFAULT_MAX_BYTES = 64 * 1024 * 1024;
+
+    /**
      * Whether to discard messages when the outgoing queue is full.
      */
     boolean DEFAULT_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL = false;
