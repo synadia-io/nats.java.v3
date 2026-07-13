@@ -21,6 +21,16 @@ This is the top-level migration guide for moving code from the v2 client (`nats.
 
   Anywhere a method previously returned `Connection`, it now returns `NatsConnection`. Anywhere you accepted `Connection` as a parameter, switch to `NatsConnection`.
 
+- **`Consumer` interface is gone.** The v2 `io.nats.client.Consumer` interface — the shared supertype of `Subscription` and `Dispatcher` that carried the pending-limit, pending/dropped/delivered counts, and `drain` methods — is removed, with no public replacement supertype. In practice it was almost never referenced by name (it only ever showed up as a supertype), so most code needs no change: every method it declared still exists, now declared directly on `Subscription` / `NatsSubscription` (synchronous) and on `Dispatcher` (asynchronous). The confusing "consumer" concept — the thing that owns a pending queue and can become a "slow consumer" — was renamed internally to `NatsMessageSink`, a more useful name for what it actually is (a sink messages drain into); that class is impl-only and never appears in the public API.
+
+  | v2 | v3 |
+  |---|---|
+  | `Consumer` used as a type | use `Subscription` / `NatsSubscription` or `Dispatcher` directly |
+  | `slowConsumerDetected(Connection, Consumer)` | `slowConsumerDetected(NatsConnection, Subscription)` |
+  | `Consumer.DEFAULT_MAX_MESSAGES` / `Consumer.DEFAULT_MAX_BYTES` | `OptionsConstants.DEFAULT_MAX_MESSAGES` / `OptionsConstants.DEFAULT_MAX_BYTES` |
+
+  One behavior change to note on the slow-consumer callback: for a dispatched (async) subscription, v2 handed you the `Dispatcher`; v3 always hands you the `Subscription` whose message hit the full queue — more useful, since the subscription names the subject.
+
 - **Removed connect-option behavior.** Both the property constants and the corresponding `OptionsBuilder` setters are gone. Any code that referenced these must be removed; there is no replacement.
 
   | Removed constant            | Removed `OptionsBuilder` setter(s)                  | Reason                              |
