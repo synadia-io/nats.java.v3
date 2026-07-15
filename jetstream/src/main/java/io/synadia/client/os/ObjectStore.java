@@ -33,7 +33,7 @@ public class ObjectStore extends AbstractBucketFeature {
         rawMetaPrefix = toMetaPrefix(bucketName);
     }
 
-    private ObjectStore(String bucketName, ObjectStore existing) throws IOException {
+    private ObjectStore(String bucketName, ObjectStore existing) {
         super(bucketName, existing);
         rawChunkPrefix = toChunkPrefix(bucketName);
         rawMetaPrefix = toMetaPrefix(bucketName);
