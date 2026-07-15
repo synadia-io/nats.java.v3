@@ -253,14 +253,16 @@ public class NatsConnection implements AutoCloseable {
 
                 updateStatus(DISCONNECTED, resolved, cur);
 
-                failList.add(cur);
-                serverPool.connectFailed(cur);
-
                 String err = connectError.get();
 
                 if (this.isAuthenticationError(err)) {
                     this.serverAuthErrors.put(resolved, err);
                 }
+            }
+
+            if (!isConnected() && !isClosed()) {
+                failList.add(cur);
+                serverPool.connectFailed(cur);
             }
         }
 
@@ -460,7 +462,6 @@ public class NatsConnection implements AutoCloseable {
                     return;
                 }
 
-                serverPool.connectFailed(cur);
                 String err = connectError.get();
                 if (this.isAuthenticationError(err)) {
                     if (err.equals(this.serverAuthErrors.get(resolved))) {
@@ -468,6 +469,10 @@ public class NatsConnection implements AutoCloseable {
                     }
                     serverAuthErrors.put(resolved, err);
                 }
+            }
+
+            if (!isConnected() && !isClosed()) {
+                serverPool.connectFailed(cur);
             }
         }
     }
