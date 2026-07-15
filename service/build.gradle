@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 ext {
     jarVersion        = '3.0.0'
+    artifactNameExt   = 'jnats3-service'
     moduleNameExt     = 'io.synadia.jnats3.service'
     bundleNameExt     = 'io.synadia.jnats3.service'
     pomDescriptionExt = 'Service library for the NATS messaging system.'

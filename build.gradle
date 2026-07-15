@@ -155,7 +155,7 @@ subprojects {
     // so that ext.jarVersion and other ext vars are guaranteed to exist
     // -------------------------------------------------------------------------
     afterEvaluate {
-        def jarAndArtifactName = "jnats3" + jarEnd
+        def jarAndArtifactName = artifactNameExt + jarEnd
 
         version = isRelease ? jarVersion : jarVersion + snap
 

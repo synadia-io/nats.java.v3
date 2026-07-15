@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 ext {
     jarVersion        = '3.0.0'
+    artifactNameExt   = 'jnats3-core'
     moduleNameExt     = 'io.synadia.jnats3.core'
     bundleNameExt     = 'io.synadia.jnats3.core'
     pomDescriptionExt = 'Core library for the NATS messaging system.'

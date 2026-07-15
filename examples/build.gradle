@@ -3,9 +3,10 @@
 // ---------------------------------------------------------------------------
 ext {
     jarVersion        = '3.0.0'
-    moduleNameExt     = 'io.synadia.jnats3.jetstream'
-    bundleNameExt     = 'io.synadia.jnats3.jetstream'
-    pomDescriptionExt = 'JetStream library for the NATS messaging system.'
+    artifactNameExt   = 'jnats3-examples'
+    moduleNameExt     = 'io.synadia.jnats3.examples'
+    bundleNameExt     = 'io.synadia.jnats3.examples'
+    pomDescriptionExt = 'Examples for the NATS messaging system client.'
     projectUrlExt     = 'https://github.com/synadia-io/nats.java.v3'
 }
 
