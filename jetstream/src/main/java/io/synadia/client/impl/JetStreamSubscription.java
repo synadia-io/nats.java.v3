@@ -123,7 +123,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                     case MESSAGE:
                         return msg;
                     case STATUS_ERROR:
-                        throw new JetStreamStatusException(msg.getStatus(), this);
+                        throw new JetStreamStatusInternalException(msg.getStatus(), this);
                 }
                 // Check again since waiting forever for any other state
             }
@@ -148,7 +148,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                 case STATUS_ERROR:
                     // if the status applies, throw exception, otherwise it's ignored, fall through
                     if (expectedPullSubject == null || expectedPullSubject.equals(msg.getSubject())) {
-                        throw new JetStreamStatusException(msg.getStatus(), this);
+                        throw new JetStreamStatusInternalException(msg.getStatus(), this);
                     }
                     break;
             }
@@ -180,7 +180,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                 case STATUS_ERROR:
                     // if the status applies throw exception, otherwise it's ignored, fall through
                     if (expectedPullSubject == null || expectedPullSubject.equals(msg.getSubject())) {
-                        throw new JetStreamStatusException(msg.getStatus(), this);
+                        throw new JetStreamStatusInternalException(msg.getStatus(), this);
                     }
                     break;
             }

@@ -15,30 +15,30 @@ class NatsIterableMessageConsumer extends NatsMessageConsumer implements Iterabl
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessage(long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException {
+    public Message nextMessage(long timeoutMillis) throws InterruptedException, JetStreamStatusException {
         return process(() -> sub.nextMessage(timeoutMillis));
     }
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException, JetStreamStatusCheckedException {
+    public Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException, JetStreamStatusException {
         return process(() -> sub.nextMessage(timeout, unit));
     }
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessageNoWait() throws InterruptedException, JetStreamStatusCheckedException {
+    public Message nextMessageNoWait() throws InterruptedException, JetStreamStatusException {
         return process(sub::nextMessageNoWait);
     }
 
     /** {@inheritDoc} */
     @Override
-    public Message nextMessageWaitForever() throws InterruptedException, JetStreamStatusCheckedException {
+    public Message nextMessageWaitForever() throws InterruptedException, JetStreamStatusException {
         return process(sub::nextMessageWaitForever);
     }
 
     // Shared status/processed handling for all four nextMessage variants.
-    private Message process(MessageSupplier supplier) throws InterruptedException, JetStreamStatusCheckedException {
+    private Message process(MessageSupplier supplier) throws InterruptedException, JetStreamStatusException {
         try {
             Message msg = supplier.get();
             if (msg != null) {
@@ -46,8 +46,8 @@ class NatsIterableMessageConsumer extends NatsMessageConsumer implements Iterabl
             }
             return msg;
         }
-        catch (JetStreamStatusException e) {
-            throw new JetStreamStatusCheckedException(e);
+        catch (JetStreamStatusInternalException e) {
+            throw new JetStreamStatusException(e);
         }
         catch (IllegalStateException i) {
             // this happens if the consumer is stopped, since it is

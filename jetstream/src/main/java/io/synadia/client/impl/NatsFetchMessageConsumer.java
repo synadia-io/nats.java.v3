@@ -87,7 +87,7 @@ class NatsFetchMessageConsumer extends NatsMessageConsumerBase implements FetchM
     }
 
     @Override
-    public Message nextMessage() throws InterruptedException, JetStreamStatusCheckedException {
+    public Message nextMessage() throws InterruptedException, JetStreamStatusException {
         try {
             if (finished.get()) {
                 return null;
@@ -134,8 +134,8 @@ class NatsFetchMessageConsumer extends NatsMessageConsumerBase implements FetchM
             }
             return msg;
         }
-        catch (JetStreamStatusException e) {
-            throw new JetStreamStatusCheckedException(e);
+        catch (JetStreamStatusInternalException e) {
+            throw new JetStreamStatusException(e);
         }
         catch (IllegalStateException i) {
             // this happens if the consumer is stopped, since it is

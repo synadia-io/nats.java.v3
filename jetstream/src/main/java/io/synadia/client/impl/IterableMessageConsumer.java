@@ -14,10 +14,10 @@ public interface IterableMessageConsumer extends MessageConsumer {
      * @return the next message, or null if the wait elapsed with no message
      * @throws IllegalArgumentException if {@code timeoutMillis} is less than 1
      * @throws InterruptedException if one is thrown, in order to propagate it up
-     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
      */
-    Message nextMessage(long timeoutMillis) throws InterruptedException, JetStreamStatusCheckedException;
+    Message nextMessage(long timeoutMillis) throws InterruptedException, JetStreamStatusException;
 
     /**
      * Read the next message, waiting up to {@code timeout} of the given unit.
@@ -26,26 +26,26 @@ public interface IterableMessageConsumer extends MessageConsumer {
      * @return the next message, or null if the wait elapsed with no message
      * @throws IllegalArgumentException if {@code timeout} is less than 1
      * @throws InterruptedException if one is thrown, in order to propagate it up
-     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
      */
-    Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException, JetStreamStatusCheckedException;
+    Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException, JetStreamStatusException;
 
     /**
      * Poll once for an already-buffered message and return immediately, without waiting.
      * @return the next buffered message, or null if none is currently available
      * @throws InterruptedException if one is thrown, in order to propagate it up
-     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
      */
-    Message nextMessageNoWait() throws InterruptedException, JetStreamStatusCheckedException;
+    Message nextMessageNoWait() throws InterruptedException, JetStreamStatusException;
 
     /**
      * Read the next message, blocking indefinitely until one is available (interruptible by unsubscribe/close).
      * @return the next message, or null if the subscription became inactive
      * @throws InterruptedException if one is thrown, in order to propagate it up
-     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
      */
-    Message nextMessageWaitForever() throws InterruptedException, JetStreamStatusCheckedException;
+    Message nextMessageWaitForever() throws InterruptedException, JetStreamStatusException;
 }

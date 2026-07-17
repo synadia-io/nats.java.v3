@@ -358,7 +358,7 @@ public class SimplificationTests extends JetStreamTestBase {
         });
     }
 
-    private int readMessages(FetchMessageConsumer fc) throws InterruptedException, JetStreamStatusCheckedException {
+    private int readMessages(FetchMessageConsumer fc) throws InterruptedException, JetStreamStatusException {
         int count = 0;
         while (!fc.isFinished()) {
             Message m = fc.nextMessage();
@@ -845,7 +845,7 @@ public class SimplificationTests extends JetStreamTestBase {
         });
     }
 
-    private void _testOrderedNext(StreamContext sctx, int expectedStreamSeq, PullOrderedConsumerCreator occ) throws IOException, JetStreamApiException, InterruptedException, JetStreamStatusCheckedException {
+    private void _testOrderedNext(StreamContext sctx, int expectedStreamSeq, PullOrderedConsumerCreator occ) throws IOException, JetStreamApiException, InterruptedException, JetStreamStatusException {
         OrderedConsumerContext occtx = sctx.createOrderedConsumer(occ);
         assertNull(occtx.getConsumerName());
         // Loop through the messages to make sure I get stream sequence 1 to 6

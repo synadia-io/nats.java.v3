@@ -27,12 +27,12 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws InterruptedException if one is thrown, to propagate it up
-     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
      * @throws JetStreamApiException the request had an error related to the data
      */
     @Nullable
-    Message next() throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException;
+    Message next() throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException;
 
     /**
      * Read the next message with provided max wait
@@ -41,13 +41,13 @@ public interface BaseConsumerContext {
      * @throws IOException covers various communication issues with the NATS
      *         server, such as timeout or interruption
      * @throws InterruptedException if one is thrown, to propagate it up
-     * @throws JetStreamStatusCheckedException an exception representing a status that requires attention,
+     * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
      * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if maxWait is positive and less than {@value BaseConsumeOptions#MIN_EXPIRES_MILLS}
      */
     @Nullable
-    Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException;
+    Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException;
 
     /**
      * Start a one use Fetch Consumer using all defaults other than the number of messages. See {@link FetchMessageConsumer}

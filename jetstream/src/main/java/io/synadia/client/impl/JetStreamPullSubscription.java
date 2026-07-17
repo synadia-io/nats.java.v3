@@ -154,7 +154,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
                     case MessageManager.ManageResult.STATUS_ERROR:
                         // if there is a match, the status applies otherwise it's ignored
                         if (pullSubject.equals(msg.getSubject())) {
-                            throw new JetStreamStatusException(msg.getStatus(), this);
+                            throw new JetStreamStatusInternalException(msg.getStatus(), this);
                         }
                         break;
                 }

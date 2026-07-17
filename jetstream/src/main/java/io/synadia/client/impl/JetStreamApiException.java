@@ -1,13 +1,14 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.api.Error;
+import io.synadia.client.api.JetStreamException;
 import org.jspecify.annotations.NonNull;
 
 /**
  * JetStreamApiException is used to indicate that the server returned an error while make a request
  * related to JetStream.
  */
-public class JetStreamApiException extends Exception {
+public class JetStreamApiException extends JetStreamException {
     /**
      * The error that this exception represents if there is one
      */
@@ -20,6 +21,14 @@ public class JetStreamApiException extends Exception {
     public JetStreamApiException(@NonNull Error error) {
         super(error.toString());
         this.error = error;
+    }
+
+    /**
+     * Get the full error object from the response.
+     * @return the error
+     */
+    public Error getError() {
+        return error;
     }
 
     /**

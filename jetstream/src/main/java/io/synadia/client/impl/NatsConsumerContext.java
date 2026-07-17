@@ -150,7 +150,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @Nullable
-    public Message next() throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
+    public Message next() throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException {
         return next(DEFAULT_EXPIRES_IN_MILLIS);
     }
 
@@ -159,7 +159,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @Nullable
-    public Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
+    public Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException {
         if (maxWait < MIN_EXPIRES_MILLS) {
             throw new IllegalArgumentException("Max wait must be at least " + MIN_EXPIRES_MILLS + " milliseconds.");
         }

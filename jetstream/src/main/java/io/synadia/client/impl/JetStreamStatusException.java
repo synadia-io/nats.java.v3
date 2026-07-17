@@ -1,41 +1,17 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.api.Status;
+import io.synadia.client.api.JetStreamException;
 
 /**
- * JetStreamStatusException is used to indicate an unknown status message was received.
+ *  A checked version of a JetStreamStatusInternalException
  */
-public class JetStreamStatusException extends StatusException {
+public class JetStreamStatusException extends JetStreamException {
 
     /**
-     * The subscription that this exception occurred on
+     * construct a JetStreamStatusException from a JetStreamStatusInternalException
+     * @param cause the JetStreamStatusInternalException cause
      */
-    private final JetStreamSubscription sub;
-
-    /**
-     * Construct JetStreamStatusException for a subscription and a status
-     *
-     * @param status the status
-     * @param sub    the subscription
-     */
-    public JetStreamStatusException(Status status, JetStreamSubscription sub) {
-        super(status);
-        this.sub = sub;
-    }
-
-    /**
-     * Construct JetStreamStatusException for a status
-     * @param status the status
-     */
-    public JetStreamStatusException(Status status) {
-        this(status, null);
-    }
-
-    /**
-     * Get the subscription this issue occurred on
-     * @return the subscription
-     */
-    public JetStreamSubscription getSubscription() {
-        return sub;
+    public JetStreamStatusException(JetStreamStatusInternalException cause) {
+        super(cause);
     }
 }

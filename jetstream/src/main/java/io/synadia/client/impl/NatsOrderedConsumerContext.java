@@ -44,7 +44,7 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @Nullable
-    public Message next() throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
+    public Message next() throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException {
         return impl.next();
     }
 
@@ -53,7 +53,7 @@ public class NatsOrderedConsumerContext implements OrderedConsumerContext {
      */
     @Override
     @Nullable
-    public Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusCheckedException, JetStreamApiException {
+    public Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException {
         return impl.next(maxWait);
     }
 
