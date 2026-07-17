@@ -1275,12 +1275,12 @@ public class SimplificationTests extends JetStreamTestBase {
 
     @SuppressWarnings("resource")
     private void validateCantCallOtherMethods(OrderedConsumerContext ctx, boolean fetch, boolean consume) {
-        assertThrows(IOException.class, () -> ctx.next(1000L));
+        assertThrows(IllegalStateException.class, () -> ctx.next(1000L));
         if (fetch) {
-            assertThrows(IOException.class, () -> ctx.fetchMessages(1));
+            assertThrows(IllegalStateException.class, () -> ctx.fetchMessages(1));
         }
         if (consume) {
-            assertThrows(IOException.class, () -> ctx.consume(m -> {}));
+            assertThrows(IllegalStateException.class, () -> ctx.consume(m -> {}));
         }
     }
 

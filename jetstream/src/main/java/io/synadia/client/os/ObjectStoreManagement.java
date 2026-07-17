@@ -20,11 +20,11 @@ public class ObjectStoreManagement {
     private final ObjectStoreOptions oso;
     private final JetStreamManagement jsm;
 
-    public ObjectStoreManagement(@NonNull NatsConnection connection) throws IOException {
+    public ObjectStoreManagement(@NonNull NatsConnection connection) {
         this(connection, null);
     }
 
-    public ObjectStoreManagement(@NonNull NatsConnection connection, @Nullable ObjectStoreOptions oso) throws IOException {
+    public ObjectStoreManagement(@NonNull NatsConnection connection, @Nullable ObjectStoreOptions oso) {
         this.nc = connection;
         this.oso = oso;
         this.jsm = new JetStreamManagement(connection, oso == null ? null : oso.getJetStreamOptions());
@@ -34,9 +34,8 @@ public class ObjectStoreManagement {
      * Gets a context for working with an Object Store.
      * @param bucketName the bucket name
      * @return an ObjectStore instance.
-     * @throws IOException various IO exception such as timeout or interruption
      */
-    public ObjectStore objectStore(String bucketName) throws IOException {
+    public ObjectStore objectStore(String bucketName) {
         validateBucketName(bucketName, true);
         return new ObjectStore(bucketName, nc, oso);
     }

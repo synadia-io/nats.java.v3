@@ -27,7 +27,7 @@ public class ObjectStore extends AbstractBucketFeature {
     private final String rawChunkPrefix;
     private final String rawMetaPrefix;
 
-    ObjectStore(String bucketName, NatsConnection connection, ObjectStoreOptions oso) throws IOException {
+    ObjectStore(String bucketName, NatsConnection connection, ObjectStoreOptions oso) {
         super(bucketName, connection, oso);
         rawChunkPrefix = toChunkPrefix(bucketName);
         rawMetaPrefix = toMetaPrefix(bucketName);

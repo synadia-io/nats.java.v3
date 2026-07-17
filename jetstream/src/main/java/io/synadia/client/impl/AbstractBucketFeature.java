@@ -22,7 +22,7 @@ public abstract class AbstractBucketFeature {
     public final String bucketName;
     public final String streamName;
 
-    protected AbstractBucketFeature(String bucketName, NatsConnection connection, FeatureOptions fo) throws IOException {
+    protected AbstractBucketFeature(String bucketName, NatsConnection connection, FeatureOptions fo) {
         this.nc = connection;
         this.fo = fo;
         if (fo == null) {

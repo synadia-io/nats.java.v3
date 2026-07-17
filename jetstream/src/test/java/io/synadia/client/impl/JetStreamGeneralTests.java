@@ -98,8 +98,8 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             new JetStream(nc, jso);
 
             nc.close();
-            assertThrows(IOException.class, () -> new JetStreamManagement(nc));
-            assertThrows(IOException.class, () -> new JetStream(nc));
+            assertThrows(IllegalStateException.class, () -> new JetStreamManagement(nc));
+            assertThrows(IllegalStateException.class, () -> new JetStream(nc));
 
         });
     }

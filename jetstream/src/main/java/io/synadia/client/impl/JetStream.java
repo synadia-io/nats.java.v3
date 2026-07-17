@@ -28,19 +28,19 @@ public class JetStream extends JetStreamImpl {
     @Nullable
     private JetStreamManagement jsm; // this is lazy init'ed
 
-    public static JetStream instance(NatsConnection connection) throws IOException {
+    public static JetStream instance(NatsConnection connection) {
         return new JetStream(connection);
     }
 
-    public static JetStream instance(NatsConnection connection, JetStreamOptions jsOptions) throws IOException {
+    public static JetStream instance(NatsConnection connection, JetStreamOptions jsOptions) {
         return new JetStream(connection, jsOptions);
     }
 
-    public JetStream(NatsConnection connection) throws IOException {
+    public JetStream(NatsConnection connection) {
         super(connection, null);
     }
 
-    public JetStream(NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws IOException {
+    public JetStream(NatsConnection connection, @Nullable JetStreamOptions jsOptions) {
         super(connection, jsOptions);
     }
 

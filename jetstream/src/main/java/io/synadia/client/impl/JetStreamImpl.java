@@ -37,8 +37,10 @@ public class JetStreamImpl implements JetStreamConstants {
     // ----------------------------------------------------------------------------------------------------
     // Create / Init
     // ----------------------------------------------------------------------------------------------------
-    JetStreamImpl(NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws IOException {
-        connection.ensureNotClosingAndNotCLosed();
+    JetStreamImpl(NatsConnection connection, @Nullable JetStreamOptions jsOptions) {
+        if (connection.isClosing() || connection.isClosed()) {
+            throw new IllegalStateException("A JetStream context can't be established during close.");
+        }
         conn = connection;
 
         // Get a working version of JetStream Options...

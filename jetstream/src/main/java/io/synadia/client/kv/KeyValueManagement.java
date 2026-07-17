@@ -23,11 +23,11 @@ public class KeyValueManagement {
     private final KeyValueOptions kvo;
     private final JetStreamManagement jsm;
 
-    public KeyValueManagement(@NonNull NatsConnection connection) throws IOException {
+    public KeyValueManagement(@NonNull NatsConnection connection) {
         this(connection, null);
     }
 
-    public KeyValueManagement(@NonNull NatsConnection connection, @Nullable KeyValueOptions kvo) throws IOException {
+    public KeyValueManagement(@NonNull NatsConnection connection, @Nullable KeyValueOptions kvo) {
         this.nc = connection;
         this.kvo = kvo;
         this.jsm = new JetStreamManagement(connection, kvo == null ? null : kvo.getJetStreamOptions());

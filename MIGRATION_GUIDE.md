@@ -6,6 +6,52 @@ This is the top-level migration guide for moving code from the v2 client (`nats.
 
 ---
 
+## Exceptions — read this first
+
+> **Work in progress.** This section tracks the v3 exception rework as it lands. What is written here is shipped and final; more will be added — in particular the eventual `JetStreamException` consolidation (see the note at the end). Re-read it when you take a new v3 build.
+
+v3 is correcting a long-standing v2 habit: throwing a **checked `IOException` for things that were never I/O problems.** In v2 several client-side validation failures — misuse the API and you get an exception — were reported as `IOException` purely because the surrounding method already declared it and changing the signature would have been a breaking change. v3 is the major version where that constraint is lifted, so those cases now throw the *unchecked* exception that actually fits (`IllegalStateException` for calling something at the wrong time, `IllegalArgumentException` for a bad argument). These are programming errors — you fix them by changing your code, not by catching them at runtime — so forcing a `catch` was never the right shape.
+
+**Two things change, and they migrate very differently.**
+
+**1. Calls that no longer declare `IOException` at all — the compiler will find these for you.** Constructing a JetStream context does not talk to the server, so it can no longer fail with an `IOException`; the constructors and factories dropped it:
+
+| Affected | v2 | v3 |
+|---|---|---|
+| `new JetStream(nc)` / `JetStream.instance(nc)` | `throws IOException` | (no checked exception) |
+| `new JetStreamManagement(nc)` / `.instance(nc)` | `throws IOException` | (no checked exception) |
+| `new KeyValueManagement(nc)` / `new ObjectStoreManagement(nc)` | `throws IOException` | (no checked exception) |
+| `new ObjectStore(...)` / `osm.objectStore(name)` | `throws IOException` | (no checked exception) |
+
+If your v2 code wrapped one of these in `try { … } catch (IOException e)`, it will now **fail to compile** — `error: exception IOException is never thrown in body of corresponding try statement`. That is the safe kind of break: the compiler points at every site and you delete the dead `catch`. (The "connection is closing/closed" guard these had still fires — it is now an `IllegalStateException`, unchecked, which you should not normally catch.)
+
+One asymmetry to expect: **getting a KV bucket still throws, getting an OS bucket does not.** `KeyValueManagement.keyValue(name)` (and the `KeyValue` constructor) still declare `throws IOException` because they verify the backing stream exists (`getStreamInfo`) at creation time — a real server round-trip. `ObjectStore` does no such check at construction, so it dropped the exception. This is not an oversight; it reflects that only one of the two actually contacts the server when you open the bucket.
+
+**2. Calls that still declare `IOException` but no longer route *every* failure through it — the compiler will NOT warn you.** This is the dangerous case. `ConsumerContext.next()` / `fetch()` / `iterate()` / `consume()` still throw `IOException` (a real request over the wire genuinely can), so a `catch (IOException)` around them still compiles cleanly — but two client-side checks that used to land in that `catch` now throw unchecked `IllegalStateException` and sail straight past it:
+
+| Now `IllegalStateException` (was `IOException`) | When |
+|---|---|
+| `"The ordered consumer is already receiving messages…"` | you start a `next`/`fetch`/`iterate`/`consume` on an ordered consumer while a previous one is still running |
+| `"Pinned not allowed with Next/Fetch"` | you call `next`/`fetch` on a pinned-client consumer |
+
+So if you have v2 code shaped like this:
+
+```java
+try {
+    Message m = consumerContext.next(1000L);
+    // …
+} catch (IOException e) {
+    // in v2 this ALSO caught "already receiving" / "pinned not allowed"
+    handleProblem(e);
+}
+```
+
+it still compiles under v3, but those two conditions now escape as `IllegalStateException` and reach whatever is above you — often an uncaught crash. There is no compiler error to lead you here, so **grep your codebase for `catch` blocks around consumer `next`/`fetch`/`iterate`/`consume` and around JetStream/KV/OS context creation, and check whether you were relying on `IOException` to catch a *usage* error.** If you were, either fix the misuse (the right answer — these fire only when the calling code is wrong) or add a `catch (IllegalStateException e)`.
+
+> This is the first step of a broader exception cleanup. Later v3 changes will consolidate the remaining JetStream checked exceptions (`IOException` + `JetStreamApiException`) behind a single `JetStreamException` base; when that lands it gets its own section here. Nothing in *this* section depends on that — the reclassifications above are shipped and final.
+
+---
+
 ## Core
 
 - **[Options constants — user-facing changes](MIGRATION_GUIDE_OPTIONS.md)** — the `Options` class was split into `OptionsConstants` and `OptionsProperties`. Constants renamed to camelCase. May be folded into this guide later.

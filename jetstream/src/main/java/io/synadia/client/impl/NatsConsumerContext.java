@@ -97,17 +97,17 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
         return (JetStreamPullSubscription) streamCtx.js.createSubscription(ci, subscribeBehavior, initialPocc, optionalPmm);
     }
 
-    private void checkState() throws IOException {
+    private void checkState() {
         NatsMessageConsumerBase lastCon = lastConsumer.get();
         if (lastCon != null && isOrdered && !lastCon.finished.get()) {
-            throw new IOException("The ordered consumer is already receiving messages. Ordered Consumer does not allow multiple instances at time.");
+            throw new IllegalStateException("The ordered consumer is already receiving messages. Ordered Consumer does not allow multiple instances at time.");
         }
     }
 
-    private void checkNotPinned(String label) throws IOException {
+    private void checkNotPinned(String label) {
         ConsumerInfo ci = cachedConsumerInfo.get();
         if (ci != null && ci.getConsumerConfiguration().getPriorityPolicy() == PriorityPolicy.PinnedClient) {
-            throw new IOException("Pinned not allowed with " + label);
+            throw new IllegalStateException("Pinned not allowed with " + label);
         }
     }
 

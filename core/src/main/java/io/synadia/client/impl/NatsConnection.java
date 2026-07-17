@@ -2615,12 +2615,6 @@ public class NatsConnection implements AutoCloseable {
         writer.flushBuffer();
     }
 
-    public void ensureNotClosingAndNotCLosed() throws IOException {
-        if (isClosing() || isClosed()) {
-            throw new IOException("A JetStream context can't be established during close.");
-        }
-    }
-
     /**
      * Get the number of messages in the outgoing queue for this connection.
      * This value is volatile in the sense that it changes often and may be adjusted by more than one message.

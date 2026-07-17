@@ -85,6 +85,6 @@ public class ErrorListenerConsoleImpl implements ErrorListener {
      */
     @Override
     public void socketWriteTimeout(NatsConnection conn) {
-        System.out.println(supplyMessage("[SEVERE] socketWriteTimeout", conn, null, null));
+        System.out.println(supplyMessage("[SEVERE] socketWriteTimeout", conn, null));
     }
 }
