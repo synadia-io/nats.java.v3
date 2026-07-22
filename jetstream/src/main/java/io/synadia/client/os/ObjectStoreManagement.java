@@ -1,14 +1,13 @@
 package io.synadia.client.os;
 
 import io.synadia.client.api.DiscardPolicy;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.StreamCreator;
-import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.JetStreamManagement;
 import io.synadia.client.impl.NatsConnection;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,12 +43,11 @@ public class ObjectStoreManagement {
      * Create an object store.
      * @param creator the object store configuration creator
      * @return the object store status
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public ObjectStoreStatus create(ObjectStoreConfigurationCreator creator) throws IOException, JetStreamApiException {
+    public ObjectStoreStatus create(ObjectStoreConfigurationCreator creator) throws JetStreamException, InterruptedException {
         StreamCreator sc = creator.getStreamCreatorCopy()
             .subjects(toMetaStreamSubject(creator.getBucketName()), toChunkStreamSubject(creator.getBucketName()))
             .allowRollup(true)
@@ -61,11 +59,10 @@ public class ObjectStoreManagement {
     /**
      * Get the list of object stores bucket names
      * @return list of object stores bucket names
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<String> getBucketNames() throws IOException, JetStreamApiException {
+    public List<String> getBucketNames() throws JetStreamException, InterruptedException {
         List<String> buckets = new ArrayList<>();
         List<String> names = jsm.getStreamNames();
         for (String name : names) {
@@ -80,11 +77,10 @@ public class ObjectStoreManagement {
      * Gets the status for an existing object store bucket.
      * @param bucketName the object store bucket name to get info for
      * @return the bucket status object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectStoreStatus getStatus(String bucketName) throws IOException, JetStreamApiException {
+    public ObjectStoreStatus getStatus(String bucketName) throws JetStreamException, InterruptedException {
         validateBucketName(bucketName, true);
         return new ObjectStoreStatus(jsm.getStreamInfo(toStreamName(bucketName)));
     }
@@ -92,11 +88,10 @@ public class ObjectStoreManagement {
     /**
      * Gets the status for all object store buckets.
      * @return list of statuses
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<ObjectStoreStatus> getStatuses() throws IOException, JetStreamApiException {
+    public List<ObjectStoreStatus> getStatuses() throws JetStreamException, InterruptedException {
         List<String> bucketNames = getBucketNames();
         List<ObjectStoreStatus> statuses = new ArrayList<>();
         for (String name : bucketNames) {
@@ -108,11 +103,10 @@ public class ObjectStoreManagement {
     /**
      * Deletes an existing object store. Will throw a JetStreamApiException if the delete fails.
      * @param bucketName the object store bucket name to delete
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void delete(String bucketName) throws IOException, JetStreamApiException {
+    public void delete(String bucketName) throws JetStreamException, InterruptedException {
         validateBucketName(bucketName, true);
         jsm.deleteStream(toStreamName(bucketName));
     }

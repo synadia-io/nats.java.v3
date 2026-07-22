@@ -1,11 +1,11 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamCreator;
 import io.synadia.client.api.StreamInfo;
 import io.synadia.client.utils.TestBase;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,7 +26,7 @@ public class JetStreamTestingContext implements AutoCloseable {
 
     private final Set<String> streams;
 
-    public JetStreamTestingContext(NatsConnection nc, int subjectCount) throws JetStreamApiException, IOException {
+    public JetStreamTestingContext(NatsConnection nc, int subjectCount) throws JetStreamException, InterruptedException {
         this.nc = nc;
         jsm = new JetStreamManagement(nc);
         js = jsm.jetStream();
@@ -62,19 +62,19 @@ public class JetStreamTestingContext implements AutoCloseable {
         return subjects;
     }
 
-    public void createOrReplaceStream() throws JetStreamApiException, IOException {
+    public void createOrReplaceStream() throws JetStreamException, InterruptedException {
         createOrReplaceStream(scBuilder(subject(0)));
     }
 
-    public void createOrReplaceStream(int subjectCount) throws JetStreamApiException, IOException {
+    public void createOrReplaceStream(int subjectCount) throws JetStreamException, InterruptedException {
         createOrReplaceStream(scBuilder(getSubjects(subjectCount)));
     }
 
-    public void createOrReplaceStream(String... subjects) throws JetStreamApiException, IOException {
+    public void createOrReplaceStream(String... subjects) throws JetStreamException, InterruptedException {
         createOrReplaceStream(scBuilder(subjects));
     }
 
-    public StreamInfo createOrReplaceStream(StreamCreator sc) throws JetStreamApiException, IOException {
+    public StreamInfo createOrReplaceStream(StreamCreator sc) throws JetStreamException, InterruptedException {
         String streamName = sc.getName();
         try { jsm.deleteStream(streamName); } catch (Exception ignore) {}
         streams.remove(streamName);
@@ -83,7 +83,7 @@ public class JetStreamTestingContext implements AutoCloseable {
         return si;
     }
 
-    public StreamInfo addStream(StreamCreator sc) throws JetStreamApiException, IOException {
+    public StreamInfo addStream(StreamCreator sc) throws JetStreamException, InterruptedException {
         String streamName = sc.getName();
         si = jsm.addStream(sc);
         streams.add(streamName);
@@ -108,7 +108,7 @@ public class JetStreamTestingContext implements AutoCloseable {
             .subjects(subjects);
     }
 
-    public boolean deleteStream() throws JetStreamApiException, IOException {
+    public boolean deleteStream() throws JetStreamException, InterruptedException {
         boolean deleted = jsm.deleteStream(stream);
         if (deleted) {
             streams.remove(stream);

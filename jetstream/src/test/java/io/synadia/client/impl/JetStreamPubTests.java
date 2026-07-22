@@ -2,12 +2,12 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamCreator;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +83,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
             assertNextMessage(s, data(12), "bar12");
 
             // 503
-            assertThrows(IOException.class, () -> ctx.js.publish(random(), (String)null));
+            assertThrows(JetStreamException.class, () -> ctx.js.publish(random(), (String)null));
         });
     }
 
@@ -211,7 +211,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
     private void assertFutureIOException(CompletableFuture<PublishAck> future) {
         ExecutionException ee = assertThrows(ExecutionException.class, future::get);
         assertInstanceOf(RuntimeException.class, ee.getCause());
-        assertInstanceOf(IOException.class, ee.getCause().getCause());
+        assertInstanceOf(JetStreamException.class, ee.getCause().getCause());
     }
 
     private void assertFutureJetStreamApiException(CompletableFuture<PublishAck> future) {
@@ -405,12 +405,12 @@ public class JetStreamPubTests extends JetStreamTestBase {
     public void testPublishMiscExceptions() throws Exception {
         runInShared((nc, ctx) -> {
             // invalid subject
-            assertThrows(IOException.class, () -> ctx.js.publish(random(), dataBytes()));
+            assertThrows(JetStreamException.class, () -> ctx.js.publish(random(), dataBytes()));
         });
     }
 
     @Test
-    public void testPublishAckJson() throws IOException, JetStreamApiException {
+    public void testPublishAckJson() throws JetStreamException {
         String json = "{\"stream\":\"sname\", \"seq\":42, \"duplicate\":false}";
         PublishAck pa = new PublishAck(getDataMessage(json));
         assertEquals("sname", pa.getStream());

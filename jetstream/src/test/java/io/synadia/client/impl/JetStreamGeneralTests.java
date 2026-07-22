@@ -2,13 +2,13 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.Options;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.PublishAck;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamCreator;
 import io.synadia.client.utils.ConnectionUtils;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -81,7 +81,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             // get normal context, try to do an operation
             // get management context, try to do an operation
             JetStreamManagement jsm = new JetStreamManagement(nc);
-            assertThrows(IOException.class, jsm::getAccountStatistics);
+            assertThrows(JetStreamException.class, jsm::getAccountStatistics);
         });
     }
 
@@ -157,7 +157,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
         });
     }
 
-    private void readPrefixMessages(NatsConnection nc, JetStream js, String subject, String dest) throws InterruptedException, IOException, JetStreamApiException, TimeoutException {
+    private void readPrefixMessages(NatsConnection nc, JetStream js, String subject, String dest) throws InterruptedException, JetStreamException, TimeoutException {
         JetStreamPushSubscription sub = js.pushSubscribe(subject);
         nc.flush(1000);
         List<Message> msgs = readMessagesAck(sub);

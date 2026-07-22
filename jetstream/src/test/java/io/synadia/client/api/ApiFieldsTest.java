@@ -9,7 +9,6 @@ import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.NatsMessage;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -1914,7 +1913,7 @@ public class ApiFieldsTest {
     }
 
     @Test
-    public void testApiResponse_baseBehaviors() {
+    public void testApiResponse_baseBehaviors() throws JetStreamException {
         // Test the various ApiResponse constructors and accessors through SuccessApiResponse.
         // Null message ctor -> empty
         SuccessApiResponse nullMsg = new SuccessApiResponse(null);
@@ -2088,10 +2087,10 @@ public class ApiFieldsTest {
             () -> new PublishAck(msg("{\"error\":{\"code\":500,\"description\":\"bad\"}}")));
 
         // Missing/empty stream -> IOException
-        assertThrows(IOException.class, () -> new PublishAck(msg("{\"seq\":1}")));
+        assertThrows(JetStreamProtocolException.class, () -> new PublishAck(msg("{\"seq\":1}")));
 
         // Missing/negative seq -> IOException
-        assertThrows(IOException.class, () -> new PublishAck(msg("{\"stream\":\"x\"}")));
+        assertThrows(JetStreamProtocolException.class, () -> new PublishAck(msg("{\"stream\":\"x\"}")));
     }
 
     @Test

@@ -6,7 +6,6 @@ import io.synadia.client.api.Error;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -52,13 +51,12 @@ public class JetStreamManagement extends JetStreamImpl {
     /**
      * Gets the account statistics for the logged in account.
      * @return account statistics
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public AccountStatistics getAccountStatistics() throws IOException, JetStreamApiException {
-        Message resp = makeRequestResponseRequired(JSAPI_ACCOUNT_INFO, null, getTimeout());
+    public AccountStatistics getAccountStatistics() throws JetStreamException, InterruptedException {
+        Message resp = makeRequestResponseRequired(JSAPI_ACCOUNT_INFO, null, getTimeout(), "getAccountStatistics");
         return new AccountStatistics(resp).throwOnHasError();
     }
 
@@ -66,12 +64,11 @@ public class JetStreamManagement extends JetStreamImpl {
      * Loads or creates a stream.
      * @param creator the stream creator
      * @return stream information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the configuration is missing or invalid
      */
-    public StreamInfo addStream(StreamCreator creator) throws IOException, JetStreamApiException {
+    public StreamInfo addStream(StreamCreator creator) throws JetStreamException, InterruptedException {
         return addOrUpdateStream(creator, JSAPI_STREAM_CREATE);
     }
 
@@ -79,20 +76,19 @@ public class JetStreamManagement extends JetStreamImpl {
      * Updates an existing stream.
      * @param creator the stream creator
      * @return stream information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the configuration is missing or invalid
      */
-    public StreamInfo updateStream(StreamCreator creator) throws IOException, JetStreamApiException {
+    public StreamInfo updateStream(StreamCreator creator) throws JetStreamException, InterruptedException {
         return addOrUpdateStream(creator, JSAPI_STREAM_UPDATE);
     }
 
-    private StreamInfo addOrUpdateStream(StreamCreator creator, String template) throws IOException, JetStreamApiException {
+    private StreamInfo addOrUpdateStream(StreamCreator creator, String template) throws JetStreamException, InterruptedException {
         validateNotNull(creator, "Creator");
         String streamName = creator.getName();
         String subj = String.format(template, streamName);
-        Message resp = makeRequestResponseRequired(subj, creator.toJson().getBytes(StandardCharsets.UTF_8), getTimeout());
+        Message resp = makeRequestResponseRequired(subj, creator.toJson().getBytes(StandardCharsets.UTF_8), getTimeout(), template.equals(JSAPI_STREAM_CREATE) ? "addStream" : "updateStream");
         return createAndCacheStreamInfoThrowOnError(streamName, resp);
     }
 
@@ -100,14 +96,13 @@ public class JetStreamManagement extends JetStreamImpl {
      * Deletes an existing stream.
      * @param streamName the stream name to use.
      * @return true if the delete succeeded. Usually throws a JetStreamApiException otherwise
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public boolean deleteStream(String streamName) throws IOException, JetStreamApiException {
+    public boolean deleteStream(String streamName) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         String subj = String.format(JSAPI_STREAM_DELETE, streamName);
-        Message resp = makeRequestResponseRequired(subj, null, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, null, getTimeout(), "deleteStream");
         return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
     }
 
@@ -117,11 +112,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * See the overloaded version that accepts StreamInfoOptions
      * @param streamName the stream name to use.
      * @return stream information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public StreamInfo getStreamInfo(String streamName) throws IOException, JetStreamApiException {
+    public StreamInfo getStreamInfo(String streamName) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         return _getStreamInfo(streamName, null);
     }
@@ -132,11 +126,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName the stream name to use.
      * @param options the stream info options. If null, request will not return any optional data.
      * @return stream information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public StreamInfo getStreamInfo(String streamName, @Nullable StreamInfoOptions options) throws IOException, JetStreamApiException {
+    public StreamInfo getStreamInfo(String streamName, @Nullable StreamInfoOptions options) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         return _getStreamInfo(streamName, options);
     }
@@ -145,14 +138,13 @@ public class JetStreamManagement extends JetStreamImpl {
      * Purge stream messages
      * @param streamName the stream name to use.
      * @return PurgeResponse the purge response
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public PurgeResponse purgeStream(String streamName) throws IOException, JetStreamApiException {
+    public PurgeResponse purgeStream(String streamName) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         String subj = String.format(JSAPI_STREAM_PURGE, streamName);
-        Message resp = makeRequestResponseRequired(subj, null, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, null, getTimeout(), "purgeStream");
         return new PurgeResponse(resp).throwOnHasError();
     }
 
@@ -161,16 +153,15 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName the stream name to use.
      * @param options the purge options
      * @return PurgeResponse the purge response
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public PurgeResponse purgeStream(String streamName, PurgeOptions options) throws IOException, JetStreamApiException {
+    public PurgeResponse purgeStream(String streamName, PurgeOptions options) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(options, "Purge Options");
         String subj = String.format(JSAPI_STREAM_PURGE, streamName);
         byte[] body = options.toJson().getBytes(StandardCharsets.UTF_8);
-        Message resp = makeRequestResponseRequired(subj, body, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, body, getTimeout(), "purgeStream");
         return new PurgeResponse(resp).throwOnHasError();
     }
 
@@ -178,11 +169,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * Creates a consumer. Must not already exist.
      * @param creator the consumer creator to use.
      * @return consumer information.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data such as the consumer already exists
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ConsumerInfo createConsumer(String stream, ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
+    public ConsumerInfo createConsumer(String stream, ConsumerCreator<?> creator) throws JetStreamException, InterruptedException {
         return _createConsumer(stream, creator, ConsumerCreateRequest.Action.Create);
     }
 
@@ -190,11 +180,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * Updates an existing consumer. Must already exist.
      * @param creator the consumer creator to use.
      * @return consumer information.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data such as the consumer does not already exist
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ConsumerInfo updateConsumer(String stream, ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
+    public ConsumerInfo updateConsumer(String stream, ConsumerCreator<?> creator) throws JetStreamException, InterruptedException {
         return _createConsumer(stream, creator, ConsumerCreateRequest.Action.Update);
     }
 
@@ -202,11 +191,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * Loads or creates a consumer.
      * @param creator the consumer creator to use.
      * @return consumer information.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ConsumerInfo createOrUpdateConsumer(String stream, ConsumerCreator<?> creator) throws IOException, JetStreamApiException {
+    public ConsumerInfo createOrUpdateConsumer(String stream, ConsumerCreator<?> creator) throws JetStreamException, InterruptedException {
         return _createConsumer(stream, creator, ConsumerCreateRequest.Action.CreateOrUpdate);
     }
 
@@ -215,15 +203,14 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName name of the stream
      * @param consumerName the name of the consumer.
      * @return true if the delete succeeded
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, for instance the consumer does not exist.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public boolean deleteConsumer(String streamName, String consumerName) throws IOException, JetStreamApiException {
+    public boolean deleteConsumer(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(consumerName, "Consumer Name");
         String subj = String.format(JSAPI_CONSUMER_DELETE, streamName, consumerName);
-        Message resp = makeRequestResponseRequired(subj, null, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, null, getTimeout(), "deleteConsumer");
         return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
     }
 
@@ -233,17 +220,16 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param consumerName the name of the consumer.
      * @param pauseUntil consumer is paused until this time.
      * @return ConsumerPauseResponse the pause response
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, for instance the consumer does not exist.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ConsumerPauseResponse pauseConsumer(String streamName, String consumerName, ZonedDateTime pauseUntil) throws IOException, JetStreamApiException {
+    public ConsumerPauseResponse pauseConsumer(String streamName, String consumerName, ZonedDateTime pauseUntil) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(consumerName, "Consumer Name");
         validateNotNull(pauseUntil, "Pause Until");
         String subj = String.format(JSAPI_CONSUMER_PAUSE, streamName, consumerName);
         ConsumerPauseRequest pauseRequest = new ConsumerPauseRequest(pauseUntil);
-        Message resp = makeRequestResponseRequired(subj, pauseRequest.serialize(), getTimeout());
+        Message resp = makeRequestResponseRequired(subj, pauseRequest.serialize(), getTimeout(), "pauseConsumer");
         return new ConsumerPauseResponse(resp).throwOnHasError();
     }
 
@@ -252,15 +238,14 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName name of the stream
      * @param consumerName the name of the consumer.
      * @return true if the call succeeded
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, for instance the consumer does not exist.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public boolean resumeConsumer(String streamName, String consumerName) throws IOException, JetStreamApiException {
+    public boolean resumeConsumer(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(consumerName, "Consumer Name");
         String subj = String.format(JSAPI_CONSUMER_PAUSE, streamName, consumerName);
-        Message resp = makeRequestResponseRequired(subj, null, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, null, getTimeout(), "resumeConsumer");
         ConsumerPauseResponse response = new ConsumerPauseResponse(resp).throwOnHasError();
         return !response.isPaused();
     }
@@ -272,11 +257,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName name of the stream
      * @param consumerName the name of the consumer.
      * @return consumer information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ConsumerInfo getConsumerInfo(String streamName, String consumerName) throws IOException, JetStreamApiException {
+    public ConsumerInfo getConsumerInfo(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         return super.strictGetConsumerInfo(streamName, consumerName);
     }
 
@@ -284,15 +268,14 @@ public class JetStreamManagement extends JetStreamImpl {
      * Return a list of consumers by name
      * @param streamName the name of the stream.
      * @return The list of names
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<String> getConsumerNames(String streamName) throws IOException, JetStreamApiException {
+    public List<String> getConsumerNames(String streamName) throws JetStreamException, InterruptedException {
         String subj = String.format(JSAPI_CONSUMER_NAMES, streamName);
         ConsumerNamesReader cnr = new ConsumerNamesReader();
         while (cnr.hasMore()) {
-            Message resp = makeRequestResponseRequired(subj, cnr.nextJson(null), getTimeout());
+            Message resp = makeRequestResponseRequired(subj, cnr.nextJson(null), getTimeout(), "getConsumerNames");
             cnr.process(resp);
         }
         return cnr.getStrings();
@@ -302,15 +285,14 @@ public class JetStreamManagement extends JetStreamImpl {
      * Return a list of ConsumerInfo objects.
      * @param streamName the name of the stream.
      * @return The list of ConsumerInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<ConsumerInfo> getConsumers(String streamName) throws IOException, JetStreamApiException {
+    public List<ConsumerInfo> getConsumers(String streamName) throws JetStreamException, InterruptedException {
         String subj = String.format(JSAPI_CONSUMER_LIST, streamName);
         ConsumerListReader clg = new ConsumerListReader();
         while (clg.hasMore()) {
-            Message resp = makeRequestResponseRequired(subj, clg.nextJson(), getTimeout());
+            Message resp = makeRequestResponseRequired(subj, clg.nextJson(), getTimeout(), "getConsumers");
             clg.process(resp);
         }
         return clg.getConsumers();
@@ -319,11 +301,10 @@ public class JetStreamManagement extends JetStreamImpl {
     /**
      * Get the names of all streams.
      * @return The list of names
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<String> getStreamNames() throws IOException, JetStreamApiException {
+    public List<String> getStreamNames() throws JetStreamException, InterruptedException {
         return getStreamNamesInternal(null);
     }
 
@@ -332,22 +313,20 @@ public class JetStreamManagement extends JetStreamImpl {
      *
      * @param subjectFilter the subject. Wildcards are allowed.
      * @return The list of stream names matching the subject filter. May be empty, will not be null.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<String> getStreamNames(String subjectFilter) throws IOException, JetStreamApiException {
+    public List<String> getStreamNames(String subjectFilter) throws JetStreamException, InterruptedException {
         return getStreamNamesInternal(subjectFilter);
     }
 
     /**
      * Return a list of StreamInfo objects.
      * @return The list of StreamInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<StreamInfo> getStreams() throws IOException, JetStreamApiException {
+    public List<StreamInfo> getStreams() throws JetStreamException, InterruptedException {
         return _getStreams(null);
     }
 
@@ -355,18 +334,17 @@ public class JetStreamManagement extends JetStreamImpl {
      * Return a list of StreamInfo objects that have subjects matching the filter.
      * @param subjectFilter the filter to limit the streams by subjects. Wildcards allowed.
      * @return The list of StreamInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<StreamInfo> getStreams(String subjectFilter) throws IOException, JetStreamApiException {
+    public List<StreamInfo> getStreams(String subjectFilter) throws JetStreamException, InterruptedException {
         return _getStreams(subjectFilter);
     }
 
-    private List<StreamInfo> _getStreams(@Nullable String subjectFilter) throws IOException, JetStreamApiException {
+    private List<StreamInfo> _getStreams(@Nullable String subjectFilter) throws JetStreamException, InterruptedException {
         StreamListReader slr = new StreamListReader();
         while (slr.hasMore()) {
-            Message resp = makeRequestResponseRequired(JSAPI_STREAM_LIST, slr.nextJson(subjectFilter), getTimeout());
+            Message resp = makeRequestResponseRequired(JSAPI_STREAM_LIST, slr.nextJson(subjectFilter), getTimeout(), "getStreams");
             slr.process(resp);
         }
         return cacheStreamInfo(slr.getStreams());
@@ -377,11 +355,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName the name of the stream.
      * @param seq the sequence number of the message
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public MessageInfo getMessage(String streamName, long seq) throws IOException, JetStreamApiException {
+    public MessageInfo getMessage(String streamName, long seq) throws JetStreamException, InterruptedException {
         return _getMessage(streamName, MessageGetRequest.forSequence(seq));
     }
 
@@ -390,11 +367,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName the name of the stream.
      * @param messageGetRequest the {@link MessageGetRequest} to get a message
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public MessageInfo getMessage(String streamName, MessageGetRequest messageGetRequest) throws IOException, JetStreamApiException {
+    public MessageInfo getMessage(String streamName, MessageGetRequest messageGetRequest) throws JetStreamException, InterruptedException {
         return _getMessage(streamName, messageGetRequest);
     }
 
@@ -403,11 +379,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName the name of the stream.
      * @param subject the subject to get the last message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public MessageInfo getLastMessage(String streamName, String subject) throws IOException, JetStreamApiException {
+    public MessageInfo getLastMessage(String streamName, String subject) throws JetStreamException, InterruptedException {
         return _getMessage(streamName, MessageGetRequest.lastForSubject(subject));
     }
 
@@ -416,11 +391,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName the name of the stream.
      * @param subject the subject to get the first message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public MessageInfo getFirstMessage(String streamName, String subject) throws IOException, JetStreamApiException {
+    public MessageInfo getFirstMessage(String streamName, String subject) throws JetStreamException, InterruptedException {
         return _getMessage(streamName, MessageGetRequest.firstForSubject(subject));
     }
 
@@ -431,11 +405,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName the name of the stream.
      * @param startTime the start time to get the first message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public MessageInfo getFirstMessage(String streamName, ZonedDateTime startTime) throws IOException, JetStreamApiException {
+    public MessageInfo getFirstMessage(String streamName, ZonedDateTime startTime) throws JetStreamException, InterruptedException {
         return _getMessage(streamName, MessageGetRequest.firstForStartTime(startTime));
     }
 
@@ -447,11 +420,10 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param startTime the start time to get the first message for.
      * @param subject the subject to get the first message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public MessageInfo getFirstMessage(String streamName, ZonedDateTime startTime, String subject) throws IOException, JetStreamApiException {
+    public MessageInfo getFirstMessage(String streamName, ZonedDateTime startTime, String subject) throws JetStreamException, InterruptedException {
         return _getMessage(streamName, MessageGetRequest.firstForStartTimeAndSubject(startTime, subject));
     }
 
@@ -462,15 +434,14 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param seq the first possible sequence number of the message
      * @param subject the subject to get the next message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public MessageInfo getNextMessage(String streamName, long seq, String subject) throws IOException, JetStreamApiException {
+    public MessageInfo getNextMessage(String streamName, long seq, String subject) throws JetStreamException, InterruptedException {
         return _getMessage(streamName, MessageGetRequest.nextForSubject(seq, subject));
     }
 
-    private MessageInfo _getMessage(String streamName, MessageGetRequest messageGetRequest) throws IOException, JetStreamApiException {
+    private MessageInfo _getMessage(String streamName, MessageGetRequest messageGetRequest) throws JetStreamException, InterruptedException {
         validateNotNull(messageGetRequest, "Message Get Request");
         CachedStreamInfo csi = getCachedStreamInfo(streamName);
         if (csi.allowDirect) {
@@ -484,7 +455,7 @@ public class JetStreamManagement extends JetStreamImpl {
                 subject = String.format(JSAPI_DIRECT_GET, streamName);
                 payload = messageGetRequest.serialize();
             }
-            Message resp = makeRequestResponseRequired(subject, payload, getTimeout());
+            Message resp = makeRequestResponseRequired(subject, payload, getTimeout(), "getMessage");
             if (resp.isStatusMessage()) {
                 throw new JetStreamApiException(Error.convert(resp.getStatus()));
             }
@@ -492,7 +463,7 @@ public class JetStreamManagement extends JetStreamImpl {
         }
         else {
             String getSubject = String.format(JSAPI_MSG_GET, streamName);
-            Message resp = makeRequestResponseRequired(getSubject, messageGetRequest.serialize(), getTimeout());
+            Message resp = makeRequestResponseRequired(getSubject, messageGetRequest.serialize(), getTimeout(), "getMessage");
             return new MessageInfo(resp, streamName, false).throwOnHasError();
         }
     }
@@ -502,12 +473,11 @@ public class JetStreamManagement extends JetStreamImpl {
      * This can be considered an expensive (time-consuming) operation, but is more secure.
      * @param streamName name of the stream
      * @param seq the sequence number of the message
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return true if the delete succeeded
      */
-    public boolean deleteMessage(String streamName, long seq) throws IOException, JetStreamApiException {
+    public boolean deleteMessage(String streamName, long seq) throws JetStreamException, InterruptedException {
         return deleteMessage(streamName, seq, true);
     }
 
@@ -516,16 +486,15 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName name of the stream
      * @param seq the sequence number of the message
      * @param erase whether to erase the message (overwriting with garbage) or only mark it as erased.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return true if the delete succeeded
      */
-    public boolean deleteMessage(String streamName, long seq, boolean erase) throws IOException, JetStreamApiException {
+    public boolean deleteMessage(String streamName, long seq, boolean erase) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         String subj = String.format(JSAPI_MSG_DELETE, streamName);
         MessageDeleteRequest mdr = new MessageDeleteRequest(seq, erase);
-        Message resp = makeRequestResponseRequired(subj, mdr.serialize(), getTimeout());
+        Message resp = makeRequestResponseRequired(subj, mdr.serialize(), getTimeout(), "deleteMessage");
         return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
     }
 
@@ -534,18 +503,17 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName name of the stream
      * @param consumerName name of consumer
      * @param consumerGroup name of the consumer's group
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return true if the delete succeeded
      */
-    public boolean unpinConsumer(String streamName, String consumerName, String consumerGroup) throws IOException, JetStreamApiException {
+    public boolean unpinConsumer(String streamName, String consumerName, String consumerGroup) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(consumerName, "Consumer Name");
         validateNotNull(consumerGroup, "Consumer Group");
         String subj = String.format(JSAPI_CONSUMER_UNPIN, streamName, consumerName);
         byte[] payload = String.format("{\"group\": \"%s\"}", consumerGroup).getBytes();
-        Message resp = makeRequestResponseRequired(subj, payload, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, payload, getTimeout(), "unpinConsumer");
         return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
     }
 
@@ -553,12 +521,11 @@ public class JetStreamManagement extends JetStreamImpl {
      * Reset a consumer
      * @param streamName name of the stream
      * @param consumerName name of consumer
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return the current consumer after the reset
      */
-    public ConsumerInfo resetConsumer(String streamName, String consumerName) throws IOException, JetStreamApiException {
+    public ConsumerInfo resetConsumer(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         return resetConsumer(streamName, consumerName, -1);
     }
 
@@ -567,17 +534,16 @@ public class JetStreamManagement extends JetStreamImpl {
      * @param streamName name of the stream
      * @param consumerName name of consumer
      * @param sequence ack floor stream sequence
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return the current consumer after the reset
      */
-    public ConsumerInfo resetConsumer(String streamName, String consumerName, long sequence) throws IOException, JetStreamApiException {
+    public ConsumerInfo resetConsumer(String streamName, String consumerName, long sequence) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(consumerName, "Consumer Name");
         String subj = String.format(JSAPI_CONSUMER_RESET, streamName, consumerName);
         byte[] payload = (sequence < 1 ? "{}" : String.format("{\"seq\":%d}", sequence)).getBytes(StandardCharsets.ISO_8859_1);
-        Message resp = makeRequestResponseRequired(subj, payload, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, payload, getTimeout(), "resetConsumer");
         return new ConsumerInfo(resp).throwOnHasError();
     }
 }

@@ -2,14 +2,14 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.utils.MessageSupplier;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 class NatsIterableMessageConsumer extends NatsMessageConsumer implements IterableMessageConsumer {
 
-    NatsIterableMessageConsumer(SimplifiedSubscriptionMaker subscriptionMaker, ConsumerInfo cachedConsumerInfo, ConsumeOptions opts) throws IOException, JetStreamApiException {
+    NatsIterableMessageConsumer(SimplifiedSubscriptionMaker subscriptionMaker, ConsumerInfo cachedConsumerInfo, ConsumeOptions opts) throws JetStreamException, InterruptedException {
         super(subscriptionMaker, cachedConsumerInfo, opts, null, null);
     }
 

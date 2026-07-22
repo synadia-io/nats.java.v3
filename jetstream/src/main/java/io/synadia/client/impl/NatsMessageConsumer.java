@@ -3,8 +3,8 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.api.JetStreamException;
 
-import java.io.IOException;
 
 class NatsMessageConsumer extends NatsMessageConsumerBase implements PullManagerObserver {
     protected final ConsumeOptions consumeOpts;
@@ -28,7 +28,7 @@ class NatsMessageConsumer extends NatsMessageConsumerBase implements PullManager
                         ConsumerInfo cachedConsumerInfo,
                         ConsumeOptions consumeOpts,
                         NatsDispatcher userDispatcher,
-                        final MessageHandler userMessageHandler) throws IOException, JetStreamApiException
+                        final MessageHandler userMessageHandler) throws JetStreamException, InterruptedException
     {
         super(cachedConsumerInfo);
 
@@ -124,13 +124,19 @@ class NatsMessageConsumer extends NatsMessageConsumerBase implements PullManager
                 shutdownSub();
                 doSub(false);
             }
-            catch (JetStreamApiException | IOException e) {
+            catch (JetStreamException e) {
+                resetOnException();
+            }
+            catch (InterruptedException e) {
+                // reached from a scheduled timer callback that cannot propagate;
+                // re-set the flag so the interrupt isn't swallowed, then reset.
+                Thread.currentThread().interrupt();
                 resetOnException();
             }
         }
     }
 
-    void doSub(boolean first) throws JetStreamApiException, IOException {
+    void doSub(boolean first) throws JetStreamException, InterruptedException {
         MessageHandler mh = userMessageHandler == null ? null : msg -> {
             try {
                 userMessageHandler.onMessage(msg);
@@ -147,7 +153,7 @@ class NatsMessageConsumer extends NatsMessageConsumerBase implements PullManager
             fullResetPending();
             rePull();
         }
-        catch (JetStreamApiException | IOException e) {
+        catch (JetStreamException e) {
             if (first) {
                 throw e;
             }

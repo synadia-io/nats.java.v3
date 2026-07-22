@@ -6,7 +6,6 @@ import io.synadia.client.api.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -62,7 +61,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
                                                @Nullable NatsDispatcher userDispatcher,
                                                @Nullable PullMessageManager optionalPmm,
                                                @Nullable Long optionalInactiveThreshold)
-        throws IOException, JetStreamApiException
+        throws JetStreamException, InterruptedException
     {
         ConsumerInfo ci;
         if (isOrdered) {
@@ -129,7 +128,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public ConsumerInfo retrieveConsumerInfo() throws IOException, JetStreamApiException {
+    public ConsumerInfo retrieveConsumerInfo() throws JetStreamException, InterruptedException {
         ConsumerInfo ci = streamCtx.jsm.getConsumerInfo(streamCtx.streamName, consumerName.get());
         cachedConsumerInfo.set(ci);
         consumerName.set(ci.getName());
@@ -150,7 +149,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @Nullable
-    public Message next() throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException {
+    public Message next() throws JetStreamException, InterruptedException {
         return next(DEFAULT_EXPIRES_IN_MILLIS);
     }
 
@@ -159,7 +158,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @Nullable
-    public Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException {
+    public Message next(long maxWait) throws JetStreamException, InterruptedException {
         if (maxWait < MIN_EXPIRES_MILLS) {
             throw new IllegalArgumentException("Max wait must be at least " + MIN_EXPIRES_MILLS + " milliseconds.");
         }
@@ -194,7 +193,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public FetchMessageConsumer fetchMessages(int maxMessages) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetchMessages(int maxMessages) throws JetStreamException, InterruptedException {
         return fetch(FetchConsumeOptions.builder().maxMessages(maxMessages).build());
     }
 
@@ -203,7 +202,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public FetchMessageConsumer fetchBytes(int maxBytes) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetchBytes(int maxBytes) throws JetStreamException, InterruptedException {
         return fetch(FetchConsumeOptions.builder().maxBytes(maxBytes).build());
     }
 
@@ -212,7 +211,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public FetchMessageConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException {
+    public FetchMessageConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws JetStreamException, InterruptedException {
         required(fetchConsumeOptions, "Fetch Consume Options");
         try {
             stateLock.lock();
@@ -230,7 +229,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public IterableMessageConsumer iterate() throws IOException, JetStreamApiException {
+    public IterableMessageConsumer iterate() throws JetStreamException, InterruptedException {
         return iterate(DEFAULT_CONSUME_OPTIONS);
     }
 
@@ -239,7 +238,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public IterableMessageConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws IOException, JetStreamApiException {
+    public IterableMessageConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws JetStreamException, InterruptedException {
         required(consumeOptions, "Consume Options");
         try {
             stateLock.lock();
@@ -256,7 +255,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
      */
     @Override
     @NonNull
-    public MessageConsumer consume(@NonNull MessageHandler handler) throws IOException, JetStreamApiException {
+    public MessageConsumer consume(@NonNull MessageHandler handler) throws JetStreamException, InterruptedException {
         return consume(DEFAULT_CONSUME_OPTIONS, null, handler);
     }
 
@@ -266,7 +265,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
     @Override
     @NonNull
     public MessageConsumer consume(@Nullable NatsDispatcher dispatcher,
-                                   @NonNull MessageHandler handler) throws IOException, JetStreamApiException {
+                                   @NonNull MessageHandler handler) throws JetStreamException, InterruptedException {
         return consume(DEFAULT_CONSUME_OPTIONS, dispatcher, handler);
     }
 
@@ -276,7 +275,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
     @Override
     @NonNull
     public MessageConsumer consume(@NonNull ConsumeOptions consumeOptions,
-                                   @NonNull MessageHandler handler) throws IOException, JetStreamApiException {
+                                   @NonNull MessageHandler handler) throws JetStreamException, InterruptedException {
         return consume(consumeOptions, null, handler);
     }
 
@@ -288,7 +287,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
     public MessageConsumer consume(@NonNull ConsumeOptions consumeOptions,
                                    @Nullable NatsDispatcher userDispatcher,
                                    @NonNull MessageHandler handler)
-        throws IOException, JetStreamApiException
+        throws JetStreamException, InterruptedException
     {
         required(consumeOptions, "Consume Options");
         required(handler, "Message Handler");
@@ -303,7 +302,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
     }
 
     @Override
-    public boolean unpin(String group) throws IOException, JetStreamApiException {
+    public boolean unpin(String group) throws JetStreamException, InterruptedException {
         String name = consumerName.get();
         if (name == null) {
             ConsumerInfo ci = cachedConsumerInfo.get();

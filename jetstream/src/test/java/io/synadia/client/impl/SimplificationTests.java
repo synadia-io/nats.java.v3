@@ -8,7 +8,6 @@ import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CountDownLatch;
@@ -35,7 +34,7 @@ public class SimplificationTests extends JetStreamTestBase {
         });
     }
 
-    private void _testStreamContext(JetStreamTestingContext ctx, StreamContext streamContext) throws IOException, JetStreamApiException {
+    private void _testStreamContext(JetStreamTestingContext ctx, StreamContext streamContext) throws JetStreamException, InterruptedException {
         String durable = random();
         assertThrows(JetStreamApiException.class, () -> streamContext.getConsumerContext(durable));
         assertThrows(JetStreamApiException.class, () -> streamContext.deleteConsumer(durable));
@@ -125,7 +124,7 @@ public class SimplificationTests extends JetStreamTestBase {
         assertEquals(12, si.getStreamState().getLastSequence());
     }
 
-    private void validateConsumerName(BaseConsumerContext bcc, MessageConsumer mc, String consumerName) throws IOException, JetStreamApiException {
+    private void validateConsumerName(BaseConsumerContext bcc, MessageConsumer mc, String consumerName) throws JetStreamException, InterruptedException {
         assertEquals(consumerName, bcc.getConsumerName());
         if (mc != null) {
             assertNotNull(mc.getCachedConsumerInfo());
@@ -134,7 +133,7 @@ public class SimplificationTests extends JetStreamTestBase {
         }
     }
 
-    private String validateConsumerNameForOrdered(BaseConsumerContext bcc, MessageConsumer mc, String prefix) throws IOException, JetStreamApiException {
+    private String validateConsumerNameForOrdered(BaseConsumerContext bcc, MessageConsumer mc, String prefix) throws JetStreamException, InterruptedException {
         String bccConsumerName = bcc.getConsumerName();
         assertNotNull(bccConsumerName);
         if (prefix != null) {
@@ -393,7 +392,7 @@ public class SimplificationTests extends JetStreamTestBase {
         });
     }
 
-    private ZonedDateTime getStartTimeFirstMessage(JetStreamTestingContext ctx) throws IOException, JetStreamApiException {
+    private ZonedDateTime getStartTimeFirstMessage(JetStreamTestingContext ctx) throws JetStreamException, InterruptedException {
         MessageInfo mi = ctx.jsm.getFirstMessage(ctx.stream, ctx.subject());
         //noinspection DataFlowIssue
         return mi.getTime().plus(30, ChronoUnit.MILLIS);
@@ -845,7 +844,7 @@ public class SimplificationTests extends JetStreamTestBase {
         });
     }
 
-    private void _testOrderedNext(StreamContext sctx, int expectedStreamSeq, PullOrderedConsumerCreator occ) throws IOException, JetStreamApiException, InterruptedException, JetStreamStatusException {
+    private void _testOrderedNext(StreamContext sctx, int expectedStreamSeq, PullOrderedConsumerCreator occ) throws JetStreamException, InterruptedException {
         OrderedConsumerContext occtx = sctx.createOrderedConsumer(occ);
         assertNull(occtx.getConsumerName());
         // Loop through the messages to make sure I get stream sequence 1 to 6

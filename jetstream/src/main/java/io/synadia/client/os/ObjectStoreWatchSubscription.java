@@ -2,11 +2,10 @@ package io.synadia.client.os;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.DeliverPolicy;
-import io.synadia.client.impl.JetStreamApiException;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.impl.NatsWatchSubscription;
 import org.jspecify.annotations.NonNull;
 
-import java.io.IOException;
 import java.util.Collections;
 
 import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
@@ -14,7 +13,7 @@ import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
 
 public class ObjectStoreWatchSubscription extends NatsWatchSubscription<ObjectInfo> {
 
-    public ObjectStoreWatchSubscription(ObjectStore os, ObjectStoreWatcher watcher, ObjectStoreWatchOption... watchOptions) throws IOException, JetStreamApiException {
+    public ObjectStoreWatchSubscription(ObjectStore os, ObjectStoreWatcher watcher, ObjectStoreWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         super(os.js);
 
         // figure out the result options

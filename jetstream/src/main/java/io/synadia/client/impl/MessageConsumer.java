@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.api.JetStreamException;
 
-import java.io.IOException;
 
 /**
  * The MessageConsumer interface is the core interface replacing
@@ -20,11 +20,10 @@ public interface MessageConsumer extends AutoCloseable {
     /**
      * Gets information about the consumer behind this subscription.
      * @return consumer information
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    ConsumerInfo getConsumerInfo() throws IOException, JetStreamApiException;
+    ConsumerInfo getConsumerInfo() throws JetStreamException, InterruptedException;
 
     /**
      * Gets information about the consumer behind this subscription.

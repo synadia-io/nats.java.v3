@@ -3,12 +3,10 @@ package io.synadia.client.api;
 import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
 import io.synadia.client.MessageHandler;
-import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.NatsMessage;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZoneId;
@@ -252,7 +250,7 @@ public class EqualityAndHashCodeCoverageTest {
             PublishAck c = new PublishAck(msg(j2));
             assertEqualsContract(a, b, c);
         }
-        catch (IOException | JetStreamApiException e) {
+        catch (JetStreamException e) {
             fail("Unexpected exception: " + e);
         }
     }

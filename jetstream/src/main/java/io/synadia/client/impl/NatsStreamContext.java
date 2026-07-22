@@ -4,7 +4,6 @@ import io.synadia.client.api.*;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -17,7 +16,7 @@ class NatsStreamContext implements StreamContext {
     final JetStreamManagement jsm;
 
     // for when this is constructed from the JetStream itself
-    NatsStreamContext(String streamName, @Nullable JetStream js, NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws IOException, JetStreamApiException {
+    NatsStreamContext(String streamName, @Nullable JetStream js, NatsConnection connection, @Nullable JetStreamOptions jsOptions) throws JetStreamException, InterruptedException {
         this.streamName = streamName;
         this.js = js == null ? new JetStream(connection, jsOptions) : js;
         jsm = this.js.jetStreamManagement();
@@ -36,7 +35,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public StreamInfo getStreamInfo() throws IOException, JetStreamApiException {
+    public StreamInfo getStreamInfo() throws JetStreamException, InterruptedException {
         return jsm.getStreamInfo(streamName, null);
     }
 
@@ -44,7 +43,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public StreamInfo getStreamInfo(@Nullable StreamInfoOptions options) throws IOException, JetStreamApiException {
+    public StreamInfo getStreamInfo(@Nullable StreamInfoOptions options) throws JetStreamException, InterruptedException {
         return jsm.getStreamInfo(streamName, options);
     }
 
@@ -52,7 +51,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public PurgeResponse purge() throws IOException, JetStreamApiException {
+    public PurgeResponse purge() throws JetStreamException, InterruptedException {
         return jsm.purgeStream(streamName);
     }
 
@@ -60,7 +59,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public PurgeResponse purge(PurgeOptions options) throws IOException, JetStreamApiException {
+    public PurgeResponse purge(PurgeOptions options) throws JetStreamException, InterruptedException {
         return jsm.purgeStream(streamName, options);
     }
 
@@ -68,12 +67,12 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public ConsumerContext getConsumerContext(String consumerName) throws IOException, JetStreamApiException {
+    public ConsumerContext getConsumerContext(String consumerName) throws JetStreamException, InterruptedException {
         return new NatsConsumerContext(this, jsm.getConsumerInfo(streamName, consumerName), null);
     }
 
     @Override
-    public ConsumerContext getConsumerContext(ConsumerInfo ci) throws IOException, JetStreamApiException {
+    public ConsumerContext getConsumerContext(ConsumerInfo ci) throws JetStreamException {
         return new NatsConsumerContext(this, ci, null);
     }
 
@@ -81,7 +80,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public ConsumerContext createConsumer(String subject) throws IOException, JetStreamApiException {
+    public ConsumerContext createConsumer(String subject) throws JetStreamException, InterruptedException {
         return js.createConsumer(streamName, subject);
     }
 
@@ -89,7 +88,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public ConsumerContext createConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
+    public ConsumerContext createConsumer(PullConsumerCreator creator) throws JetStreamException, InterruptedException {
         return new NatsConsumerContext(this, jsm.createConsumer(streamName, creator), null);
     }
 
@@ -97,7 +96,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public ConsumerContext updateConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
+    public ConsumerContext updateConsumer(PullConsumerCreator creator) throws JetStreamException, InterruptedException {
         return new NatsConsumerContext(this, jsm.updateConsumer(streamName, creator), null);
     }
 
@@ -105,7 +104,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public ConsumerContext createOrUpdateConsumer(PullConsumerCreator creator) throws IOException, JetStreamApiException {
+    public ConsumerContext createOrUpdateConsumer(PullConsumerCreator creator) throws JetStreamException, InterruptedException {
         return new NatsConsumerContext(this, jsm.createOrUpdateConsumer(streamName, creator), null);
     }
 
@@ -113,7 +112,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public OrderedConsumerContext createOrderedConsumer(PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+    public OrderedConsumerContext createOrderedConsumer(PullOrderedConsumerCreator creator) throws JetStreamException {
         return new NatsOrderedConsumerContext(this, creator);
     }
 
@@ -121,7 +120,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public boolean deleteConsumer(String consumerName) throws IOException, JetStreamApiException {
+    public boolean deleteConsumer(String consumerName) throws JetStreamException, InterruptedException {
         return jsm.deleteConsumer(streamName, consumerName);
     }
 
@@ -129,7 +128,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public ConsumerInfo getConsumerInfo(String consumerName) throws IOException, JetStreamApiException {
+    public ConsumerInfo getConsumerInfo(String consumerName) throws JetStreamException, InterruptedException {
         return jsm.getConsumerInfo(streamName, consumerName);
     }
 
@@ -137,7 +136,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public List<String> getConsumerNames() throws IOException, JetStreamApiException {
+    public List<String> getConsumerNames() throws JetStreamException, InterruptedException {
         return jsm.getConsumerNames(streamName);
     }
 
@@ -145,7 +144,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public List<ConsumerInfo> getConsumers() throws IOException, JetStreamApiException {
+    public List<ConsumerInfo> getConsumers() throws JetStreamException, InterruptedException {
         return jsm.getConsumers(streamName);
     }
 
@@ -153,7 +152,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public MessageInfo getMessage(long seq) throws IOException, JetStreamApiException {
+    public MessageInfo getMessage(long seq) throws JetStreamException, InterruptedException {
         return jsm.getMessage(streamName, seq);
     }
 
@@ -161,7 +160,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public MessageInfo getLastMessage(String subject) throws IOException, JetStreamApiException {
+    public MessageInfo getLastMessage(String subject) throws JetStreamException, InterruptedException {
         return jsm.getLastMessage(streamName, subject);
     }
 
@@ -169,7 +168,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public MessageInfo getFirstMessage(String subject) throws IOException, JetStreamApiException {
+    public MessageInfo getFirstMessage(String subject) throws JetStreamException, InterruptedException {
         return jsm.getFirstMessage(streamName, subject);
     }
 
@@ -177,7 +176,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public MessageInfo getNextMessage(long seq, String subject) throws IOException, JetStreamApiException {
+    public MessageInfo getNextMessage(long seq, String subject) throws JetStreamException, InterruptedException {
         return jsm.getNextMessage(streamName, seq, subject);
     }
 
@@ -185,7 +184,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public boolean deleteMessage(long seq) throws IOException, JetStreamApiException {
+    public boolean deleteMessage(long seq) throws JetStreamException, InterruptedException {
         return jsm.deleteMessage(streamName, seq);
     }
 
@@ -193,7 +192,7 @@ class NatsStreamContext implements StreamContext {
      * {@inheritDoc}
      */
     @Override
-    public boolean deleteMessage(long seq, boolean erase) throws IOException, JetStreamApiException {
+    public boolean deleteMessage(long seq, boolean erase) throws JetStreamException, InterruptedException {
         return jsm.deleteMessage(streamName, seq, erase);
     }
 }

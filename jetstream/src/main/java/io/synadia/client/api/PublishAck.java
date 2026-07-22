@@ -5,7 +5,6 @@ import io.synadia.client.impl.JetStreamApiException;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.math.BigInteger;
 
 import static io.nats.json.LazyJsonValueUtils.*;
@@ -29,20 +28,19 @@ public class PublishAck extends ApiResponse<PublishAck> {
      *
      * This signature is public for testing purposes and is not intended to be used externally
      * @param msg the message containing the Pub Ack JSON <a href="https://github.com/nats-io/jsm.go/blob/main/schemas/jetstream/api/v1/pub_ack_response.json">pub_ack_response.json</a>
-     * @throws IOException various IO exception such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the request
+     * @throws JetStreamException the ack was malformed ({@link JetStreamProtocolException}) or the request had an error ({@link JetStreamApiException})
      */
-    public PublishAck(Message msg) throws IOException, JetStreamApiException {
+    public PublishAck(Message msg) throws JetStreamException {
         super(msg);
         throwOnHasError();
         stream = stringRequired(STREAM);
         if (stream.isEmpty()) {
-            throw new IOException("Invalid JetStream ack.");
+            throw new JetStreamProtocolException("Invalid JetStream ack.");
         }
         // seq is an unsigned 64-bit value; read full-range. -1 remains the "absent/invalid" sentinel.
         seq = readUnsignedLong(ljv, SEQ, -1);
         if (seq < 0) {
-            throw new IOException("Invalid JetStream ack.");
+            throw new JetStreamProtocolException("Invalid JetStream ack.");
         }
         domain = readString(ljv, DOMAIN);
         duplicate = readBoolean(ljv, DUPLICATE, false);

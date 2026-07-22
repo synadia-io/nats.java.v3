@@ -4,7 +4,6 @@ import io.synadia.client.api.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -25,49 +24,43 @@ public interface StreamContext {
      * Does not retrieve any optional data.
      * See the overloaded version that accepts StreamInfoOptions
      * @return stream information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data,
-     *         most likely the stream has been removed since the context was created.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    StreamInfo getStreamInfo() throws IOException, JetStreamApiException;
+    StreamInfo getStreamInfo() throws JetStreamException, InterruptedException;
 
     /**
      * Gets information about the stream for this context.
      * @param options the stream info options. If null, request will not return any optional data.
      * @return stream information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data,
-     *         most likely the stream has been removed since the context was created.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    StreamInfo getStreamInfo(@Nullable StreamInfoOptions options) throws IOException, JetStreamApiException;
+    StreamInfo getStreamInfo(@Nullable StreamInfoOptions options) throws JetStreamException, InterruptedException;
 
     /**
      * Purge stream messages
      * @return PurgeResponse the purge response
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    PurgeResponse purge() throws IOException, JetStreamApiException;
+    PurgeResponse purge() throws JetStreamException, InterruptedException;
 
     /**
      * Purge messages for a specific subject
      * @param options the purge options
      * @return PurgeResponse the purge response
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    PurgeResponse purge(PurgeOptions options) throws IOException, JetStreamApiException;
+    PurgeResponse purge(PurgeOptions options) throws JetStreamException, InterruptedException;
 
     @NonNull
-    ConsumerContext createConsumer(@NonNull String subject) throws IOException, JetStreamApiException;
+    ConsumerContext createConsumer(@NonNull String subject) throws JetStreamException, InterruptedException;
 
     /**
      * Get a consumer context for the context's stream and specific named consumer.
@@ -75,117 +68,106 @@ public interface StreamContext {
      * <p> Note that ConsumerContext expects a <b>pull consumer</b>.
      * @param consumerName the name of the consumer
      * @return a ConsumerContext object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    ConsumerContext getConsumerContext(@NonNull String consumerName) throws IOException, JetStreamApiException;
+    ConsumerContext getConsumerContext(@NonNull String consumerName) throws JetStreamException, InterruptedException;
 
-    ConsumerContext getConsumerContext(@NonNull ConsumerInfo ci) throws IOException, JetStreamApiException;
-
-    @NonNull
-    ConsumerContext createConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
+    ConsumerContext getConsumerContext(@NonNull ConsumerInfo ci) throws JetStreamException, InterruptedException;
 
     @NonNull
-    ConsumerContext updateConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
+    ConsumerContext createConsumer(@NonNull PullConsumerCreator creator) throws JetStreamException, InterruptedException;
+
+    @NonNull
+    ConsumerContext updateConsumer(@NonNull PullConsumerCreator creator) throws JetStreamException, InterruptedException;
 
     /**
      * Management function to create or update a consumer on this stream.
      * <p> Note that ConsumerContext expects a <b>pull consumer</b>.
      * @param creator the consumer configuration to use.
      * @return a ConsumerContext object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    ConsumerContext createOrUpdateConsumer(@NonNull PullConsumerCreator creator) throws IOException, JetStreamApiException;
+    ConsumerContext createOrUpdateConsumer(@NonNull PullConsumerCreator creator) throws JetStreamException, InterruptedException;
 
     /**
      * Create an ordered consumer context for the context's stream.
      * @param config the configuration for the ordered consumer
      * @return an OrderedConsumerContext object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      */
     @NonNull
-    OrderedConsumerContext createOrderedConsumer(@NonNull PullOrderedConsumerCreator config) throws IOException, JetStreamApiException;
+    OrderedConsumerContext createOrderedConsumer(@NonNull PullOrderedConsumerCreator config) throws JetStreamException;
 
     /**
      * Management function to deletes a consumer.
      * @param consumerName the name of the consumer.
      * @return true if the delete succeeded
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, for instance the consumer does not exist.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    boolean deleteConsumer(@NonNull String consumerName) throws IOException, JetStreamApiException;
+    boolean deleteConsumer(@NonNull String consumerName) throws JetStreamException, InterruptedException;
 
     /**
      * Gets the info for an existing consumer.
      * @param consumerName the name of the consumer.
      * @return consumer information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    ConsumerInfo getConsumerInfo(@NonNull String consumerName) throws IOException, JetStreamApiException;
+    ConsumerInfo getConsumerInfo(@NonNull String consumerName) throws JetStreamException, InterruptedException;
 
     /**
      * Return a list of consumers by name
      * @return The list of names
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    List<String> getConsumerNames() throws IOException, JetStreamApiException;
+    List<String> getConsumerNames() throws JetStreamException, InterruptedException;
 
     /**
      * Return a list of ConsumerInfo objects.
      * @return The list of ConsumerInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    List<ConsumerInfo> getConsumers() throws IOException, JetStreamApiException;
+    List<ConsumerInfo> getConsumers() throws JetStreamException, InterruptedException;
 
     /**
      * Get MessageInfo for the message with the exact sequence in the stream.
      * @param seq the sequence number of the message
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    MessageInfo getMessage(long seq) throws IOException, JetStreamApiException;
+    MessageInfo getMessage(long seq) throws JetStreamException, InterruptedException;
 
     /**
      * Get MessageInfo for the last message of the subject.
      * @param subject the subject to get the last message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    MessageInfo getLastMessage(@NonNull String subject) throws IOException, JetStreamApiException;
+    MessageInfo getLastMessage(@NonNull String subject) throws JetStreamException, InterruptedException;
 
     /**
      * Get MessageInfo for the first message of the subject.
      * @param subject the subject to get the first message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    MessageInfo getFirstMessage(@NonNull String subject) throws IOException, JetStreamApiException;
+    MessageInfo getFirstMessage(@NonNull String subject) throws JetStreamException, InterruptedException;
 
     /**
      * Get MessageInfo for the message of the message sequence
@@ -193,32 +175,29 @@ public interface StreamContext {
      * @param seq the first possible sequence number of the message
      * @param subject the subject to get the next message for.
      * @return The MessageInfo
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    MessageInfo getNextMessage(long seq, @NonNull String subject) throws IOException, JetStreamApiException;
+    MessageInfo getNextMessage(long seq, @NonNull String subject) throws JetStreamException, InterruptedException;
 
     /**
      * Deletes a message, overwriting the message data with garbage
      * This can be considered an expensive (time-consuming) operation, but is more secure.
      * @param seq the sequence number of the message
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return true if the delete succeeded
      */
-    boolean deleteMessage(long seq) throws IOException, JetStreamApiException;
+    boolean deleteMessage(long seq) throws JetStreamException, InterruptedException;
 
     /**
      * Deletes a message, optionally erasing the content of the message.
      * @param seq the sequence number of the message
      * @param erase whether to erase the message (overwriting with garbage) or only mark it as erased.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return true if the delete succeeded
      */
-    boolean deleteMessage(long seq, boolean erase) throws IOException, JetStreamApiException;
+    boolean deleteMessage(long seq, boolean erase) throws JetStreamException, InterruptedException;
 }

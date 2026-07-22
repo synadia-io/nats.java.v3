@@ -1,10 +1,10 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.api.JetStreamException;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 
 /**
  * The Consumer Context provides a convenient interface around a defined JetStream Consumer
@@ -16,12 +16,11 @@ public interface ConsumerContext extends BaseConsumerContext {
      * Gets the current information about the consumer behind this subscription
      * by making a call to the server.
      * @return consumer information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    ConsumerInfo retrieveConsumerInfo() throws IOException, JetStreamApiException;
+    ConsumerInfo retrieveConsumerInfo() throws JetStreamException, InterruptedException;
 
     /**
      * Gets information about the consumer behind this subscription.

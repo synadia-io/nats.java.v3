@@ -1,8 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.api.JetStreamException;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 abstract class NatsMessageConsumerBase implements MessageConsumer, PullManagerObserver {
@@ -69,7 +69,7 @@ abstract class NatsMessageConsumerBase implements MessageConsumer, PullManagerOb
      * {@inheritDoc}
      */
     @Override
-    public ConsumerInfo getConsumerInfo() throws IOException, JetStreamApiException {
+    public ConsumerInfo getConsumerInfo() throws JetStreamException, InterruptedException {
         if (cachedConsumerInfo == null) {
             cachedConsumerInfo = sub.getConsumerInfo();
             consumerName = cachedConsumerInfo.getName();

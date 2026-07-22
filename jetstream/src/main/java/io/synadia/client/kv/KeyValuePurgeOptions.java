@@ -54,7 +54,7 @@ public class KeyValuePurgeOptions {
         /**
          * Set the delete marker threshold.
          * null will assume the default threshold {@link #DEFAULT_THRESHOLD_MILLIS}
-         * <= 0 will assume no threshold and will not keep any markers, same as calling {@link #deleteMarkersNoThreshold()}
+         * {@code <= 0} will assume no threshold and will not keep any markers, same as calling {@link #deleteMarkersNoThreshold()}
          * @param millis the threshold millis
          * @return The builder
          */

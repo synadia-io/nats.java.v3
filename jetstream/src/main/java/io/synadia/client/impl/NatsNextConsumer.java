@@ -2,15 +2,14 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.ConsumerInfo;
-
-import java.io.IOException;
+import io.synadia.client.api.JetStreamException;
 
 import static io.synadia.client.impl.JetStreamSubscription.EXPIRE_ADJUSTMENT;
 
 class NatsNextConsumer extends NatsMessageConsumerBase {
     final long maxWaitMillis;
 
-    NatsNextConsumer(SimplifiedSubscriptionMaker subscriptionMaker, ConsumerInfo cachedConsumerInfo, long maxWaitMillis) throws IOException, JetStreamApiException {
+    NatsNextConsumer(SimplifiedSubscriptionMaker subscriptionMaker, ConsumerInfo cachedConsumerInfo, long maxWaitMillis) throws JetStreamException, InterruptedException {
         super(cachedConsumerInfo);
         this.maxWaitMillis = maxWaitMillis;
         long inactiveThreshold = maxWaitMillis * 110 / 100; // 10% longer than the wait

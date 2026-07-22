@@ -8,7 +8,6 @@ import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
@@ -59,60 +58,104 @@ public class JetStream extends JetStreamImpl {
     // Publish
     // ----------------------------------------------------------------------------------------------------
 
-    public PublishAck publish(String subject) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, null, null, null);
     }
 
-    public PublishAck publish(String subject, byte @Nullable[] data) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, byte @Nullable[] data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, data, null, null);
     }
 
-    public PublishAck publish(String subject, @Nullable String data) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, @Nullable String data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, null, data, null);
     }
 
-    public PublishAck publish(String subject, Headers headers) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, Headers headers) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, null, null, null);
     }
 
-    public PublishAck publish(String subject, Headers headers, byte @Nullable[] data) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, Headers headers, byte @Nullable[] data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, data, null, null);
     }
 
-    public PublishAck publish(String subject, Headers headers, @Nullable String data) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, Headers headers, @Nullable String data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, null, data, null);
     }
 
-    public PublishAck publish(String subject, byte @Nullable [] data, PublishOptions options) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, byte @Nullable [] data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, data, null, options);
     }
 
-    public PublishAck publish(String subject, @Nullable String data, PublishOptions options) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, @Nullable String data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, null, data, options);
     }
 
-    public PublishAck publish(String subject, Headers headers, byte[] data, PublishOptions options) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, Headers headers, byte[] data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, data, null, options);
     }
 
-    public PublishAck publish(String subject, Headers headers, String data, PublishOptions options) throws IOException, JetStreamApiException {
+    /**
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
+    public PublishAck publish(String subject, Headers headers, String data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, null, data, options);
     }
 
     /**
      * Publish a message.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the message is null
      */
-    public PublishAck publish(Message message) throws IOException, JetStreamApiException {
+    public PublishAck publish(Message message) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
         return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, null);
     }
 
     /**
      * Publish a message.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the message is null
      */
-    public PublishAck publish(Message message, PublishOptions options) throws IOException, JetStreamApiException {
+    public PublishAck publish(Message message, PublishOptions options) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
         return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options);
     }
@@ -132,9 +175,8 @@ public class JetStream extends JetStreamImpl {
      * where the sender creates a byte array immediately before calling publish.
      * See {@link #publish(String, byte[]) publish()} for more details on
      * publish during reconnect.
-     * The future may be completed with an exception, either
-     * an IOException covers various communication issues with the NATS server such as timeout or interruption
-     * - or - a JetStreamApiException the request had an error related to the data
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      *
      * @param subject the subject to send the message to
      * @param body the message body
@@ -164,9 +206,8 @@ public class JetStream extends JetStreamImpl {
      * where the sender creates a byte array immediately before calling publish.
      * See {@link #publish(String, byte[]) publish()} for more details on
      * publish during reconnect.
-     * The future may be completed with an exception, either
-     * an IOException covers various communication issues with the NATS server such as timeout or interruption
-     * - or - a JetStreamApiException the request had an error related to the data
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      *
      * @param subject the subject to send the message to
      * @param headers Optional headers to publish with the message.
@@ -195,9 +236,8 @@ public class JetStream extends JetStreamImpl {
      * where the sender creates a byte array immediately before calling publish.
      * See {@link #publish(String, byte[]) publish()} for more details on
      * publish during reconnect.
-     * The future may be completed with an exception, either
-     * an IOException covers various communication issues with the NATS server such as timeout or interruption
-     * - or - a JetStreamApiException the request had an error related to the data
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      *
      * @param subject the subject to send the message to
      * @param body the message body
@@ -227,9 +267,8 @@ public class JetStream extends JetStreamImpl {
      * where the sender creates a byte array immediately before calling publish.
      * See {@link #publish(String, byte[]) publish()} for more details on
      * publish during reconnect.
-     * The future may be completed with an exception, either
-     * an IOException covers various communication issues with the NATS server such as timeout or interruption
-     * - or - a JetStreamApiException the request had an error related to the data
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      *
      * @param subject the subject to send the message to
      * @param headers Optional headers to publish with the message.
@@ -259,9 +298,8 @@ public class JetStream extends JetStreamImpl {
      * where the sender creates a byte array immediately before calling publish.
      * See {@link #publish(String, byte[]) publish()} for more details on
      * publish during reconnect.
-     * The future may be completed with an exception, either
-     * an IOException covers various communication issues with the NATS server such as timeout or interruption
-     * - or - a JetStreamApiException the request had an error related to the data
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      *
      * <p>The Message object allows you to set a replyTo, but in publish requests,
      * the replyTo is reserved for internal use as the address for the
@@ -289,9 +327,8 @@ public class JetStream extends JetStreamImpl {
      * where the sender creates a byte array immediately before calling publish.
      * See {@link #publish(String, byte[]) publish()} for more details on
      * publish during reconnect.
-     * The future may be completed with an exception, either
-     * an IOException covers various communication issues with the NATS server such as timeout or interruption
-     * - or - a JetStreamApiException the request had an error related to the data
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      *
      * <p>The Message object allows you to set a replyTo, but in publish requests,
      * the replyTo is reserved for internal use as the address for the
@@ -307,7 +344,7 @@ public class JetStream extends JetStreamImpl {
         return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options, false);
     }
 
-    private PublishAck publishSyncInternal(String subject, @Nullable Headers headers, byte @Nullable[] data, @Nullable String sData, @Nullable PublishOptions options) throws IOException, JetStreamApiException {
+    private PublishAck publishSyncInternal(String subject, @Nullable Headers headers, byte @Nullable[] data, @Nullable String sData, @Nullable PublishOptions options) throws JetStreamException, InterruptedException {
         Headers merged = mergePublishOptions(headers, options);
 
         if (data == null && sData != null) {
@@ -329,17 +366,17 @@ public class JetStream extends JetStreamImpl {
 
         return future.thenCompose(resp -> {
             try {
-                responseRequired(resp);
+                responseRequired(resp, subject);
                 return CompletableFuture.completedFuture(processPublishResponse(resp));
-            } catch (IOException | JetStreamApiException e) {
+            } catch (JetStreamException e) {
                 throw new RuntimeException(e);
             }
         });
     }
 
-    private PublishAck processPublishResponse(Message resp) throws IOException, JetStreamApiException {
+    private PublishAck processPublishResponse(Message resp) throws JetStreamException {
         if (resp.isStatusMessage()) {
-            throw new IOException("Error Publishing: " + resp.getStatus().getMessageWithCode());
+            throw new JetStreamStatusException("Error Publishing", resp.getStatus(), null);
         }
         return new PublishAck(resp);
     }
@@ -503,10 +540,10 @@ public class JetStream extends JetStreamImpl {
      * @param stream the stream name
      * @param consumerName the name of the existing consumer
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName) throws JetStreamException, InterruptedException {
         return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
@@ -518,11 +555,11 @@ public class JetStream extends JetStreamImpl {
      * @param consumerName the name of the existing consumer
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if {@code messageHandler} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
@@ -535,11 +572,11 @@ public class JetStream extends JetStreamImpl {
      * @param consumerName the name of the existing consumer
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if {@code subscribeBehavior} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
@@ -550,12 +587,12 @@ public class JetStream extends JetStreamImpl {
      * returned subscription.
      * @param subject the subject to subscribe to
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the subject is invalid
      * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPushSubscription pushSubscribe(String subject) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String subject) throws JetStreamException, InterruptedException {
         return pushSubscribe(subject, DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 
@@ -566,12 +603,12 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to subscribe to
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the subject is invalid or {@code messageHandler} is null
      * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPushSubscription pushSubscribe(String subject, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String subject, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return pushSubscribe(subject, subscribeBehavior);
@@ -584,12 +621,12 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to subscribe to
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the subject is invalid or {@code subscribeBehavior} is null
      * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPushSubscription pushSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         subject = validateSubject(subject, true);
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         String stream = lookupStreamBySubject(subject);
@@ -606,11 +643,11 @@ public class JetStream extends JetStreamImpl {
      * @param stream the stream name
      * @param creator describes the consumer to create
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator) throws JetStreamException, InterruptedException {
         return pushSubscribe(stream, creator, DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 
@@ -621,11 +658,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the consumer to create
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
@@ -639,11 +676,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the consumer to create
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, null, null);
@@ -655,11 +692,11 @@ public class JetStream extends JetStreamImpl {
      * @param stream the stream name
      * @param creator describes the ordered consumer to create
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws JetStreamException, InterruptedException {
         return pushSubscribe(stream, creator, DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 
@@ -671,11 +708,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the ordered consumer to create
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return pushSubscribe(stream, creator, subscribeBehavior);
@@ -688,11 +725,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the ordered consumer to create
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the push subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
      */
-    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, creator, null);
@@ -741,10 +778,10 @@ public class JetStream extends JetStreamImpl {
      * @param stream the stream name
      * @param consumerName the name of the existing consumer
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName) throws JetStreamException, InterruptedException {
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
@@ -756,11 +793,11 @@ public class JetStream extends JetStreamImpl {
      * @param consumerName the name of the existing consumer
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if {@code messageHandler} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
@@ -773,11 +810,11 @@ public class JetStream extends JetStreamImpl {
      * @param consumerName the name of the existing consumer
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data, such as the consumer not existing on the stream
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if {@code subscribeBehavior} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
@@ -788,12 +825,12 @@ public class JetStream extends JetStreamImpl {
      * returned subscription.
      * @param subject the subject to subscribe to
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the subject is invalid
      * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPullSubscription pullSubscribe(String subject) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String subject) throws JetStreamException, InterruptedException {
         return pullSubscribe(subject, DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 
@@ -804,12 +841,12 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to subscribe to
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the subject is invalid or {@code messageHandler} is null
      * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPullSubscription pullSubscribe(String subject, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String subject, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return pullSubscribe(subject, subscribeBehavior);
@@ -822,12 +859,12 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to subscribe to
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the subject is invalid or {@code subscribeBehavior} is null
      * @throws IllegalStateException if no single stream carries the subject
      */
-    public JetStreamPullSubscription pullSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         subject = validateSubject(subject, true);
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         String stream = lookupStreamBySubject(subject);
@@ -844,11 +881,11 @@ public class JetStream extends JetStreamImpl {
      * @param stream the stream name
      * @param creator describes the consumer to create
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator) throws JetStreamException, InterruptedException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, null, null);
     }
 
@@ -859,11 +896,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the consumer to create
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
@@ -876,11 +913,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the consumer to create
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
     }
@@ -891,11 +928,11 @@ public class JetStream extends JetStreamImpl {
      * @param stream the stream name
      * @param creator describes the ordered consumer to create
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator) throws JetStreamException, InterruptedException {
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, creator, null);
     }
 
@@ -907,11 +944,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the ordered consumer to create
      * @param messageHandler the handler used to consume messages asynchronously; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code messageHandler} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, MessageHandler messageHandler) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
@@ -924,11 +961,11 @@ public class JetStream extends JetStreamImpl {
      * @param creator describes the ordered consumer to create
      * @param subscribeBehavior the behavior controlling the subscription; required
      * @return the pull subscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name, or if {@code subscribeBehavior} is null
      */
-    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws IOException, JetStreamApiException {
+    public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
     }
@@ -937,12 +974,11 @@ public class JetStream extends JetStreamImpl {
      * Get a stream context for a specific named stream. Verifies that the stream exists.
      * @param streamName the name of the stream
      * @return a StreamContext object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public StreamContext getStreamContext(String streamName) throws IOException, JetStreamApiException {
+    public StreamContext getStreamContext(String streamName) throws JetStreamException, InterruptedException {
         validateStreamName(streamName, true);
         return getNatsStreamContext(streamName);
     }
@@ -951,7 +987,7 @@ public class JetStream extends JetStreamImpl {
      * Create a consumer.
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public ConsumerContext createConsumer(String stream, String subject) throws IOException, JetStreamApiException {
+    public ConsumerContext createConsumer(String stream, String subject) throws JetStreamException, InterruptedException {
         return createConsumer(stream, new PullConsumerCreator().subjects(subject));
     }
 
@@ -959,7 +995,7 @@ public class JetStream extends JetStreamImpl {
      * Create a consumer.
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
-    public ConsumerContext createConsumer(String stream, PullConsumerCreator creator) throws IOException, JetStreamApiException {
+    public ConsumerContext createConsumer(String stream, PullConsumerCreator creator) throws JetStreamException, InterruptedException {
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
         return getNatsStreamContext(stream).getConsumerContext(ci.getName());
     }
@@ -973,22 +1009,21 @@ public class JetStream extends JetStreamImpl {
      * @param streamName the name of the stream
      * @param consumerName the name of the consumer
      * @return a ConsumerContext object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data.
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the stream name is invalid, or the consumer name is null or empty
      */
-    public ConsumerContext getConsumerContext(String streamName, String consumerName) throws IOException, JetStreamApiException {
+    public ConsumerContext getConsumerContext(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         validateStreamName(streamName, true);
         required(consumerName, "Consumer Name");
         return getNatsStreamContext(streamName).getConsumerContext(consumerName);
     }
 
-    public ConsumerContext getConsumerContext(ConsumerInfo consumerInfo) throws IOException, JetStreamApiException {
+    public ConsumerContext getConsumerContext(ConsumerInfo consumerInfo) throws JetStreamException, InterruptedException {
         return getNatsStreamContext(consumerInfo.getStreamName()).getConsumerContext(consumerInfo);
     }
 
-    private NatsStreamContext getNatsStreamContext(String streamName) throws IOException, JetStreamApiException {
+    private NatsStreamContext getNatsStreamContext(String streamName) throws JetStreamException, InterruptedException {
         return new NatsStreamContext(streamName, this, conn, jso);
     }
 }

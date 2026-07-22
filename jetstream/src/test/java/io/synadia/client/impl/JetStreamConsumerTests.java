@@ -3,16 +3,12 @@ package io.synadia.client.impl;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
-import io.synadia.client.api.PullConsumerCreator;
-import io.synadia.client.api.PullOrderedConsumerCreator;
-import io.synadia.client.api.PushConsumerCreator;
-import io.synadia.client.api.PushOrderedConsumerCreator;
+import io.synadia.client.api.*;
 import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.ListenerStatusType;
 import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,7 +61,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         });
     }
 
-    private static void _testOrderedConsumerSync(JetStreamTestingContext ctx, String consumerNamePrefix, PushOrderedConsumerCreator creator) throws IOException, JetStreamApiException, InterruptedException, IOException {
+    private static void _testOrderedConsumerSync(JetStreamTestingContext ctx, String consumerNamePrefix, PushOrderedConsumerCreator creator) throws JetStreamException, InterruptedException {
         JetStreamSubscription sub = ctx.js.pushSubscribe(ctx.stream, creator);
         String firstConsumerName = validateOrderedConsumerNamePrefix(sub, consumerNamePrefix);
 
@@ -84,7 +80,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         reValidateOrderedConsumerNamePrefix(sub, consumerNamePrefix, firstConsumerName);
     }
 
-    private static String validateOrderedConsumerNamePrefix(JetStreamSubscription sub, String consumerNamePrefix) throws IOException, JetStreamApiException {
+    private static String validateOrderedConsumerNamePrefix(JetStreamSubscription sub, String consumerNamePrefix) throws JetStreamException, InterruptedException {
         String firstConsumerName = sub.getConsumerName();
         if (consumerNamePrefix != null) {
             assertEquals(firstConsumerName, sub.getConsumerInfo().getName());
@@ -94,7 +90,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         return firstConsumerName;
     }
 
-    private static void reValidateOrderedConsumerNamePrefix(JetStreamSubscription sub, String consumerNamePrefix, String firstConsumerName) throws IOException, JetStreamApiException {
+    private static void reValidateOrderedConsumerNamePrefix(JetStreamSubscription sub, String consumerNamePrefix, String firstConsumerName) throws JetStreamException, InterruptedException {
         if (consumerNamePrefix != null) {
             String currentConsumerName = sub.getConsumerName();
             assertEquals(currentConsumerName, sub.getConsumerInfo().getName());
@@ -114,7 +110,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         });
     }
 
-    private static void _testOrderedConsumerAsync(NatsConnection nc, JetStreamTestingContext ctx, String consumerNamePrefix, PushOrderedConsumerCreator creator) throws JetStreamApiException, IOException, InterruptedException {
+    private static void _testOrderedConsumerAsync(NatsConnection nc, JetStreamTestingContext ctx, String consumerNamePrefix, PushOrderedConsumerCreator creator) throws JetStreamException, InterruptedException {
         // Get this in place before any subscriptions are made
         ctx.js._pushOrderedMessageManagerFactory = PushOrderedTestDropSimulator::new;
 

@@ -3,14 +3,10 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.OptionsConstants;
-import io.synadia.client.api.DeliverPolicy;
-import io.synadia.client.api.PublishAck;
-import io.synadia.client.api.PushConsumerCreator;
-import io.synadia.client.api.SubscribeBehavior;
+import io.synadia.client.api.*;
 import io.synadia.client.utils.Listener;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -178,7 +174,7 @@ public class JetStreamPushTests extends JetStreamTestBase {
         unsubscribeEnsureNotBound(sub);
     }
 
-    private void _testPushDurableSubAsync(JetStreamTestingContext ctx, NatsDispatcher dispatcher, String stream, String subjectDotGt, boolean useDeliverSubject) throws IOException, JetStreamApiException, InterruptedException {
+    private void _testPushDurableSubAsync(JetStreamTestingContext ctx, NatsDispatcher dispatcher, String stream, String subjectDotGt, boolean useDeliverSubject) throws JetStreamException, InterruptedException {
         String subject = subjectDotGt.replace(">", random());
 
         // publish some messages

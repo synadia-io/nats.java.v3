@@ -3,10 +3,10 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.Subscription;
 import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.global.NatsSystemClock;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -63,11 +63,10 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
     /**
      * Gets information about the consumer behind this subscription.
      * @return consumer information
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ConsumerInfo getConsumerInfo() throws IOException, JetStreamApiException {
+    public ConsumerInfo getConsumerInfo() throws JetStreamException, InterruptedException {
         return js.lenientGetConsumerInfo(stream, consumerName);
     }
 
@@ -123,7 +122,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                     case MESSAGE:
                         return msg;
                     case STATUS_ERROR:
-                        throw new JetStreamStatusInternalException(msg.getStatus(), this);
+                        throw new JetStreamStatusInternalException("Error during next message / wait forever", msg.getStatus(), this);
                 }
                 // Check again since waiting forever for any other state
             }
@@ -148,7 +147,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                 case STATUS_ERROR:
                     // if the status applies, throw exception, otherwise it's ignored, fall through
                     if (expectedPullSubject == null || expectedPullSubject.equals(msg.getSubject())) {
-                        throw new JetStreamStatusInternalException(msg.getStatus(), this);
+                        throw new JetStreamStatusInternalException("Pull Subject Mismatch", msg.getStatus(), this);
                     }
                     break;
             }
@@ -180,7 +179,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                 case STATUS_ERROR:
                     // if the status applies throw exception, otherwise it's ignored, fall through
                     if (expectedPullSubject == null || expectedPullSubject.equals(msg.getSubject())) {
-                        throw new JetStreamStatusInternalException(msg.getStatus(), this);
+                        throw new JetStreamStatusInternalException("Pull Subject Mismatch", msg.getStatus(), this);
                     }
                     break;
             }

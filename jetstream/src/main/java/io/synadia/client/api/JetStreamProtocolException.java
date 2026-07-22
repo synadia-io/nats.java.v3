@@ -1,10 +1,13 @@
 package io.synadia.client.api;
 
+import java.io.Serial;
+
 /**
  * Raised when a JetStream response is malformed and cannot be parsed as the expected reply.
  */
 public class JetStreamProtocolException extends JetStreamException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

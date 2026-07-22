@@ -8,7 +8,7 @@ This is the top-level migration guide for moving code from the v2 client (`nats.
 
 ## Exceptions — read this first
 
-> **Work in progress.** This section tracks the v3 exception rework as it lands. What is written here is shipped and final; more will be added — in particular the eventual `JetStreamException` consolidation (see the note at the end). Re-read it when you take a new v3 build.
+> **Work in progress.** This section tracks the v3 exception rework as it lands. Re-read it when you take a new v3 build. It has two parts: the **reclassifications** (usage errors that were `IOException` are now unchecked — first), and the **`JetStreamException` consolidation** (the `IOException` + `JetStreamApiException` pair on the JetStream surface collapses to one base type — second).
 
 v3 is correcting a long-standing v2 habit: throwing a **checked `IOException` for things that were never I/O problems.** In v2 several client-side validation failures — misuse the API and you get an exception — were reported as `IOException` purely because the surrounding method already declared it and changing the signature would have been a breaking change. v3 is the major version where that constraint is lifted, so those cases now throw the *unchecked* exception that actually fits (`IllegalStateException` for calling something at the wrong time, `IllegalArgumentException` for a bad argument). These are programming errors — you fix them by changing your code, not by catching them at runtime — so forcing a `catch` was never the right shape.
 
@@ -48,7 +48,59 @@ try {
 
 it still compiles under v3, but those two conditions now escape as `IllegalStateException` and reach whatever is above you — often an uncaught crash. There is no compiler error to lead you here, so **grep your codebase for `catch` blocks around consumer `next`/`fetch`/`iterate`/`consume` and around JetStream/KV/OS context creation, and check whether you were relying on `IOException` to catch a *usage* error.** If you were, either fix the misuse (the right answer — these fire only when the calling code is wrong) or add a `catch (IllegalStateException e)`.
 
-> This is the first step of a broader exception cleanup. Later v3 changes will consolidate the remaining JetStream checked exceptions (`IOException` + `JetStreamApiException`) behind a single `JetStreamException` base; when that lands it gets its own section here. Nothing in *this* section depends on that — the reclassifications above are shipped and final.
+### The `JetStreamException` consolidation
+
+This is the change the reclassifications above were clearing the way for. On the JetStream surface, the v2 signature pair `throws IOException, JetStreamApiException` becomes a single `throws JetStreamException` — plus `throws InterruptedException`, which v2 hid by reboxing it as `IOException`. So a JetStream call that read `throws IOException, JetStreamApiException` in v2 reads `throws JetStreamException, InterruptedException` in v3:
+
+```java
+// v2
+public StreamInfo getStreamInfo(String streamName) throws IOException, JetStreamApiException
+// v3
+public StreamInfo getStreamInfo(String streamName) throws JetStreamException, InterruptedException
+```
+
+Two exceptions, both of which are true — replacing two, one of which (`IOException`) never actually happened on this surface. Every synthetic `IOException` the JetStream layer used to throw (a timeout, a status error, a bad ack, a rewrapped interrupt) is now thrown as the type that fits, all under the `JetStreamException` base.
+
+**What to catch.** Catch the base `JetStreamException` and, if you need to tell the failures apart, `switch` on the subtype (Java 21 pattern-matching switch, no `instanceof` ladder):
+
+```java
+try {
+    js.publish(subject, data);
+}
+catch (JetStreamException e) {
+    switch (e) {
+        case JetStreamApiException api      -> report(api.getError());   // server returned an error
+        case JetStreamStatusException st    -> inspect(st.getStatus());  // unexpected status message
+        case JetStreamTimeoutException t    -> retry();                  // no response in time
+        case JetStreamProtocolException p   -> fail(p);                  // malformed reply
+        default                             -> fail(e);                  // required — the base is not sealed
+    }
+}
+catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
+    // abandon or retry
+}
+```
+
+The `default` is not optional and not a wart: `JetStreamException` is deliberately **not** `sealed`, so a future v3 build can add a subtype without breaking your switch. That is the whole reason it isn't sealed — additive, non-breaking evolution of the failure taxonomy.
+
+**The subtypes:**
+
+| Type | Package | Means | Key accessor |
+|---|---|---|---|
+| `JetStreamException` | `io.synadia.client.api` | base — catch this | — |
+| `JetStreamApiException` | `io.synadia.client.impl` | the server returned an `Error` (JetStream API error) | `getError()` |
+| `JetStreamStatusException` | `io.synadia.client.impl` | an unexpected / unhandled status message | `getStatus()` |
+| `JetStreamTimeoutException` | `io.synadia.client.api` | no response within the request timeout | — |
+| `JetStreamProtocolException` | `io.synadia.client.api` | malformed response (the v2 "Invalid JetStream ack" cases) | — |
+
+`JetStreamApiException` is unchanged as the runtime type for server-side API errors — if your v2 code already did `catch (JetStreamApiException)`, it still catches exactly the same failures. It is now *also* a `JetStreamException`, so you can widen to the base and drop the separate `IOException` catch in the same edit. (The `.impl`-package subtypes are slated to move to `.api` in a later v3 build; catching the base `JetStreamException` — which is already in `.api` — insulates you from that move entirely.)
+
+**Two rename notes, only relevant if you referenced these types by name:**
+- `JetStreamStatusCheckedException` is **gone.** The checked "unexpected status" error you would catch is now just `JetStreamStatusException`.
+- The v2 `JetStreamStatusException` was an *unchecked* internal signal; it is renamed `JetStreamStatusInternalException` and stays unchecked and internal. You should not be catching it — the name it vacated now belongs to the user-facing checked type above.
+
+**The one place `IOException` survives — and it is real.** `ObjectStore.put(...)` and `ObjectStore.get(...)` still declare `throws IOException` alongside `JetStreamException`, because they read and write *your* `InputStream` / `OutputStream`. That `IOException` means a stream failure on your side, not a NATS failure — keep the `catch (IOException)` there. It is the only spot on the JetStream surface where `IOException` is not a lie.
 
 ---
 

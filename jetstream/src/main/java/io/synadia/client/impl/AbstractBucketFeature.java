@@ -3,11 +3,11 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.DeliverPolicy;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.PushConsumerCreator;
 import io.synadia.client.api.PushOrderedConsumerCreator;
 import io.synadia.client.utils.JsValidator;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -56,7 +56,7 @@ public abstract class AbstractBucketFeature {
         return streamName;
     }
 
-    protected MessageInfo _getLast(String subject) throws IOException, JetStreamApiException {
+    protected MessageInfo _getLast(String subject) throws JetStreamException, InterruptedException {
         try {
             return jsm.getLastMessage(streamName, subject);
         }
@@ -68,7 +68,7 @@ public abstract class AbstractBucketFeature {
         }
     }
 
-    protected MessageInfo _getBySeq(long seq) throws IOException, JetStreamApiException {
+    protected MessageInfo _getBySeq(long seq) throws JetStreamException, InterruptedException {
         try {
             return jsm.getMessage(streamName, seq);
         }
@@ -80,11 +80,11 @@ public abstract class AbstractBucketFeature {
         }
     }
 
-    protected void visitSubject(String subject, DeliverPolicy deliverPolicy, boolean headersOnly, boolean ordered, MessageHandler handler) throws IOException, JetStreamApiException, InterruptedException {
+    protected void visitSubject(String subject, DeliverPolicy deliverPolicy, boolean headersOnly, boolean ordered, MessageHandler handler) throws JetStreamException, InterruptedException {
         visitSubject(Collections.singletonList(subject), deliverPolicy, headersOnly, ordered, handler);
     }
 
-    protected void visitSubject(List<String> subjects, DeliverPolicy deliverPolicy, boolean headersOnly, boolean ordered, MessageHandler handler) throws IOException, JetStreamApiException, InterruptedException {
+    protected void visitSubject(List<String> subjects, DeliverPolicy deliverPolicy, boolean headersOnly, boolean ordered, MessageHandler handler) throws JetStreamException, InterruptedException {
         JetStreamPushSubscription sub;
         if (ordered) {
             PushOrderedConsumerCreator creator = new PushOrderedConsumerCreator()

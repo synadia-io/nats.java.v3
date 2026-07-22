@@ -1,5 +1,7 @@
 package io.synadia.client.api;
 
+import java.io.Serial;
+
 /**
  * Base type for the checked exceptions raised by the JetStream API. Catch this to handle any
  * JetStream failure; switch on the subtype (with a {@code default} branch) when you need to
@@ -7,6 +9,7 @@ package io.synadia.client.api;
  */
 public class JetStreamException extends Exception {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

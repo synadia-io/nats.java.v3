@@ -4,7 +4,6 @@ import io.nats.json.DateTimeUtils;
 import io.synadia.client.api.*;
 import io.synadia.client.impl.*;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -25,15 +24,9 @@ public class KeyValue extends AbstractBucketFeature {
     private final String readPrefix;
     private final String writePrefix;
 
-    KeyValue(String bucketName, NatsConnection connection, KeyValueOptions kvo) throws IOException {
+    KeyValue(String bucketName, NatsConnection connection, KeyValueOptions kvo) throws JetStreamException, InterruptedException {
         super(bucketName, connection, kvo);
-        StreamInfo si;
-        try {
-             si = this.jsm.getStreamInfo(streamName);
-        } catch (JetStreamApiException e) {
-            // can't throw directly, that would be a breaking change
-            throw new IOException(e);
-        }
+        StreamInfo si = this.jsm.getStreamInfo(streamName);
 
         streamSubject = toStreamSubject(bucketName);
         String readTemp = toKeyPrefix(bucketName);
@@ -88,12 +81,11 @@ public class KeyValue extends AbstractBucketFeature {
      * when the key exists and is live (not deleted and not purged)
      * @param key the key
      * @return the KvEntry object or null if not found.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueEntry get(String key) throws IOException, JetStreamApiException {
+    public KeyValueEntry get(String key) throws JetStreamException, InterruptedException {
         return existingOnly(_get(validateNonWildcardKvKeyRequired(key)));
     }
 
@@ -103,12 +95,11 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @param revision the revision
      * @return the KvEntry object or null if not found.
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueEntry get(String key, long revision) throws IOException, JetStreamApiException {
+    public KeyValueEntry get(String key, long revision) throws JetStreamException, InterruptedException {
         return existingOnly(_get(validateNonWildcardKvKeyRequired(key), revision));
     }
 
@@ -116,12 +107,12 @@ public class KeyValue extends AbstractBucketFeature {
         return kve == null || kve.getOperation() != KeyValueOperation.PUT ? null : kve;
     }
 
-    KeyValueEntry _get(String key) throws IOException, JetStreamApiException {
+    KeyValueEntry _get(String key) throws JetStreamException, InterruptedException {
         MessageInfo mi = _getLast(readSubject(key));
         return mi == null ? null : new KeyValueEntry(mi);
     }
 
-    KeyValueEntry _get(String key, long revision) throws IOException, JetStreamApiException {
+    KeyValueEntry _get(String key, long revision) throws JetStreamException, InterruptedException {
         MessageInfo mi = _getBySeq(revision);
         if (mi != null) {
             KeyValueEntry kve = new KeyValueEntry(mi);
@@ -137,12 +128,11 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @param value the bytes of the value
      * @return the revision number for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public long put(String key, byte[] value) throws IOException, JetStreamApiException {
+    public long put(String key, byte[] value) throws JetStreamException, InterruptedException {
         return _write(key, value, null, null).getSequenceNumber();
     }
 
@@ -151,12 +141,11 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @param value the bytes of the value
      * @return the revision number for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public long put(String key, String value) throws IOException, JetStreamApiException {
+    public long put(String key, String value) throws JetStreamException, InterruptedException {
         return _write(key, value.getBytes(StandardCharsets.UTF_8), null, null).getSequenceNumber();
     }
 
@@ -165,12 +154,11 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @param value the bytes of the value
      * @return the revision number for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public long put(String key, Number value) throws IOException, JetStreamApiException {
+    public long put(String key, Number value) throws JetStreamException, InterruptedException {
         return _write(key, value.toString().getBytes(StandardCharsets.ISO_8859_1), null, null).getSequenceNumber();
     }
 
@@ -180,16 +168,15 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @param value the bytes of the value
      * @return the revision number for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public long create(String key, byte[] value) throws IOException, JetStreamApiException {
+    public long create(String key, byte[] value) throws JetStreamException, InterruptedException {
         return create(key, value, null);
     }
 
-    public long create(String key, byte[] value, MessageTtl messageTtl) throws IOException, JetStreamApiException {
+    public long create(String key, byte[] value, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
         try {
             return _update(key, value, 0, messageTtl);
@@ -218,17 +205,16 @@ public class KeyValue extends AbstractBucketFeature {
      * @param value the bytes of the value
      * @param expectedRevision the expected last revision
      * @return the revision number for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public long update(String key, byte[] value, long expectedRevision) throws IOException, JetStreamApiException {
+    public long update(String key, byte[] value, long expectedRevision) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
         return _update(key, value, expectedRevision, null);
     }
 
-    private long _update(String key, byte[] value, long expectedRevision, MessageTtl messageTtl) throws IOException, JetStreamApiException {
+    private long _update(String key, byte[] value, long expectedRevision, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         return _write(key, value, null, getPublishOptions(expectedRevision, messageTtl)).getSequenceNumber();
     }
 
@@ -238,23 +224,21 @@ public class KeyValue extends AbstractBucketFeature {
      * @param value the bytes of the value
      * @param expectedRevision the expected last revision
      * @return the revision number for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public long update(String key, String value, long expectedRevision) throws IOException, JetStreamApiException {
+    public long update(String key, String value, long expectedRevision) throws JetStreamException, InterruptedException {
         return update(key, value.getBytes(StandardCharsets.UTF_8), expectedRevision);
     }
 
     /**
      * Soft deletes the key by placing a delete marker.
      * @param key the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void delete(String key) throws IOException, JetStreamApiException {
+    public void delete(String key) throws JetStreamException, InterruptedException {
         _write(key, null, getDeleteHeaders(), null);
     }
 
@@ -262,22 +246,20 @@ public class KeyValue extends AbstractBucketFeature {
      * Soft deletes the key by placing a delete marker iff the key exists and its last revision matches the expected
      * @param key the key
      * @param expectedRevision the expected last revision
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void delete(String key, long expectedRevision) throws IOException, JetStreamApiException {
+    public void delete(String key, long expectedRevision) throws JetStreamException, InterruptedException {
         _write(key, null, getDeleteHeaders(), getPublishOptions(expectedRevision, null));
     }
 
     /**
      * Purge all values/history from the specific key
      * @param key the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void purge(String key) throws IOException, JetStreamApiException {
+    public void purge(String key) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), null);
     }
 
@@ -285,11 +267,10 @@ public class KeyValue extends AbstractBucketFeature {
      * Purge all values/history from the specific key iff the key exists and its last revision matches the expected
      * @param key the key
      * @param expectedRevision the expected last revision
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void purge(String key, long expectedRevision) throws IOException, JetStreamApiException {
+    public void purge(String key, long expectedRevision) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), getPublishOptions(expectedRevision, null));
     }
 
@@ -297,11 +278,10 @@ public class KeyValue extends AbstractBucketFeature {
      * Purge all values/history from the specific key
      * @param key the key
      * @param messageTtl the individual ttl for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void purge(String key, MessageTtl messageTtl) throws IOException, JetStreamApiException {
+    public void purge(String key, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), getPublishOptions(-1, messageTtl));
     }
 
@@ -310,68 +290,65 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @param expectedRevision the expected last revision
      * @param messageTtl the individual ttl for the key
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void purge(String key, long expectedRevision, MessageTtl messageTtl) throws IOException, JetStreamApiException {
+    public void purge(String key, long expectedRevision, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), getPublishOptions(expectedRevision, messageTtl));
     }
 
-    private PublishAck _write(String key, byte[] data, Headers h, PublishOptions popts) throws IOException, JetStreamApiException {
+    private PublishAck _write(String key, byte[] data, Headers h, PublishOptions popts) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
         return js.publish(NatsMessage.builder().subject(writeSubject(key)).data(data).headers(h).build(), popts);
     }
 
-    public KeyValueWatchSubscription watch(String key, KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException, InterruptedException {
+    public KeyValueWatchSubscription watch(String key, KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeyWildcardAllowedRequired(key);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, Collections.singletonList(key), watcher, -1, watchOptions);
     }
 
-    public KeyValueWatchSubscription watch(String key, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException, InterruptedException {
+    public KeyValueWatchSubscription watch(String key, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeyWildcardAllowedRequired(key);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, Collections.singletonList(key), watcher, fromRevision, watchOptions);
     }
 
-    public KeyValueWatchSubscription watch(List<String> keys, KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException, InterruptedException {
+    public KeyValueWatchSubscription watch(List<String> keys, KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeysWildcardAllowedRequired(keys);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, keys, watcher, -1, watchOptions);
     }
 
-    public KeyValueWatchSubscription watch(List<String> keys, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException, InterruptedException {
+    public KeyValueWatchSubscription watch(List<String> keys, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeysWildcardAllowedRequired(keys);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, keys, watcher, fromRevision, watchOptions);
     }
 
-    public KeyValueWatchSubscription watchAll(KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException, InterruptedException {
+    public KeyValueWatchSubscription watchAll(KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         return new KeyValueWatchSubscription(this, Collections.singletonList(GREATER_THAN), watcher, -1, watchOptions);
     }
 
-    public KeyValueWatchSubscription watchAll(KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException, InterruptedException {
+    public KeyValueWatchSubscription watchAll(KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         return new KeyValueWatchSubscription(this, Collections.singletonList(GREATER_THAN), watcher, fromRevision, watchOptions);
     }
 
     /**
      * Get a list of the keys in a bucket.
      * @return List of keys
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      */
-    public List<String> keys() throws IOException, JetStreamApiException, InterruptedException {
+    public List<String> keys() throws JetStreamException, InterruptedException {
         return _keys(Collections.singletonList(readSubject(GREATER_THAN)));
     }
 
-    public List<String> keys(String filter) throws IOException, JetStreamApiException, InterruptedException {
+    public List<String> keys(String filter) throws JetStreamException, InterruptedException {
         return _keys(Collections.singletonList(readSubject(filter)));
     }
 
-    public List<String> keys(List<String> filters) throws IOException, JetStreamApiException, InterruptedException {
+    public List<String> keys(List<String> filters) throws JetStreamException, InterruptedException {
         List<String> readSubjectFilters = new ArrayList<>(filters.size());
         for (String f : filters) {
             readSubjectFilters.add(readSubject(f));
@@ -379,7 +356,7 @@ public class KeyValue extends AbstractBucketFeature {
         return _keys(readSubjectFilters);
     }
 
-    private List<String> _keys(List<String> readSubjectFilters) throws IOException, JetStreamApiException, InterruptedException {
+    private List<String> _keys(List<String> readSubjectFilters) throws JetStreamException, InterruptedException {
         List<String> list = new ArrayList<>();
         visitSubject(readSubjectFilters, DeliverPolicy.LastPerSubject, true, false, m -> {
             KeyValueOperation op = getOperation(m.getHeaders());
@@ -437,7 +414,7 @@ public class KeyValue extends AbstractBucketFeature {
                 });
                 q.offer(new KeyResult());
             }
-            catch (IOException | JetStreamApiException e) {
+            catch (JetStreamException e) {
                 q.offer(new KeyResult(e));
             }
             catch (InterruptedException e) {
@@ -453,12 +430,10 @@ public class KeyValue extends AbstractBucketFeature {
      * Get the history (list of KeyValueEntry) for a key
      * @param key the key
      * @return List of KvEntry
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      */
-    public List<KeyValueEntry> history(String key) throws IOException, JetStreamApiException, InterruptedException {
+    public List<KeyValueEntry> history(String key) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
         List<KeyValueEntry> list = new ArrayList<>();
         visitSubject(readSubject(key), DeliverPolicy.All, false, true, m -> list.add(new KeyValueEntry(m)));
@@ -468,24 +443,20 @@ public class KeyValue extends AbstractBucketFeature {
     /**
      * Remove history from all keys that currently are deleted or purged
      * with using a default KeyValuePurgeOptions
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      */
-    public void purgeDeletes() throws IOException, JetStreamApiException, InterruptedException {
+    public void purgeDeletes() throws JetStreamException, InterruptedException {
         purgeDeletes(null);
     }
 
     /**
      * Remove history from all keys that currently are deleted or purged, considering options.
      * @param options the purge options
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      */
-    public void purgeDeletes(KeyValuePurgeOptions options) throws IOException, JetStreamApiException, InterruptedException {
+    public void purgeDeletes(KeyValuePurgeOptions options) throws JetStreamException, InterruptedException {
         long dmThresh = options == null
             ? KeyValuePurgeOptions.DEFAULT_THRESHOLD_MILLIS
             : options.getDeleteMarkersThresholdMillis();
@@ -531,12 +502,10 @@ public class KeyValue extends AbstractBucketFeature {
     /**
      * Get the KeyValueStatus object
      * @return the status object
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      */
-    public KeyValueStatus getStatus() throws IOException, JetStreamApiException, InterruptedException {
+    public KeyValueStatus getStatus() throws JetStreamException, InterruptedException {
         return new KeyValueStatus(jsm.getStreamInfo(streamName));
     }
 }

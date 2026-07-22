@@ -3,7 +3,6 @@ package io.synadia.client.api;
 import io.synadia.client.impl.JetStreamApiException;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.math.BigInteger;
 
 import static io.synadia.client.utils.TestBase.getDataMessage;
@@ -80,7 +79,7 @@ public class PublishAckTests {
         assertEquals(BigInteger.valueOf(-1), maxCount.getBatchSizeAsBigInteger());
 
         // a top-half seq trips the seq<0 validation (edge of the -1 sentinel design) and throws
-        IOException ioe = assertThrows(IOException.class, () -> new PublishAck(getDataMessage(
+        JetStreamProtocolException ioe = assertThrows(JetStreamProtocolException.class, () -> new PublishAck(getDataMessage(
             "{\"stream\":\"s\",\"seq\":9223372036854775808}")));
         assertEquals("Invalid JetStream ack.", ioe.getMessage());
     }
@@ -107,11 +106,11 @@ public class PublishAckTests {
 
     @Test
     public void testInvalidResponse() {
-        IOException ioe = assertThrows(IOException.class,
+        JetStreamProtocolException ioe = assertThrows(JetStreamProtocolException.class,
             () -> new PublishAck(getDataMessage("{\"stream\":\"no sequence\"}")));
         assertEquals("Invalid JetStream ack.", ioe.getMessage());
 
-        ioe = assertThrows(IOException.class,
+        ioe = assertThrows(JetStreamProtocolException.class,
             () -> new PublishAck(getDataMessage("{\"seq\":1}")));
         assertEquals("Invalid JetStream ack.", ioe.getMessage());
     }

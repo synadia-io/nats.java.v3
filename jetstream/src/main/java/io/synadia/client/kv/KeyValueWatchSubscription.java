@@ -2,27 +2,26 @@ package io.synadia.client.kv;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.DeliverPolicy;
-import io.synadia.client.impl.JetStreamApiException;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.impl.NatsWatchSubscription;
 import org.jspecify.annotations.NonNull;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class KeyValueWatchSubscription extends NatsWatchSubscription<KeyValueEntry> {
 
-    public KeyValueWatchSubscription(KeyValue kv, String keyPattern, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException {
+    public KeyValueWatchSubscription(KeyValue kv, String keyPattern, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         this(kv, Collections.singletonList(keyPattern), watcher, fromRevision, watchOptions);
     }
 
-    public KeyValueWatchSubscription(KeyValue kv, List<String> keyPatterns, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws IOException, JetStreamApiException {
+    public KeyValueWatchSubscription(KeyValue kv, List<String> keyPatterns, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         super(kv.js);
         kvWatchInit(kv, keyPatterns, watcher, fromRevision, watchOptions);
     }
 
-    private void kvWatchInit(KeyValue kv, List<String> keyPatterns, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption[] watchOptions) throws IOException, JetStreamApiException {
+    private void kvWatchInit(KeyValue kv, List<String> keyPatterns, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption[] watchOptions) throws JetStreamException, InterruptedException {
         // figure out the result options
         boolean headersOnly = false;
         boolean ignoreDeletes = false;

@@ -1,12 +1,8 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.MessageHandler;
-import io.synadia.client.api.DeliverPolicy;
-import io.synadia.client.api.PullOrderedConsumerCreator;
-import io.synadia.client.api.SubscribeBehavior;
-import io.synadia.client.api.Watcher;
+import io.synadia.client.api.*;
 
-import java.io.IOException;
 import java.util.List;
 
 import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
@@ -27,7 +23,7 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
                               long fromRevision,
                               WatchMessageHandler<T> handler,
                               String consumerNamePrefix)
-        throws IOException, JetStreamApiException
+        throws JetStreamException, InterruptedException
     {
         if (fromRevision > ULONG_UNSET) {
             deliverPolicy = DeliverPolicy.ByStartSequence;

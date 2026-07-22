@@ -3,10 +3,7 @@ package io.synadia.client.os;
 import io.nats.json.DateTimeUtils;
 import io.synadia.client.Message;
 import io.synadia.client.NUID;
-import io.synadia.client.api.DeliverPolicy;
-import io.synadia.client.api.PushOrderedConsumerCreator;
-import io.synadia.client.api.StreamCreator;
-import io.synadia.client.api.StreamInfo;
+import io.synadia.client.api.*;
 import io.synadia.client.impl.*;
 import io.synadia.client.utils.Digester;
 
@@ -64,7 +61,7 @@ public class ObjectStore extends AbstractBucketFeature {
         return bucketName;
     }
 
-    private ObjectInfo publishMeta(ObjectInfo info) throws IOException, JetStreamApiException {
+    private ObjectInfo publishMeta(ObjectInfo info) throws JetStreamException, InterruptedException {
         js.publish(NatsMessage.builder()
             .subject(rawMetaSubject(info.getObjectName()))
             .headers(getMetaHeaders())
@@ -80,10 +77,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param inputStream the source input stream
      * @return the ObjectInfo for the saved object
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      */
-    public ObjectInfo put(ObjectMeta meta, InputStream inputStream) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
+    public ObjectInfo put(ObjectMeta meta, InputStream inputStream) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         validateNotNull(meta, "ObjectMeta");
         validateNotNull(meta.getObjectName(), "ObjectMeta name");
         validateNotNull(inputStream, "InputStream");
@@ -136,7 +133,7 @@ public class ObjectStore extends AbstractBucketFeature {
                 .digest(digester.getDigestEntry())
                 .build());
         }
-        catch (IOException | JetStreamApiException | NoSuchAlgorithmException e) {
+        catch (IOException | JetStreamException | NoSuchAlgorithmException e) {
             try {
                 jsm.purgeStream(streamName, PurgeOptions.subject(rawChunkSubject(nuid)));
             }
@@ -151,7 +148,7 @@ public class ObjectStore extends AbstractBucketFeature {
             try {
                 jsm.purgeStream(streamName, PurgeOptions.builder().subject(rawChunkSubject(oldInfo.getNuid())).build());
             }
-            catch (IOException | JetStreamApiException ignore) {}
+            catch (JetStreamException ignore) {}
         }
 
         return newInfo;
@@ -163,10 +160,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param inputStream the source input stream
      * @return the ObjectInfo for the saved object
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      */
-    public ObjectInfo put(String objectName, InputStream inputStream) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
+    public ObjectInfo put(String objectName, InputStream inputStream) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(objectName), inputStream);
     }
 
@@ -176,10 +173,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param input the bytes to store
      * @return the ObjectInfo for the saved object
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      */
-    public ObjectInfo put(String objectName, byte[] input) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
+    public ObjectInfo put(String objectName, byte[] input) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(objectName), new ByteArrayInputStream(input));
     }
 
@@ -188,10 +185,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param file the file to read
      * @return the ObjectInfo for the saved object
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      */
-    public ObjectInfo put(File file) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
+    public ObjectInfo put(File file) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(file.getName()), Files.newInputStream(file.toPath()));
     }
 
@@ -201,11 +198,11 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param out the destination stream.
      * @return the ObjectInfo for the object name or throw an exception if it does not exist or is deleted.
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      */
-    public ObjectInfo get(String objectName, OutputStream out) throws IOException, JetStreamApiException, InterruptedException, NoSuchAlgorithmException {
+    public ObjectInfo get(String objectName, OutputStream out) throws IOException, JetStreamException, InterruptedException, NoSuchAlgorithmException {
         ObjectInfo oi = getInfo(objectName, false);
         if (oi == null) {
             throw OsObjectNotFound.instance();
@@ -297,10 +294,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * Get the info for an object if the object exists / is not deleted.
      * @param objectName The name of the object
      * @return the ObjectInfo for the object name or throw an exception if it does not exist.
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo getInfo(String objectName) throws IOException, JetStreamApiException {
+    public ObjectInfo getInfo(String objectName) throws JetStreamException, InterruptedException {
         return getInfo(objectName, false);
     }
 
@@ -309,10 +306,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param objectName The name of the object
      * @param includingDeleted whether to return info for deleted objects
      * @return the ObjectInfo for the object name or throw an exception if it does not exist.
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo getInfo(String objectName, boolean includingDeleted) throws IOException, JetStreamApiException {
+    public ObjectInfo getInfo(String objectName, boolean includingDeleted) throws JetStreamException, InterruptedException {
         MessageInfo mi = _getLast(rawMetaSubject(objectName));
         if (mi == null) {
             return null;
@@ -326,10 +323,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param objectName The name of the object
      * @param meta the metadata with the new or unchanged name, description and headers.
      * @return the ObjectInfo after update
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo updateMeta(String objectName, ObjectMeta meta) throws IOException, JetStreamApiException {
+    public ObjectInfo updateMeta(String objectName, ObjectMeta meta) throws JetStreamException, InterruptedException {
         validateNotNull(objectName, "object name");
         validateNotNull(meta, "ObjectMeta");
         validateNotNull(meta.getObjectName(), "ObjectMeta name");
@@ -367,10 +364,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * Delete the object by name. A No-op if the object is already deleted.
      * @param objectName The name of the object
      * @return the ObjectInfo after delete or throw an exception if it does not exist.
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo delete(String objectName) throws IOException, JetStreamApiException {
+    public ObjectInfo delete(String objectName) throws JetStreamException, InterruptedException {
         ObjectInfo info = getInfo(objectName, true);
         if (info == null) {
             throw OsObjectNotFound.instance();
@@ -396,10 +393,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param objectName The name of the object
      * @param toInfo the info object of the object to link to
      * @return the ObjectInfo for the link as saved or throws an exception
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo addLink(String objectName, ObjectInfo toInfo) throws IOException, JetStreamApiException {
+    public ObjectInfo addLink(String objectName, ObjectInfo toInfo) throws JetStreamException, InterruptedException {
         validateNotNull(objectName, "object name");
         validateNotNull(toInfo, "Link-To ObjectInfo");
         validateNotNull(toInfo.getObjectName(), "Link-To ObjectMeta");
@@ -428,10 +425,10 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param objectName The name of the object
      * @param toStore the store object to link to
      * @return the ObjectInfo for the link as saved or throws an exception
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo addBucketLink(String objectName, ObjectStore toStore) throws IOException, JetStreamApiException {
+    public ObjectInfo addBucketLink(String objectName, ObjectStore toStore) throws JetStreamException, InterruptedException {
         validateNotNull(objectName, "object name");
         validateNotNull(toStore, "Link-To ObjectStore");
 
@@ -449,10 +446,10 @@ public class ObjectStore extends AbstractBucketFeature {
     /**
      * Close (seal) the bucket to changes. The store (bucket) will be read only.
      * @return the status object
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectStoreStatus seal() throws IOException, JetStreamApiException {
+    public ObjectStoreStatus seal() throws JetStreamException, InterruptedException {
         StreamInfo si = jsm.getStreamInfo(streamName);
         si = jsm.updateStream(new StreamCreator(si.getConfiguration()).seal());
         return new ObjectStoreStatus(si);
@@ -461,11 +458,10 @@ public class ObjectStore extends AbstractBucketFeature {
     /**
      * Get a list of all object [infos] in the store.
      * @return the list of objects
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      */
-    public List<ObjectInfo> getList() throws IOException, JetStreamApiException, InterruptedException {
+    public List<ObjectInfo> getList() throws JetStreamException, InterruptedException {
         List<ObjectInfo> list = new ArrayList<>();
         visitSubject(rawAllMetaSubject(), DeliverPolicy.LastPerSubject, false, true, m -> {
             ObjectInfo oi = new ObjectInfo(m);
@@ -481,21 +477,20 @@ public class ObjectStore extends AbstractBucketFeature {
      * @param watcher the implementation to receive changes.
      * @param watchOptions the watch options to apply. If multiple conflicting options are supplied, the last options wins.
      * @return the ObjectStoreWatchSubscription
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      */
-    public ObjectStoreWatchSubscription watch(ObjectStoreWatcher watcher, ObjectStoreWatchOption... watchOptions) throws IOException, JetStreamApiException, InterruptedException {
+    public ObjectStoreWatchSubscription watch(ObjectStoreWatcher watcher, ObjectStoreWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         return new ObjectStoreWatchSubscription(this, watcher, watchOptions);
     }
 
     /**
      * Get the ObjectStoreStatus object.
      * @return the status object
-     * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectStoreStatus getStatus() throws IOException, JetStreamApiException {
+    public ObjectStoreStatus getStatus() throws JetStreamException, InterruptedException {
         return new ObjectStoreStatus(jsm.getStreamInfo(streamName));
     }
 }

@@ -2,10 +2,10 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
+import io.synadia.client.api.JetStreamException;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 
 /**
  * The Consumer Context provides a convenient interface around a defined JetStream Consumer
@@ -24,114 +24,103 @@ public interface BaseConsumerContext {
     /**
      * Read the next message with max wait set to {@value BaseConsumeOptions#DEFAULT_EXPIRES_IN_MILLIS} ms
      * @return the next message or null if the max wait expires
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if one is thrown, to propagate it up
      * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
-     * @throws JetStreamApiException the request had an error related to the data
      */
     @Nullable
-    Message next() throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException;
+    Message next() throws JetStreamException, InterruptedException;
 
     /**
      * Read the next message with provided max wait
      * @param maxWait the max wait value in milliseconds. Cannot be less than {@value BaseConsumeOptions#MIN_EXPIRES_MILLS} milliseconds.
      * @return the next message or null if the max wait expires
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
+     * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if one is thrown, to propagate it up
      * @throws JetStreamStatusException an exception representing a status that requires attention,
      *         such as the consumer was deleted on the server in the middle of use.
-     * @throws JetStreamApiException the request had an error related to the data
      * @throws IllegalArgumentException if maxWait is positive and less than {@value BaseConsumeOptions#MIN_EXPIRES_MILLS}
      */
     @Nullable
-    Message next(long maxWait) throws IOException, InterruptedException, JetStreamStatusException, JetStreamApiException;
+    Message next(long maxWait) throws JetStreamException, InterruptedException;
 
     /**
      * Start a one use Fetch Consumer using all defaults other than the number of messages. See {@link FetchMessageConsumer}
      * @param maxMessages the maximum number of messages to consume
      * @return the FetchMessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    FetchMessageConsumer fetchMessages(int maxMessages) throws IOException, JetStreamApiException;
+    FetchMessageConsumer fetchMessages(int maxMessages) throws JetStreamException, InterruptedException;
 
     /**
      * Start a one use Fetch Consumer using all defaults other than the number of bytes. See {@link FetchMessageConsumer}
      * @param maxBytes the maximum number of bytes to consume
      * @return the FetchMessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    FetchMessageConsumer fetchBytes(int maxBytes) throws IOException, JetStreamApiException;
+    FetchMessageConsumer fetchBytes(int maxBytes) throws JetStreamException, InterruptedException;
 
     /**
      * Start a one-use Fetch Consumer with custom FetchConsumeOptions. See {@link FetchConsumeOptions}
      * @param fetchConsumeOptions the custom fetch consume options.
      * @return the FetchMessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the fetch consume options are null
      */
     @NonNull
-    FetchMessageConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException;
+    FetchMessageConsumer fetch(@NonNull FetchConsumeOptions fetchConsumeOptions) throws JetStreamException, InterruptedException;
 
     /**
      * Start a long-running IterableMessageConsumer with default ConsumeOptions. See {@link IterableMessageConsumer} and {@link ConsumeOptions}
      * IterableMessageConsumer require the developer calls nextMessage.
      * @return the IterableMessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     @NonNull
-    IterableMessageConsumer iterate() throws IOException, JetStreamApiException;
+    IterableMessageConsumer iterate() throws JetStreamException, InterruptedException;
 
     /**
      * Start a long-running IterableMessageConsumer with custom ConsumeOptions. See {@link IterableMessageConsumer} and {@link ConsumeOptions}
      * IterableMessageConsumer requires the developer calls nextMessage.
      * @param consumeOptions the custom consume options
      * @return the IterableMessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the consume options are null
      */
     @NonNull
-    IterableMessageConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws IOException, JetStreamApiException;
+    IterableMessageConsumer iterate(@NonNull ConsumeOptions consumeOptions) throws JetStreamException, InterruptedException;
 
     /**
      * Start a long-running MessageConsumer with default ConsumeOptions. See {@link MessageConsumer} and  {@link ConsumeOptions}
      * and the default dispatcher for this consumer context.
      * @param handler the MessageHandler used for receiving messages.
      * @return the MessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the handler is null
      */
     @NonNull
-    MessageConsumer consume(@NonNull MessageHandler handler) throws IOException, JetStreamApiException;
+    MessageConsumer consume(@NonNull MessageHandler handler) throws JetStreamException, InterruptedException;
 
     /**
      * Start a long-running MessageConsumer with default ConsumeOptions. See {@link MessageConsumer} and  {@link ConsumeOptions}
      * @param dispatcher The dispatcher to handle this subscription. If null, the default dispatcher will be used.
      * @param handler the MessageHandler used for receiving messages.
      * @return the MessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the handler is null
      */
     @NonNull
-    MessageConsumer consume(@Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
+    MessageConsumer consume(@Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws JetStreamException, InterruptedException;
 
     /**
      * Start a long-running MessageConsumer with custom ConsumeOptions. See {@link MessageConsumer} and  {@link ConsumeOptions}
@@ -139,13 +128,12 @@ public interface BaseConsumerContext {
      * @param consumeOptions the custom consume options
      * @param handler the MessageHandler used for receiving messages.
      * @return the MessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the consume options or the handler is null
      */
     @NonNull
-    MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
+    MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @NonNull MessageHandler handler) throws JetStreamException, InterruptedException;
 
     /**
      * Start a long-running MessageConsumer with custom ConsumeOptions. See {@link MessageConsumer} and  {@link ConsumeOptions}
@@ -153,21 +141,19 @@ public interface BaseConsumerContext {
      * @param dispatcher The dispatcher to handle this subscription. If null, the default dispatcher will be used.
      * @param handler the MessageHandler used for receiving messages.
      * @return the MessageConsumer instance
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the consume options or the handler is null
      */
     @NonNull
-    MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws IOException, JetStreamApiException;
+    MessageConsumer consume(@NonNull ConsumeOptions consumeOptions, @Nullable NatsDispatcher dispatcher, @NonNull MessageHandler handler) throws JetStreamException, InterruptedException;
 
     /**
      * Unpins this consumer
      * @param group the group name of the consumer's group
-     * @throws IOException covers various communication issues with the NATS
-     *         server such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return true if the delete succeeded
      */
-    boolean unpin(String group) throws IOException, JetStreamApiException;
+    boolean unpin(String group) throws JetStreamException, InterruptedException;
 }

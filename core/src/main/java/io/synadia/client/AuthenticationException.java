@@ -1,6 +1,7 @@
 package io.synadia.client;
 
 import java.io.IOException;
+import java.io.Serial;
 
 /**
  * AuthenticationException is used when the connect process fails due to an authentication
@@ -12,6 +13,7 @@ import java.io.IOException;
  */
 public class AuthenticationException extends IOException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

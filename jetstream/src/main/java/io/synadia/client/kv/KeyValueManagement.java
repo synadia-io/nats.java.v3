@@ -1,16 +1,11 @@
 package io.synadia.client.kv;
 
-import io.synadia.client.api.DiscardPolicy;
-import io.synadia.client.api.MirrorCreator;
-import io.synadia.client.api.SourceCreator;
-import io.synadia.client.api.StreamCreator;
-import io.synadia.client.impl.JetStreamApiException;
+import io.synadia.client.api.*;
 import io.synadia.client.impl.JetStreamManagement;
 import io.synadia.client.impl.NatsConnection;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,9 +32,10 @@ public class KeyValueManagement {
      * Gets a context for working with a Key Value bucket
      * @param bucketName the bucket name
      * @return a KeyValue instance.
-     * @throws IOException various IO exception such as timeout or interruption
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public KeyValue keyValue(String bucketName) throws IOException {
+    public KeyValue keyValue(String bucketName) throws JetStreamException, InterruptedException {
         validateBucketName(bucketName, true);
         return new KeyValue(bucketName, nc, kvo);
     }
@@ -48,12 +44,11 @@ public class KeyValueManagement {
      * Create a key value store.
      * @param creator the key value configuration creator
      * @return the key value Status
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueStatus create(KeyValueConfigurationCreator creator) throws IOException, JetStreamApiException {
+    public KeyValueStatus create(KeyValueConfigurationCreator creator) throws JetStreamException, InterruptedException {
         return new KeyValueStatus(jsm.addStream(setupStreamCreator(creator)));
     }
 
@@ -61,12 +56,11 @@ public class KeyValueManagement {
      * Update a key value store configuration. Storage type cannot change.
      * @param creator the key value configuration
      * @return the Key Value Status
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueStatus update(KeyValueConfigurationCreator creator) throws IOException, JetStreamApiException {
+    public KeyValueStatus update(KeyValueConfigurationCreator creator) throws JetStreamException, InterruptedException {
         return new KeyValueStatus(jsm.updateStream(setupStreamCreator(creator)));
     }
 
@@ -123,11 +117,10 @@ public class KeyValueManagement {
     /**
      * Get the list of bucket names.
      * @return list of bucket names
-     * @throws IOException covers various communication issues with the NATS
-     *          server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<String> getBucketNames() throws IOException, JetStreamApiException {
+    public List<String> getBucketNames() throws JetStreamException, InterruptedException {
         List<String> buckets = new ArrayList<>();
         List<String> names = jsm.getStreamNames();
         for (String name : names) {
@@ -141,12 +134,11 @@ public class KeyValueManagement {
     /**
      * Gets the status for an existing bucket.
      * @param bucketName the bucket name to use
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      * @return the bucket status object
      */
-    public KeyValueStatus getStatus(String bucketName) throws IOException, JetStreamApiException {
+    public KeyValueStatus getStatus(String bucketName) throws JetStreamException, InterruptedException {
         validateBucketName(bucketName, true);
         return new KeyValueStatus(jsm.getStreamInfo(toStreamName(bucketName)));
     }
@@ -154,11 +146,10 @@ public class KeyValueManagement {
     /**
      * Get the statuses for all buckets
      * @return list of statuses
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public List<KeyValueStatus> getStatuses() throws IOException, JetStreamApiException {
+    public List<KeyValueStatus> getStatuses() throws JetStreamException, InterruptedException {
         List<String> bucketNames = getBucketNames();
         List<KeyValueStatus> statuses = new ArrayList<>();
         for (String name : bucketNames) {
@@ -171,11 +162,10 @@ public class KeyValueManagement {
     /**
      * Deletes an existing bucket. Will throw a JetStreamApiException if the delete fails.
      * @param bucketName the stream name to use.
-     * @throws IOException covers various communication issues with the NATS
-     *         server, such as timeout or interruption
-     * @throws JetStreamApiException the request had an error related to the data
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
-    public void delete(String bucketName) throws IOException, JetStreamApiException {
+    public void delete(String bucketName) throws JetStreamException, InterruptedException {
         validateBucketName(bucketName, true);
         jsm.deleteStream(toStreamName(bucketName));
     }

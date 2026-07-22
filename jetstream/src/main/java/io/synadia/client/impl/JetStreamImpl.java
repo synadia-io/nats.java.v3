@@ -5,7 +5,6 @@ import io.synadia.client.api.*;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -72,14 +71,14 @@ public class JetStreamImpl implements JetStreamConstants {
     // ----------------------------------------------------------------------------------------------------
     // Management that is also needed by regular context
     // ----------------------------------------------------------------------------------------------------
-    ConsumerInfo strictGetConsumerInfo(String streamName, String consumerName) throws IOException, JetStreamApiException {
+    ConsumerInfo strictGetConsumerInfo(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         String subj = String.format(JSAPI_CONSUMER_INFO, streamName, consumerName);
-        Message resp = makeRequestResponseRequired(subj, null, getTimeout());
+        Message resp = makeRequestResponseRequired(subj, null, getTimeout(), "getConsumerInfo");
         return new ConsumerInfo(resp).throwOnHasError();
     }
 
     @Nullable
-    ConsumerInfo lenientGetConsumerInfo(String streamName, String consumerName) throws IOException, JetStreamApiException {
+    ConsumerInfo lenientGetConsumerInfo(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         try {
             return strictGetConsumerInfo(streamName, consumerName);
         }
@@ -92,7 +91,7 @@ public class JetStreamImpl implements JetStreamConstants {
         }
     }
 
-    ConsumerInfo _createConsumer(String stream, ConsumerCreator<?> creator, ConsumerCreateRequest.Action action) throws IOException, JetStreamApiException {
+    ConsumerInfo _createConsumer(String stream, ConsumerCreator<?> creator, ConsumerCreateRequest.Action action) throws JetStreamException, InterruptedException {
         validateStreamName(stream, true);
 
         String consumerName = creator.getName();
@@ -130,15 +129,15 @@ public class JetStreamImpl implements JetStreamConstants {
         }
 
         ConsumerCreateRequest ccr = new ConsumerCreateRequest(stream, creator, action);
-        Message resp = makeRequestResponseRequired(subj, ccr.serialize(), getTimeout());
+        Message resp = makeRequestResponseRequired(subj, ccr.serialize(), getTimeout(), "createConsumer");
         return new ConsumerInfo(resp).throwOnHasError();
     }
 
-    StreamInfo _getStreamInfo(String streamName, @Nullable StreamInfoOptions options) throws IOException, JetStreamApiException {
+    StreamInfo _getStreamInfo(String streamName, @Nullable StreamInfoOptions options) throws JetStreamException, InterruptedException {
         String subj = String.format(JSAPI_STREAM_INFO, streamName);
         StreamInfoReader sir = new StreamInfoReader();
         while (sir.hasMore()) {
-            Message resp = makeRequestResponseRequired(subj, sir.nextJson(options), getTimeout());
+            Message resp = makeRequestResponseRequired(subj, sir.nextJson(options), getTimeout(), "getStreamInfo");
             sir.process(resp);
         }
         return cacheStreamInfo(streamName, sir.getStreamInfo());
@@ -160,15 +159,15 @@ public class JetStreamImpl implements JetStreamConstants {
 
 
     @Nullable
-    String lookupStreamBySubject(String subject) throws IOException, JetStreamApiException {
+    String lookupStreamBySubject(String subject) throws JetStreamException, InterruptedException {
         List<String> list = getStreamNamesInternal(subject);
         return list.size() == 1 ? list.get(0) : null;
     }
 
-    List<String> getStreamNamesInternal(@Nullable String subjectFilter) throws IOException, JetStreamApiException {
+    List<String> getStreamNamesInternal(@Nullable String subjectFilter) throws JetStreamException, InterruptedException {
         StreamNamesReader snr = new StreamNamesReader();
         while (snr.hasMore()) {
-            Message resp = makeRequestResponseRequired(JSAPI_STREAM_NAMES, snr.nextJson(subjectFilter), getTimeout());
+            Message resp = makeRequestResponseRequired(JSAPI_STREAM_NAMES, snr.nextJson(subjectFilter), getTimeout(), "getStreamNames");
             snr.process(resp);
         }
         return snr.getStrings();
@@ -177,27 +176,19 @@ public class JetStreamImpl implements JetStreamConstants {
     // ----------------------------------------------------------------------------------------------------
     // Request Utils
     // ----------------------------------------------------------------------------------------------------
-    Message makeRequestResponseRequired(String subject, byte @Nullable[] bytes, long timeoutMillis) throws IOException {
-        try {
-            return responseRequired(conn.request(prependPrefix(subject), null, bytes, timeoutMillis, CancelAction.REPORT, conn.isForceFlushOnRequest()));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException(e);
-        }
+    Message makeRequestResponseRequired(String subject, byte @Nullable[] bytes, long timeoutMillis, String context) throws JetStreamException, InterruptedException {
+        return responseRequired(conn.request(prependPrefix(subject), null, bytes, timeoutMillis, CancelAction.REPORT, conn.isForceFlushOnRequest()), context);
     }
 
-    Message makeInternalRequestResponseRequired(String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis) throws IOException {
-        try {
-            return responseRequired(conn.request(subject, headers, data, timeoutMillis, CancelAction.COMPLETE, conn.isForceFlushOnRequest()));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException(e);
-        }
+    Message makeInternalRequestResponseRequired(String subject, @Nullable Headers headers, byte @Nullable [] data, long timeoutMillis) throws JetStreamException, InterruptedException {
+        return responseRequired(conn.request(subject, headers, data, timeoutMillis, CancelAction.COMPLETE, conn.isForceFlushOnRequest()), subject);
     }
 
-    Message responseRequired(@Nullable Message respMessage) throws IOException {
+    // A null response means the server never replied within the timeout (slow, or the server/network is gone).
+    // That is always a timeout; the exception type says so, and context tells you which request it was.
+    Message responseRequired(@Nullable Message respMessage, String context) throws JetStreamTimeoutException {
         if (respMessage == null) {
-            throw new IOException("Timeout or no response waiting for NATS JetStream server");
+            throw new JetStreamTimeoutException(context);
         }
         return respMessage;
     }
@@ -206,7 +197,7 @@ public class JetStreamImpl implements JetStreamConstants {
         return jso.getPrefix() + subject;
     }
 
-    CachedStreamInfo getCachedStreamInfo(String streamName) throws IOException, JetStreamApiException {
+    CachedStreamInfo getCachedStreamInfo(String streamName) throws JetStreamException, InterruptedException {
         CachedStreamInfo csi = CACHED_STREAM_INFO_MAP.get(streamName);
         if (csi != null) {
             return csi;

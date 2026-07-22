@@ -8,7 +8,6 @@ import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -416,7 +415,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         });
     }
 
-    private void addStreams(JetStreamManagement jsm, String prefix, int count, int adj, String div) throws IOException, JetStreamApiException {
+    private void addStreams(JetStreamManagement jsm, String prefix, int count, int adj, String div) throws JetStreamException, InterruptedException {
         for (int x = 0; x < count; x++) {
             createMemoryStream(jsm, prefix + "-" + (x + adj), "sub" + (x + adj) + "." + div + ".*");
         }
@@ -736,7 +735,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     }
 
     private static void addConsumer(JetStreamManagement jsm, boolean atLeast2dot9, String name, String deliver, String fs,
-                                    String stream, ConsumerCreator<?> cc) throws IOException, JetStreamApiException {
+                                    String stream, ConsumerCreator<?> cc) throws JetStreamException, InterruptedException {
         ConsumerInfo ci = jsm.createOrUpdateConsumer(stream, cc);
         assertEquals(name, ci.getName());
         if (atLeast2dot9) {
@@ -801,7 +800,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         });
     }
 
-    private PushConsumerCreator prepForUpdateTest(JetStreamManagement jsm, String stream, String subjectGt, String durableToDelete) throws IOException, JetStreamApiException {
+    private PushConsumerCreator prepForUpdateTest(JetStreamManagement jsm, String stream, String subjectGt, String durableToDelete) throws JetStreamException, InterruptedException {
         try {
             if (durableToDelete != null) {
                 jsm.deleteConsumer(stream, durableToDelete);
@@ -824,7 +823,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         assertEquals(500, e.getErrorCode());
     }
 
-    private void assertValidAddOrUpdate(JetStreamManagement jsm, String stream, PushConsumerCreator creator) throws IOException, JetStreamApiException {
+    private void assertValidAddOrUpdate(JetStreamManagement jsm, String stream, PushConsumerCreator creator) throws JetStreamException, InterruptedException {
         ConsumerInfo ci = jsm.createOrUpdateConsumer(stream, creator);
         ConsumerConfiguration cicc = ci.getConsumerConfiguration();
         assertEquals(creator.getDurable(), ci.getName());
@@ -923,7 +922,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         });
     }
 
-    private void addConsumers(JetStreamManagement jsm, String stream, int count) throws IOException, JetStreamApiException {
+    private void addConsumers(JetStreamManagement jsm, String stream, int count) throws JetStreamException, InterruptedException {
         String base = random() ;
         for (int x = 1; x <= count; x++) {
             boolean pull = x % 2 == 0;
@@ -1072,7 +1071,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             .build();
     }
 
-    private void validateGetMessage(JetStreamManagement jsm, JetStreamTestingContext ctx, ZonedDateTime timeBeforeCreated) throws IOException, JetStreamApiException {
+    private void validateGetMessage(JetStreamManagement jsm, JetStreamTestingContext ctx, ZonedDateTime timeBeforeCreated) throws JetStreamException, InterruptedException {
         assertMessageInfo(ctx, 0, 1, jsm.getMessage(ctx.stream, 1), timeBeforeCreated);
         assertMessageInfo(ctx, 0, 5, jsm.getLastMessage(ctx.stream, ctx.subject(0)), timeBeforeCreated);
         assertMessageInfo(ctx, 1, 6, jsm.getLastMessage(ctx.stream, ctx.subject(1)), timeBeforeCreated);
@@ -1353,7 +1352,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         }
     }
 
-    private static ConsumerContext setupFor1026Simplification(JetStreamTestingContext ctx, Listener listener, String stream, String subject) throws IOException, JetStreamApiException {
+    private static ConsumerContext setupFor1026Simplification(JetStreamTestingContext ctx, Listener listener, String stream, String subject) throws JetStreamException, InterruptedException {
         listener.reset();
         ConsumerInfo ci = create1026Consumer(ctx.jsm, stream, subject);
         ConsumerContext cCtx = ctx.js.getConsumerContext(ci);
@@ -1361,7 +1360,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
         return cCtx;
     }
 
-    private static ConsumerInfo create1026Consumer(JetStreamManagement jsm, String stream, String subject) throws IOException, JetStreamApiException {
+    private static ConsumerInfo create1026Consumer(JetStreamManagement jsm, String stream, String subject) throws JetStreamException, InterruptedException {
         return jsm.createOrUpdateConsumer(stream, new PullConsumerCreator()
             .durable(random())
             .subjects(subject));

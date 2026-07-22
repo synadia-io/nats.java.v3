@@ -1,14 +1,13 @@
 package io.synadia.client.kv;
 
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamInfo;
 import io.synadia.client.impl.JetStream;
-import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.JetStreamManagement;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.utils.TestBase;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -28,7 +27,7 @@ public class KvTestingContext implements AutoCloseable {
 
     private final Set<String> kvBuckets;
 
-    public KvTestingContext(NatsConnection nc) throws JetStreamApiException, IOException {
+    public KvTestingContext(NatsConnection nc) throws JetStreamException {
         jsm = new JetStreamManagement(nc);
         js = jsm.jetStream();
         kvm = new KeyValueManagement(nc);
@@ -50,11 +49,11 @@ public class KvTestingContext implements AutoCloseable {
             .storageType(StorageType.Memory);
     }
 
-    public KeyValueStatus kvCreate(String bucketName) throws JetStreamApiException, IOException {
+    public KeyValueStatus kvCreate(String bucketName) throws JetStreamException, InterruptedException {
         return kvCreate(kvCreator(bucketName));
     }
 
-    public KeyValueStatus kvCreate(KeyValueConfigurationCreator creator) throws JetStreamApiException, IOException {
+    public KeyValueStatus kvCreate(KeyValueConfigurationCreator creator) throws JetStreamException, InterruptedException {
         kvBuckets.add(creator.getBucketName());
         return kvm.create(creator);
     }

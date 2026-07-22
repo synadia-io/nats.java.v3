@@ -2,9 +2,9 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.api.ConsumerInfo;
+import io.synadia.client.api.JetStreamException;
 import io.synadia.client.global.NatsSystemClock;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static io.synadia.client.impl.BaseConsumeOptions.MIN_EXPIRES_MILLS;
@@ -23,7 +23,7 @@ class NatsFetchMessageConsumer extends NatsMessageConsumerBase implements FetchM
 
     NatsFetchMessageConsumer(SimplifiedSubscriptionMaker subscriptionMaker,
                              ConsumerInfo cachedConsumerInfo,
-                             FetchConsumeOptions fetchConsumeOptions) throws IOException, JetStreamApiException
+                             FetchConsumeOptions fetchConsumeOptions) throws JetStreamException, InterruptedException
     {
         super(cachedConsumerInfo);
 

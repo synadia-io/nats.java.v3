@@ -10,7 +10,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.function.Executable;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -38,11 +37,11 @@ public class JetStreamTestBase extends TestBase {
     // ----------------------------------------------------------------------------------------------------
     // Publish / Read
     // ----------------------------------------------------------------------------------------------------
-    public static void jsPublish(JetStream js, String subject, String prefix, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(JetStream js, String subject, String prefix, int count) throws JetStreamException, InterruptedException {
         jsPublish(js, subject, prefix, 1, count);
     }
 
-    public static void jsPublish(JetStream js, String subject, String prefix, int startId, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(JetStream js, String subject, String prefix, int startId, int count) throws JetStreamException, InterruptedException {
         int end = startId + count - 1;
         for (int x = startId; x <= end; x++) {
             String data = prefix + x;
@@ -54,48 +53,48 @@ public class JetStreamTestBase extends TestBase {
         }
     }
 
-    public static void jsPublish(JetStream js, String subject, int startId, int count, long sleep) throws IOException, JetStreamApiException {
+    public static void jsPublish(JetStream js, String subject, int startId, int count, long sleep) throws JetStreamException, InterruptedException {
         for (int x = 0; x < count; x++) {
             js.publish(NatsMessage.builder().subject(subject).data((dataBytes(startId++))).build());
             sleep(sleep);
         }
     }
 
-    public static void jsPublish(JetStream js, String subject, int startId, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(JetStream js, String subject, int startId, int count) throws JetStreamException, InterruptedException {
         for (int x = 0; x < count; x++) {
             js.publish(NatsMessage.builder().subject(subject).data((dataBytes(startId++))).build());
         }
     }
 
-    public static void jsPublishNull(JetStream js, String subject, int count) throws IOException, JetStreamApiException {
+    public static void jsPublishNull(JetStream js, String subject, int count) throws JetStreamException, InterruptedException {
         for (int x = 0; x < count; x++) {
             js.publish(subject, (String)null);
         }
     }
 
-    public static void jsPublishBytes(JetStream js, String subject, int count, byte[] bytes) throws IOException, JetStreamApiException {
+    public static void jsPublishBytes(JetStream js, String subject, int count, byte[] bytes) throws JetStreamException, InterruptedException {
         for (int x = 0; x < count; x++) {
             js.publish(subject, bytes);
         }
     }
 
-    public static void jsPublish(JetStream js, String subject, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(JetStream js, String subject, int count) throws JetStreamException, InterruptedException {
         jsPublish(js, subject, 1, count);
     }
 
-    public static void jsPublish(NatsConnection nc, String subject, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(NatsConnection nc, String subject, int count) throws JetStreamException, InterruptedException {
         jsPublish(new JetStream(nc), subject, 1, count);
     }
 
-    public static void jsPublish(NatsConnection nc, String subject, int startId, int count) throws IOException, JetStreamApiException {
+    public static void jsPublish(NatsConnection nc, String subject, int startId, int count) throws JetStreamException, InterruptedException {
         jsPublish(new JetStream(nc), subject, startId, count);
     }
 
-    public static PublishAck jsPublish(JetStream js, String subject, String data) throws IOException, JetStreamApiException {
+    public static PublishAck jsPublish(JetStream js, String subject, String data) throws JetStreamException, InterruptedException {
         return js.publish(NatsMessage.builder().subject(subject).data(data.getBytes(StandardCharsets.US_ASCII)).build());
     }
 
-    public static PublishAck jsPublish(JetStream js, String subject) throws IOException, JetStreamApiException {
+    public static PublishAck jsPublish(JetStream js, String subject) throws JetStreamException, InterruptedException {
         return jsPublish(js, subject, DATA);
     }
 
@@ -254,7 +253,7 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public static void assertSource(JetStreamManagement jsm, String stream, Long msgCount, Long firstSeq)
-            throws IOException, JetStreamApiException {
+            throws JetStreamException, InterruptedException {
         sleep(1000);
         StreamInfo si = jsm.getStreamInfo(stream);
 
@@ -262,7 +261,7 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public static void assertMirror(JetStreamManagement jsm, String stream, String mirroring, Long msgCount, Long firstSeq)
-            throws IOException, JetStreamApiException {
+            throws JetStreamException, InterruptedException {
         sleep(1000);
         StreamInfo si = jsm.getStreamInfo(stream);
 
@@ -299,17 +298,17 @@ public class JetStreamTestBase extends TestBase {
     // ----------------------------------------------------------------------------------------------------
     // Subscription or test macros
     // ----------------------------------------------------------------------------------------------------
-    public static void unsubscribeEnsureNotBound(JetStreamSubscription sub) throws IOException, JetStreamApiException {
+    public static void unsubscribeEnsureNotBound(JetStreamSubscription sub) throws JetStreamException, InterruptedException {
         sub.unsubscribe();
         ensureNotBound(sub);
     }
 
-    public static void unsubscribeEnsureNotBound(Dispatcher dispatcher, JetStreamSubscription sub) throws JetStreamApiException, IOException {
+    public static void unsubscribeEnsureNotBound(Dispatcher dispatcher, JetStreamSubscription sub) throws JetStreamException, InterruptedException {
         dispatcher.unsubscribe(sub);
         ensureNotBound(sub);
     }
 
-    public static void ensureNotBound(JetStreamSubscription sub) throws IOException, JetStreamApiException {
+    public static void ensureNotBound(JetStreamSubscription sub) throws JetStreamException, InterruptedException {
         ConsumerInfo ci = sub.getConsumerInfo();
         long start = System.currentTimeMillis();
         while (ci.isPushBound()) {
@@ -348,7 +347,7 @@ public class JetStreamTestBase extends TestBase {
     // ----------------------------------------------------------------------------------------------------
     // JetStream JetStream JetStream JetStream JetStream JetStream JetStream JetStream JetStream JetStream
     // ----------------------------------------------------------------------------------------------------
-    public static void createMemoryStream(JetStreamManagement jsm, String streamName, String... subjects) throws IOException, JetStreamApiException {
+    public static void createMemoryStream(JetStreamManagement jsm, String streamName, String... subjects) throws JetStreamException, InterruptedException {
         if (streamName == null) {
             streamName = random();
         }
