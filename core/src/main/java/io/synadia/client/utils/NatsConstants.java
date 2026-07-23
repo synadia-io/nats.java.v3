@@ -79,6 +79,7 @@ public interface NatsConstants {
     // The trailing space is intentional as in "Output queue is full 5000"
     String OUTPUT_QUEUE_IS_FULL = "Output queue is full ";
     String OUTPUT_QUEUE_BUSY = "Output queue is busy ";
+    String OUTPUT_QUEUE_INTERRUPTED = "Output queue is interrupted ";
 
     long NANOS_PER_MILLI = 1_000_000L;
 

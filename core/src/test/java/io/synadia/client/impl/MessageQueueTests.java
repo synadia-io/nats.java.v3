@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_INTERRUPTED;
 import static io.synadia.client.utils.NatsConstants.OUTPUT_QUEUE_IS_FULL;
 import static io.synadia.client.utils.TestBase.random;
 import static io.synadia.client.utils.ThreadUtils.sleep;
@@ -426,6 +427,29 @@ public class MessageQueueTests {
         assertEquals(0, q.sizeInBytes());
 
         validateAccumulate(0, q.accumulate(-1, 10, null));
+    }
+
+    // A pre-set interrupt status makes tryLock throw InterruptedException on entry, so this
+    // exercises push's interrupt handling deterministically without racing a real interrupt.
+    @Test
+    public void testInterruptedPushThrows() {
+        WriterMessageQueue q = newWriterMessageQueue();
+        Thread.currentThread().interrupt();
+        try {
+            // A failed enqueue is the same whether the cause is a full/busy queue or an interrupt,
+            // and it does not matter whether the message is internal — both throw the same way.
+            IllegalStateException e1 = assertThrows(IllegalStateException.class, () -> q.push(getTestMessage()));
+            assertEquals(OUTPUT_QUEUE_INTERRUPTED + "0", e1.getMessage());
+            assertInstanceOf(InterruptedException.class, e1.getCause());
+            assertTrue(Thread.currentThread().isInterrupted()); // status re-asserted for the caller
+
+            IllegalStateException e2 = assertThrows(IllegalStateException.class, () -> q.push(getTestMessage(), true));
+            assertEquals(OUTPUT_QUEUE_INTERRUPTED + "0", e2.getMessage());
+            assertTrue(Thread.currentThread().isInterrupted());
+        }
+        finally {
+            Thread.interrupted(); // clear so we don't poison other tests
+        }
     }
 
     @Test

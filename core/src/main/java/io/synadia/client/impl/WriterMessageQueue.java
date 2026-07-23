@@ -72,8 +72,13 @@ class WriterMessageQueue extends MessageQueueBase {
             }
         }
         catch (InterruptedException e) {
+            // A failed enqueue is a failed enqueue regardless of cause: an interrupt is handled the
+            // same as the OUTPUT_QUEUE_IS_FULL / OUTPUT_QUEUE_BUSY throws above, with no internal-vs-user
+            // special case. Re-assert the interrupt status (we can't propagate the checked
+            // InterruptedException here) and throw; a caller that cares whether it was specifically an
+            // interrupt checks Thread.interrupted().
             Thread.currentThread().interrupt();
-            return false;
+            throw new IllegalStateException(OUTPUT_QUEUE_INTERRUPTED + queue.size(), e);
         }
     }
 

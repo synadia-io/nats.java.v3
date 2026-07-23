@@ -1582,7 +1582,17 @@ public class NatsConnection implements AutoCloseable {
         responsesAwaiting.put(responseToken, future);
         statistics.incrementOutstandingRequests();
 
-        _publish(new InternalPublishableMessage(data, subject, responseInbox, headers, flushImmediatelyAfterPublish));
+        try {
+            _publish(new InternalPublishableMessage(data, subject, responseInbox, headers, flushImmediatelyAfterPublish));
+        }
+        catch (RuntimeException e) {
+            // The publish never made it onto the queue (queue full/busy, or the calling thread was
+            // interrupted). Undo the registration so we don't leak a never-completable future waiting
+            // for the cleanup timer, then let the caller see the failure.
+            responsesAwaiting.remove(responseToken);
+            statistics.decrementOutstandingRequests();
+            throw e;
+        }
 
         statistics.incrementRequestsSent();
 

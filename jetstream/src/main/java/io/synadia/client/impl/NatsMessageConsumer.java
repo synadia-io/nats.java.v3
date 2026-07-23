@@ -128,8 +128,11 @@ class NatsMessageConsumer extends NatsMessageConsumerBase implements PullManager
                 resetOnException();
             }
             catch (InterruptedException e) {
-                // reached from a scheduled timer callback that cannot propagate;
-                // re-set the flag so the interrupt isn't swallowed, then reset.
+                // Runs on a NATS-owned thread (heartbeat timer pool or message delivery) that
+                // can't propagate the checked interrupt. Realistically only our own close
+                // (shutdownNow) interrupts here, and the stopped/fullClose path handles that
+                // teardown; a stray interrupt is transient, so recovering is correct. Restore
+                // the flag as standard hygiene (a no-op on a pooled worker), then recover.
                 Thread.currentThread().interrupt();
                 resetOnException();
             }
