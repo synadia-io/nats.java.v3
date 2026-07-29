@@ -6,9 +6,11 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * JetStreamStatusInternalException is used to indicate an unknown status message was received.
+ * Internal to the JetStream implementation — thrown and bridged to the user-facing
+ * {@link JetStreamStatusException} within this package; never exposed to callers.
  */
 @NullMarked
-public class JetStreamStatusInternalException extends StatusException {
+class JetStreamStatusInternalException extends StatusException {
 
     /**
      * The note about where the status was received
@@ -27,7 +29,7 @@ public class JetStreamStatusInternalException extends StatusException {
      * @param status the status
      * @param sub    the subscription
      */
-    public JetStreamStatusInternalException(String note, Status status, @Nullable JetStreamSubscription sub) {
+    JetStreamStatusInternalException(String note, Status status, @Nullable JetStreamSubscription sub) {
         super(status);
         this.note = note;
         this.sub = sub;
@@ -37,7 +39,7 @@ public class JetStreamStatusInternalException extends StatusException {
      * Get the note about where the status was received
      * @return the note
      */
-    public String getNote() {
+    String getNote() {
         return note;
     }
 
@@ -46,7 +48,7 @@ public class JetStreamStatusInternalException extends StatusException {
      * @return the subscription
      */
     @Nullable
-    public JetStreamSubscription getSubscription() {
+    JetStreamSubscription getSubscription() {
         return sub;
     }
 }

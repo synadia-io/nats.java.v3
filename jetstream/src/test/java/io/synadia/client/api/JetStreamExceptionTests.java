@@ -2,8 +2,6 @@ package io.synadia.client.api;
 
 import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.JetStreamStatusException;
-import io.synadia.client.impl.JetStreamStatusInternalException;
-import io.synadia.client.impl.StatusException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,19 +26,6 @@ public class JetStreamExceptionTests {
         assertInstanceOf(JetStreamException.class, new JetStreamTimeoutException("t"));
         assertInstanceOf(JetStreamException.class, new JetStreamProtocolException("p"));
         assertInstanceOf(JetStreamException.class, new JetStreamStatusException("n", status(503, "No Responders"), null));
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // The internal/user status split is real (§6a, A12/A13)
-    // ----------------------------------------------------------------------------------------------------
-    @Test
-    public void testStatusInternalIsUncheckedAndOutOfHierarchy() {
-        // JetStreamStatusInternalException stays unchecked (extends StatusException -> IllegalStateException)
-        assertTrue(RuntimeException.class.isAssignableFrom(JetStreamStatusInternalException.class));
-        assertTrue(StatusException.class.isAssignableFrom(JetStreamStatusInternalException.class));
-        // ...and is deliberately NOT part of the checked JetStreamException hierarchy — it can't be,
-        // because core Subscription.nextMessage only declares throws InterruptedException.
-        assertFalse(JetStreamException.class.isAssignableFrom(JetStreamStatusInternalException.class));
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -77,16 +62,6 @@ public class JetStreamExceptionTests {
         assertEquals("Error Publishing", ex.getNote());
         assertNull(ex.getSubscription());
         assertEquals("Error Publishing: " + st.getMessageWithCode(), ex.getMessage());
-    }
-
-    @Test
-    public void testStatusExceptionFromInternalCause() {
-        Status st = status(409, "Consumer Deleted");
-        JetStreamStatusInternalException internal = new JetStreamStatusInternalException("Fetch", st, null);
-        JetStreamStatusException ex = new JetStreamStatusException(internal);
-        assertSame(st, ex.getStatus());
-        assertEquals("Fetch", ex.getNote());
-        assertNull(ex.getSubscription());
     }
 
     // ----------------------------------------------------------------------------------------------------

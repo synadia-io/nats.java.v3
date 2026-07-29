@@ -26,10 +26,11 @@ public class JetStreamStatusException extends JetStreamException {
     private final Status status;
 
     /**
-     * construct a JetStreamStatusException from a JetStreamStatusInternalException
+     * construct a JetStreamStatusException from a JetStreamStatusInternalException.
+     * Package-private: the internal cause type is not public, so this bridge is only usable within this package.
      * @param cause the JetStreamStatusInternalException cause
      */
-    public JetStreamStatusException(JetStreamStatusInternalException cause) {
+    JetStreamStatusException(JetStreamStatusInternalException cause) {
         this(cause.getNote(), cause.getStatus(), cause.getSubscription());
     }
 

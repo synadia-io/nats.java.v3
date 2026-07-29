@@ -251,13 +251,13 @@ public class Listener implements ErrorListener, ConnectionListener {
     // NatsConnection Listener
     // ----------------------------------------------------------------------------------------------------
     @Override
-    public void connectionEvent(NatsConnection conn, ConnectionEvents event, Long time, String uriDetails) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {
         if (verbose) {
-            report("connectionEvent", event);
+            report("connectionEvent", type);
         }
-        connectionEventCounts.merge(event, 1, Integer::sum);
+        connectionEventCounts.merge(type, 1, Integer::sum);
         lastConnectionEventConnection = conn;
-        tryToComplete(futures, f -> event.equals(f.eventType));
+        tryToComplete(futures, f -> type.equals(f.eventType));
     }
 
     // ----------------------------------------------------------------------------------------------------
