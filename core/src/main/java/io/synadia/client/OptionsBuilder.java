@@ -17,10 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -104,8 +101,8 @@ public class OptionsBuilder {
     ReconnectDelayHandler reconnectDelayHandler = null;
     ReconnectDelayBehavior reconnectDelayBehavior = ReconnectDelayBehavior.LameDuckAware;
 
-    ErrorListener errorListener = null;
-    ConnectionListener connectionListener = null;
+    List<ErrorListener> errorListeners = new ArrayList<>();
+    List<ConnectionListener> connectionListeners = new ArrayList<>();
     ReadListener readListener = null;
     StatisticsCollector statisticsCollector = null;
     String dataPortType = DEFAULT_DATA_PORT_TYPE;
@@ -233,8 +230,20 @@ public class OptionsBuilder {
         millisProperty(props, PROP_WRITE_QUEUE_PUSH_TIMEOUT, this::writeQueuePushTimeout);
         intProperty(props, PROP_MAX_PINGS_OUT, this::maxPingsOut);
 
-        classnameProperty(props, PROP_CONNECTION_LISTENER_CLASS, o -> connectionListener((ConnectionListener) o));
-        classnameProperty(props, PROP_ERROR_LISTENER_CLASS, o -> errorListener((ErrorListener) o));
+        classnameListProperty(props, PROP_CONNECTION_LISTENER_CLASS, list -> {
+            List<ConnectionListener> listeners = new ArrayList<>();
+            for (Object o : list) {
+                listeners.add((ConnectionListener) o);
+            }
+            connectionListeners(listeners);
+        });
+        classnameListProperty(props, PROP_ERROR_LISTENER_CLASS, list -> {
+            List<ErrorListener> listeners = new ArrayList<>();
+            for (Object o : list) {
+                listeners.add((ErrorListener) o);
+            }
+            errorListeners(listeners);
+        });
         classnameProperty(props, PROP_READ_LISTENER_CLASS, o -> readListener((ReadListener) o));
         classnameProperty(props, PROP_STATISTICS_COLLECTOR_CLASS, o -> statisticsCollector((StatisticsCollector) o));
 
@@ -975,33 +984,74 @@ public class OptionsBuilder {
     }
 
     /**
-     * Set the {@link ErrorListener ErrorListener} to receive asynchronous error events related to this
-     * connection.
+     * Set the {@link ErrorListener ErrorListener}(s) to receive asynchronous error events related to this
+     * connection. Replaces any previously set on this builder. Passing null or no listeners clears them;
+     * null entries are ignored.
      *
-     * @param listener The new ErrorListener for this connection.
+     * @param listeners The new ErrorListener(s) for this connection.
      * @return the Builder for chaining
      */
-    public OptionsBuilder errorListener(ErrorListener listener) {
-        this.errorListener = listener;
+    public OptionsBuilder errorListener(ErrorListener... listeners) {
+        return errorListeners(listeners == null ? null : Arrays.asList(listeners));
+    }
+
+    /**
+     * Set the {@link ErrorListener ErrorListener}s to receive asynchronous error events related to this
+     * connection. Replaces any previously set on this builder. Passing null or an empty list clears them;
+     * null entries are ignored.
+     *
+     * @param listeners The new ErrorListeners for this connection.
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder errorListeners(List<ErrorListener> listeners) {
+        this.errorListeners = nonNullCopy(listeners);
         return this;
     }
 
     /**
-     * Set the {@link ConnectionListener ConnectionListener} to receive asynchronous notifications of disconnect
-     * events.
+     * Set the {@link ConnectionListener ConnectionListener}(s) to receive asynchronous notifications of disconnect
+     * events. Replaces any previously set on this builder. Passing null or no listeners clears them;
+     * null entries are ignored.
      *
-     * @param listener The new ConnectionListener for this type of event.
+     * @param listeners The new ConnectionListener(s) for this type of event.
      * @return the Builder for chaining
      */
-    public OptionsBuilder connectionListener(ConnectionListener listener) {
-        this.connectionListener = listener;
-        return this;
+    public OptionsBuilder connectionListener(ConnectionListener... listeners) {
+        return connectionListeners(listeners == null ? null : Arrays.asList(listeners));
     }
 
     /**
-     * Sets a listener to be notified on incoming protocol/message
+     * Set the {@link ConnectionListener ConnectionListener}s to receive asynchronous notifications of disconnect
+     * events. Replaces any previously set on this builder. Passing null or an empty list clears them;
+     * null entries are ignored.
      *
-     * @param readListener the listener
+     * @param listeners The new ConnectionListeners for this type of event.
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder connectionListeners(List<ConnectionListener> listeners) {
+        this.connectionListeners = nonNullCopy(listeners);
+        return this;
+    }
+
+    private static <T> List<T> nonNullCopy(List<T> listeners) {
+        List<T> copy = new ArrayList<>();
+        if (listeners != null) {
+            for (T listener : listeners) {
+                if (listener != null) {
+                    copy.add(listener);
+                }
+            }
+        }
+        return copy;
+    }
+
+    /**
+     * Sets a listener to be notified on incoming protocol/message. Replaces any previously set.
+     * <p>Only one read listener is supported, unlike {@link #errorListener(ErrorListener...) errorListener()} and
+     * {@link #connectionListener(ConnectionListener...) connectionListener()} which accept several. This is
+     * intentional - the read listener is a debugging hook on the per-message read path, not a production path.
+     *
+     * @param readListener the listener, or null to clear
      * @return the Builder for chaining
      */
     public OptionsBuilder readListener(ReadListener readListener) {
@@ -1484,10 +1534,6 @@ public class OptionsBuilder {
         // are normalized in their setters (and the field initial values are already the normalized defaults),
         // and the property loaders route through those setters — so no build()-time clamp is needed here.
 
-        if (errorListener == null) {
-            errorListener = new ErrorListener() {};
-        }
-
         return new Options(this);
     }
 
@@ -1546,8 +1592,8 @@ public class OptionsBuilder {
         this.reconnectDelayHandler = o.reconnectDelayHandler;
         this.reconnectDelayBehavior = o.reconnectDelayBehavior;
 
-        this.errorListener = o.errorListener;
-        this.connectionListener = o.connectionListener;
+        this.errorListeners = new ArrayList<>(o.errorListeners);
+        this.connectionListeners = new ArrayList<>(o.connectionListeners);
         this.readListener = o.readListener;
         this.statisticsCollector = o.statisticsCollector;
         this.dataPortType = o.dataPortType;

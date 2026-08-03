@@ -23,6 +23,18 @@ import org.jspecify.annotations.Nullable;
 public interface ErrorListener {
 
     /**
+     * The id this listener is registered under when added to a connection, via
+     * {@link NatsConnection#addErrorListener(ErrorListener) addErrorListener} or the {@link Options Options}.
+     * Adding a second listener with the same id replaces the first. The default is derived from {@code hashCode()},
+     * so a listener that overrides {@code equals}/{@code hashCode} should override this to supply its own id,
+     * or if it just wants a custom format. Remember it should be unique.
+     * @return the id
+     */
+    default String getErrorListenerId() {
+        return "ErrorListener-" + hashCode();
+    }
+
+    /**
      * NATs related errors that occur asynchronously in the client library are sent
      * to an ErrorListener via errorOccurred. The ErrorListener can use the error text to decide what to do about the problem.
      * <p>In some cases the server will close the clients connection after sending one of these errors. In that case, the

@@ -97,8 +97,8 @@ public class Options {
     final ReconnectDelayHandler reconnectDelayHandler;
     final ReconnectDelayBehavior reconnectDelayBehavior;
 
-    final ErrorListener errorListener;
-    final ConnectionListener connectionListener;
+    final List<ErrorListener> errorListeners;
+    final List<ConnectionListener> connectionListeners;
     final ReadListener readListener;
     final StatisticsCollector statisticsCollector;
     final String dataPortType;
@@ -231,8 +231,8 @@ public class Options {
         this.reconnectDelayHandler = b.reconnectDelayHandler;
         this.reconnectDelayBehavior = b.reconnectDelayBehavior;
 
-        this.errorListener = b.errorListener;
-        this.connectionListener = b.connectionListener;
+        this.errorListeners = Collections.unmodifiableList(new ArrayList<>(b.errorListeners));
+        this.connectionListeners = Collections.unmodifiableList(new ArrayList<>(b.connectionListeners));
         this.readListener = b.readListener;
         this.statisticsCollector = b.statisticsCollector;
         this.dataPortType = b.dataPortType;
@@ -578,23 +578,27 @@ public class Options {
     }
 
     /**
-     * the error listener. Will be an instance of ErrorListenerLoggerImpl if not user supplied. See {@link OptionsBuilder#errorListener(ErrorListener) errorListener()} in the builder doc
-     * @return the listener
+     * the error listeners, empty if none were supplied. See {@link OptionsBuilder#errorListener(ErrorListener...) errorListener()} in the builder doc
+     * @return an unmodifiable list of the listeners
      */
-    public ErrorListener getErrorListener() {
-        return this.errorListener;
+    @NonNull
+    public List<ErrorListener> getErrorListeners() {
+        return this.errorListeners;
     }
 
     /**
-     * the connection listener, or null, see {@link OptionsBuilder#connectionListener(ConnectionListener) connectionListener()} in the builder doc
-     * @return the listener
+     * the connection listeners, empty if none were supplied. See {@link OptionsBuilder#connectionListener(ConnectionListener...) connectionListener()} in the builder doc
+     * @return an unmodifiable list of the listeners
      */
-    public ConnectionListener getConnectionListener() {
-        return this.connectionListener;
+    @NonNull
+    public List<ConnectionListener> getConnectionListeners() {
+        return this.connectionListeners;
     }
 
     /**
-     * the read listener, or null, see {@link OptionsBuilder#readListener(ReadListener) readListener()} in the builder doc
+     * the read listener, or null, see {@link OptionsBuilder#readListener(ReadListener) readListener()} in the builder doc.
+     * <p>Singular where {@link #getErrorListeners()} and {@link #getConnectionListeners()} are plural. This is
+     * intentional, not an oversight - only one read listener is supported. See {@link ReadListener ReadListener}.
      * @return the listener
      */
     public ReadListener getReadListener() {

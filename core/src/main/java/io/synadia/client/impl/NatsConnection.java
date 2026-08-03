@@ -65,7 +65,8 @@ public class NatsConnection implements AutoCloseable {
 
     protected final Map<String, NatsSubscription> subscribers;
     protected final Map<String, NatsDispatcher> dispatchers; // use a concurrent map so we get more consistent iteration behavior
-    protected final Collection<ConnectionListener> connectionListeners;
+    protected final Map<String, ConnectionListener> connectionListeners;
+    protected final Map<String, ErrorListener> errorListeners;
     protected final Map<String, NatsRequestCompletableFuture> responsesAwaiting;
     protected final Map<String, NatsRequestCompletableFuture> responsesRespondedTo;
     protected final ConcurrentLinkedDeque<CompletableFuture<Boolean>> pongQueue;
@@ -132,9 +133,15 @@ public class NatsConnection implements AutoCloseable {
         this.reconnectWaiter = new CompletableFuture<>();
         this.reconnectWaiter.complete(Boolean.TRUE);
 
-        this.connectionListeners = ConcurrentHashMap.newKeySet();
-        if (options.getConnectionListener() != null) {
-            addConnectionListener(options.getConnectionListener());
+        // seeded from the options; two listeners sharing an id means the last one wins
+        this.connectionListeners = new ConcurrentHashMap<>();
+        for (ConnectionListener cl : options.getConnectionListeners()) {
+            addConnectionListener(cl);
+        }
+
+        this.errorListeners = new ConcurrentHashMap<>();
+        for (ErrorListener el : options.getErrorListeners()) {
+            addErrorListener(el);
         }
 
         this.dispatchers = new ConcurrentHashMap<>();
@@ -195,7 +202,15 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    public void setReadListener(ReadListener rl) {
+    /**
+     * Set the ReadListener, replacing any listener supplied in the {@link Options Options} or set earlier.
+     * <pUnlike {@link #addErrorListener(ErrorListener) addErrorListener()}
+     * and {@link #addConnectionListener(ConnectionListener) addConnectionListener()}, there can be only one... read listener.
+     * This is intentional, not an oversight. See {@link ReadListener ReadListener}.
+     *
+     * @param rl the ReadListener, or null to clear the current one
+     */
+    public void setReadListener(@Nullable ReadListener rl) {
         reader.setReadListener(rl);
     }
 
@@ -1721,16 +1736,19 @@ public class NatsConnection implements AutoCloseable {
     }
 
     /**
-     * Attach another ConnectionListener.
+     * Attach another ConnectionListener. Adding a listener whose id is already registered replaces it.
      *
      * <p>The ConnectionListener will only receive NatsConnection events arriving after it has been attached.  When
      * a NatsConnection event is raised, the invocation order and parallelism of multiple ConnectionListeners is not
      * specified.
      *
-     * @param connectionListener the ConnectionListener to attach. A null listener is a no-op
+     * <p>Listeners attached here are not written back to the Options - another connection built from the same
+     * Options starts with only the listeners the Options carries.
+     *
+     * @param connectionListener the ConnectionListener to attach
      */
     public void addConnectionListener(@NonNull ConnectionListener connectionListener) {
-        connectionListeners.add(connectionListener);
+        connectionListeners.put(connectionListener.getConnectionListenerId(), connectionListener);
     }
 
     /**
@@ -1739,7 +1757,52 @@ public class NatsConnection implements AutoCloseable {
      * @param connectionListener the ConnectionListener to detach
      */
     public void removeConnectionListener(@NonNull ConnectionListener connectionListener) {
-        connectionListeners.remove(connectionListener);
+        connectionListeners.remove(connectionListener.getConnectionListenerId());
+    }
+
+    /**
+     * Detach the ConnectionListener registered under the given id. See {@link ConnectionListener#getConnectionListenerId()}.
+     * Removing an id that is not registered is a no-op.
+     *
+     * @param id the id of the ConnectionListener to detach
+     */
+    public void removeConnectionListenerById(@NonNull String id) {
+        connectionListeners.remove(id);
+    }
+
+    /**
+     * Attach an ErrorListener, which will receive error events for this connection in addition to any
+     * supplied in the {@link Options Options}. Adding a listener whose id is already registered replaces it.
+     *
+     * <p>The ErrorListener will only receive events arriving after it has been attached. When an event is
+     * raised, the invocation order and parallelism of multiple ErrorListeners is not specified.
+     *
+     * <p>Listeners attached here are not written back to the Options - another connection built from the same
+     * Options starts with only the listeners the Options carries.
+     *
+     * @param errorListener the ErrorListener to attach
+     */
+    public void addErrorListener(@NonNull ErrorListener errorListener) {
+        errorListeners.put(errorListener.getErrorListenerId(), errorListener);
+    }
+
+    /**
+     * Detach an ErrorListener. This will cease delivery of any further error events to this instance.
+     *
+     * @param errorListener the ErrorListener to detach
+     */
+    public void removeErrorListener(@NonNull ErrorListener errorListener) {
+        errorListeners.remove(errorListener.getErrorListenerId());
+    }
+
+    /**
+     * Detach the ErrorListener registered under the given id. See {@link ErrorListener#getErrorListenerId()}.
+     * Removing an id that is not registered is a no-op.
+     *
+     * @param id the id of the ErrorListener to detach
+     */
+    public void removeErrorListenerById(@NonNull String id) {
+        errorListeners.remove(id);
     }
 
     /**
@@ -2006,7 +2069,7 @@ public class NatsConnection implements AutoCloseable {
     protected void queueOutgoing(NatsMessage msg) {
         validatePayloadAndControlLineSizes(msg);
         if (!writer.queue(msg)) {
-            makeCallback(() -> options.getErrorListener().messageDiscarded(this, msg));
+            notifyErrorListener((c, el) -> el.messageDiscarded(c, msg));
         }
     }
 
@@ -2074,12 +2137,12 @@ public class NatsConnection implements AutoCloseable {
     }
 
     public void processSlowConsumer(Subscription subscription) {
-        makeCallback(() -> options.getErrorListener().slowConsumerDetected(this, subscription));
+        notifyErrorListener((c, el) -> el.slowConsumerDetected(c, subscription));
     }
 
     public void processException(Exception exp) {
         this.statistics.incrementExceptionCount();
-        makeCallback(() -> options.getErrorListener().exceptionOccurred(this, exp));
+        notifyErrorListener((c, el) -> el.exceptionOccurred(c, exp));
     }
 
     public void processError(String errorText) {
@@ -2093,15 +2156,22 @@ public class NatsConnection implements AutoCloseable {
             this.serverAuthErrors.put(currentServer, errorText);
         }
 
-        makeCallback(() -> options.getErrorListener().errorOccurred(this, errorText));
+        notifyErrorListener((c, el) -> el.errorOccurred(c, errorText));
     }
 
     public interface ErrorListenerCaller {
         void call(NatsConnection conn, ErrorListener el);
     }
 
+    /**
+     * The single fan-out point for every ErrorListener event. One callback per listener, so a slow or
+     * throwing listener cannot block the others.
+     * @param elc the call to make on each listener
+     */
     public void notifyErrorListener(ErrorListenerCaller elc) {
-        makeCallback(() -> elc.call(this, options.getErrorListener()));
+        for (ErrorListener listener : errorListeners.values()) {
+            makeCallback(() -> elc.call(this, listener));
+        }
     }
 
     protected String uriDetail(NatsUri uri) {
@@ -2120,7 +2190,7 @@ public class NatsConnection implements AutoCloseable {
 
     protected void processConnectionEvent(ConnectionEvents type, String uriDetails) {
         long time = System.currentTimeMillis();
-        for (ConnectionListener listener : connectionListeners) {
+        for (ConnectionListener listener : connectionListeners.values()) {
             makeCallback(() -> listener.connectionEvent(this, type, time, uriDetails));
         }
     }

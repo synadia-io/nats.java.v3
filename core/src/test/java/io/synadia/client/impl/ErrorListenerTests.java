@@ -7,10 +7,8 @@ import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.synadia.client.utils.ConnectionUtils.*;
@@ -335,5 +333,167 @@ public class ErrorListenerTests extends TestBase {
         rl.protocol("OP", null);
         rl.message("OP", new NatsMessage("subject", "replyTo", null));
         rl.message("OP", new NatsMessage("subject", "replyTo", "body".getBytes()));
+    }
+
+    static class CapturingErrorListener implements ErrorListener {
+        final String name;
+        final Set<String> captured;
+        final CountDownLatch latch;
+
+        CapturingErrorListener(String name, Set<String> captured, CountDownLatch latch) {
+            this.name = name;
+            this.captured = captured;
+            this.latch = latch;
+        }
+
+        @Override
+        public void errorOccurred(NatsConnection conn, String error) {
+            captured.add(name + "-" + error);
+            latch.countDown();
+        }
+    }
+
+    @Test
+    public void testMultipleErrorListeners() throws Exception {
+        Set<String> captured = ConcurrentHashMap.newKeySet();
+        CountDownLatch latch = new CountDownLatch(3);
+
+        CapturingErrorListener fromOptions = new CapturingErrorListener("EL1", captured, latch);
+        CapturingErrorListener added = new CapturingErrorListener("EL2", captured, latch);
+        CapturingErrorListener alsoAdded = new CapturingErrorListener("EL3", captured, latch);
+        CapturingErrorListener removed = new CapturingErrorListener("NEVER INVOKED", captured, latch);
+
+        OptionsBuilder builder = optionsBuilder().errorListener(fromOptions);
+        runInSharedOwnNc(builder, nc -> {
+            //noinspection DataFlowIssue // parameter is annotated as @NonNull
+            assertThrows(NullPointerException.class, () -> nc.addErrorListener(null));
+            //noinspection DataFlowIssue // parameter is annotated as @NonNull
+            assertThrows(NullPointerException.class, () -> nc.removeErrorListener(null));
+
+            nc.addErrorListener(removed);
+            nc.addErrorListener(added);
+            nc.addErrorListener(new ErrorListener() {
+                @Override
+                public void errorOccurred(NatsConnection conn, String error) {
+                    throw new RuntimeException("should not interfere with other listeners");
+                }
+            });
+            nc.addErrorListener(alsoAdded);
+            nc.removeErrorListener(removed);
+
+            nc.processError("boom");
+            assertTrue(latch.await(LONG_VALIDATE_TIMEOUT, TimeUnit.MILLISECONDS), "all listeners notified");
+        });
+
+        Set<String> expected = new HashSet<>(Arrays.asList("EL1-boom", "EL2-boom", "EL3-boom"));
+        assertEquals(expected, captured);
+    }
+
+    @Test
+    public void testRemoveErrorListenerById() throws Exception {
+        Set<String> captured = ConcurrentHashMap.newKeySet();
+        CountDownLatch latch = new CountDownLatch(1);
+        CapturingErrorListener stays = new CapturingErrorListener("STAYS", captured, latch);
+        CapturingErrorListener goes = new CapturingErrorListener("NEVER INVOKED", captured, latch);
+
+        runInSharedOwnNc(nc -> {
+            nc.addErrorListener(stays);
+            nc.addErrorListener(goes);
+            nc.removeErrorListenerById(goes.getErrorListenerId());
+            nc.removeErrorListenerById("not-a-registered-id"); // no-op
+
+            nc.processError("boom");
+            assertTrue(latch.await(LONG_VALIDATE_TIMEOUT, TimeUnit.MILLISECONDS), "remaining listener notified");
+        });
+
+        assertEquals(new HashSet<>(Collections.singletonList("STAYS-boom")), captured);
+    }
+
+    @Test
+    public void testAddErrorListenerWithSameIdReplaces() throws Exception {
+        Set<String> captured = ConcurrentHashMap.newKeySet();
+        CountDownLatch latch = new CountDownLatch(1);
+
+        // same id, so the second add replaces the first rather than adding a second listener
+        CapturingErrorListener first = new SameIdErrorListener("FIRST", captured, latch);
+        CapturingErrorListener second = new SameIdErrorListener("SECOND", captured, latch);
+
+        runInSharedOwnNc(nc -> {
+            nc.addErrorListener(first);
+            nc.addErrorListener(second);
+
+            nc.processError("boom");
+            assertTrue(latch.await(LONG_VALIDATE_TIMEOUT, TimeUnit.MILLISECONDS), "listener notified");
+            sleep(200); // give the replaced listener a chance to fire if it wrongly remained
+        });
+
+        assertEquals(new HashSet<>(Collections.singletonList("SECOND-boom")), captured);
+    }
+
+    static class SameIdErrorListener extends CapturingErrorListener {
+        SameIdErrorListener(String name, Set<String> captured, CountDownLatch latch) {
+            super(name, captured, latch);
+        }
+
+        @Override
+        public String getErrorListenerId() {
+            return "shared-id";
+        }
+    }
+
+    // The no-error-listener state is only reachable now that the builder no longer seeds a no-op default.
+    // The test helper optionsBuilder() supplies its own NOOP_EL, so clear it with the no-arg varargs call.
+    @Test
+    public void testNoErrorListeners() throws Exception {
+        OptionsBuilder builder = optionsBuilder().errorListener();
+        assertTrue(builder.build().getErrorListeners().isEmpty(), "no error listener is seeded");
+
+        runInSharedOwnNc(builder, nc -> {
+            assertTrue(nc.getOptions().getErrorListeners().isEmpty());
+
+            // every path that used to be guaranteed a listener must now be a silent no-op
+            nc.processError("boom");
+            nc.processException(new IOException("boom"));
+            nc.processSlowConsumer(null);
+            nc.notifyErrorListener((c, el) -> el.socketWriteTimeout(c));
+            nc.queueOutgoing(new NatsMessage("subject", null, "body".getBytes()));
+
+            sleep(200); // let any callback that was wrongly scheduled run and blow up
+            assertConnected(nc);
+        });
+    }
+
+    @Test
+    public void testConnectAsynchronouslyNotifiesErrorListeners() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Options options = optionsBuilder("nats://localhost:" + NatsTestServer.nextPort())
+            .maxReconnects(0)
+            .connectionListener(new Listener())
+            .errorListener(new ErrorListener() {
+                @Override
+                public void exceptionOccurred(NatsConnection conn, Exception exp) {
+                    latch.countDown();
+                }
+            })
+            .build();
+
+        Nats.connectAsynchronously(options, false);
+        assertTrue(latch.await(LONG_VALIDATE_TIMEOUT, TimeUnit.MILLISECONDS), "error listener notified");
+    }
+
+    // The async connect failure path reads the listeners straight off the Options (there is no
+    // NatsConnection to attach to), so it must tolerate the now-legal empty list.
+    @Test
+    public void testConnectAsynchronouslyWithNoErrorListener() throws Exception {
+        Options options = optionsBuilder("nats://localhost:" + NatsTestServer.nextPort())
+            .maxReconnects(0)
+            .connectionListener(new Listener())
+            .errorListener() // clear the test helper's default
+            .build();
+        assertTrue(options.getErrorListeners().isEmpty());
+
+        Nats.connectAsynchronously(options, false);
+        sleep(500); // let the connect attempt fail on its own thread
     }
 }

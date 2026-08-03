@@ -95,6 +95,41 @@ public class NatsConnectionReaderRepointTests {
         }
     }
 
+    // setReadListener keeps currentUserRl in step with what is actually installed. Without that, the
+    // refresh on repoint compares the new connection's Options against the PREVIOUS connection's, so a
+    // repoint to a connection carrying the original Options listener would silently keep the runtime one.
+    // Precedence: a repoint always installs the new connection's Options listener.
+    @Test
+    public void repoint_afterRuntimeSetReadListener_installsTheNewConnectionsListener() throws Exception {
+        RecordingReadListener rlOptions = new RecordingReadListener();
+        RecordingReadListener rlRuntime = new RecordingReadListener();
+
+        NatsConnection connA = unconnected(rlOptions);
+        NatsConnection connSameOptions = unconnected(rlOptions); // same Options listener instance as connA
+        try {
+            NatsConnectionReader reader = connA.reader;
+
+            // Runtime replace - the reader dispatches to rlRuntime, not connA's Options listener.
+            reader.setReadListener(rlRuntime);
+            rlRuntime.latch = new CountDownLatch(1);
+            reader.readListener().protocol("PONG", null);
+            assertTrue(rlRuntime.latch.await(2, TimeUnit.SECONDS), "runtime listener should have been called");
+            assertEquals(1, rlRuntime.protocolCount.get());
+            assertEquals(0, rlOptions.protocolCount.get());
+
+            // Repoint to a connection carrying the original Options listener.
+            reader.setConnection(connSameOptions);
+            rlOptions.latch = new CountDownLatch(1);
+            reader.readListener().protocol("PONG", null);
+            assertTrue(rlOptions.latch.await(2, TimeUnit.SECONDS), "the repointed connection's listener should have been called");
+            assertEquals(1, rlOptions.protocolCount.get());
+            assertEquals(1, rlRuntime.protocolCount.get(), "runtime listener no longer receives");
+        }
+        finally {
+            closeQuietly(connA, connSameOptions);
+        }
+    }
+
     @Test
     public void repoint_dispatchesToTheNewConnectionsListener() throws Exception {
         RecordingReadListener rlA = new RecordingReadListener();

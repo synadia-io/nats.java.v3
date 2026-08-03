@@ -3,6 +3,8 @@ package io.synadia.client;
 import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.function.Consumer;
 
@@ -20,11 +22,13 @@ public interface OptionsProperties {
     int PFX_LEN = PFX.length();
 
     /**
-     * Property used to configure the connection callback. {@value}
+     * Property used to configure the connection callback. Accepts a comma-separated list of class names
+     * to configure more than one listener. {@value}
      */
     String PROP_CONNECTION_LISTENER_CLASS = PFX + "connectionListenerClass";
     /**
-     * Property used to configure the error listener. {@value}
+     * Property used to configure the error listener. Accepts a comma-separated list of class names
+     * to configure more than one listener. {@value}
      */
     String PROP_ERROR_LISTENER_CLASS = PFX + "errorListenerClass";
     /**
@@ -427,6 +431,24 @@ public interface OptionsProperties {
      */
     static void classnameProperty(Properties props, String key, Consumer<Object> consumer) {
         stringProperty(props, key, className -> consumer.accept(createInstanceOf(className)));
+    }
+
+    /**
+     * Reads a class name property holding one or more comma-separated class names, instantiates each named class,
+     * and passes the instances to the consumer as a list when present.
+     * @throws IllegalArgumentException if any class cannot be found, has no no-argument constructor, or cannot be instantiated
+     */
+    static void classnameListProperty(Properties props, String key, Consumer<List<Object>> consumer) {
+        stringProperty(props, key, value -> {
+            List<Object> instances = new ArrayList<>();
+            for (String className : value.trim().split(",\\s*")) {
+                String trimmed = emptyAsNull(className);
+                if (trimmed != null) {
+                    instances.add(createInstanceOf(trimmed));
+                }
+            }
+            consumer.accept(instances);
+        });
     }
 
     /**

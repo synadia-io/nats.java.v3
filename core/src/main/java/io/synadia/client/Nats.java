@@ -252,8 +252,8 @@ public abstract class Nats {
      * reconnectOnConnect is true, the connection attempt will repeat based on the
      * settings in options, including indefinitely.
      * 
-     * <p>If there is an exception before a connection is created, and the error
-     * listener is set, it will be notified with a null connection.
+     * <p>If there is an exception before a connection is created, any error
+     * listeners set in the options are notified with a null connection.
      * 
      * @param options            the connection options
      * @param reconnectOnConnect if true, the connection will treat the initial
@@ -266,7 +266,7 @@ public abstract class Nats {
     public static void connectAsynchronously(Options options, boolean reconnectOnConnect)
             throws InterruptedException {
 
-        if (options.getConnectionListener() == null) {
+        if (options.getConnectionListeners().isEmpty()) {
             throw new IllegalArgumentException("NatsConnection Listener required in connectAsynchronously");
         }
 
@@ -274,7 +274,10 @@ public abstract class Nats {
             try {
                 NatsImpl.createConnection(options, reconnectOnConnect);
             } catch (Exception ex) {
-                options.getErrorListener().exceptionOccurred(null, ex);
+                // straight off the Options, not a connection - there is no NatsConnection to add listeners to yet
+                for (ErrorListener el : options.getErrorListeners()) {
+                    el.exceptionOccurred(null, ex);
+                }
             }
         });
         t.setName("NATS - async connection");

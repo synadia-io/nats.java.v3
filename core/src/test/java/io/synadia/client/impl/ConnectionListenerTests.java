@@ -6,6 +6,7 @@ import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,6 +93,52 @@ public class ConnectionListenerTests extends TestBase {
         runInSharedOwnNc(builder, nc -> stats.set(nc.getStatistics()));
         sleep(100); // it needs time here
         assertTrue(stats.get().getExceptions() > 0);
+    }
+
+    @Test
+    public void testMultipleConnectionListenersInOptions() throws Exception {
+        // listeners supplied in the Options are attached from construction, so they also see CONNECTED
+        // and DISCONNECTED - only CLOSED is recorded to keep the assertion deterministic
+        Set<String> capturedEvents = ConcurrentHashMap.newKeySet();
+        ConnectionListener cl1 = (conn, event, time, details) -> {
+            if (event == ConnectionEvents.CLOSED) {
+                capturedEvents.add("CL1-" + event.name());
+            }
+        };
+        ConnectionListener cl2 = (conn, event, time, details) -> {
+            if (event == ConnectionEvents.CLOSED) {
+                capturedEvents.add("CL2-" + event.name());
+            }
+        };
+
+        OptionsBuilder builder = optionsBuilder().connectionListener(cl1, cl2);
+        assertEquals(2, builder.build().getConnectionListeners().size());
+
+        runInSharedOwnNc(builder, nc -> {
+            closeAndConfirm(nc);
+            assertNull(nc.getConnectedUrl());
+        });
+
+        Set<String> expectedEvents = new HashSet<>(Arrays.asList("CL1-CLOSED", "CL2-CLOSED"));
+        assertEquals(expectedEvents, capturedEvents);
+    }
+
+    @Test
+    public void testRemoveConnectionListenerById() throws Exception {
+        Set<String> capturedEvents = ConcurrentHashMap.newKeySet();
+        ConnectionListener stays = (conn, event, time, details) -> capturedEvents.add("STAYS-" + event.name());
+        ConnectionListener goes = (conn, event, time, details) -> capturedEvents.add("NEVER INVOKED");
+
+        runInSharedOwnNc(nc -> {
+            nc.addConnectionListener(stays);
+            nc.addConnectionListener(goes);
+            nc.removeConnectionListenerById(goes.getConnectionListenerId());
+            nc.removeConnectionListenerById("not-a-registered-id"); // no-op
+
+            closeAndConfirm(nc);
+        });
+
+        assertEquals(new HashSet<>(Collections.singletonList("STAYS-CLOSED")), capturedEvents);
     }
 
     @Test

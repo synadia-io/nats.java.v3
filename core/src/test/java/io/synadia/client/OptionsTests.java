@@ -84,7 +84,8 @@ public class OptionsTests extends TestBase {
         assertEquals(DEFAULT_REQUEST_CLEANUP_INTERVAL, o.getRequestCleanupInterval(),
             "default cleanup interval");
 
-        assertNull(o.getConnectionListener(), "disconnect listener");
+        assertTrue(o.getConnectionListeners().isEmpty(), "disconnect listener");
+        assertTrue(o.getErrorListeners().isEmpty(), "error listener"); // no no-op default is seeded
         assertNull(o.getStatisticsCollector(), "statistics collector");
 
         assertEquals(SubjectValidationType.Lenient, o.subjectValidationType());
@@ -723,10 +724,24 @@ public class OptionsTests extends TestBase {
 
         Options o = new OptionsBuilder(props).build();
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertNotNull(o.getErrorListener(), "property error listener");
+        assertEquals(1, o.getErrorListeners().size(), "property error listener");
 
-        o.getErrorListener().errorOccurred(null, "bad subject");
-        assertEquals(0, ((Listener) o.getErrorListener()).getExceptionCount(), "property error listener class");
+        ErrorListener el = o.getErrorListeners().get(0);
+        el.errorOccurred(null, "bad subject");
+        assertEquals(0, ((Listener) el).getExceptionCount(), "property error listener class");
+    }
+
+    @Test
+    public void testPropertyErrorListenerList() {
+        Properties props = new Properties();
+        props.setProperty(PROP_ERROR_LISTENER_CLASS,
+            Listener.class.getCanonicalName() + ", " + ErrorListenerConsoleImpl.class.getCanonicalName());
+
+        Options o = new OptionsBuilder(props).build();
+        List<ErrorListener> els = o.getErrorListeners();
+        assertEquals(2, els.size(), "property error listener list");
+        assertInstanceOf(Listener.class, els.get(0));
+        assertInstanceOf(ErrorListenerConsoleImpl.class, els.get(1));
     }
 
     @Test
@@ -736,20 +751,34 @@ public class OptionsTests extends TestBase {
 
         Options o = new OptionsBuilder(props).build();
         assertFalse(o.isVerbose(), "default verbose"); // One from a different type
-        assertNotNull(o.getConnectionListener(), "property connection listener");
+        assertEquals(1, o.getConnectionListeners().size(), "property connection listener");
 
-        Listener listener = ((Listener) o.getConnectionListener());
+        ConnectionListener cl = o.getConnectionListeners().get(0);
+        Listener listener = ((Listener) cl);
         listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
-        o.getConnectionListener().connectionEvent(null, ConnectionEvents.DISCONNECTED, null, null);
+        cl.connectionEvent(null, ConnectionEvents.DISCONNECTED, null, null);
         listener.validate();
 
         listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
-        o.getConnectionListener().connectionEvent(null, ConnectionEvents.RECONNECTED, null, null);
+        cl.connectionEvent(null, ConnectionEvents.RECONNECTED, null, null);
         listener.validate();
 
         listener.queueConnectionEvent(ConnectionEvents.CLOSED);
-        o.getConnectionListener().connectionEvent(null, ConnectionEvents.CLOSED, null, null);
+        cl.connectionEvent(null, ConnectionEvents.CLOSED, null, null);
         listener.validate();
+    }
+
+    @Test
+    public void testPropertyConnectionListenerList() {
+        Properties props = new Properties();
+        props.setProperty(PROP_CONNECTION_LISTENER_CLASS,
+            Listener.class.getCanonicalName() + ", " + DebugConnectionListener.class.getCanonicalName());
+
+        Options o = new OptionsBuilder(props).build();
+        List<ConnectionListener> cls = o.getConnectionListeners();
+        assertEquals(2, cls.size(), "property connection listener list");
+        assertInstanceOf(Listener.class, cls.get(0));
+        assertInstanceOf(DebugConnectionListener.class, cls.get(1));
     }
 
     @Test

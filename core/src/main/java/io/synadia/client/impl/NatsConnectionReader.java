@@ -89,6 +89,9 @@ public class NatsConnectionReader implements Runnable {
     }
 
     void setReadListener(ReadListener rl) {
+        // keep currentUserRl in step with what is actually installed, so a later repoint compares against
+        // this listener rather than the previous connection's Options (see refreshReadListener)
+        currentUserRl = rl;
         if (rl == null) {
             readListener = new ReadListener() {};
         }

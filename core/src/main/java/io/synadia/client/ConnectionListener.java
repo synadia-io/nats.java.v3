@@ -8,6 +8,18 @@ import io.synadia.client.impl.NatsConnection;
  */
 public interface ConnectionListener {
     /**
+     * The id this listener is registered under when added to a connection, via
+     * {@link NatsConnection#addConnectionListener(ConnectionListener) addConnectionListener} or the {@link Options Options}.
+     * Adding a second listener with the same id replaces the first. The default is derived from {@code hashCode()},
+     * so a listener that overrides {@code equals}/{@code hashCode} should override this to supply its own id,
+     * or if it just wants a custom format. Remember it should be unique.
+     * @return the id
+     */
+    default String getConnectionListenerId() {
+        return "ConnectionListener-" + hashCode();
+    }
+
+    /**
      * NatsConnection related events that occur asynchronously in the client code are
      * sent to a ConnectionListener via a single method. The ConnectionListener can
      * use the event type to decide what to do about the problem.
