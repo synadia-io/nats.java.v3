@@ -768,17 +768,23 @@ public class OptionsTests extends TestBase {
         listener.validate();
     }
 
+    // nested, so getName() (binary name with the $) is what Class.forName needs, not getCanonicalName()
+    public static class PropertyTestConnectionListener implements ConnectionListener {
+        @Override
+        public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {}
+    }
+
     @Test
     public void testPropertyConnectionListenerList() {
         Properties props = new Properties();
         props.setProperty(PROP_CONNECTION_LISTENER_CLASS,
-            Listener.class.getCanonicalName() + ", " + DebugConnectionListener.class.getCanonicalName());
+            Listener.class.getCanonicalName() + ", " + PropertyTestConnectionListener.class.getName());
 
         Options o = new OptionsBuilder(props).build();
         List<ConnectionListener> cls = o.getConnectionListeners();
         assertEquals(2, cls.size(), "property connection listener list");
         assertInstanceOf(Listener.class, cls.get(0));
-        assertInstanceOf(DebugConnectionListener.class, cls.get(1));
+        assertInstanceOf(PropertyTestConnectionListener.class, cls.get(1));
     }
 
     @Test

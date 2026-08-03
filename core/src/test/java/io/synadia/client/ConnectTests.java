@@ -11,8 +11,7 @@ import org.junit.jupiter.api.parallel.Isolated;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collection;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.synadia.client.utils.ConnectionUtils.*;
@@ -197,10 +196,60 @@ public class ConnectTests {
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
             listener.queueConnectionEvent(ConnectionEvents.CONNECTED);
-            Nats.connectAsynchronously(options, false);
+            CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, false);
             listener.validate();
 
-            NatsConnection nc = listener.getLastConnectionEventConnection();
+            // both ways of getting the connection must work, and must be the same connection
+            NatsConnection fromFuture = future.get(DEFAULT_WAIT, TimeUnit.MILLISECONDS);
+            NatsConnection fromListener = listener.getLastConnectionEventConnection();
+            assertNotNull(fromFuture);
+            assertNotNull(fromListener);
+            assertSame(fromFuture, fromListener);
+
+            assertConnected(fromFuture);
+            closeAndConfirm(fromFuture);
+        }
+    }
+
+    @Test
+    public void testAsyncConnectionWithSuppliedExecutor() throws Exception {
+        try (NatsTestServer ts = new NatsTestServer()) {
+            Options options = optionsBuilder(ts).build();
+            AtomicBoolean executorUsed = new AtomicBoolean(false);
+            Executor executor = r -> {
+                executorUsed.set(true);
+                new Thread(r, "test-supplied-async-connect").start();
+            };
+
+            NatsConnection nc = Nats.connectAsynchronously(options, false, executor)
+                .get(DEFAULT_WAIT, TimeUnit.MILLISECONDS);
+            assertTrue(executorUsed.get(), "the supplied executor ran the connect");
+            assertNotNull(nc);
+            assertConnected(nc);
+            closeAndConfirm(nc);
+        }
+    }
+
+    @Test
+    public void testAsyncConnectionSuppliedExecutorFailureStillReportsCause() throws Exception {
+        Options options = optionsBuilder(NatsTestServer.nextPort()).noReconnect().build();
+        Executor executor = r -> new Thread(r, "test-supplied-async-connect").start();
+
+        CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, false, executor);
+        ExecutionException ee = assertThrows(ExecutionException.class,
+            () -> future.get(DEFAULT_WAIT, TimeUnit.MILLISECONDS));
+        // supplyAsync wraps in CompletionException, but get() unwraps it back to the original cause
+        assertInstanceOf(IOException.class, ee.getCause());
+    }
+
+    @Test
+    public void testAsyncConnectionFutureWithoutListener() throws Exception {
+        // no ConnectionListener at all - the future is the only handle, and that is now legal
+        try (NatsTestServer ts = new NatsTestServer()) {
+            Options options = optionsBuilder(ts).build();
+            assertTrue(options.getConnectionListeners().isEmpty());
+
+            NatsConnection nc = Nats.connectAsynchronously(options, false).get(DEFAULT_WAIT, TimeUnit.MILLISECONDS);
             assertNotNull(nc);
             assertConnected(nc);
             closeAndConfirm(nc);
@@ -214,23 +263,22 @@ public class ConnectTests {
         Options options = optionsBuilder(port).maxReconnects(-1)
                 .reconnectWait(100L).connectionListener(listener).build();
 
-        Nats.connectAsynchronously(options, true);
+        CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, true);
 
         sleep(5000); // No server at this point, let it fail and try to start over
 
+        // The retry loop runs on the connecting thread, so the future is still pending here - but the
+        // listener already has the connection. This is the timing difference between the two paths.
+        assertFalse(future.isDone(), "future is still pending while retrying");
         NatsConnection nc = listener.getLastConnectionEventConnection(); // will be disconnected, but should be there
         assertNotNull(nc);
 
         listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
         try (NatsTestServer ignored = new NatsTestServer(port)) {
+            // once a server is up the retry succeeds and the future completes with the same connection
+            assertSame(nc, future.get(DEFAULT_WAIT, TimeUnit.MILLISECONDS));
             confirmConnectedThenClosed(nc);
         }
-    }
-
-    @Test
-    public void testThrowOnAsyncWithoutListener() throws Exception {
-        Options options = optionsBuilder(NatsTestServer.nextPort()).build();
-        assertThrows(IllegalArgumentException.class, () -> Nats.connectAsynchronously(options, false));
     }
 
     @Test
@@ -242,9 +290,14 @@ public class ConnectTests {
             .noReconnect()
             .build();
         listener.queueConnectionEvent(ConnectionEvents.CLOSED);
-        Nats.connectAsynchronously(options, false);
+        CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, false);
         listener.validate();
         assertTrue(listener.getExceptionCount() > 0);
+
+        // the failure surfaces through the future as well as the error listener
+        ExecutionException ee = assertThrows(ExecutionException.class,
+            () -> future.get(DEFAULT_WAIT, TimeUnit.MILLISECONDS));
+        assertInstanceOf(IOException.class, ee.getCause());
     }
 
     @Test

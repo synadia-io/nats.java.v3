@@ -478,8 +478,12 @@ public class ErrorListenerTests extends TestBase {
             })
             .build();
 
-        Nats.connectAsynchronously(options, false);
+        // the error listener is notified in addition to the future completing exceptionally
+        CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, false);
         assertTrue(latch.await(LONG_VALIDATE_TIMEOUT, TimeUnit.MILLISECONDS), "error listener notified");
+        ExecutionException ee = assertThrows(ExecutionException.class,
+            () -> future.get(LONG_VALIDATE_TIMEOUT, TimeUnit.MILLISECONDS));
+        assertInstanceOf(IOException.class, ee.getCause());
     }
 
     // The async connect failure path reads the listeners straight off the Options (there is no
@@ -493,7 +497,8 @@ public class ErrorListenerTests extends TestBase {
             .build();
         assertTrue(options.getErrorListeners().isEmpty());
 
-        Nats.connectAsynchronously(options, false);
-        sleep(500); // let the connect attempt fail on its own thread
+        // with no error listener to notify, the future is the only report of the failure
+        CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, false);
+        assertThrows(ExecutionException.class, () -> future.get(LONG_VALIDATE_TIMEOUT, TimeUnit.MILLISECONDS));
     }
 }

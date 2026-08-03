@@ -6,6 +6,9 @@ import io.synadia.client.impl.NatsImpl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 
 import static io.synadia.client.OptionsConstants.DEFAULT_URL;
 
@@ -245,43 +248,96 @@ public abstract class Nats {
     }
 
     /**
-     * Try to connect in another thread, a connection listener is required to get
-     * the connection.
-     * 
+     * Try to connect in another thread. Returns immediately with a future that completes with the
+     * connection once it is connected, or completes exceptionally if the connection attempt fails.
+     *
      * <p>Normally connect will loop through the available servers one time. If
      * reconnectOnConnect is true, the connection attempt will repeat based on the
      * settings in options, including indefinitely.
-     * 
+     *
+     * <p>The future is how you should get the connection. It completes only once the connection is actually
+     * connected, so what it hands back is ready to use; a failed attempt completes it exceptionally instead.
+     *
+     * <p>A {@link ConnectionListener ConnectionListener} set in the options also receives the connection, but not
+     * until the first connection event - and that event is as likely to be a failure or a retry as a successful
+     * connect. Taking the handle from there still works but is <b>discouraged</b>: you get it no earlier than the
+     * first event, with no indication the connection ever succeeded, so every call on it has to cope with a
+     * connection that is not connected and may never be. Use the listener to react to connection events; use the
+     * future to get the connection.
+     *
+     * <p>This starts a <b>new thread per call</b>, named "NATS - async connection", which runs the whole connect
+     * attempt and then exits. It inherits daemon status from the calling thread, so in the usual case it is not
+     * a daemon and a connect that never succeeds will keep the JVM alive - see the retry note below. Nothing is
+     * pooled or reused; two calls get two threads. To run the attempt somewhere else - a pool you own, or
+     * virtual threads - use {@link #connectAsynchronously(Options, boolean, Executor) the overload taking an
+     * Executor}.
+     *
+     * <p>With reconnectOnConnect true the retry loop runs on that thread, so the future stays pending for as
+     * long as retries continue - indefinitely if maxReconnects is -1, which also means the thread lives that
+     * long. Wait on the future with a timeout rather than reaching for the listener's copy.
+     *
      * <p>If there is an exception before a connection is created, any error
-     * listeners set in the options are notified with a null connection.
-     * 
+     * listeners set in the options are notified with a null connection, in addition to the future
+     * completing exceptionally.
+     *
      * @param options            the connection options
      * @param reconnectOnConnect if true, the connection will treat the initial
      *                           connection as any other and attempt reconnects on
      *                           failure
-     * 
-     * @throws IllegalArgumentException if no connection listener is set in the options
-     * @throws InterruptedException if the current thread is interrupted
+     * @return a future that completes with the connection, or completes exceptionally on failure
      */
-    public static void connectAsynchronously(Options options, boolean reconnectOnConnect)
-            throws InterruptedException {
+    public static CompletableFuture<NatsConnection> connectAsynchronously(Options options, boolean reconnectOnConnect) {
+        // a thread per call - the connect task blocks for the whole attempt, so it must never share a thread
+        return connectAsynchronously(options, reconnectOnConnect, r -> new Thread(r, "NATS - async connection").start());
+    }
 
-        if (options.getConnectionListeners().isEmpty()) {
-            throw new IllegalArgumentException("NatsConnection Listener required in connectAsynchronously");
-        }
-
-        Thread t = new Thread(() -> {
+    /**
+     * Try to connect using the supplied executor, otherwise behaving exactly as
+     * {@link #connectAsynchronously(Options, boolean) connectAsynchronously(options, reconnectOnConnect)},
+     * which is the same thing on a thread per call.
+     *
+     * <p>The connect task <b>blocks for the whole connect attempt</b>, and with reconnectOnConnect true that
+     * includes the entire retry loop - indefinitely if maxReconnects is -1. Choose the executor accordingly:
+     * <ul>
+     * <li>a single-thread executor serializes concurrent async connects behind each other.</li>
+     * <li>{@link java.util.concurrent.ForkJoinPool#commonPool() commonPool} - what a bare
+     * {@code CompletableFuture.supplyAsync} would use - is a poor fit, being sized for short CPU-bound work.</li>
+     * <li>{@code Executors.newVirtualThreadPerTaskExecutor()} is a good fit, the task being purely blocking.</li>
+     * </ul>
+     * <p><b>Do not pass any of the executors you supplied to {@link Options Options}</b> - not the connect,
+     * callback, reader, writer, scheduled or general executor. Those belong to the connection and are sized and
+     * used for its own work, and this task blocks on top of them:
+     * <ul>
+     * <li>the connect executor deadlocks outright - connecting submits to it and blocks awaiting the result, so
+     * a connect task already occupying it can never be completed by it.</li>
+     * <li>the others get an indefinitely blocked thread taken out of the pool the connection needs to read,
+     * write, and deliver callbacks.</li>
+     * </ul>
+     * Their lifecycle is wrong for this too: they are reference counted per connection and shut down when the
+     * last one closes, while this call runs before any connection exists. Supply a separate executor.
+     *
+     * @param options            the connection options
+     * @param reconnectOnConnect if true, the connection will treat the initial
+     *                           connection as any other and attempt reconnects on
+     *                           failure
+     * @param executor           the executor to run the connect attempt on
+     * @return a future that completes with the connection, or completes exceptionally on failure
+     */
+    public static CompletableFuture<NatsConnection> connectAsynchronously(
+            Options options, boolean reconnectOnConnect, Executor executor) {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-                NatsImpl.createConnection(options, reconnectOnConnect);
-            } catch (Exception ex) {
+                return NatsImpl.createConnection(options, reconnectOnConnect);
+            }
+            catch (Exception ex) {
                 // straight off the Options, not a connection - there is no NatsConnection to add listeners to yet
                 for (ErrorListener el : options.getErrorListeners()) {
                     el.exceptionOccurred(null, ex);
                 }
+                // CompletableFuture unwraps this, so future.get() still reports the original cause
+                throw new CompletionException(ex);
             }
-        });
-        t.setName("NATS - async connection");
-        t.start();
+        }, executor);
     }
 
     /**

@@ -204,7 +204,7 @@ public class NatsConnection implements AutoCloseable {
 
     /**
      * Set the ReadListener, replacing any listener supplied in the {@link Options Options} or set earlier.
-     * <pUnlike {@link #addErrorListener(ErrorListener) addErrorListener()}
+     * <p>Unlike {@link #addErrorListener(ErrorListener) addErrorListener()}
      * and {@link #addConnectionListener(ConnectionListener) addConnectionListener()}, there can be only one... read listener.
      * This is intentional, not an oversight. See {@link ReadListener ReadListener}.
      *
