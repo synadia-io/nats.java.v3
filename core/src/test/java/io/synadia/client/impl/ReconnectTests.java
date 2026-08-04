@@ -12,6 +12,9 @@ import org.junit.jupiter.api.parallel.Isolated;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -699,6 +702,55 @@ public class ReconnectTests {
         Listener listener = new Listener();
         ThreeServerTestOptions tstOpts = makeThreeServerTestOptions(listener, true);
         runInCluster(tstOpts, (nc0, nc1, nc2) -> _testForceReconnect(nc0, listener));
+    }
+
+    // forceReconnectImpl stops the reader with stop(false) - which clears `running` but does NOT
+    // shutdownInput - so the reader stays blocked in read() until the port close (an async task) wakes it.
+    // With a close delayed past the join window, a stale reader can outlive forceReconnect, then wake on
+    // the now-healthy connection, see `running` flipped back true by the new reader's start(), and call
+    // handleCommunicationIssue -> spurious disconnect. Its finally{running.set(false)} also stomps the
+    // flag the new reader loops on. Joining the stopped-future with the full connection timeout means the
+    // old thread is dead before its reader instance is reused, so nothing fires after the reconnect.
+    @Test
+    public void testForceReconnectWaitsForStaleReaderToStop() throws Exception {
+        long closeDelay = 1000; // past the old 100ms join, well inside the test connection timeout
+        ForceReconnectQueueCheckDataPort.resetAll();
+        ForceReconnectQueueCheckDataPort.CLOSE_DELAY = closeDelay;
+        try (NatsTestServer ts = new NatsTestServer()) {
+            List<ConnectionEvents> events = Collections.synchronizedList(new ArrayList<>());
+            Options options = optionsBuilder(ts)
+                .dataPortType(ForceReconnectQueueCheckDataPort.class.getCanonicalName())
+                .maxReconnects(-1)
+                .reconnectWait(100)
+                .connectionListener((conn, event, time, details) -> events.add(event))
+                .build();
+
+            try (NatsConnection nc = standardConnect(options)) {
+                assertConnected(nc);
+
+                nc.forceReconnect();
+                confirmConnected(nc); // the deliberate DISCONNECTED/RECONNECTED pair lands here
+
+                // Everything from here on must be quiet. Measured against the unfixed code, a stale
+                // reader wakes when the delayed close lands (~closeDelay) and calls
+                // handleCommunicationIssue -> processException, bumping the exception count; the
+                // resulting spurious DISCONNECTED/RECONNECTED pair follows roughly 2s after that.
+                // Wait past both. The exception count is the earlier and more direct signal - it moves
+                // the moment the stale reader misbehaves - so it is asserted first.
+                int settledEvents = events.size();
+                long settledExceptions = nc.getStatistics().getExceptions();
+                sleep(closeDelay + 3500);
+
+                assertEquals(settledExceptions, nc.getStatistics().getExceptions(),
+                    "a stale reader fired handleCommunicationIssue after the reconnect settled");
+                assertEquals(settledEvents, events.size(),
+                    "no connection events after the reconnect settled, saw " + events);
+                assertConnected(nc);
+            }
+        }
+        finally {
+            ForceReconnectQueueCheckDataPort.resetAll();
+        }
     }
 
     private static void _testForceReconnect(NatsConnection nc0, Listener listener) throws IOException, InterruptedException {

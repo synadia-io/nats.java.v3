@@ -351,6 +351,14 @@ public class NatsConnection implements AutoCloseable {
                 dataPortFuture = null;
             }
 
+            // Stop i/o BEFORE closing the port. stop(false) clears the reader's running flag without
+            // shutting down input, so when the close below unblocks the pending read, the reader sees the
+            // resulting IOException as an expected shutdown rather than a communication issue. Both stop
+            // methods return a future completed when the thread actually exits; both are initialized to an
+            // already-completed future at construction, so joining one that never started returns at once.
+            Future<Boolean> readerStopped = this.reader.stop(false);
+            Future<Boolean> writerStopped = this.writer.stop();
+
             // close the data port as a task so as not to block reconnecting
             if (dataPort != null) {
                 final DataPort dataPortToClose = dataPort;
@@ -370,15 +378,19 @@ public class NatsConnection implements AutoCloseable {
                 });
             }
 
-            // stop i/o
+            // Join the i/o threads with the full connection timeout, not a token wait. These reader and
+            // writer instances are reused by the reconnect, so a thread that outlives this point can still
+            // fire handleCommunicationIssue on the healthy connection and stomp the shared running flag.
+            // The close above normally lands sub-millisecond, so these return immediately in the common case.
+            long timeoutMillis = options.getConnectionTimeout();
             try {
-                this.reader.stop(false).get(100, TimeUnit.MILLISECONDS);
+                readerStopped.get(timeoutMillis, TimeUnit.MILLISECONDS);
             }
             catch (Exception ex) {
                 processException(ex);
             }
             try {
-                this.writer.stop().get(100, TimeUnit.MILLISECONDS);
+                writerStopped.get(timeoutMillis, TimeUnit.MILLISECONDS);
             }
             catch (Exception ex) {
                 processException(ex);
