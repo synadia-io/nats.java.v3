@@ -26,6 +26,10 @@ import static io.synadia.client.utils.NatsConstants.UNDEFINED;
 public class ConsumerConfiguration extends LazyApiObject {
     private static @Nullable ConsumerConfiguration DEFAULT_INSTANCE;
 
+    /**
+     * A configuration with every setting left at its default.
+     * @return the default instance
+     */
     public static ConsumerConfiguration getDefaultInstance() {
         if (DEFAULT_INSTANCE == null) {
             DEFAULT_INSTANCE = new ConsumerConfiguration(

@@ -21,10 +21,19 @@ import static io.synadia.client.utils.JsValidator.*;
 @NullMarked
 public class StreamCreator implements JsonSerializable {
 
+    /** Retention policy applied when none is set. */
     public static final RetentionPolicy DEFAULT_RETENTION_POLICY = RetentionPolicy.Limits;
+
+    /** Compression option applied when none is set. */
     public static final CompressionOption DEFAULT_COMPRESSION_OPTION = CompressionOption.None;
+
+    /** Storage type applied when none is set. */
     public static final StorageType DEFAULT_STORAGE_TYPE = StorageType.File;
+
+    /** Discard policy applied when none is set. */
     public static final DiscardPolicy DEFAULT_DISCARD_POLICY = DiscardPolicy.Old;
+
+    /** Persist mode applied when none is set. */
     public static final PersistMode DEFAULT_PERSIST_MODE = PersistMode.Default;
 
     private final String name;

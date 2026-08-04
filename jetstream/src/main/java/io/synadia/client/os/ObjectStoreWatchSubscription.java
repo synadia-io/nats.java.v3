@@ -11,8 +11,19 @@ import java.util.Collections;
 import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
 
 
+/**
+ * An active watch over an Object Store bucket. Close it to stop receiving updates.
+ */
 public class ObjectStoreWatchSubscription extends NatsWatchSubscription<ObjectInfo> {
 
+    /**
+     * Construct a watch over the bucket. Prefer the watch methods on {@link ObjectStore ObjectStore}.
+     * @param os the object store to watch
+     * @param watcher the watcher to receive updates
+     * @param watchOptions the watch options to apply
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public ObjectStoreWatchSubscription(ObjectStore os, ObjectStoreWatcher watcher, ObjectStoreWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         super(os.js);
 

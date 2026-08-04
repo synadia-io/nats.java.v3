@@ -38,8 +38,13 @@ public enum HostnameResolveMode {
      */
     HappyEyeballs(false, false, false);
 
+    /** Whether the hostname is resolved to ip addresses at all, as opposed to left unresolved. */
     public final boolean resolve;
+
+    /** Whether resolving stops at the first ip address rather than returning all of them. */
     public final boolean maxOneResult;
+
+    /** Whether IPV6 addresses are included in the resolved results. */
     public final boolean includeIPV6;
 
     HostnameResolveMode(boolean resolve, boolean maxOneResult, boolean includeIPV6) {
@@ -48,6 +53,11 @@ public enum HostnameResolveMode {
         this.includeIPV6 = includeIPV6;
     }
 
+    /**
+     * Get the mode with the given name, ignoring case.
+     * @param value the mode name
+     * @return the matching mode, or null if the name does not match one
+     */
     public static HostnameResolveMode get(String value) {
         for (HostnameResolveMode mode : HostnameResolveMode.values()) {
             if (mode.name().equalsIgnoreCase(value)) {

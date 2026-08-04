@@ -18,7 +18,10 @@ public interface OptionsProperties {
     // ----------------------------------------------------------------------------------------------------
     // ENVIRONMENT PROPERTIES
     // ----------------------------------------------------------------------------------------------------
+    /** Prefix all option property keys may carry. Keys are accepted with or without it. {@value} */
     String PFX = "io.nats.client.";
+
+    /** Length of {@link #PFX}, used when stripping the prefix from a key. */
     int PFX_LEN = PFX.length();
 
     /**
@@ -302,6 +305,13 @@ public interface OptionsProperties {
      */
     String PROP_WRITER_THREAD_FACTORY_CLASS = PFX + "writerThreadFactoryClass";
 
+    /**
+     * Look up a property value, tolerating the several key spellings the client accepts: with the
+     * {@link #PFX} prefix, without it, and with underscores in place of dots.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @return the value, or null if not present or empty
+     */
     static String getPropertyValue(Properties props, String key) {
         String value = emptyAsNull(props.getProperty(key));
         if (value != null) {
@@ -319,6 +329,12 @@ public interface OptionsProperties {
         return value;
     }
 
+    /**
+     * Reads a string property and passes it to the consumer when present.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value when the property is present
+     */
     static void stringProperty(Properties props, String key, Consumer<String> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
@@ -326,6 +342,12 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads a string property and passes it to the consumer as a char array when present.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value when the property is present
+     */
     static void charArrayProperty(Properties props, String key, Consumer<char[]> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
@@ -333,6 +355,13 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads a boolean property and passes it to the consumer when present. Any value other than
+     * "true" (ignoring case) parses as false.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value when the property is present
+     */
     static void booleanProperty(Properties props, String key, Consumer<Boolean> consumer) {
         String value = getPropertyValue(props, key);
         if (value != null) {
@@ -340,6 +369,13 @@ public interface OptionsProperties {
         }
     }
 
+    /**
+     * Reads a boolean property and calls the consumer only when it parses as true, leaving the
+     * setting untouched otherwise. Use for flags whose default must not be overwritten by a false.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives true when the property is present and true
+     */
     static void booleanPropertyIfTrue(Properties props, String key, Consumer<Boolean> consumer) {
         if (Boolean.parseBoolean(getPropertyValue(props, key))) { // parseBoolean treats null as false
             consumer.accept(true);
@@ -436,6 +472,9 @@ public interface OptionsProperties {
     /**
      * Reads a class name property holding one or more comma-separated class names, instantiates each named class,
      * and passes the instances to the consumer as a list when present.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the instances when the property is present
      * @throws IllegalArgumentException if any class cannot be found, has no no-argument constructor, or cannot be instantiated
      */
     static void classnameListProperty(Properties props, String key, Consumer<List<Object>> consumer) {

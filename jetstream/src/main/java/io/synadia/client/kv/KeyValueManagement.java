@@ -13,15 +13,28 @@ import static io.synadia.client.impl.JetStreamConstants.SERVER_DEFAULT_DUPLICATE
 import static io.synadia.client.kv.KeyValueUtils.*;
 import static io.synadia.client.utils.JsValidator.validateBucketName;
 
+/**
+ * Create, inspect and delete Key Value buckets. For reading and writing the keys themselves, use
+ * {@link KeyValue KeyValue}.
+ */
 public class KeyValueManagement {
     private final NatsConnection nc;
     private final KeyValueOptions kvo;
     private final JetStreamManagement jsm;
 
+    /**
+     * Construct management for the connection, with default options.
+     * @param connection the connection
+     */
     public KeyValueManagement(@NonNull NatsConnection connection) {
         this(connection, null);
     }
 
+    /**
+     * Construct management for the connection with the given options.
+     * @param connection the connection
+     * @param kvo the key value options, or null for defaults
+     */
     public KeyValueManagement(@NonNull NatsConnection connection, @Nullable KeyValueOptions kvo) {
         this.nc = connection;
         this.kvo = kvo;

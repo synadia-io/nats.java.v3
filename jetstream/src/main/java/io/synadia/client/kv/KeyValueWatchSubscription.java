@@ -10,12 +10,35 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * An active watch over one or more keys in a Key Value bucket. Close it to stop receiving updates.
+ */
 public class KeyValueWatchSubscription extends NatsWatchSubscription<KeyValueEntry> {
 
+    /**
+     * Construct a watch over a single key pattern. Prefer the watch methods on {@link KeyValue KeyValue}.
+     * @param kv the key value bucket to watch
+     * @param keyPattern the key pattern, which may contain wildcards
+     * @param watcher the watcher to receive updates
+     * @param fromRevision the revision to start from, or -1 to start from the latest
+     * @param watchOptions the watch options to apply
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription(KeyValue kv, String keyPattern, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         this(kv, Collections.singletonList(keyPattern), watcher, fromRevision, watchOptions);
     }
 
+    /**
+     * Construct a watch over several key patterns. Prefer the watch methods on {@link KeyValue KeyValue}.
+     * @param kv the key value bucket to watch
+     * @param keyPatterns the key patterns, which may contain wildcards
+     * @param watcher the watcher to receive updates
+     * @param fromRevision the revision to start from, or -1 to start from the latest
+     * @param watchOptions the watch options to apply
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription(KeyValue kv, List<String> keyPatterns, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         super(kv.js);
         kvWatchInit(kv, keyPatterns, watcher, fromRevision, watchOptions);

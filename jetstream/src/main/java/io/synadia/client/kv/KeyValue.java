@@ -18,6 +18,12 @@ import static io.synadia.client.utils.JsValidator.*;
 import static io.synadia.client.utils.NatsConstants.DOT;
 import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
 
+/**
+ * Read and write access to a single Key Value bucket. A bucket is backed by a JetStream stream, and each key is
+ * a subject within it, so a key's history is the stream's message history for that subject.
+ * <p>Obtain an instance from the connection rather than constructing one. Keys may not contain wildcards except
+ * where a method explicitly allows them, such as the {@code watch} and {@code keys} filters.
+ */
 public class KeyValue extends AbstractBucketFeature {
 
     private final String streamSubject;
@@ -176,6 +182,17 @@ public class KeyValue extends AbstractBucketFeature {
         return create(key, value, null);
     }
 
+    /**
+     * Put as the value for a key iff the key does not exist (there is no history) or is deleted, applying a
+     * per-message TTL.
+     * @param key the key
+     * @param value the bytes of the value
+     * @param messageTtl the TTL for this specific message, or null for the bucket default
+     * @return the revision number for the key
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     * @throws IllegalArgumentException the server is not JetStream enabled
+     */
     public long create(String key, byte[] value, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
         try {
@@ -302,34 +319,89 @@ public class KeyValue extends AbstractBucketFeature {
         return js.publish(NatsMessage.builder().subject(writeSubject(key)).data(data).headers(h).build(), popts);
     }
 
+    /**
+     * Watch a key for updates, delivering them to the watcher until the returned subscription is closed.
+     * @param key the key, which may contain wildcards
+     * @param watcher the watcher to receive updates
+     * @param watchOptions the watch options to apply
+     * @return the subscription, which must be closed to stop watching
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription watch(String key, KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeyWildcardAllowedRequired(key);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, Collections.singletonList(key), watcher, -1, watchOptions);
     }
 
+    /**
+     * Watch a key for updates starting from a specific revision.
+     * @param key the key, which may contain wildcards
+     * @param watcher the watcher to receive updates
+     * @param fromRevision the revision to start from, or -1 to start from the latest
+     * @param watchOptions the watch options to apply
+     * @return the subscription, which must be closed to stop watching
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription watch(String key, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeyWildcardAllowedRequired(key);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, Collections.singletonList(key), watcher, fromRevision, watchOptions);
     }
 
+    /**
+     * Watch several keys for updates.
+     * @param keys the keys, which may contain wildcards
+     * @param watcher the watcher to receive updates
+     * @param watchOptions the watch options to apply
+     * @return the subscription, which must be closed to stop watching
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription watch(List<String> keys, KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeysWildcardAllowedRequired(keys);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, keys, watcher, -1, watchOptions);
     }
 
+    /**
+     * Watch several keys for updates starting from a specific revision.
+     * @param keys the keys, which may contain wildcards
+     * @param watcher the watcher to receive updates
+     * @param fromRevision the revision to start from, or -1 to start from the latest
+     * @param watchOptions the watch options to apply
+     * @return the subscription, which must be closed to stop watching
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription watch(List<String> keys, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         validateKvKeysWildcardAllowedRequired(keys);
         validateNotNull(watcher, "Watcher is required");
         return new KeyValueWatchSubscription(this, keys, watcher, fromRevision, watchOptions);
     }
 
+    /**
+     * Watch every key in the bucket for updates.
+     * @param watcher the watcher to receive updates
+     * @param watchOptions the watch options to apply
+     * @return the subscription, which must be closed to stop watching
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription watchAll(KeyValueWatcher watcher, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         return new KeyValueWatchSubscription(this, Collections.singletonList(GREATER_THAN), watcher, -1, watchOptions);
     }
 
+    /**
+     * Watch every key in the bucket for updates starting from a specific revision.
+     * @param watcher the watcher to receive updates
+     * @param fromRevision the revision to start from, or -1 to start from the latest
+     * @param watchOptions the watch options to apply
+     * @return the subscription, which must be closed to stop watching
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public KeyValueWatchSubscription watchAll(KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
         return new KeyValueWatchSubscription(this, Collections.singletonList(GREATER_THAN), watcher, fromRevision, watchOptions);
     }
@@ -344,10 +416,24 @@ public class KeyValue extends AbstractBucketFeature {
         return _keys(Collections.singletonList(readSubject(GREATER_THAN)));
     }
 
+    /**
+     * Get a list of the keys in a bucket matching a filter.
+     * @param filter the key filter, which may contain wildcards
+     * @return List of keys
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public List<String> keys(String filter) throws JetStreamException, InterruptedException {
         return _keys(Collections.singletonList(readSubject(filter)));
     }
 
+    /**
+     * Get a list of the keys in a bucket matching any of several filters.
+     * @param filters the key filters, which may contain wildcards
+     * @return List of keys
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public List<String> keys(List<String> filters) throws JetStreamException, InterruptedException {
         List<String> readSubjectFilters = new ArrayList<>(filters.size());
         for (String f : filters) {

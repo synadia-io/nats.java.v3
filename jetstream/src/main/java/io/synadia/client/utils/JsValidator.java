@@ -9,23 +9,57 @@ import java.util.Map;
 import static io.synadia.client.impl.JetStreamConstants.MAX_HISTORY_PER_KEY;
 import static io.synadia.client.utils.NatsConstants.DOT;
 
+/**
+ * JetStream specific validation, extending the core {@link Validator Validator} with the naming and limit rules
+ * for streams, consumers, key value keys and object store buckets. Each method returns the validated value so it
+ * can be used inline, and throws {@link IllegalArgumentException} when the value is not acceptable.
+ */
 @SuppressWarnings("UnusedReturnValue")
 public abstract class JsValidator extends Validator {
 
     protected JsValidator() {} /* ensures cannot be constructed */
 
+    /**
+     * Validate a stream name.
+     * @param s the value to validate
+     * @param required true if the value must be supplied
+     * @return the value, or null when not required and not supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateStreamName(String s, boolean required) {
         return validatePrintableExceptWildDotGtSlashes(s, "Stream", required);
     }
 
+    /**
+     * Validate a durable name.
+     * @param s the value to validate
+     * @param required true if the value must be supplied
+     * @return the value, or null when not required and not supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateDurable(String s, boolean required) {
         return validatePrintableExceptWildDotGtSlashes(s, "Durable", required);
     }
 
+    /**
+     * Validate a consumer name.
+     * @param s the value to validate
+     * @param required true if the value must be supplied
+     * @return the value, or null when not required and not supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateConsumerName(String s, boolean required) {
         return validatePrintableExceptWildDotGtSlashes(s, "Name", required);
     }
 
+    /**
+     * Validate a JetStream prefix or domain.
+     * @param s the value to validate
+     * @param label name used in the error message
+     * @param required true if the value must be supplied
+     * @return the value, or null when not required and not supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validatePrefixOrDomain(String s, String label, boolean required) {
         return _validate(s, required, label, () -> {
             if (s.startsWith(DOT)) {
@@ -38,6 +72,12 @@ public abstract class JsValidator extends Validator {
         });
     }
 
+    /**
+     * Validate a required list of key value keys, allowing wildcards.
+     * @param keys the keys to validate
+     * @return the keys
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static List<String> validateKvKeysWildcardAllowedRequired(List<String> keys) {
         required(keys, "Key");
         for (String key : keys) {
@@ -46,20 +86,46 @@ public abstract class JsValidator extends Validator {
         return keys;
     }
 
+    /**
+     * Validate a required key value key, allowing wildcards.
+     * @param s the value to validate
+     * @return the key
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateKvKeyWildcardAllowedRequired(String s) {
         return validateWildcardKvKey(s, "Key", true);
     }
 
+    /**
+     * Validate a required key value key that may not contain wildcards.
+     * @param s the value to validate
+     * @return the key
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateNonWildcardKvKeyRequired(String s) {
         return validateNonWildcardKvKey(s, "Key", true);
     }
 
+    /**
+     * Assert a value was not supplied, raising the given error when it was.
+     * @param s the value to validate
+     * @param err the error to raise
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static void validateNotSupplied(String s, JetStreamClientError err) {
         if (!nullOrEmpty(s)) {
             throw err.instance();
         }
     }
 
+    /**
+     * Require two values to match when both are supplied, returning whichever was given.
+     * @param s1 the first value
+     * @param s2 the second value
+     * @param err the error to raise when they conflict
+     * @return the supplied value, or null if neither was supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateMustMatchIfBothSupplied(String s1, String s2, JetStreamClientError err) {
         // s1   | s2   || result
         // ---- | ---- || --------------
@@ -82,10 +148,25 @@ public abstract class JsValidator extends Validator {
         throw err.instance();
     }
 
+    /**
+     * Validate a key value or object store bucket name.
+     * @param s the value to validate
+     * @param required true if the value must be supplied
+     * @return the value, or null when not required and not supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateBucketName(String s, boolean required) {
         return validateIsRestrictedTerm(s, "Bucket Name", required);
     }
 
+    /**
+     * Validate a key value key, allowing wildcards.
+     * @param s the value to validate
+     * @param label name used in the error message
+     * @param required true if the value must be supplied
+     * @return the value, or null when not required and not supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateWildcardKvKey(String s, String label, boolean required) {
         return _validate(s, required, label, () -> {
             if (notWildcardKvKey(s)) {
@@ -95,6 +176,14 @@ public abstract class JsValidator extends Validator {
         });
     }
 
+    /**
+     * Validate a key value key that may not contain wildcards.
+     * @param s the value to validate
+     * @param label name used in the error message
+     * @param required true if the value must be supplied
+     * @return the value, or null when not required and not supplied
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static String validateNonWildcardKvKey(String s, String label, boolean required) {
         return _validate(s, required, label, () -> {
             if (notNonWildcardKvKey(s)) {
@@ -104,6 +193,12 @@ public abstract class JsValidator extends Validator {
         });
     }
 
+    /**
+     * Validate a bucket's max history per key.
+     * @param max the value to validate
+     * @return the value
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static int validateMaxHistory(int max) {
         if (max < 1 || max > MAX_HISTORY_PER_KEY) {
             throw new IllegalArgumentException("Max History must be from 1 to " + MAX_HISTORY_PER_KEY + " inclusive.");
@@ -111,14 +206,32 @@ public abstract class JsValidator extends Validator {
         return max;
     }
 
+    /**
+     * Validate a bucket's max size in bytes.
+     * @param max the value to validate
+     * @return the value
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static long validateMaxBucketBytes(long max) {
         return validateGtZeroOrMinus1(max, "Max Bucket Bytes"); // max bucket bytes is a kv alias to max bytes
     }
 
+    /**
+     * Validate a bucket's max value size in bytes.
+     * @param max the value to validate
+     * @return the value
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static int validateMaxValueSize(int max) {
         return validateGtZeroOrMinus1(max, "Max Value Size"); // max value size is a kv alias to max message size
     }
 
+    /**
+     * Validate a replica count.
+     * @param replicas the value to validate
+     * @return the value
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static int validateNumberOfReplicas(int replicas) {
         if (replicas < 1 || replicas > 5) {
             throw new IllegalArgumentException("Replicas must be from 1 to 5 inclusive.");
@@ -126,6 +239,13 @@ public abstract class JsValidator extends Validator {
         return replicas;
     }
 
+    /**
+     * Validate an optional duration that may not be negative.
+     * @param d the duration, may be null
+     * @param ifNull returned when the duration is null
+     * @return the duration, or ifNull
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static Duration validateDurationNotRequiredGtOrEqZero(Duration d, Duration ifNull) {
         if (d == null) {
             return ifNull;
@@ -136,6 +256,12 @@ public abstract class JsValidator extends Validator {
         return d;
     }
 
+    /**
+     * Validate an optional duration in millis that may not be negative.
+     * @param millis the duration in milliseconds
+     * @return the duration
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static Duration validateDurationNotRequiredGtOrEqZero(long millis) {
         if (millis < 0) {
             throw new IllegalArgumentException("Duration must be greater than or equal to 0.");
@@ -143,6 +269,13 @@ public abstract class JsValidator extends Validator {
         return Duration.ofMillis(millis);
     }
 
+    /**
+     * Validate an optional duration in millis that may not be negative.
+     * @param millis the duration in milliseconds
+     * @param ifZero returned when millis is zero
+     * @return the duration, or ifZero
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static Duration validateDurationNotRequiredGtOrEqZero(long millis, Duration ifZero) {
         if (millis < 0) {
             throw new IllegalArgumentException("Duration must be greater than or equal to 0.");
@@ -153,10 +286,27 @@ public abstract class JsValidator extends Validator {
         return Duration.ofMillis(millis);
     }
 
+    /**
+     * Validate an optional duration against a minimum in seconds.
+     * @param minSeconds the minimum in seconds
+     * @param d the duration, may be null
+     * @param ifNull returned when the duration is null
+     * @param label name used in the error message
+     * @return the duration, or ifNull
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static Duration validateDurationNotRequiredGtOrEqSeconds(long minSeconds, Duration d, Duration ifNull, String label) {
         return d == null ? ifNull : validateDurationGtOrEqSeconds(minSeconds, d.toMillis(), label);
     }
 
+    /**
+     * Validate a duration in millis against a minimum in seconds.
+     * @param minSeconds the minimum in seconds
+     * @param millis the duration in milliseconds
+     * @param label name used in the error message
+     * @return the duration
+     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     */
     public static Duration validateDurationGtOrEqSeconds(long minSeconds, long millis, String label) {
         if (millis < (minSeconds * 1000)) {
             throw new IllegalArgumentException(label + " must be greater than or equal to " + minSeconds + " second(s).");
@@ -166,6 +316,11 @@ public abstract class JsValidator extends Validator {
 
     // limited-term = (A-Z, a-z, 0-9, dash 45, dot 46, fwd-slash 47, equals 61, underscore 95)+
     // kv-key-name = limited-term (dot limited-term)*
+    /**
+     * Whether the value is not a valid wildcard-free key value key.
+     * @param s the value to validate
+     * @return true if the value is not valid
+     */
     public static boolean notNonWildcardKvKey(String s) {
         if (s.charAt(0) == '.') {
             return true; // can't start with dot
@@ -204,6 +359,11 @@ public abstract class JsValidator extends Validator {
     }
 
     // (A-Z, a-z, 0-9, star 42, dash 45, dot 46, fwd-slash 47, equals 61, gt 62, underscore 95)+
+    /**
+     * Whether the value is not a valid key value key, wildcards allowed.
+     * @param s the value to validate
+     * @return true if the value is not valid
+     */
     public static boolean notWildcardKvKey(String s) {
         if (s.charAt(0) == '.') {
             return true; // can't start with dot
@@ -244,6 +404,12 @@ public abstract class JsValidator extends Validator {
     // this is a special case map where the meta has both user and nats headers like
     // _nats.req.level=0, _nats.ver=2.12.0-preview.2, _nats.level=2
     // in this case we only want to compare the user keys
+    /**
+     * Compare two metadata maps, ignoring the entries the server adds itself.
+     * @param m1 the first map, may be null
+     * @param m2 the second map, may be null
+     * @return true if the maps are equivalent
+     */
     public static boolean metaIsEquivalent(Map<String, String> m1, Map<String, String> m2) {
         if (m1 == null || m1.isEmpty()) {
             return m2 == null || m2.isEmpty();

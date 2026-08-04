@@ -14,15 +14,28 @@ import java.util.List;
 import static io.synadia.client.os.ObjectStoreUtil.*;
 import static io.synadia.client.utils.JsValidator.validateBucketName;
 
+/**
+ * Create, inspect and delete Object Store buckets. For reading and writing the objects themselves, use
+ * {@link ObjectStore ObjectStore}.
+ */
 public class ObjectStoreManagement {
     private final NatsConnection nc;
     private final ObjectStoreOptions oso;
     private final JetStreamManagement jsm;
 
+    /**
+     * Construct management for the connection, with default options.
+     * @param connection the connection
+     */
     public ObjectStoreManagement(@NonNull NatsConnection connection) {
         this(connection, null);
     }
 
+    /**
+     * Construct management for the connection with the given options.
+     * @param connection the connection
+     * @param oso the object store options, or null for defaults
+     */
     public ObjectStoreManagement(@NonNull NatsConnection connection, @Nullable ObjectStoreOptions oso) {
         this.nc = connection;
         this.oso = oso;

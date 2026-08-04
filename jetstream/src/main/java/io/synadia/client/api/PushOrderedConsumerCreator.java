@@ -15,6 +15,12 @@ public class PushOrderedConsumerCreator extends AbstractOrderedConsumerCreator<P
         super(true);
     }
 
+    /**
+     * Copy constructor used when an ordered consumer resets, carrying over where the previous one left off.
+     * @param creator the creator to copy
+     * @param lastStreamSeq the stream sequence the previous consumer reached
+     * @param inactiveThreshold the inactive threshold to apply, or null for the default
+     */
     public PushOrderedConsumerCreator(PushOrderedConsumerCreator creator, long lastStreamSeq, @Nullable Long inactiveThreshold) {
         super(creator, lastStreamSeq, inactiveThreshold);
     }

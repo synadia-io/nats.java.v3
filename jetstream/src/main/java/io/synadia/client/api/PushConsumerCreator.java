@@ -16,6 +16,10 @@ public class PushConsumerCreator extends AbstractEphemeralConsumerCreator<PushCo
         super(true);
     }
 
+    /**
+     * Copy constructor.
+     * @param creator the creator to copy
+     */
     public PushConsumerCreator(PushConsumerCreator creator) {
         super(creator);
     }

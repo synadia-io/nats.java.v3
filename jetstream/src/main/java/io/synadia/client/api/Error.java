@@ -23,6 +23,11 @@ public class Error {
     private final int apiErrorCode;
     private final String description;
 
+    /**
+     * Build an Error from parsed json, tolerating an absent value.
+     * @param vError the json value holding the error, may be null
+     * @return the Error, or null if there was none
+     */
     @Nullable
     public static Error optionalInstance(@Nullable LazyJsonValue vError) {
         return vError == null ? null : new Error(vError);

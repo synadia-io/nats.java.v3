@@ -127,7 +127,7 @@ public class PullMessageManager extends MessageManager {
         switch (status.getCode()) {
             case PIN_ERROR_CODE:
             case NOT_FOUND_CODE:
-            case REQUEST_TIMEOUT_CODE:
+            case BAD_JS_REQUEST_CODE:
             case NO_RESPONDERS_CODE:
                 if (raiseStatusWarnings) {
                     conn.notifyErrorListener((c, el) -> el.pullStatusWarning(c, sub, status));

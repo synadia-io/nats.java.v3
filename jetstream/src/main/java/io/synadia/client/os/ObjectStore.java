@@ -19,6 +19,11 @@ import static io.synadia.client.utils.JetStreamClientError.*;
 import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
 import static io.synadia.client.utils.Validator.validateNotNull;
 
+/**
+ * Read and write access to a single Object Store bucket. Objects are stored as a metadata message plus a series
+ * of chunks, so an object can be far larger than a single NATS message.
+ * <p>Obtain an instance from the connection rather than constructing one.
+ */
 public class ObjectStore extends AbstractBucketFeature {
 
     private final String rawChunkPrefix;

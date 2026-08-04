@@ -1,5 +1,8 @@
 package io.synadia.service;
 
+/**
+ * The json field names used by the service protocol's ping, info and stats messages.
+ */
 public interface ServiceConstants {
     /** average_processing_time */   String AVERAGE_PROCESSING_TIME       = "average_processing_time";
     /** data */                      String DATA                          = "data";

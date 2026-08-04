@@ -12,6 +12,7 @@ import java.util.Objects;
  */
 @NullMarked
 public abstract class AbstractOrderedConsumerCreator<T extends AbstractOrderedConsumerCreator<T>> extends ConsumerCreator<T> {
+    /** Idle heartbeat in milliseconds used by ordered consumers. {@value} */
     public static final long DEFAULT_ORDERED_HEARTBEAT = 5000;
 
     protected @Nullable String namePrefix;

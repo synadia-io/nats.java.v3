@@ -19,6 +19,10 @@ public class PullConsumerCreator extends AbstractEphemeralConsumerCreator<PullCo
         super(false);
     }
 
+    /**
+     * Copy constructor.
+     * @param creator the creator to copy
+     */
     public PullConsumerCreator(PullConsumerCreator creator) {
         super(creator);
     }
