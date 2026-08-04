@@ -19,6 +19,7 @@ import static io.synadia.client.utils.JsValidator.*;
  * Base class for consumer creators, providing setters common to all consumer types
  * (full, ephemeral, and ordered).
  * Setter methods validate their arguments and throw {@link IllegalArgumentException} for invalid values; see individual methods for specifics.
+ * @param <T> the concrete creator type, returned by the fluent setters for chaining
  */
 @NullMarked
 public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements JsonSerializable {

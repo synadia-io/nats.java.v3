@@ -84,6 +84,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     public ObjectInfo put(ObjectMeta meta, InputStream inputStream) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         validateNotNull(meta, "ObjectMeta");
@@ -167,6 +168,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     public ObjectInfo put(String objectName, InputStream inputStream) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(objectName), inputStream);
@@ -180,6 +182,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     public ObjectInfo put(String objectName, byte[] input) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(objectName), new ByteArrayInputStream(input));
@@ -192,6 +195,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws IOException covers various communication issues with the NATS server such as timeout or interruption
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     public ObjectInfo put(File file) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(file.getName()), Files.newInputStream(file.toPath()));

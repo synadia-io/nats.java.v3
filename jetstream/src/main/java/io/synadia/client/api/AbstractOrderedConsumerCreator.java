@@ -9,6 +9,7 @@ import java.util.Objects;
 
 /**
  * The AbstractOrderedConsumerCreator class helps specify the configuration for creating an ordered JetStream consumer
+ * @param <T> the concrete creator type, returned by the fluent setters for chaining
  */
 @NullMarked
 public abstract class AbstractOrderedConsumerCreator<T extends AbstractOrderedConsumerCreator<T>> extends ConsumerCreator<T> {

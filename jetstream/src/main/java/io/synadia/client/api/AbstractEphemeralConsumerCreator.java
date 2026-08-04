@@ -9,6 +9,7 @@ import java.time.ZonedDateTime;
 /**
  * The AbstractEphemeralConsumerCreator helps you create an ephemeral consumer on the fly.
  * Also extend by durable creators since they only differ in allowing a durable name
+ * @param <T> the concrete creator type, returned by the fluent setters for chaining
  */
 @NullMarked
 public abstract class AbstractEphemeralConsumerCreator<T extends AbstractEphemeralConsumerCreator<T>> extends ConsumerCreator<T> {

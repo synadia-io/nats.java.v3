@@ -384,6 +384,9 @@ public interface OptionsProperties {
 
     /**
      * Reads an integer property and passes it to the consumer when present.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value when the property is present
      * @throws IllegalArgumentException if the property value is not a valid integer
      */
     static void intProperty(Properties props, String key, Consumer<Integer> consumer) {
@@ -395,6 +398,9 @@ public interface OptionsProperties {
 
     /**
      * Reads an integer property and passes it to the consumer when present and greater than or equal to zero.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value when the property is present and not negative
      * @throws IllegalArgumentException if the property value is not a valid integer
      */
     static void intGtEqZeroProperty(Properties props, String key, Consumer<Integer> consumer) {
@@ -409,6 +415,9 @@ public interface OptionsProperties {
 
     /**
      * Reads a long property and passes it to the consumer when present.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value when the property is present
      * @throws IllegalArgumentException if the property value is not a valid long
      */
     static void longProperty(Properties props, String key, Consumer<Long> consumer) {
@@ -420,6 +429,9 @@ public interface OptionsProperties {
 
     /**
      * Reads a long property and passes it to the consumer when present and greater than or equal to zero.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value when the property is present and not negative
      * @throws IllegalArgumentException if the property value is not a valid long
      */
     static void longGtEqZeroProperty(Properties props, String key, Consumer<Long> consumer) {
@@ -437,6 +449,9 @@ public interface OptionsProperties {
      * (e.g. {@code 2000}) or an ISO-8601 duration string (e.g. {@code PT2S}), which is converted to
      * whole milliseconds. The plain millisecond number is tried first (the common case). Negative
      * values are ignored (the default is kept); a value that is neither throws {@link IllegalArgumentException}.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the value in whole milliseconds when the property is present and not negative
      * @throws IllegalArgumentException if the property value is not a valid milliseconds value or ISO-8601 duration
      */
     static void millisProperty(Properties props, String key, Consumer<Long> consumer) {
@@ -463,6 +478,9 @@ public interface OptionsProperties {
 
     /**
      * Reads a class name property, instantiates the named class, and passes the instance to the consumer when present.
+     * @param props the properties to read
+     * @param key the key to look up
+     * @param consumer receives the instance when the property is present
      * @throws IllegalArgumentException if the class cannot be found, has no no-argument constructor, or cannot be instantiated
      */
     static void classnameProperty(Properties props, String key, Consumer<Object> consumer) {
@@ -492,6 +510,8 @@ public interface OptionsProperties {
 
     /**
      * Creates an instance of the named class using its no-argument constructor.
+     * @param className the fully qualified class name
+     * @return the new instance
      * @throws IllegalArgumentException if the class cannot be found, has no no-argument constructor, or cannot be instantiated
      */
     static Object createInstanceOf(String className) {
