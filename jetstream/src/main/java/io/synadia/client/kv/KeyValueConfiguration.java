@@ -28,52 +28,100 @@ public class KeyValueConfiguration {
     // Getters
     // ----------------------------------------------------------------------------------------------------
 
-    /** @return the bucket name */
+    /**
+     * The bucket name. The backing stream is this name with a {@code KV_} prefix.
+     * @return the bucket name
+     */
     public String getBucketName() { return bucketName; }
 
-    /** @return the description */
+    /**
+     * Free-form description carried on the backing stream.
+     * @return the description
+     */
     public @Nullable String getDescription() { return sc.getDescription(); }
 
-    /** @return the maximum number of bytes */
+    /**
+     * Maximum total size of the bucket in bytes, held as the stream's max bytes.
+     * @return the maximum number of bytes
+     */
     public long getMaxBucketSize() { return sc.getMaxBytes(); }
 
-    /** @return the maximum age */
+    /**
+     * How long an entry is kept before the server removes it, held as the stream's max age.
+     * @return the maximum age
+     */
     public Duration getTtl() { return sc.getMaxAge(); }
 
-    /** @return the storage type */
+    /**
+     * Whether the bucket is stored on file or in memory.
+     * @return the storage type
+     */
     public StorageType getStorageType() { return sc.getStorageType(); }
 
-    /** @return the number of replicas */
+    /**
+     * How many replicas of the backing stream the cluster keeps.
+     * @return the number of replicas
+     */
     public int getReplicas() { return sc.getReplicas(); }
 
-    /** @return the placement directive */
+    /**
+     * Cluster placement constraints for the backing stream.
+     * @return the placement directive
+     */
     public @Nullable Placement getPlacement() { return sc.getPlacement(); }
 
-    /** @return true if compression is enabled */
+    /**
+     * Whether the backing stream uses S2 compression.
+     * @return true if compression is enabled
+     */
     public boolean isCompressed() { return sc.getCompressionOption() == CompressionOption.S2; }
 
-    /** @return the metadata map */
+    /**
+     * User metadata carried on the backing stream.
+     * @return the metadata map
+     */
     public Map<String, String> getMetadata() { return sc.getMetadata(); }
 
-    /** @return the maximum number of history for any one key */
+    /**
+     * How many revisions of a single key are retained, held as the stream's max messages per subject. A value of 1 keeps only the current value.
+     * @return the maximum number of history for any one key
+     */
     public long getMaxHistoryPerKey() { return sc.getMaxMessagesPerSubject(); }
 
-    /** @return the maximum size for an individual value */
+    /**
+     * Largest value a single key may hold, in bytes, held as the stream's max message size.
+     * @return the maximum size for an individual value
+     */
     public int getMaxValueSize() { return sc.getMaxMessageSize(); }
 
-    /** @return the republish configuration */
+    /**
+     * Republish settings, which echo writes onto a second subject.
+     * @return the republish configuration
+     */
     public @Nullable Republish getRepublish() { return sc.getRepublish(); }
 
-    /** @return the mirror */
+    /**
+     * The bucket this one mirrors, or null when it is not a mirror.
+     * @return the mirror
+     */
     public @Nullable Mirror getMirror() { return sc.getMirror(); }
 
-    /** @return the sources */
+    /**
+     * The buckets this one sources entries from.
+     * @return the sources
+     */
     public List<Source> getSources() { return sc.getSources(); }
 
-    /** @return the limit marker ttl */
+    /**
+     * How long a delete marker is kept after a limit removes an entry, or null when markers are not used.
+     * @return the limit marker ttl
+     */
     public @Nullable Duration getLimitMarkerTtl() { return sc.getSubjectDeleteMarkerTtl(); }
 
-    /** @return the backing StreamConfiguration */
+    /**
+     * The stream configuration this bucket is built on, for settings the KV API does not surface directly.
+     * @return the backing StreamConfiguration
+     */
     public StreamConfiguration getBackingConfig() { return sc; }
 
     @Override

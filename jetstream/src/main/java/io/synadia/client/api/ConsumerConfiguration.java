@@ -50,69 +50,105 @@ public class ConsumerConfiguration extends LazyApiObject {
     // GETTERS
     // ----------------------------------------------------------------------------------------------------
 
-    /** @return the description. */
+    /**
+     * Free-form description of the consumer.
+     * @return the description.
+     */
     @Nullable
     public String getDescription() {
         return readString(ljv, DESCRIPTION);
     }
 
-    /** @return name of the durable. */
+    /**
+     * Durable name, which makes the consumer survive client restarts. Null for an ephemeral consumer.
+     * @return name of the durable.
+     */
     @Nullable
     public String getDurable() {
         return readString(ljv, DURABLE_NAME);
     }
 
-    /** @return name of the consumer. */
+    /**
+     * The consumer's name, which the server uses to address it.
+     * @return name of the consumer.
+     */
     public String getName() {
         //noinspection DataFlowIssue we know this will not be null from the server
         return readString(ljv, NAME);
     }
 
-    /** @return the deliver subject. */
+    /**
+     * Subject the server pushes messages to. Set only for push consumers.
+     * @return the deliver subject.
+     */
     @Nullable
     public String getDeliverSubject() {
         return readString(ljv, DELIVER_SUBJECT);
     }
 
-    /** @return the deliver group. */
+    /**
+     * Queue group sharing the deliver subject, so its members split the messages between them.
+     * @return the deliver group.
+     */
     @Nullable
     public String getDeliverGroup() {
         return readString(ljv, DELIVER_GROUP);
     }
 
-    /** @return the deliver policy. */
+    /**
+     * Where in the stream the consumer begins reading.
+     * @return the deliver policy.
+     */
     public DeliverPolicy getDeliverPolicy() {
         return DeliverPolicy.get(readString(ljv, DELIVER_POLICY), DEFAULT_DELIVER_POLICY);
     }
 
-    /** @return the start sequence. The server value is an unsigned 64-bit number. */
+    /**
+     * Stream sequence to begin at, used when the deliver policy starts by sequence.
+     * @return the start sequence. The server value is an unsigned 64-bit number.
+     */
     public long getStartSequence() {
         return readUnsignedLongOrZero(ljv, OPT_START_SEQ);
     }
 
-    /** @return the start sequence as a non-negative unsigned {@link BigInteger}; companion to {@link #getStartSequence()}. */
+    /**
+     * Stream sequence to begin at, used when the deliver policy starts by sequence.
+     * @return the start sequence as a non-negative unsigned {@link BigInteger}; companion to {@link #getStartSequence()}.
+     */
     public BigInteger getStartSequenceAsBigInteger() {
         return readUnsignedBigIntegerOrZero(ljv, OPT_START_SEQ);
     }
 
-    /** @return the start time. */
+    /**
+     * Point in time to begin at, used when the deliver policy starts by time.
+     * @return the start time.
+     */
     @Nullable
     public ZonedDateTime getStartTime() {
         return readDate(ljv, OPT_START_TIME);
     }
 
-    /** @return the acknowledgment policy. */
+    /**
+     * Whether messages must be acknowledged, and whether an ack covers earlier ones.
+     * @return the acknowledgment policy.
+     */
     public AckPolicy getAckPolicy() {
         return AckPolicy.get(readString(ljv, ACK_POLICY), DEFAULT_ACK_POLICY);
     }
 
-    /** @return the acknowledgment wait duration. */
+    /**
+     * How long the server waits for an ack before redelivering the message.
+     * @return the acknowledgment wait duration.
+     */
     public Duration getAckWait() {
         Duration d = readNanosAsDuration(ljv, ACK_WAIT);
         return d == null ? Duration.ZERO : d;
     }
 
-    /** @return the max delivery amount. */
+    /**
+     * How many times a message may be delivered before the server stops trying.
+     * @return the max delivery amount.
+     */
     public long getMaxDeliver() {
         return readLong(ljv, MAX_DELIVER, UNSET);
     }
@@ -127,7 +163,10 @@ public class ConsumerConfiguration extends LazyApiObject {
         return readString(ljv, FILTER_SUBJECT);
     }
 
-    /** @return the filter subjects list */
+    /**
+     * Only messages on these subjects are delivered. Empty means the whole stream.
+     * @return the filter subjects list
+     */
     public List<String> getFilterSubjects() {
         // Server may send filter_subject (singular) or filter_subjects (plural)
         String single = getFilterSubject();
@@ -137,118 +176,184 @@ public class ConsumerConfiguration extends LazyApiObject {
         return readStringListOrEmpty(ljv, FILTER_SUBJECTS);
     }
 
-    /** @return the priority groups list */
+    /**
+     * Named priority groups this consumer serves.
+     * @return the priority groups list
+     */
     @Nullable
     public List<String> getPriorityGroups() {
         return readStringListOrEmpty(ljv, PRIORITY_GROUPS);
     }
 
-    /** @return true if there are multiple filter subjects */
+    /**
+     * Whether more than one filter subject is set, which older servers do not support.
+     * @return true if there are multiple filter subjects
+     */
     public boolean hasMultipleFilterSubjects() {
         return getFilterSubjects().size() > 1;
     }
 
-    /** @return the replay policy. */
+    /**
+     * Whether messages replay as fast as possible or at their original recorded pace.
+     * @return the replay policy.
+     */
     public ReplayPolicy getReplayPolicy() {
         return ReplayPolicy.get(readString(ljv, REPLAY_POLICY), DEFAULT_REPLAY_POLICY);
     }
 
-    /** @return the rate limit in bits per second. The server value is an unsigned 64-bit number. */
+    /**
+     * Ceiling on delivery throughput, in bits per second.
+     * @return the rate limit in bits per second. The server value is an unsigned 64-bit number.
+     */
     public long getRateLimit() {
         return readUnsignedLongOrZero(ljv, RATE_LIMIT_BPS);
     }
 
-    /** @return the rate limit as a non-negative unsigned {@link BigInteger}; companion to {@link #getRateLimit()}. */
+    /**
+     * Unsigned form of the rate limit, for values above the signed long range.
+     * @return the rate limit as a non-negative unsigned {@link BigInteger}; companion to {@link #getRateLimit()}.
+     */
     public BigInteger getRateLimitAsBigInteger() {
         return readUnsignedBigIntegerOrZero(ljv, RATE_LIMIT_BPS);
     }
 
-    /** @return maximum ack pending. */
+    /**
+     * How many unacknowledged messages may be outstanding before the server pauses delivery.
+     * @return maximum ack pending.
+     */
     public long getMaxAckPending() {
         return readLong(ljv, MAX_ACK_PENDING, UNSET);
     }
 
-    /** @return the sample frequency. */
+    /**
+     * Percentage of acknowledgements the server samples for monitoring.
+     * @return the sample frequency.
+     */
     @Nullable
     public String getSampleFrequency() {
         return readString(ljv, SAMPLE_FREQ);
     }
 
-    /** @return the idle heart beat wait duration. */
+    /**
+     * How often the server sends a heartbeat while idle, so a stalled consumer can be detected.
+     * @return the idle heart beat wait duration.
+     */
     @Nullable
     public Duration getIdleHeartbeat() {
         return readNanosAsDuration(ljv, IDLE_HEARTBEAT);
     }
 
-    /** @return the flow control flag */
+    /**
+     * Whether the server paces delivery using flow control messages.
+     * @return the flow control flag
+     */
     public boolean isFlowControl() {
         return readBoolean(ljv, FLOW_CONTROL, false);
     }
 
-    /** @return the max pull waiting */
+    /**
+     * How many pull requests may be parked waiting for messages to arrive.
+     * @return the max pull waiting
+     */
     public long getMaxPullWaiting() {
         return readLong(ljv, MAX_WAITING, UNSET);
     }
 
-    /** @return the headers only flag */
+    /**
+     * Whether only headers are delivered, omitting message bodies.
+     * @return the headers only flag
+     */
     public boolean isHeadersOnly() {
         return readBoolean(ljv, HEADERS_ONLY, false);
     }
 
-    /** @return the mem storage flag */
+    /**
+     * Whether the consumer's state is kept in memory rather than on file.
+     * @return the mem storage flag
+     */
     public boolean isMemStorage() {
         return readBoolean(ljv, MEM_STORAGE, false);
     }
 
-    /** @return the max batch size */
+    /**
+     * Largest batch a single pull request may ask for.
+     * @return the max batch size
+     */
     public long getMaxBatch() {
         return readLong(ljv, MAX_BATCH, UNSET);
     }
 
-    /** @return the max byte size */
+    /**
+     * Largest total size a single pull request may ask for.
+     * @return the max byte size
+     */
     public long getMaxBytes() {
         return readLong(ljv, MAX_BYTES, UNSET);
     }
 
-    /** @return the max expire */
+    /**
+     * Longest expiry a single pull request may ask for.
+     * @return the max expire
+     */
     @Nullable
     public Duration getMaxExpires() {
         return readNanosAsDuration(ljv, MAX_EXPIRES);
     }
 
-    /** @return the inactive threshold */
+    /**
+     * How long the consumer may go unused before the server removes it.
+     * @return the inactive threshold
+     */
     @Nullable
     public Duration getInactiveThreshold() {
         return readNanosAsDuration(ljv, INACTIVE_THRESHOLD);
     }
 
-    /** @return the backoff list */
+    /**
+     * Escalating redelivery delays, applied in order on successive redeliveries.
+     * @return the backoff list
+     */
     public List<Duration> getBackoff() {
         return readNanosAsDurationListOrEmpty(ljv, BACKOFF);
     }
 
-    /** @return the metadata map */
+    /**
+     * User metadata carried on the consumer.
+     * @return the metadata map
+     */
     public Map<String, String> getMetadata() {
         return readStringMapOrEmpty(ljv, METADATA);
     }
 
-    /** @return the replicas count */
+    /**
+     * How many replicas of the consumer state the cluster keeps.
+     * @return the replicas count
+     */
     public long getNumReplicas() {
         return readLong(ljv, NUM_REPLICAS, 0);
     }
 
-    /** @return paused until time */
+    /**
+     * The consumer is paused until this time, after which delivery resumes.
+     * @return paused until time
+     */
     @Nullable
     public ZonedDateTime getPauseUntil() {
         return readDate(ljv, PAUSE_UNTIL);
     }
 
-    /** @return the priority policy. */
+    /**
+     * How the server chooses among members of a priority group.
+     * @return the priority policy.
+     */
     public PriorityPolicy getPriorityPolicy() {
         return PriorityPolicy.get(readString(ljv, PRIORITY_POLICY), DEFAULT_PRIORITY_POLICY);
     }
 
-    /** @return the priority timeout duration */
+    /**
+     * How long a priority group member holds its claim before another may take over.
+     * @return the priority timeout duration
+     */
     @Nullable
     public Duration getPriorityTimeout() {
         return readNanosAsDuration(ljv, PRIORITY_TIMEOUT);

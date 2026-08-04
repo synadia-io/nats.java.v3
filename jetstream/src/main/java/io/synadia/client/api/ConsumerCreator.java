@@ -227,37 +227,70 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         return isPush;
     }
 
-    /** @return the description. */
+    /**
+     * Free-form description of the consumer.
+     * @return the description.
+     */
     public @Nullable String getDescription() { return description; }
 
-    /** @return name of the durable. */
+    /**
+     * Durable name, which makes the consumer survive client restarts. Null for an ephemeral consumer.
+     * @return name of the durable.
+     */
     public @Nullable String getDurable() { return durable; }
 
-    /** @return name of the consumer. */
+    /**
+     * The consumer's name, which the server uses to address it.
+     * @return name of the consumer.
+     */
     public @Nullable String getName() { return name; }
 
-    /** @return the deliver subject. */
+    /**
+     * Subject the server pushes messages to. Set only for push consumers.
+     * @return the deliver subject.
+     */
     public @Nullable String getDeliverSubject() { return deliverSubject; }
 
-    /** @return the deliver group. */
+    /**
+     * Queue group sharing the deliver subject, so its members split the messages between them.
+     * @return the deliver group.
+     */
     public @Nullable String getDeliverGroup() { return deliverGroup; }
 
-    /** @return the deliver policy. */
+    /**
+     * Where in the stream the consumer begins reading.
+     * @return the deliver policy.
+     */
     public DeliverPolicy getDeliverPolicy() { return deliverPolicy; }
 
-    /** @return the start sequence. */
+    /**
+     * Stream sequence to begin at, used when the deliver policy starts by sequence.
+     * @return the start sequence.
+     */
     public long getStartSequence() { return startSequence; }
 
-    /** @return the start time. */
+    /**
+     * Point in time to begin at, used when the deliver policy starts by time.
+     * @return the start time.
+     */
     public @Nullable ZonedDateTime getStartTime() { return startTime; }
 
-    /** @return the acknowledgment policy. */
+    /**
+     * Whether messages must be acknowledged, and whether an ack covers earlier ones.
+     * @return the acknowledgment policy.
+     */
     public AckPolicy getAckPolicy() { return ackPolicy; }
 
-    /** @return the acknowledgment wait duration. */
+    /**
+     * How long the server waits for an ack before redelivering the message.
+     * @return the acknowledgment wait duration.
+     */
     public @Nullable Duration getAckWait() { return ackWait; }
 
-    /** @return the max delivery amount. */
+    /**
+     * How many times a message may be delivered before the server stops trying.
+     * @return the max delivery amount.
+     */
     public long getMaxDeliver() { return maxDeliver; }
 
     /**
@@ -269,70 +302,136 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
         return filterSubjects.size() != 1 ? null : filterSubjects.get(0);
     }
 
-    /** @return the filter subjects list */
+    /**
+     * Only messages on these subjects are delivered. Empty means the whole stream.
+     * @return the filter subjects list
+     */
     public List<String> getFilterSubjects() { return Collections.unmodifiableList(filterSubjects); }
 
-    /** @return the priority groups list */
+    /**
+     * Named priority groups this consumer serves.
+     * @return the priority groups list
+     */
     public List<String> getPriorityGroups() { return Collections.unmodifiableList(priorityGroups); }
 
-    /** @return true if there are multiple filter subjects */
+    /**
+     * Whether more than one filter subject is set, which older servers do not support.
+     * @return true if there are multiple filter subjects
+     */
     public boolean hasMultipleFilterSubjects() { return filterSubjects.size() > 1; }
 
-    /** @return the replay policy. */
+    /**
+     * Whether messages replay as fast as possible or at their original recorded pace.
+     * @return the replay policy.
+     */
     public ReplayPolicy getReplayPolicy() { return replayPolicy; }
 
-    /** @return the rate limit in bits per second */
+    /**
+     * Ceiling on delivery throughput, in bits per second.
+     * @return the rate limit in bits per second
+     */
     public long getRateLimit() { return rateLimit; }
 
-    /** @return maximum ack pending. */
+    /**
+     * How many unacknowledged messages may be outstanding before the server pauses delivery.
+     * @return maximum ack pending.
+     */
     public long getMaxAckPending() { return maxAckPending; }
 
-    /** @return the sample frequency. */
+    /**
+     * Percentage of acknowledgements the server samples for monitoring.
+     * @return the sample frequency.
+     */
     public @Nullable String getSampleFrequency() { return sampleFrequency; }
 
-    /** @return the idle heart beat wait duration. */
+    /**
+     * How often the server sends a heartbeat while idle, so a stalled consumer can be detected.
+     * @return the idle heart beat wait duration.
+     */
     public @Nullable Duration getIdleHeartbeat() { return idleHeartbeat; }
 
-    /** @return the flow control flag */
+    /**
+     * Whether the server paces delivery using flow control messages.
+     * @return the flow control flag
+     */
     public boolean isFlowControl() { return flowControl; }
 
-    /** @return the max pull waiting */
+    /**
+     * How many pull requests may be parked waiting for messages to arrive.
+     * @return the max pull waiting
+     */
     public long getMaxPullWaiting() { return maxPullWaiting; }
 
-    /** @return the headers only flag */
+    /**
+     * Whether only headers are delivered, omitting message bodies.
+     * @return the headers only flag
+     */
     public boolean isHeadersOnly() { return headersOnly; }
 
-    /** @return the mem storage flag */
+    /**
+     * Whether the consumer's state is kept in memory rather than on file.
+     * @return the mem storage flag
+     */
     public boolean isMemStorage() { return memStorage; }
 
-    /** @return the max batch size */
+    /**
+     * Largest batch a single pull request may ask for.
+     * @return the max batch size
+     */
     public long getMaxBatch() { return maxBatch; }
 
-    /** @return the max byte size */
+    /**
+     * Largest total size a single pull request may ask for.
+     * @return the max byte size
+     */
     public long getMaxBytes() { return maxBytes; }
 
-    /** @return the max expire */
+    /**
+     * Longest expiry a single pull request may ask for.
+     * @return the max expire
+     */
     public @Nullable Duration getMaxExpires() { return maxExpires; }
 
-    /** @return the inactive threshold */
+    /**
+     * How long the consumer may go unused before the server removes it.
+     * @return the inactive threshold
+     */
     public @Nullable Duration getInactiveThreshold() { return inactiveThreshold; }
 
-    /** @return the backoff list */
+    /**
+     * Escalating redelivery delays, applied in order on successive redeliveries.
+     * @return the backoff list
+     */
     public List<Duration> getBackoff() { return Collections.unmodifiableList(backoff); }
 
-    /** @return the metadata map */
+    /**
+     * User metadata carried on the consumer.
+     * @return the metadata map
+     */
     public Map<String, String> getMetadata() { return Collections.unmodifiableMap(metadata); }
 
-    /** @return the replicas count */
+    /**
+     * How many replicas of the consumer state the cluster keeps.
+     * @return the replicas count
+     */
     public long getNumReplicas() { return numReplicas; }
 
-    /** @return paused until time */
+    /**
+     * The consumer is paused until this time, after which delivery resumes.
+     * @return paused until time
+     */
     public @Nullable ZonedDateTime getPauseUntil() { return pauseUntil; }
 
-    /** @return the priority policy. */
+    /**
+     * How the server chooses among members of a priority group.
+     * @return the priority policy.
+     */
     public PriorityPolicy getPriorityPolicy() { return priorityPolicy; }
 
-    /** @return the priority timeout duration */
+    /**
+     * How long a priority group member holds its claim before another may take over.
+     * @return the priority timeout duration
+     */
     public @Nullable Duration getPriorityTimeout() { return priorityTimeout; }
 
     // ----------------------------------------------------------------------------------------------------

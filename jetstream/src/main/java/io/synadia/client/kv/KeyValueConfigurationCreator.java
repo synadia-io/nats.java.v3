@@ -223,52 +223,100 @@ public class KeyValueConfigurationCreator {
     // Getters
     // ----------------------------------------------------------------------------------------------------
 
-    /** @return the bucket name */
+    /**
+     * The bucket name. The backing stream will be this name with a {@code KV_} prefix.
+     * @return the bucket name
+     */
     public @Nullable String getBucketName() { return bucketName; }
 
-    /** @return the description */
+    /**
+     * Free-form description to carry on the backing stream.
+     * @return the description
+     */
     public @Nullable String getDescription() { return streamCreator.getDescription(); }
 
-    /** @return the maximum number of bytes */
+    /**
+     * Maximum total size of the bucket in bytes, applied as the stream's max bytes.
+     * @return the maximum number of bytes
+     */
     public long getMaxBucketSize() { return streamCreator.getMaxBytes(); }
 
-    /** @return the maximum age */
+    /**
+     * How long an entry is kept before the server removes it, applied as the stream's max age.
+     * @return the maximum age
+     */
     public Duration getTtl() { return ttl; }
 
-    /** @return the storage type */
+    /**
+     * Whether the bucket is stored on file or in memory.
+     * @return the storage type
+     */
     public StorageType getStorageType() { return streamCreator.getStorageType(); }
 
-    /** @return the number of replicas */
+    /**
+     * How many replicas of the backing stream the cluster keeps.
+     * @return the number of replicas
+     */
     public int getReplicas() { return streamCreator.getReplicas(); }
 
-    /** @return the placement directive */
+    /**
+     * Cluster placement constraints for the backing stream.
+     * @return the placement directive
+     */
     public @Nullable PlacementCreator getPlacement() { return streamCreator.getPlacementCreator(); }
 
-    /** @return true if compression is enabled */
+    /**
+     * Whether the backing stream uses S2 compression.
+     * @return true if compression is enabled
+     */
     public boolean isCompressed() { return streamCreator.getCompressionOption() == CompressionOption.S2; }
 
-    /** @return the metadata map */
+    /**
+     * User metadata to carry on the backing stream.
+     * @return the metadata map
+     */
     public Map<String, String> getMetadata() { return streamCreator.getMetadata(); }
 
-    /** @return the maximum number of history for any one key */
+    /**
+     * How many revisions of a single key are retained, applied as the stream's max messages per subject. A value of 1 keeps only the current value.
+     * @return the maximum number of history for any one key
+     */
     public long getMaxHistoryPerKey() { return streamCreator.getMaxMessagesPerSubject(); }
 
-    /** @return the maximum size for an individual value */
+    /**
+     * Largest value a single key may hold, in bytes, applied as the stream's max message size.
+     * @return the maximum size for an individual value
+     */
     public int getMaxValueSize() { return streamCreator.getMaxMessageSize(); }
 
-    /** @return the republish configuration */
+    /**
+     * Republish settings, which echo writes onto a second subject.
+     * @return the republish configuration
+     */
     public @Nullable RepublishCreator getRepublish() { return streamCreator.getRepublishCreator(); }
 
-    /** @return the mirror */
+    /**
+     * The bucket to mirror, or null when this is not a mirror.
+     * @return the mirror
+     */
     public @Nullable MirrorCreator getMirror() { return mirror; }
 
-    /** @return the sources */
+    /**
+     * The buckets to source entries from.
+     * @return the sources
+     */
     public List<SourceCreator> getSourceCreators() { return sourceCreators; }
 
-    /** @return the limit marker ttl */
+    /**
+     * How long a delete marker is kept after a limit removes an entry, or null when markers are not used.
+     * @return the limit marker ttl
+     */
     public @Nullable Duration getLimitMarkerTtl() { return limitMarkerTtl; }
 
-    /** @return the backing StreamCreator */
+    /**
+     * A copy of the stream creator being built up, so callers cannot mutate this creator's state through it.
+     * @return the backing StreamCreator
+     */
     public StreamCreator getStreamCreatorCopy() { return new StreamCreator(streamCreator); }
 
     @Override

@@ -30,37 +30,70 @@ public class ObjectStoreConfiguration {
     // Getters
     // ----------------------------------------------------------------------------------------------------
 
-    /** @return the bucket name */
+    /**
+     * The bucket name. The backing stream is this name with an {@code OBJ_} prefix.
+     * @return the bucket name
+     */
     public String getBucketName() { return bucketName; }
 
-    /** @return the description */
+    /**
+     * Free-form description carried on the backing stream.
+     * @return the description
+     */
     public @Nullable String getDescription() { return sc.getDescription(); }
 
-    /** @return the maximum number of bytes */
+    /**
+     * Maximum total size of the bucket in bytes, held as the stream's max bytes.
+     * @return the maximum number of bytes
+     */
     public long getMaxBucketSize() { return sc.getMaxBytes(); }
 
-    /** @return the maximum age */
+    /**
+     * How long an object is kept before the server removes it, held as the stream's max age.
+     * @return the maximum age
+     */
     public Duration getTtl() { return sc.getMaxAge(); }
 
-    /** @return the storage type */
+    /**
+     * Whether the bucket is stored on file or in memory.
+     * @return the storage type
+     */
     public StorageType getStorageType() { return sc.getStorageType(); }
 
-    /** @return the number of replicas */
+    /**
+     * How many replicas of the backing stream the cluster keeps.
+     * @return the number of replicas
+     */
     public int getReplicas() { return sc.getReplicas(); }
 
-    /** @return the placement directive */
+    /**
+     * Cluster placement constraints for the backing stream.
+     * @return the placement directive
+     */
     public @Nullable Placement getPlacement() { return sc.getPlacement(); }
 
-    /** @return true if compression is enabled */
+    /**
+     * Whether the backing stream uses S2 compression.
+     * @return true if compression is enabled
+     */
     public boolean isCompressed() { return sc.getCompressionOption() == CompressionOption.S2; }
 
-    /** @return the metadata map */
+    /**
+     * User metadata carried on the backing stream.
+     * @return the metadata map
+     */
     public Map<String, String> getMetadata() { return sc.getMetadata(); }
 
-    /** @return true if the store is sealed */
+    /**
+     * Whether the bucket is sealed, meaning it is permanently read-only.
+     * @return true if the store is sealed
+     */
     public boolean isSealed() { return sc.getSealed(); }
 
-    /** @return the backing StreamConfiguration */
+    /**
+     * The stream configuration this bucket is built on, for settings the Object Store API does not surface directly.
+     * @return the backing StreamConfiguration
+     */
     public StreamConfiguration getBackingConfig() { return sc; }
 
     @Override

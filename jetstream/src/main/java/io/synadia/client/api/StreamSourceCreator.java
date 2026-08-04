@@ -155,25 +155,46 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
     // GETTERS
     // ----------------------------------------------------------------------------------------------------
 
-    /** @return the name */
+    /**
+     * Name of the stream being sourced.
+     * @return the name
+     */
     public String getStreamName() { return streamName; }
 
-    /** @return the start sequence */
+    /**
+     * Stream sequence to begin sourcing from.
+     * @return the start sequence
+     */
     public long getStartSequence() { return startSequence; }
 
-    /** @return the start time */
+    /**
+     * Point in time to begin sourcing from.
+     * @return the start time
+     */
     @Nullable public ZonedDateTime getStartTime() { return startTime; }
 
-    /** @return the filter subject */
+    /**
+     * Only messages matching this subject are sourced.
+     * @return the filter subject
+     */
     @Nullable public String getFilterSubject() { return filterSubject; }
 
-    /** @return the external reference */
+    /**
+     * The external account and API prefix to source from, for cross-account sourcing.
+     * @return the external reference
+     */
     @Nullable public ExternalCreator getExternalCreator() { return externalCreator; }
 
-    /** @return the consumer source */
+    /**
+     * Consumer-based source settings, used when sourcing through a consumer rather than directly.
+     * @return the consumer source
+     */
     @Nullable public ConsumerSourceCreator getConsumerSourceCreator() { return consumerSourceCreator; }
 
-    /** @return the subject transforms */
+    /**
+     * Subject transforms applied to sourced messages as they arrive.
+     * @return the subject transforms
+     */
     public List<SubjectTransformCreator> getSubjectTransformCreators() { return subjectTransformCreators; }
 
     @Override

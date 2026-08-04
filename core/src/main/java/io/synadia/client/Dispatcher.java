@@ -69,31 +69,37 @@ public interface Dispatcher {
     void setPendingLimits(long maxMessages, long maxBytes);
 
     /**
+     * The cap on how many messages may wait in this dispatcher's delivery queue before further messages are dropped.
      * @return the pending message limit set by {@link #setPendingLimits(long, long) setPendingLimits}; -1 when unlimited
      */
     long getPendingMessageLimit();
 
     /**
+     * The cap on the total size of messages waiting in this dispatcher's delivery queue before further messages are dropped.
      * @return the pending byte limit set by {@link #setPendingLimits(long, long) setPendingLimits}; -1 when unlimited
      */
     long getPendingByteLimit();
 
     /**
+     * How far behind the dispatcher currently is, by message count. Compare against the pending message limit to see how close it is to dropping.
      * @return the number of messages currently waiting in this dispatcher's delivery queue
      */
     long getPendingMessageCount();
 
     /**
+     * How far behind the dispatcher currently is, by size. Compare against the pending byte limit to see how close it is to dropping.
      * @return the cumulative size in bytes of the messages currently waiting in this dispatcher's delivery queue
      */
     long getPendingByteCount();
 
     /**
+     * Lifetime count of messages handed to the handler. Not reset by reconnects.
      * @return the total number of messages this dispatcher has delivered to its handler(s), for all time
      */
     long getDeliveredCount();
 
     /**
+     * How many messages this dispatcher discarded because a pending limit was hit - a non-zero value means the handler is not keeping up.
      * @return the number of messages dropped since the last {@link #clearDroppedCount() clearDroppedCount},
      *         because a pending limit was reached
      */

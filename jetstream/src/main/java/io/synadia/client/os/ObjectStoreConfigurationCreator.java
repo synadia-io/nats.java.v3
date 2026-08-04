@@ -131,34 +131,64 @@ public class ObjectStoreConfigurationCreator {
     // Getters
     // ----------------------------------------------------------------------------------------------------
 
-    /** @return the bucket name */
+    /**
+     * The bucket name. The backing stream will be this name with an {@code OBJ_} prefix.
+     * @return the bucket name
+     */
     public @Nullable String getBucketName() { return bucketName; }
 
-    /** @return the description */
+    /**
+     * Free-form description to carry on the backing stream.
+     * @return the description
+     */
     public @Nullable String getDescription() { return streamCreator.getDescription(); }
 
-    /** @return the maximum number of bytes */
+    /**
+     * Maximum total size of the bucket in bytes, applied as the stream's max bytes.
+     * @return the maximum number of bytes
+     */
     public long getMaxBucketSize() { return streamCreator.getMaxBytes(); }
 
-    /** @return the maximum age */
+    /**
+     * How long an object is kept before the server removes it, applied as the stream's max age.
+     * @return the maximum age
+     */
     public Duration getTtl() { return ttl; }
 
-    /** @return the storage type */
+    /**
+     * Whether the bucket is stored on file or in memory.
+     * @return the storage type
+     */
     public StorageType getStorageType() { return streamCreator.getStorageType(); }
 
-    /** @return the number of replicas */
+    /**
+     * How many replicas of the backing stream the cluster keeps.
+     * @return the number of replicas
+     */
     public int getReplicas() { return streamCreator.getReplicas(); }
 
-    /** @return the placement directive */
+    /**
+     * Cluster placement constraints for the backing stream.
+     * @return the placement directive
+     */
     public @Nullable PlacementCreator getPlacement() { return streamCreator.getPlacementCreator(); }
 
-    /** @return true if compression is enabled */
+    /**
+     * Whether the backing stream uses S2 compression.
+     * @return true if compression is enabled
+     */
     public boolean isCompressed() { return streamCreator.getCompressionOption() == CompressionOption.S2; }
 
-    /** @return the metadata map */
+    /**
+     * User metadata to carry on the backing stream.
+     * @return the metadata map
+     */
     public Map<String, String> getMetadata() { return streamCreator.getMetadata(); }
 
-    /** @return the backing StreamCreator */
+    /**
+     * A copy of the stream creator being built up, so callers cannot mutate this creator's state through it.
+     * @return the backing StreamCreator
+     */
     public StreamCreator getStreamCreatorCopy() { return new StreamCreator(streamCreator); }
 
     @Override
