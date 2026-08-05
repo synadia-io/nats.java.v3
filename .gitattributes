@@ -1,5 +1,4 @@
 # Normalize all text files to LF in the repository (checkout follows the platform).
-# This is what stops stray CRLF from showing up as whole-file diffs.
 * text=auto
 
 # Scripts that must keep a specific line ending regardless of platform.
