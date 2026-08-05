@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("DataFlowIssue")
 public abstract class ResourceUtils {
 
     public static final String CONFIG_FILE_BASE = "src/test/resources/";
