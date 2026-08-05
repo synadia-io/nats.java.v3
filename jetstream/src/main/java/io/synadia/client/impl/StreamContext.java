@@ -59,6 +59,15 @@ public interface StreamContext {
     @NonNull
     PurgeResponse purge(PurgeOptions options) throws JetStreamException, InterruptedException;
 
+    /**
+     * Create an ephemeral consumer on this stream filtered to a subject, taking the defaults
+     * for everything else. The shorthand for the common case where no configuration is needed.
+     * <p> Note that ConsumerContext expects a <b>pull consumer</b>.
+     * @param subject the subject filter for the consumer
+     * @return a ConsumerContext object
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     @NonNull
     ConsumerContext createConsumer(@NonNull String subject) throws JetStreamException, InterruptedException;
 
@@ -74,11 +83,38 @@ public interface StreamContext {
     @NonNull
     ConsumerContext getConsumerContext(@NonNull String consumerName) throws JetStreamException, InterruptedException;
 
+    /**
+     * Get a consumer context from consumer info already in hand. Skips the round trip that
+     * {@link #getConsumerContext(String)} makes, so the consumer is not re-verified.
+     * <p> Note that ConsumerContext expects a <b>pull consumer</b>.
+     * @param ci the info for an existing consumer on this stream
+     * @return a ConsumerContext object
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     ConsumerContext getConsumerContext(@NonNull ConsumerInfo ci) throws JetStreamException, InterruptedException;
 
+    /**
+     * Management function to create a consumer on this stream. Fails if a consumer with the
+     * same name already exists.
+     * <p> Note that ConsumerContext expects a <b>pull consumer</b>.
+     * @param creator the consumer configuration to use.
+     * @return a ConsumerContext object
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     @NonNull
     ConsumerContext createConsumer(@NonNull PullConsumerCreator creator) throws JetStreamException, InterruptedException;
 
+    /**
+     * Management function to update an existing consumer on this stream. Fails if the consumer
+     * does not exist or if the change is not one the server allows on a live consumer.
+     * <p> Note that ConsumerContext expects a <b>pull consumer</b>.
+     * @param creator the consumer configuration to use.
+     * @return a ConsumerContext object
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     @NonNull
     ConsumerContext updateConsumer(@NonNull PullConsumerCreator creator) throws JetStreamException, InterruptedException;
 

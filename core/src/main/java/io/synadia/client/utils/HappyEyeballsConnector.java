@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
  * connection setup delays.
  */
 public class HappyEyeballsConnector {
+    private HappyEyeballsConnector() {}  /* ensures cannot be constructed */
 
     // NatsConnection attempt delay per RFC 8305 section 5
     private static final int CONNECT_DELAY_MILLIS = 250;

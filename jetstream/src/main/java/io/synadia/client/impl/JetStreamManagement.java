@@ -12,23 +12,47 @@ import java.util.List;
 
 import static io.synadia.client.utils.Validator.validateNotNull;
 
+/**
+ * The JetStream management context. Every call here is a request to the JetStream API for
+ * administering streams, consumers and the messages stored in them.
+ */
 @NullMarked
 public class JetStreamManagement extends JetStreamImpl {
     @Nullable
     private JetStream js; // this is lazy init'ed
 
+    /**
+     * Create a management context with default JetStream options.
+     * @param connection the connection to run the API requests over
+     * @return the management context
+     */
     public static JetStreamManagement instance(NatsConnection connection) {
         return new JetStreamManagement(connection);
     }
 
+    /**
+     * Create a management context with the given JetStream options.
+     * @param connection the connection to run the API requests over
+     * @param jsOptions the JetStream options, supplying the API prefix and the request timeout
+     * @return the management context
+     */
     public static JetStreamManagement instance(NatsConnection connection, JetStreamOptions jsOptions) {
         return new JetStreamManagement(connection, jsOptions);
     }
 
+    /**
+     * Create a management context with default JetStream options.
+     * @param connection the connection to run the API requests over
+     */
     public JetStreamManagement(NatsConnection connection) {
         super(connection, null);
     }
 
+    /**
+     * Create a management context with the given JetStream options.
+     * @param connection the connection to run the API requests over
+     * @param jsOptions the JetStream options, or null to use the defaults
+     */
     public JetStreamManagement(NatsConnection connection, @Nullable JetStreamOptions jsOptions) {
         super(connection, jsOptions);
     }
@@ -167,6 +191,7 @@ public class JetStreamManagement extends JetStreamImpl {
 
     /**
      * Creates a consumer. Must not already exist.
+     * @param stream the name of the stream the consumer is created against.
      * @param creator the consumer creator to use.
      * @return consumer information.
      * @throws JetStreamException covers communication and server-side JetStream errors
@@ -178,6 +203,7 @@ public class JetStreamManagement extends JetStreamImpl {
 
     /**
      * Updates an existing consumer. Must already exist.
+     * @param stream the name of the stream the consumer belongs to.
      * @param creator the consumer creator to use.
      * @return consumer information.
      * @throws JetStreamException covers communication and server-side JetStream errors
@@ -189,6 +215,7 @@ public class JetStreamManagement extends JetStreamImpl {
 
     /**
      * Loads or creates a consumer.
+     * @param stream the name of the stream the consumer belongs to.
      * @param creator the consumer creator to use.
      * @return consumer information.
      * @throws JetStreamException covers communication and server-side JetStream errors

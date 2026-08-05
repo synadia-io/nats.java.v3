@@ -16,6 +16,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.synadia.client.utils.NatsConstants.*;
 
+/**
+ * The read loop for a connection. It runs on its own thread, pulls bytes off the socket and
+ * advances a small state machine that gathers a protocol op, then its protocol line, then any
+ * headers and payload, handing each completed message to the connection for delivery.
+ */
 public class NatsConnectionReader implements Runnable {
 
     enum Mode {
@@ -462,6 +467,12 @@ public class NatsConnectionReader implements Runnable {
         }
     }
 
+    /**
+     * Take the next whitespace delimited element from the protocol line currently being parsed,
+     * advancing the line position past it and past the delimiter.
+     * @param max the position in the line to stop at, normally the length of the gathered line
+     * @return the element, or null if the line position is already at or past max
+     */
     public String grabNextMessageLineElement(int max) {
         if (this.msgLinePosition >= max) {
             return null;
@@ -530,6 +541,13 @@ public class NatsConnectionReader implements Runnable {
 
     private static final int[] TENS = new int[] { 1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000};
 
+    /**
+     * Parse an unsigned decimal length from a protocol line. Faster than Integer.parseInt because it
+     * accepts only digits, no sign and no whitespace, and it uses a lookup table of powers of ten.
+     * @param s the digits to parse
+     * @return the value
+     * @throws NumberFormatException if a character is not a digit, or there are more digits than an int can hold
+     */
     public static int parseLength(String s) throws NumberFormatException {
         int length = s.length();
         int retVal = 0;

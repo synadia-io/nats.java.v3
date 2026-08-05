@@ -15,6 +15,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.synadia.client.utils.Validator.required;
 import static io.synadia.client.utils.Validator.validateQueueName;
 
+/**
+ * The default {@link Dispatcher} implementation. It owns a queue and a single thread that drains it,
+ * so every message across all the subscriptions made on this dispatcher is delivered to its handler
+ * serially on that one thread.
+ */
 public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runnable {
 
     // 5 minutes; idle nap only — a message or the POISON pill wakes poll() immediately, so this only bounds

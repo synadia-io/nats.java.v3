@@ -21,6 +21,12 @@ import java.util.function.Consumer;
 import static io.nats.json.Encoding.base64BasicEncodeToString;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/**
+ * A Socket that performs the rfc6455 websocket handshake against a nats-server on construction,
+ * then frames all traffic through its websocket input and output streams. Every other socket
+ * operation delegates to the wrapped socket; connect and bind are unsupported because the
+ * wrapped socket is already connected.
+ */
 public class WebSocket extends Socket {
     private static final int MAX_LINE_LEN = 8192;
     private static final int MAX_HTTP_HEADERS = 100;
@@ -32,10 +38,25 @@ public class WebSocket extends Socket {
     private final WebsocketOutputStream out;
     private final ReentrantLock closeLock;
 
+    /**
+     * Wrap a connected socket and handshake against the default path {@code /}.
+     * @param wrappedSocket the already connected socket
+     * @param host the value for the Host header
+     * @param interceptors called in order to amend the upgrade request before it is sent
+     * @throws IOException if the handshake fails or the streams cannot be obtained
+     */
     public WebSocket(Socket wrappedSocket, String host, List<Consumer<HttpRequest>> interceptors) throws IOException {
         this(wrappedSocket, host, interceptors, null);
     }
 
+    /**
+     * Wrap a connected socket and handshake against the given path.
+     * @param wrappedSocket the already connected socket
+     * @param host the value for the Host header
+     * @param interceptors called in order to amend the upgrade request before it is sent
+     * @param path the request path, null or empty uses the default path {@code /}
+     * @throws IOException if the handshake fails or the streams cannot be obtained
+     */
     public WebSocket(Socket wrappedSocket, String host, List<Consumer<HttpRequest>> interceptors, String path)
             throws IOException {
         closeLock = new ReentrantLock();

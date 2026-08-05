@@ -32,22 +32,55 @@ public abstract class JetStreamApiUtils {
      */
     public static final long ULONG_UNSET = 0;
 
+    /**
+     * Turn a builder's boxed long into the primitive the configuration holds, treating null and
+     * anything under the minimum as not set.
+     * @param l the value from the builder, may be null
+     * @param min the smallest value that counts as set
+     * @return the value, or {@link #UNSET}
+     */
     public static long normalizeLong(@Nullable Long l, long min) {
         return l == null || l < min ? UNSET : l;
     }
 
+    /**
+     * Turn a builder's boxed integer into the primitive the configuration holds, treating null and
+     * anything under the minimum as not set.
+     * @param i the value from the builder, may be null
+     * @param min the smallest value that counts as set
+     * @return the value, or {@link #UNSET}
+     */
     public static int normalizeInt(@Nullable Integer i, int min) {
         return i == null || i < min ? (int) UNSET : i;
     }
 
+    /**
+     * Turn a builder's boxed long that represents an unsigned long into the primitive the
+     * configuration holds. Zero and below are not set, since an unsigned value starts at 1.
+     * @param u the value from the builder, may be null
+     * @return the value, or {@link #ULONG_UNSET}
+     */
     public static long normalizeULong(@Nullable Long u) {
         return u == null || u <= ULONG_UNSET ? ULONG_UNSET : u;
     }
 
+    /**
+     * Resolve a duration against a default, treating null and any duration of zero or less as not set.
+     * @param d the value from the builder, may be null
+     * @param dftl the value to use when d is not set, itself allowed to be null
+     * @return the duration, or the default
+     */
     public static @Nullable Duration normalizeDuration(@Nullable Duration d, @Nullable Duration dftl) {
         return d == null ? dftl : d.toNanos() <= 0 ? dftl : d;
     }
 
+    /**
+     * Resolve a duration expressed in milliseconds against a default, treating null and any value
+     * of zero or less as not set.
+     * @param millis the value from the builder in milliseconds, may be null
+     * @param dftl the value to use when millis is not set, itself allowed to be null
+     * @return the duration, or the default
+     */
     public static @Nullable Duration normalizeDuration(@Nullable Long millis, @Nullable Duration dftl) {
         return millis == null || millis <= 0 ? dftl : Duration.ofMillis(millis);
     }

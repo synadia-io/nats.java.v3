@@ -21,6 +21,11 @@ public interface DataPort {
      */
     void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException;
 
+    /**
+     * Called once right after the data port instance is created, before any connect attempt,
+     * so the implementation can pick up whatever it needs from the options. Does nothing by default.
+     * @param options the options the connection was created with
+     */
     default void afterConstruct(@NonNull Options options) {}
 
     /**
@@ -31,6 +36,14 @@ public interface DataPort {
      */
     void upgradeToSecure() throws IOException;
 
+    /**
+     * Read bytes from the connection into the buffer, blocking until at least one byte is available.
+     * @param dst the buffer to read into
+     * @param off the offset in the buffer to start writing at
+     * @param len the maximum number of bytes to read
+     * @return the number of bytes read, or -1 if the connection reached end of stream
+     * @throws IOException any IO error on the underlying connection
+     */
     int read(byte[] dst, int off, int len) throws IOException;
 
     /**
@@ -43,13 +56,32 @@ public interface DataPort {
      */
     void write(byte[] src, int toWrite) throws IOException;
 
+    /**
+     * Close the read side of the connection while leaving the write side open, so that pending
+     * output can still be flushed during a graceful shutdown.
+     * @throws IOException any IO error on the underlying connection
+     */
     void shutdownInput() throws IOException;
 
+    /**
+     * Close the connection, releasing the underlying socket and any resources it holds.
+     * @throws IOException any IO error on the underlying connection
+     */
     void close() throws IOException;
 
+    /**
+     * Close the connection without waiting on the normal close path, used when the connection is
+     * already known to be unusable. Delegates to {@link #close()} unless the implementation has a
+     * faster way to abandon the socket.
+     * @throws IOException any IO error on the underlying connection
+     */
     default void forceClose() throws IOException {
         close();
     }
 
+    /**
+     * Push any buffered output onto the network.
+     * @throws IOException any IO error on the underlying connection
+     */
     void flush() throws IOException;
 }

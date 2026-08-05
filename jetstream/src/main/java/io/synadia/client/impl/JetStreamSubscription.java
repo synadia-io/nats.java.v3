@@ -14,7 +14,16 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class JetStreamSubscription extends NatsSubscription implements Subscription, JetStreamConstants {
 
+    /**
+     * Millis subtracted from the caller's max wait when setting the pull request expiration,
+     * {@value}, so the server expires the request before the client gives up waiting for it.
+     */
     public static final long EXPIRE_ADJUSTMENT = 10;
+
+    /**
+     * Shortest max wait, in millis, that still gets {@link #EXPIRE_ADJUSTMENT} applied, {@value}.
+     * Below this the wait is sent to the server as is.
+     */
     public static final long MIN_EXPIRE_MILLIS = 20;
 
     protected final JetStream js;

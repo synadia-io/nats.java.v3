@@ -9,6 +9,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.synadia.client.impl.MessageManager.ManageResult.MESSAGE;
 import static io.synadia.client.impl.MessageManager.ManageResult.STATUS_HANDLED;
 
+/**
+ * Message manager for an ordered pull consumer. It watches the consumer sequence for a gap,
+ * and on one it discards the current consumer and creates a replacement starting at the next
+ * expected stream sequence. Messages arriving from the discarded consumer are dropped.
+ */
 public class PullOrderedMessageManager extends PullMessageManager {
 
     protected final ConsumerConfiguration originalCc;

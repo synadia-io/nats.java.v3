@@ -34,6 +34,12 @@ public class JetStreamStatusException extends JetStreamException {
         this(cause.getNote(), cause.getStatus(), cause.getSubscription());
     }
 
+    /**
+     * Construct a JetStreamStatusException. The exception message is the note followed by the status message and code.
+     * @param note where the status was received
+     * @param status the status received from the server
+     * @param sub the subscription the status arrived on, or null if it did not come from a subscription
+     */
     public JetStreamStatusException(String note, Status status, @Nullable JetStreamSubscription sub) {
         super(note + ": " + status.getMessageWithCode());
         this.status = status;

@@ -7,6 +7,11 @@ import static io.synadia.client.api.Status.*;
 import static io.synadia.client.impl.JetStreamConstants.*;
 import static io.synadia.client.impl.MessageManager.ManageResult.*;
 
+/**
+ * The message manager for pull subscriptions. It filters the status messages the server sends in
+ * the pull's reply stream out of the user's message flow and reports pull progress to the
+ * {@link PullManagerObserver}.
+ */
 public class PullMessageManager extends MessageManager {
 
     protected boolean raiseStatusWarnings;

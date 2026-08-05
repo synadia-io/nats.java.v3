@@ -7,11 +7,20 @@ import java.util.List;
 
 import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
 
+/**
+ * The base for the key value and object store watch subscriptions. It owns the ordered
+ * consumer and the dispatcher that feed the watcher.
+ * @param <T> the type of entry given to the watcher
+ */
 public class NatsWatchSubscription<T> implements AutoCloseable {
     private final JetStream js;
     private NatsDispatcher dispatcher;
     private JetStreamSubscription sub;
 
+    /**
+     * Construct the subscription. Nothing is subscribed until the subclass calls finishInit.
+     * @param js the JetStream context used to create the consumer and the dispatcher
+     */
     public NatsWatchSubscription(JetStream js) {
         this.js = js;
     }
@@ -68,6 +77,9 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
         }
     }
 
+    /**
+     * Stop the watch, unsubscribing and closing the dispatcher. Calling it more than once is harmless.
+     */
     public void unsubscribe() {
         if (dispatcher != null) {
             dispatcher.unsubscribe(sub);

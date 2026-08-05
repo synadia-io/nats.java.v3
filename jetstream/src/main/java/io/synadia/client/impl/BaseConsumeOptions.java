@@ -37,15 +37,25 @@ public class BaseConsumeOptions implements JsonSerializable, Serializable {
     /** constant for max idle heartbeat percent */
     public static final int MAX_IDLE_HEARTBEAT_PERCENT = 50;
 
+    /** The maximum number of messages in a pull. Defaults to {@value #DEFAULT_MESSAGE_COUNT}, or {@value #DEFAULT_MESSAGE_COUNT_WHEN_BYTES} when a byte limit was given. */
     protected final int messages;
+    /** The maximum number of bytes in a pull, or 0 when the pull is limited by message count instead. */
     protected final long bytes;
+    /** How long a pull stays open, in milliseconds. Defaults to {@value #DEFAULT_EXPIRES_IN_MILLIS}, never less than {@value #MIN_EXPIRES_MILLS}. */
     protected final long expiresIn;
+    /** The percent, 1 to 100, of the batch that must be received before the next pull is issued. Only used by endless consumes. */
     protected final int thresholdPercent;
+    /** How often the server sends an idle heartbeat, in milliseconds. Derived as {@value #MAX_IDLE_HEARTBEAT_PERCENT} percent of expiresIn, capped at {@value #MAX_HEARTBEAT_MILLIS}. */
     protected final long idleHeartbeat;
+    /** The priority group this pull belongs to, or null when no priority policy is in play. */
     protected final String group;
+    /** The priority of this pull within its group, lower being higher priority. */
     protected final int priority;
+    /** Only deliver to this pull when the consumer has at least this many pending messages, or -1 to not restrict. */
     protected final long minPending;
+    /** Only deliver to this pull when the consumer has at least this many ack pending messages, or -1 to not restrict. */
     protected final long minAckPending;
+    /** Whether status messages are reported to the error listener. */
     protected final boolean raiseStatusWarnings;
 
     protected BaseConsumeOptions(Builder<?, ?> b) {

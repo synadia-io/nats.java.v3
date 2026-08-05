@@ -49,6 +49,12 @@ public class SocketDataPort implements DataPort {
     private ScheduledTask writeWatchTask;
     private final AtomicLong writeMustBeDoneBy = new AtomicLong(Long.MAX_VALUE);
 
+    /**
+     * Construct an unconnected data port. Data ports are instantiated by the connection,
+     * then configured through afterConstruct and opened through connect.
+     */
+    public SocketDataPort() {}
+
     @Override
     public void afterConstruct(@NonNull Options options) {
         long millis = options.getSocketWriteTimeout();

@@ -14,6 +14,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Helpers shared by the API model classes for generating identifiers and for reading
+ * values out of the JSON returned by the server.
+ */
 public abstract class ApiUtils {
 
     protected ApiUtils() {}  /* ensures cannot be constructed */
@@ -26,6 +30,14 @@ public abstract class ApiUtils {
         return NUID.nextGlobal();
     }
 
+    /**
+     * Convert a JSON array to a list by running each element through a mapper.
+     * A null value or a value that is not an array yields an empty list rather than null.
+     * @param <T> the type the mapper produces
+     * @param v the value expected to hold a JSON array
+     * @param mapper converts one array element to T
+     * @return the mapped list, empty if there was no array
+     */
     @NonNull
     public static <T> List<T> mapToList(@Nullable LazyJsonValue v, @NonNull Function<LazyJsonValue, T> mapper) {
         if (v == null || v.getArray() == null) {
@@ -34,6 +46,14 @@ public abstract class ApiUtils {
         return v.getArray().stream().map(mapper).toList();
     }
 
+    /**
+     * Read a String with a caller supplied fallback, for optional fields that have a
+     * meaningful default other than {@code ""}.
+     * @param jv the value to read from
+     * @param key the JSON key
+     * @param dflt the value to return when the key is absent
+     * @return the string value, or dflt if absent
+     */
     @NonNull
     public static String readString(@NonNull LazyJsonValue jv, @NonNull String key, @NonNull String dflt) {
         String s = LazyJsonValueUtils.readString(jv, key);

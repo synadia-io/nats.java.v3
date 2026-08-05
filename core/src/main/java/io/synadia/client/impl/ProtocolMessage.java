@@ -5,6 +5,11 @@ import io.synadia.client.utils.ByteArrayBuilder;
 // ----------------------------------------------------------------------------------------------------
 // Protocol message is a special version of a InternalPublishableMessage extends NatsMessage
 // ----------------------------------------------------------------------------------------------------
+/**
+ * A message that carries only a protocol control line, such as PING or UNSUB, and never
+ * any payload or headers. Written to the outgoing queue alongside regular messages so that
+ * protocol operations keep their ordering with respect to publishes.
+ */
 public class ProtocolMessage extends InternalPublishableMessage {
     final boolean filterOnStop;
 

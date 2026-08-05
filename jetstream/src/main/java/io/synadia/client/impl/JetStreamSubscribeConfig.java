@@ -9,13 +9,30 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
 
+/**
+ * The resolved settings for one JetStream subscription, worked out once when the subscription is created
+ * by combining the consumer the subscription is bound to with the caller's subscribe behavior.
+ */
 public class JetStreamSubscribeConfig extends SubscribeBehavior {
+    /** The creator that makes replacement consumers when an ordered consumer has to reset, or null if this is not ordered. */
     public final AbstractOrderedConsumerCreator<?> orderedCreator;
+
+    /** The consumer this subscription is bound to, as it was at subscribe time. */
     public final ConsumerInfo consumerInfo;
+
+    /** The configuration of {@link #consumerInfo}, kept out for convenience. */
     public final ConsumerConfiguration consumerConf;
+
+    /** True if the consumer is pull based, so messages must be requested rather than pushed by the server. */
     public final boolean isPull;
+
+    /** True if this is an ordered subscription, which resets its consumer on any gap in the sequence. */
     public final boolean isOrdered;
+
+    /** The prefix used to name each generated ordered consumer, or null if this is not ordered. */
     public final String orderedNamePrefix;
+
+    /** True if the dispatcher was created for this subscription, meaning it is also shut down when the subscription ends. */
     public final boolean internalDispatcher;
 
     JetStreamSubscribeConfig(@NonNull ConsumerInfo consumerInfo,

@@ -5,12 +5,20 @@ import io.synadia.client.utils.WebsocketFrameHeader.OpCode;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * An InputStream that strips the websocket frame headers off the wrapped stream,
+ * exposing only the payload bytes. A CLOSE frame reads as end of stream.
+ */
 public class WebsocketInputStream extends InputStream {
     private byte[] buffer = new byte[WebsocketFrameHeader.MAX_FRAME_HEADER_SIZE];
     private WebsocketFrameHeader header = new WebsocketFrameHeader();
     private InputStream in;
     private byte[] oneByte = new byte[1];
 
+    /**
+     * Construct the stream over a raw socket input stream positioned at a frame header.
+     * @param in the underlying stream
+     */
     public WebsocketInputStream(InputStream in) {
         this.in = in;
     }

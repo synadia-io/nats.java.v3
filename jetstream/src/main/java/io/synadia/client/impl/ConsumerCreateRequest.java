@@ -13,11 +13,20 @@ import static io.synadia.client.utils.ApiConstants.*;
  */
 @NullMarked
 public class ConsumerCreateRequest implements JsonSerializable {
+    /**
+     * Tells the server whether the consumer is expected to already exist.
+     */
     public enum Action {
+        /** Create the consumer, failing if one with that name already exists. */
         Create("create"),
+
+        /** Update an existing consumer, failing if there is none with that name. */
         Update("update"),
+
+        /** Create the consumer or update it if it already exists; sends no action to the server. */
         CreateOrUpdate(null);
 
+        /** The value sent in the request's action field, null for the server default. */
         public final @Nullable String actionText;
 
         Action(@Nullable String actionText) {

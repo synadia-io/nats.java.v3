@@ -20,6 +20,7 @@ public final class NatsHostResolver {
      * Resolve a host to ip addresses
      * @param host the host
      * @param maxOneResult whether to return at max one result
+     * @param includeIPV6 whether to include IPv6 addresses; when false only IPv4 addresses are returned
      * @return the list of ips addresses or null if there were no ip addresses for the host.
      */
     public static @Nullable List<String> resolveHostToIps(@NonNull String host, boolean maxOneResult, boolean includeIPV6) {

@@ -27,18 +27,38 @@ public class JetStream extends JetStreamImpl {
     @Nullable
     private JetStreamManagement jsm; // this is lazy init'ed
 
+    /**
+     * Create a JetStream context for the connection.
+     * @param connection the connection to run JetStream requests over
+     * @return the new JetStream context
+     */
     public static JetStream instance(NatsConnection connection) {
         return new JetStream(connection);
     }
 
+    /**
+     * Create a JetStream context for the connection.
+     * @param connection the connection to run JetStream requests over
+     * @param jsOptions JetStream options such as the domain or request timeout, or null for defaults
+     * @return the new JetStream context
+     */
     public static JetStream instance(NatsConnection connection, JetStreamOptions jsOptions) {
         return new JetStream(connection, jsOptions);
     }
 
+    /**
+     * Create a JetStream context for the connection, with default options.
+     * @param connection the connection to run JetStream requests over
+     */
     public JetStream(NatsConnection connection) {
         super(connection, null);
     }
 
+    /**
+     * Create a JetStream context for the connection with the given options.
+     * @param connection the connection to run JetStream requests over
+     * @param jsOptions JetStream options such as the domain or request timeout, or null for defaults
+     */
     public JetStream(NatsConnection connection, @Nullable JetStreamOptions jsOptions) {
         super(connection, jsOptions);
     }
@@ -47,6 +67,10 @@ public class JetStream extends JetStreamImpl {
         super(impl);
     }
 
+    /**
+     * A management context sharing this context's connection and options, for creating and inspecting streams and consumers.
+     * @return the management context
+     */
     public JetStreamManagement jetStreamManagement() {
         if (jsm == null) {
             jsm = new JetStreamManagement(this);
@@ -59,80 +83,127 @@ public class JetStream extends JetStreamImpl {
     // ----------------------------------------------------------------------------------------------------
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, null, null, null);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param data the message payload, may be null for an empty message
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, byte @Nullable[] data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, data, null, null);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param data the message payload, may be null for an empty message
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, @Nullable String data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, null, data, null);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param headers headers to send with the message
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, null, null, null);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param headers headers to send with the message
+     * @param data the message payload, may be null for an empty message
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, byte @Nullable[] data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, data, null, null);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param headers headers to send with the message
+     * @param data the message payload, may be null for an empty message
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, @Nullable String data) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, null, data, null);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param data the message payload, may be null for an empty message
+     * @param options publish options such as expected stream, sequence or message id
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, byte @Nullable [] data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, data, null, options);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param data the message payload, may be null for an empty message
+     * @param options publish options such as expected stream, sequence or message id
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, @Nullable String data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, null, null, data, options);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param headers headers to send with the message
+     * @param data the message payload, may be null for an empty message
+     * @param options publish options such as expected stream, sequence or message id
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, byte[] data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, data, null, options);
     }
 
     /**
+     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @param subject the subject to send the message to
+     * @param headers headers to send with the message
+     * @param data the message payload, may be null for an empty message
+     * @param options publish options such as expected stream, sequence or message id
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, String data, PublishOptions options) throws JetStreamException, InterruptedException {
         return publishSyncInternal(subject, headers, null, data, options);
@@ -143,6 +214,8 @@ public class JetStream extends JetStreamImpl {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the message is null
+     * @param message the message to send, carrying its own subject, headers and payload
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(Message message) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
@@ -154,6 +227,9 @@ public class JetStream extends JetStreamImpl {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the message is null
+     * @param message the message to send, carrying its own subject, headers and payload
+     * @param options publish options such as expected stream, sequence or message id
+     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(Message message, PublishOptions options) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
@@ -186,6 +262,12 @@ public class JetStream extends JetStreamImpl {
         return publishAsyncInternal(subject, null, body, null, null, true);
     }
 
+    /**
+     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * @param subject the subject to send the message to
+     * @param body the message payload
+     * @return a future that completes with the acknowledgement
+     */
     public CompletableFuture<PublishAck> publishAsync(String subject, String body) {
         return publishAsyncInternal(subject, null, null, body, null, true);
     }
@@ -218,6 +300,13 @@ public class JetStream extends JetStreamImpl {
         return publishAsyncInternal(subject, headers, body, null, null, true);
     }
 
+    /**
+     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * @param subject the subject to send the message to
+     * @param headers headers to send with the message
+     * @param body the message payload
+     * @return a future that completes with the acknowledgement
+     */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body) {
         return publishAsyncInternal(subject, headers, null, body, null, true);
     }
@@ -248,6 +337,13 @@ public class JetStream extends JetStreamImpl {
         return publishAsyncInternal(subject, null, body, null, options, true);
     }
 
+    /**
+     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * @param subject the subject to send the message to
+     * @param body the message payload
+     * @param options publish options such as expected stream, sequence or message id
+     * @return a future that completes with the acknowledgement
+     */
     public CompletableFuture<PublishAck> publishAsync(String subject, String body, PublishOptions options) {
         return publishAsyncInternal(subject, null, null, body, options, true);
     }
@@ -280,6 +376,14 @@ public class JetStream extends JetStreamImpl {
         return publishAsyncInternal(subject, headers, body, null, options, true);
     }
 
+    /**
+     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * @param subject the subject to send the message to
+     * @param headers headers to send with the message
+     * @param body the message payload
+     * @param options publish options such as expected stream, sequence or message id
+     * @return a future that completes with the acknowledgement
+     */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body, PublishOptions options) {
         return publishAsyncInternal(subject, headers, null, body, options, true);
     }
@@ -986,6 +1090,11 @@ public class JetStream extends JetStreamImpl {
     /**
      * Create a consumer.
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     * @param stream the stream name
+     * @param subject the subject to send the message to
+     * @return a context for consuming from the new consumer
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     public ConsumerContext createConsumer(String stream, String subject) throws JetStreamException, InterruptedException {
         return createConsumer(stream, new PullConsumerCreator().subjects(subject));
@@ -994,6 +1103,11 @@ public class JetStream extends JetStreamImpl {
     /**
      * Create a consumer.
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
+     * @param stream the stream name
+     * @param creator the consumer configuration to create from
+     * @return a context for consuming from the new consumer
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
      */
     public ConsumerContext createConsumer(String stream, PullConsumerCreator creator) throws JetStreamException, InterruptedException {
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
@@ -1019,6 +1133,13 @@ public class JetStream extends JetStreamImpl {
         return getNatsStreamContext(streamName).getConsumerContext(consumerName);
     }
 
+    /**
+     * Get a context for consuming from an existing consumer.
+     * @param consumerInfo info identifying the consumer and its stream
+     * @return a context for consuming from the consumer
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     */
     public ConsumerContext getConsumerContext(ConsumerInfo consumerInfo) throws JetStreamException, InterruptedException {
         return getNatsStreamContext(consumerInfo.getStreamName()).getConsumerContext(consumerInfo);
     }

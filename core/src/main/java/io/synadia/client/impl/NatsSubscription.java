@@ -10,6 +10,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+/**
+ * The standard subscription implementation. A subscription either owns a queue that the application
+ * pulls messages from, or belongs to a dispatcher that pushes messages to a handler, never both.
+ */
 public class NatsSubscription extends NatsMessageSink implements Subscription {
 
     private String subject;
@@ -23,6 +27,15 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
 
     private Function<NatsMessage, Boolean> beforeQueueProcessor;
 
+    /**
+     * Create a subscription. A null dispatcher makes this a synchronous subscription, which gets
+     * its own incoming message queue.
+     * @param sid the connection unique subscription id
+     * @param subject the subject subscribed to
+     * @param queueName the queue group name, or null if this is not a queue subscription
+     * @param connection the connection the subscription belongs to
+     * @param dispatcher the dispatcher delivering the messages, or null for a synchronous subscription
+     */
     public NatsSubscription(String sid, String subject, String queueName, NatsConnection connection, NatsDispatcher dispatcher) {
         super(connection);
         this.subject = subject;
@@ -63,6 +76,12 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
         this.beforeQueueProcessor = beforeQueueProcessor == null ? m -> true : beforeQueueProcessor;
     }
 
+    /**
+     * The function run on the reader thread as each message arrives, before the message reaches the
+     * queue or the dispatcher. Returning false drops the message. Defaults to a function that
+     * accepts everything.
+     * @return the before queue processor
+     */
     public Function<NatsMessage, Boolean> getBeforeQueueProcessor() {
         return beforeQueueProcessor;
     }

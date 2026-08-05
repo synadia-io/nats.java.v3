@@ -3,7 +3,15 @@ package io.synadia.client.impl;
 import io.synadia.client.Message;
 import io.synadia.client.ReadListener;
 
+/**
+ * A read listener that prints everything the reader sees to standard out. Intended for debugging.
+ */
 public class ReaderListenerConsoleImpl implements ReadListener {
+    /**
+     * Create a console read listener.
+     */
+    public ReaderListenerConsoleImpl() {}
+
     @Override
     public void protocol(String op, String text) {
         System.out.println("RL/Protocol " + op + " " + text);

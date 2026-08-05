@@ -6,10 +6,20 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * An {@link AuthHandler} that reads credentials already held in memory, rather than from a
+ * creds file. Useful when the credentials come from a secret store.
+ */
 public class MemoryAuthHandler implements AuthHandler {
 
     private final StringAuthHandler sah;
 
+    /**
+     * Construct a handler over the contents of a creds file. The bytes are parsed the same
+     * way a creds file is: the first {@code -----BEGIN} block is the JWT, the second is the
+     * seed. A bare value with no header blocks is taken as the JWT.
+     * @param input the creds content
+     */
     public MemoryAuthHandler(byte[] input) {
         ByteBuffer bb = ByteBuffer.wrap(input);
         CharBuffer chars = StandardCharsets.UTF_8.decode(bb);

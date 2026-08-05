@@ -24,6 +24,7 @@ public class FetchConsumeOptions extends BaseConsumeOptions {
      */
     public static final FetchConsumeOptions DEFAULT_FETCH_OPTIONS = FetchConsumeOptions.builder().build();
 
+    /** Whether the fetch returns immediately with whatever is available instead of waiting for expiration. */
     private final boolean noWait;
 
     private FetchConsumeOptions(Builder b) {

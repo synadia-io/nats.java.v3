@@ -9,6 +9,11 @@ import java.util.LongSummaryStatistics;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * The connection's statistics, acting both as the collector the internals write to and as the
+ * read-only view the application sees. Simple counters are atomic; the read and write size
+ * summaries are guarded by their own locks and are only maintained when advanced tracking is on.
+ */
 public class NatsStatistics implements StatisticsCollector, Statistics {
     private final ReentrantLock readStatsLock;
     private final ReentrantLock writeStatsLock;
@@ -35,6 +40,9 @@ public class NatsStatistics implements StatisticsCollector, Statistics {
 
     private boolean trackAdvanced;
 
+    /**
+     * Construct a statistics instance with every counter at zero and advanced tracking off.
+     */
     public NatsStatistics() {
         this.readStatsLock = new ReentrantLock();
         this.writeStatsLock = new ReentrantLock();

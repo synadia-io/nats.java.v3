@@ -14,6 +14,9 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class DefaultReconnectDelayHandler implements ReconnectDelayHandler {
 
+    /** Construct a handler. Prefer {@link #INSTANCE} since the handler holds no state. */
+    public DefaultReconnectDelayHandler() {}
+
     /** Stateless singleton, safe to share across all connections. */
     public static final DefaultReconnectDelayHandler INSTANCE = new DefaultReconnectDelayHandler();
 
@@ -39,6 +42,10 @@ public final class DefaultReconnectDelayHandler implements ReconnectDelayHandler
      *
      * <p>Exposed as {@code public static} so custom {@link ReconnectDelayHandler}
      * implementations can reuse the math without copy-pasting.
+     *
+     * @param options the options supplying the wait and jitter settings
+     * @param secure whether the connection being reestablished is a TLS connection
+     * @return the wait in milliseconds, never negative
      */
     public static long computeWaitMillis(Options options, boolean secure) {
         long wait = options.getReconnectWait();

@@ -15,6 +15,16 @@ public class NatsMessageBuilder {
 
     private static SubjectValidationType SVT = None;
 
+    /**
+     * Construct a builder with no subject, reply to, headers or data set.
+     */
+    public NatsMessageBuilder() {}
+
+    /**
+     * Set the subject validation applied to every message built from here on.
+     * This is a static setting shared by all builders, the default is {@code None}.
+     * @param subjectValidationType the validation type, null resets to {@code None}
+     */
     public static void setSubjectValidationType(SubjectValidationType subjectValidationType) {
         SVT = (subjectValidationType == null) ? None : subjectValidationType;
     }

@@ -9,6 +9,11 @@ import io.synadia.client.MessageHandler;
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *
  */
 public class DispatcherFactory {
+    /**
+     * Construct a factory.
+     */
+    public DispatcherFactory() {}
+
     NatsDispatcher createDispatcher(NatsConnection conn, MessageHandler handler) {
         if (conn.getOptions().useDispatcherWithExecutor()) {
             return new NatsDispatcherWithExecutor(conn, handler);

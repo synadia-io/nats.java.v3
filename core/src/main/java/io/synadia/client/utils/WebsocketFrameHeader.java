@@ -1,15 +1,36 @@
 package io.synadia.client.utils;
 
+/**
+ * A single websocket frame header, as defined by RFC 6455. Instances are mutable and reusable:
+ * build one with the {@code with...} methods to send a frame, or overwrite one from the wire with
+ * {@link #write(byte[], int, int)} to receive a frame.
+ */
 public class WebsocketFrameHeader {
+    /** Largest number of bytes a websocket frame header can occupy: 2 fixed bytes, 8 for a 64 bit payload length and 4 for a masking key. */
     public static int MAX_FRAME_HEADER_SIZE = 14;
 
+    /**
+     * Create a header with no opcode, no mask and a zero payload length.
+     */
+    public WebsocketFrameHeader() {}
+
+    /**
+     * The frame opcode, which identifies how the frame payload is to be interpreted.
+     */
     public enum OpCode {
+        /** The frame carries more of the payload of the preceding text or binary frame. */
         CONTINUATION(0),
+        /** The frame payload is UTF-8 text. */
         TEXT(1),
+        /** The frame payload is binary data. */
         BINARY(2),
+        /** The peer is closing the connection. */
         CLOSE(8),
+        /** A heartbeat request, which the peer answers with {@link #PONG}. */
         PING(9),
+        /** The answer to a {@link #PING}. */
         PONG(10),
+        /** A code that is not one of the opcodes this client understands. */
         UNKNOWN(0x10);
 
         private int code;
@@ -18,10 +39,20 @@ public class WebsocketFrameHeader {
             this.code = code;
         }
 
+        /**
+         * The wire value of this opcode. {@link #UNKNOWN} reports 0x10, which is outside the 4 bit
+         * on-the-wire opcode field and so can never collide with a real code.
+         * @return the code
+         */
         public int getCode() {
             return this.code;
         }
 
+        /**
+         * Look up the opcode for a wire value.
+         * @param code the wire value
+         * @return the matching opcode, or {@link #UNKNOWN} if the value is not a recognized opcode
+         */
         public static OpCode of(int code) {
             switch (code) {
                 case 0: return CONTINUATION;
@@ -42,16 +73,32 @@ public class WebsocketFrameHeader {
     private int maskingKey;
     private int maskingKeyOffset = 0;
 
+    /**
+     * Set the opcode and the FIN bit, which together make up the first header byte.
+     * @param op the opcode
+     * @param isFinal true if this frame is the last one of its message, false if a continuation frame follows
+     * @return this header, for chaining
+     */
     public WebsocketFrameHeader withOp(OpCode op, boolean isFinal) {
         this.byte0 = (byte)(op.getCode() | (isFinal ? 0x80 : 0));
         return this;
     }
 
+    /**
+     * Send the payload unmasked. Required for frames sent by a server; clients must mask.
+     * @return this header, for chaining
+     */
     public WebsocketFrameHeader withNoMask() {
         this.mask = false;
         return this;
     }
 
+    /**
+     * Mask the payload with the given key. The key is applied one byte at a time, cycling through
+     * the key bytes as the payload is filtered.
+     * @param maskingKey the masking key
+     * @return this header, for chaining
+     */
     public WebsocketFrameHeader withMask(int maskingKey) {
         this.mask = true;
         this.maskingKey = maskingKey;
@@ -59,31 +106,61 @@ public class WebsocketFrameHeader {
         return this;
     }
 
+    /**
+     * Set the number of payload bytes that follow this header. The value decides whether the length
+     * is encoded in 7, 16 or 64 bits, and so how many bytes the serialized header occupies.
+     * @param payloadLength the payload length in bytes
+     * @return this header, for chaining
+     */
     public WebsocketFrameHeader withPayloadLength(long payloadLength) {
         this.payloadLength = payloadLength;
         return this;
     }
 
+    /**
+     * Whether the FIN bit is set, meaning this frame completes its message.
+     * @return true if this is the final frame of a message
+     */
     public boolean isFinal() {
         return (byte0 & 0x80) != 0;
     }
 
+    /**
+     * Whether the payload is masked and so must be run through {@link #filterPayload(byte[], int, int)}.
+     * @return true if the payload is masked
+     */
     public boolean isMasked() {
         return mask;
     }
 
+    /**
+     * The masking key. Only meaningful when {@link #isMasked()} is true.
+     * @return the masking key
+     */
     public int getMaskingKey() {
         return maskingKey;
     }
 
+    /**
+     * Payload bytes still expected for this frame. Filtering consumed bytes reduces this count.
+     * @return the remaining payload length in bytes
+     */
     public long getPayloadLength() {
         return payloadLength;
     }
 
+    /**
+     * The opcode taken from the low 4 bits of the first header byte.
+     * @return the opcode, or {@link OpCode#UNKNOWN} if it is not a recognized code
+     */
     public OpCode getOpCode() {
         return OpCode.of(byte0 & 0xF);
     }
 
+    /**
+     * Whether the whole payload has been consumed, so the next bytes on the wire start a new frame.
+     * @return true if no payload bytes remain
+     */
     public boolean isPayloadEmpty() {
         return 0 == payloadLength;
     }
@@ -111,6 +188,11 @@ public class WebsocketFrameHeader {
         return length;
     }
 
+    /**
+     * How many bytes this header will occupy once serialized, which varies with the payload length
+     * encoding and whether a masking key is present.
+     * @return the serialized size in bytes, between 2 and 14
+     */
     public int size() {
         int size = 2;
         if (payloadLength > 0xFFFF) {

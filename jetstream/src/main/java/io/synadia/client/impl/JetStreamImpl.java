@@ -12,6 +12,10 @@ import static io.synadia.client.utils.JetStreamApiUtils.generateConsumerName;
 import static io.synadia.client.utils.JsValidator.validateStreamName;
 import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
 
+/**
+ * Base for the JetStream contexts. Holds the connection, the resolved options and the feature flags
+ * worked out from the server version, and supplies the request plumbing the contexts share.
+ */
 @NullMarked
 public class JetStreamImpl implements JetStreamConstants {
 
@@ -64,6 +68,11 @@ public class JetStreamImpl implements JetStreamConstants {
         directBatchGet211Available = impl.directBatchGet211Available;
     }
 
+    /**
+     * How long to wait for a JetStream API response, in milliseconds. Taken from the JetStream
+     * options request timeout, falling back to the connection options connect timeout.
+     * @return the timeout in milliseconds
+     */
     public long getTimeout() {
         return timeoutMillis;
     }

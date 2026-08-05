@@ -10,6 +10,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.synadia.client.impl.MessageManager.ManageResult.MESSAGE;
 import static io.synadia.client.impl.MessageManager.ManageResult.STATUS_HANDLED;
 
+/**
+ * The message manager for ordered push subscriptions. On any gap in the consumer sequence,
+ * or on a heartbeat error, it discards the consumer and rebuilds it from the last stream
+ * sequence it saw, so the handler still observes a strictly ordered stream.
+ */
 public class PushOrderedMessageManager extends PushMessageManager {
 
     protected final AtomicLong expectedExternalConsumerSeq;

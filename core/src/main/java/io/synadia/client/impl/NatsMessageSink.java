@@ -51,38 +51,41 @@ abstract class NatsMessageSink {
     }
 
     /**
+     * The maximum number of messages this sink will hold before dropping new ones.
      * @return the pending message limit set by {@link #setPendingLimits(long, long)
-     *         setPendingLimits}.
+     *         setPendingLimits}, or -1 for unlimited.
      */
     public long getPendingMessageLimit() {
         return this.maxMessages == Long.MAX_VALUE ? -1 : this.maxMessages;
     }
 
     /**
+     * The maximum total size of the messages this sink will hold before dropping new ones.
      * @return the pending byte limit set by {@link #setPendingLimits(long, long)
-     *         setPendingLimits}.
+     *         setPendingLimits}, or -1 for unlimited.
      */
     public long getPendingByteLimit() {
         return this.maxBytes == Long.MAX_VALUE ? -1 : this.maxBytes;
     }
 
     /**
-     * @return the number of messages waiting to be delivered/popped,
-     *         {@link #setPendingLimits(long, long) setPendingLimits}.
+     * How full the sink currently is, in messages, relative to the pending message limit.
+     * @return the number of messages waiting to be delivered/popped.
      */
     public long getPendingMessageCount() {
         return this.getMessageQueue() != null ? this.getMessageQueue().length() : 0;
     }
 
     /**
-     * @return the cumulative size of the messages waiting to be delivered/popped,
-     *         {@link #setPendingLimits(long, long) setPendingLimits}.
+     * How full the sink currently is, in bytes, relative to the pending byte limit.
+     * @return the cumulative size of the messages waiting to be delivered/popped.
      */
     public long getPendingByteCount() {
         return this.getMessageQueue() != null ? this.getMessageQueue().sizeInBytes() : 0;
     }
 
     /**
+     * A lifetime counter that is never reset, unlike the dropped count.
      * @return the total number of messages delivered to this sink, for all
      *         time.
      */
@@ -99,6 +102,7 @@ abstract class NatsMessageSink {
     }
 
     /**
+     * How many messages arrived while the sink was already at its pending limits.
      * @return the number of messages dropped from this sink, since the last
      *         call to {@link #clearDroppedCount}.
      */
@@ -210,6 +214,7 @@ abstract class NatsMessageSink {
    }
 
     /**
+     * Whether the sink can still take messages. Once false it never becomes true again.
      * @return whether this sink is still processing messages. For a
      *         subscription the answer is false after unsubscribe. For a dispatcher,
      *         false after stop.

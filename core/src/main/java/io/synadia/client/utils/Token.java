@@ -7,6 +7,11 @@ import static io.synadia.client.api.Status.*;
 import static io.synadia.client.utils.NatsConstants.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/**
+ * A single token found while parsing a serialized protocol or header line. A token does not copy
+ * any bytes; it only remembers the type it matched and the start and end offsets of its value in
+ * the underlying array, so the value is only turned into a String if it is actually asked for.
+ */
 public class Token {
     private final byte[] serialized;
     private final TokenType type;
@@ -15,10 +20,27 @@ public class Token {
     private boolean hasValue;
     private final int valueLength;
 
+    /**
+     * Parse the token that follows another token, skipping the character that ended the
+     * previous token, two characters in the case of a key since a key is followed by a colon and a space.
+     * @param serialized the bytes being parsed
+     * @param len the number of bytes in the array that are in play
+     * @param prev the token immediately before this one
+     * @param required the type the token must be, or null to accept text
+     * @throws IllegalArgumentException if the bytes do not form a token of the required type
+     */
     public Token(byte[] serialized, int len, Token prev, TokenType required) {
         this(serialized, len, prev.end + (prev.type == TokenType.KEY ? 2 : 1), required);
     }
 
+    /**
+     * Parse the token starting at a given offset.
+     * @param serialized the bytes being parsed
+     * @param len the number of bytes in the array that are in play
+     * @param cur the offset the token starts at
+     * @param required the type the token must be, or null to accept text
+     * @throws IllegalArgumentException if the bytes do not form a token of the required type
+     */
     public Token(byte[] serialized, int len, int cur, TokenType required) {
         this.serialized = serialized;
 
@@ -78,25 +100,49 @@ public class Token {
         }
     }
 
+    /**
+     * Assert the token turned out to be the given type, for the cases where the type could not
+     * be demanded up front at parse time.
+     * @param expected the type the token must be
+     * @throws IllegalArgumentException if the token is a different type
+     */
     public void mustBe(TokenType expected) {
         if (type != expected) {
             throw new IllegalArgumentException(INVALID_HEADER_COMPOSITION);
         }
     }
 
+    /**
+     * Test the token's type without throwing.
+     * @param expected the type to test against
+     * @return true if the token is that type
+     */
     public boolean isType(TokenType expected) {
         return type == expected;
     }
 
+    /**
+     * Whether the token carries text. Space and CRLF tokens are pure delimiters and have none.
+     * @return true if there is a value to read
+     */
     public boolean hasValue() {
         return hasValue;
     }
 
+    /**
+     * The token's text, trimmed of surrounding whitespace.
+     * @return the value, or an empty string if the token is a delimiter
+     */
     @NonNull
     public String getValue() {
         return hasValue ? valueAsString() : "";
     }
 
+    /**
+     * The token's text, trimmed of surrounding whitespace, for callers that need to tell a
+     * delimiter apart from an empty value.
+     * @return the value, or null if the token is a delimiter
+     */
     @Nullable
     public String getValueOrNull() {
         return hasValue ? valueAsString() : null;
@@ -106,6 +152,12 @@ public class Token {
         return new String(serialized, start, valueLength, UTF_8).trim();
     }
 
+    /**
+     * The token's text as a header key, returning the shared constant when the bytes match a key
+     * the client already knows. Comparing bytes and handing back an interned constant avoids
+     * allocating a String for the keys that show up on nearly every message.
+     * @return the known key constant, or a newly built string when the key is not one of them
+     */
     @NonNull
     public String getValueCheckKnownKeys() {
         if (valueLength == 0) {
@@ -157,6 +209,13 @@ public class Token {
         return valueAsString();
     }
 
+    /**
+     * The token's text as a status message, returning the shared constant when the bytes match a
+     * status the client already knows, on the same allocation-avoiding principle as
+     * {@link #getValueCheckKnownKeys()}.
+     * @return the known status constant, a newly built string when the status is not one of them,
+     *         or null if the token has no value
+     */
     @Nullable
     public String getValueCheckKnownStatuses() {
         if (valueLength == 0) {
@@ -273,6 +332,12 @@ public class Token {
         return true;
     }
 
+    /**
+     * Whether two tokens cover the same span, meaning the same type and the same start and end
+     * offsets. Used to detect that parsing has not moved forward.
+     * @param token the token to compare with
+     * @return true if both tokens are at the same point
+     */
     public boolean samePoint(Token token) {
         return start == token.start
                 && end == token.end

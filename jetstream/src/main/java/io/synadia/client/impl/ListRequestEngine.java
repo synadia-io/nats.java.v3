@@ -9,6 +9,11 @@ import java.nio.charset.StandardCharsets;
 import static io.nats.json.LazyJsonValueUtils.readInteger;
 import static io.synadia.client.utils.ApiConstants.*;
 
+/**
+ * Drives the paging for the JetStream list APIs. Each server response carries the total, the page
+ * limit and the offset it was served from, which is enough to work out whether another request is
+ * needed and to build the json for it.
+ */
 public class ListRequestEngine extends ApiResponse<ListRequestEngine> {
 
     private static final String OFFSET_JSON_START = "{\"offset\":";

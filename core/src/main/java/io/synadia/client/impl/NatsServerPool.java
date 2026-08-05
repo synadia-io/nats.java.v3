@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * The default {@link ServerPool} implementation. It holds the bootstrap servers from the options plus any
+ * servers the nats-server advertises during connect, and hands them out in the order the connect and
+ * reconnect logic should try them, honoring the no-randomize option.
+ */
 public class NatsServerPool implements ServerPool {
 
     protected final ReentrantLock listLock;
@@ -24,6 +29,10 @@ public class NatsServerPool implements ServerPool {
     protected NatsUri lastConnected;
     protected String defaultScheme;
 
+    /**
+     * Construct an empty pool. It is not usable until {@link #initialize(Options)} supplies the options
+     * that provide the bootstrap servers.
+     */
     public NatsServerPool() {
         listLock = new ReentrantLock();
         entryList = new ArrayList<>(); // this gets updated occasionally

@@ -10,12 +10,28 @@ import java.io.IOException;
  * Adapter to impl package to minimize access leakage.
  */
 public class NatsImpl {
+    private NatsImpl() {}  /* ensures cannot be constructed */
+
+    /**
+     * Construct a connection and connect it to a server.
+     * @param options the options to connect with
+     * @param reconnectOnConnect whether a failure to make the initial connection should start the
+     *                           reconnect logic instead of throwing
+     * @return the connected connection
+     * @throws IOException if the connection could not be established
+     * @throws InterruptedException if the current thread is interrupted while connecting
+     */
     public static NatsConnection createConnection(Options options, boolean reconnectOnConnect) throws IOException, InterruptedException {
         NatsConnection conn = new NatsConnection(options);
         conn.connect(reconnectOnConnect);
         return conn;
     }
 
+    /**
+     * Make a statistics object with all counters at zero, for callers that need a Statistics
+     * instance without a connection.
+     * @return the statistics
+     */
     public static Statistics createEmptyStats() {
         return new NatsStatistics();
     }

@@ -5,12 +5,22 @@ import io.synadia.client.impl.Headers;
 
 import static io.synadia.client.utils.NatsConstants.*;
 
+/**
+ * Parses the serialized header block that precedes the payload of an incoming message,
+ * splitting out the inline status line and the regular headers.
+ */
 public class IncomingHeadersProcessor {
 
     private final int serializedLength;
     private Headers headers;
     private Status inlineStatus;
 
+    /**
+     * Parse the serialized header block.
+     * @param serialized the raw header bytes, starting with the {@code NATS/1.0} version prefix
+     * @throws IllegalArgumentException if the bytes are null or empty, the version prefix does not
+     *         match, or the composition is otherwise invalid
+     */
     public IncomingHeadersProcessor(byte[] serialized) {
 
         // basic validation first to help fail fast
@@ -45,14 +55,26 @@ public class IncomingHeadersProcessor {
         }
     }
 
+    /**
+     * The number of bytes consumed by the header block, used to find the start of the payload.
+     * @return the length in bytes
+     */
     public int getSerializedLength() {
         return serializedLength;
     }
 
+    /**
+     * The parsed headers.
+     * @return the headers, null when the block carried only a status line
+     */
     public Headers getHeaders() {
         return headers;
     }
 
+    /**
+     * The status parsed from the inline status line, for example a 503 no responders.
+     * @return the status, null when the block had no status line
+     */
     public Status getStatus() {
         return inlineStatus;
     }

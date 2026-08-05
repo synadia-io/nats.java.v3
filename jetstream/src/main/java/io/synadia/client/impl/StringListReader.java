@@ -5,6 +5,10 @@ import io.nats.json.LazyJsonValue;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Base for list readers whose pages contain plain strings rather than objects, for instance
+ * stream names or consumer names. Nulls in the array are skipped.
+ */
 public abstract class StringListReader extends AbstractListReader {
 
     List<String> strings;

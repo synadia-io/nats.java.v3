@@ -6,10 +6,18 @@ import java.util.concurrent.TimeoutException;
 import static io.synadia.client.impl.AckType.*;
 import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
 
+/**
+ * An incoming message that arrived from a JetStream consumer, so it carries a reply subject the
+ * ack methods can publish to and metadata that can be parsed out of that reply subject.
+ */
 public class JetStreamMessage extends IncomingMessage {
 
     private JetStreamMetaData jsMetaData = null;
 
+    /**
+     * Create a JetStream message from the payload read off the wire.
+     * @param data the message payload
+     */
     public JetStreamMessage(byte[] data) {
         super(data);
     }

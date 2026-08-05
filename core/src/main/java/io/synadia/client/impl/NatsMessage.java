@@ -14,6 +14,10 @@ import static io.synadia.client.utils.NatsConstants.*;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/**
+ * The standard message implementation, used both for messages built by the application for
+ * publishing and, through its subclasses, for messages read off the wire.
+ */
 public class NatsMessage implements Message {
 
     protected static final String NOT_A_JET_STREAM_MESSAGE = "Message is not a JetStream message";
@@ -52,10 +56,23 @@ public class NatsMessage implements Message {
         this(data, null, null, null, false);
     }
 
+    /**
+     * Create a message with no headers.
+     * @param subject the subject to publish to
+     * @param replyTo the reply subject, or null for none
+     * @param data the payload, or null for an empty payload
+     */
     public NatsMessage(@NonNull String subject, @Nullable String replyTo, byte @Nullable[] data) {
         this(data, subject, replyTo, null, false);
     }
 
+    /**
+     * Create a message with headers.
+     * @param subject the subject to publish to
+     * @param replyTo the reply subject, or null for none
+     * @param headers the headers, or null for none
+     * @param data the payload, or null for an empty payload
+     */
     public NatsMessage(@NonNull String subject, @Nullable String replyTo, @Nullable Headers headers, byte @Nullable[] data) {
         this(data, subject, replyTo, headers, false);
     }
@@ -406,6 +423,11 @@ public class NatsMessage implements Message {
     // ----------------------------------------------------------------------------------------------------
     // Standard Builder
     // ----------------------------------------------------------------------------------------------------
+    /**
+     * Start building a message. The preferred way to construct a message, since the builder
+     * validates the subject and lets the optional pieces be set individually.
+     * @return a new builder
+     */
     public static NatsMessageBuilder builder() {
         return new NatsMessageBuilder();
     }

@@ -51,6 +51,12 @@ public class JetStreamMetaData {
     v2 <prefix>.FC.<domain>.<account hash>.<stream name>.<consumer name>.<num delivered>.<stream sequence>.<consumer sequence>.<timestamp>.<num pending>
      */
 
+    /**
+     * Construct metadata over a JetStream message. The reply-to subject is captured now but
+     * only parsed on the first getter call, so a malformed subject surfaces there, not here.
+     * @param natsMessage the message to read the metadata from
+     * @throws IllegalArgumentException if the message is not a JetStream message
+     */
     public JetStreamMetaData(NatsMessage natsMessage) {
         if (!natsMessage.isJetStream()) {
             throw new IllegalArgumentException(notAJetStreamMessage(natsMessage.getReplyTo()));

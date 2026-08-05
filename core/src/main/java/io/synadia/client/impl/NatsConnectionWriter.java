@@ -35,6 +35,10 @@ import static io.synadia.client.utils.ByteArrayBuilder.bufferAllocSize;
 import static io.synadia.client.utils.NatsConstants.CR;
 import static io.synadia.client.utils.NatsConstants.LF;
 
+/**
+ * The connection's writer thread. It drains the outgoing message queues into the data port,
+ * switching between the normal queue and the reconnect queue as the connection state changes.
+ */
 public class NatsConnectionWriter implements Runnable {
     enum Mode {
         Normal, Reconnect, WaitingForEndReconnect

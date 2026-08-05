@@ -1429,7 +1429,16 @@ public class NatsConnection implements AutoCloseable {
     }
 
     /**
-     * Send a request and returns the reply or null.
+     * Send a request and returns the reply or null. Same as the other request methods except that it lets
+     * the caller choose what happens to the outstanding request if no reply arrives in time.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param headers optional headers to publish with the message
+     * @param data the content of the message
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
+     * @param cancelAction what to do with the future if the request is cancelled (cancel, report, or complete)
+     * @return the reply message or null if the timeout is reached
+     * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      * @throws IllegalArgumentException if the subject is invalid
      */
     @Nullable
@@ -1438,7 +1447,17 @@ public class NatsConnection implements AutoCloseable {
     }
 
     /**
-     * Send a request and returns the reply or null.
+     * Send a request and returns the reply or null. This is the core blocking request used by all the
+     * other request methods; it publishes, then waits on the future for the reply.
+     *
+     * @param subject the subject for the service that will handle the request
+     * @param headers optional headers to publish with the message
+     * @param data the content of the message
+     * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default connection timeout
+     * @param cancelAction what to do with the future if the request is cancelled (cancel, report, or complete)
+     * @param flushImmediatelyAfterPublish whether to flush the outgoing buffer immediately after publishing the request
+     * @return the reply message or null if the timeout is reached
+     * @throws InterruptedException if one is thrown while waiting, in order to propagate it up
      * @throws IllegalArgumentException if the subject is invalid
      */
     @Nullable
@@ -2148,15 +2167,30 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
+    /**
+     * Report that a subscription or dispatcher has fallen behind its pending limits. Only the first
+     * detection is reported until the consumer catches up again.
+     * @param subscription the subscription or dispatcher that is behind
+     */
     public void processSlowConsumer(Subscription subscription) {
         notifyErrorListener((c, el) -> el.slowConsumerDetected(c, subscription));
     }
 
+    /**
+     * Report an exception the client caught and handled, incrementing the exception statistic.
+     * @param exp the exception
+     */
     public void processException(Exception exp) {
         this.statistics.incrementExceptionCount();
         notifyErrorListener((c, el) -> el.exceptionOccurred(c, exp));
     }
 
+    /**
+     * Handle a -ERR protocol message from the server. The text becomes the last error, and an
+     * authentication error is also remembered against the current server so the connect logic can
+     * stop retrying a server that will never accept these credentials.
+     * @param errorText the error text as sent by the server
+     */
     public void processError(String errorText) {
         this.statistics.incrementErrCount();
 
@@ -2171,7 +2205,16 @@ public class NatsConnection implements AutoCloseable {
         notifyErrorListener((c, el) -> el.errorOccurred(c, errorText));
     }
 
+    /**
+     * Picks which {@link ErrorListener} method to invoke, so {@link #notifyErrorListener(ErrorListenerCaller)}
+     * can do the fan-out once for every event.
+     */
     public interface ErrorListenerCaller {
+        /**
+         * Invoke the event method on one listener.
+         * @param conn the connection the event is for
+         * @param el the listener to call
+         */
         void call(NatsConnection conn, ErrorListener el);
     }
 
@@ -2741,6 +2784,11 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
+    /**
+     * The default this connection applies to the flushImmediatelyAfterPublish parameter of the request methods,
+     * taken from the options at construction. Flushing trades throughput for latency on a single request.
+     * @return true if requests flush the outgoing buffer immediately
+     */
     public boolean isForceFlushOnRequest() {
         return forceFlushOnRequest;
     }

@@ -5,6 +5,9 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The queue holding messages delivered to a single subscription until the consumer pops them.
+ */
 @NullMarked
 public class ConsumerMessageQueue extends MessageQueueBase {
 

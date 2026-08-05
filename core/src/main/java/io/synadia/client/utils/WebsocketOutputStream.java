@@ -7,6 +7,10 @@ import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.util.Random;
 
+/**
+ * Wraps an output stream so that everything written to it goes out as websocket binary frames.
+ * Closing writes a close frame before closing the wrapped stream.
+ */
 public class WebsocketOutputStream extends OutputStream {
     private OutputStream wrap;
     private boolean masked;
@@ -34,6 +38,11 @@ public class WebsocketOutputStream extends OutputStream {
         .withNoMask();
     private Random random = new SecureRandom();
 
+    /**
+     * Construct a websocket output stream over another stream.
+     * @param wrap the stream the frames are written to
+     * @param masked whether to mask the payload, which the websocket spec requires of a client
+     */
     public WebsocketOutputStream(OutputStream wrap, boolean masked) {
         this.wrap = wrap;
         this.masked = masked;

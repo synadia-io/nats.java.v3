@@ -5,7 +5,15 @@ import io.synadia.client.Message;
 import io.synadia.client.Subscription;
 import io.synadia.client.api.Status;
 
+/**
+ * {@link ErrorListener} that prints every event to {@code System.out}, prefixed with a severity
+ * and the name of the callback. Handy for development; production code will normally want a
+ * listener that goes to a real log.
+ */
 public class ErrorListenerConsoleImpl implements ErrorListener {
+
+    /** Construct a listener. It holds no state, so one instance can serve any number of connections. */
+    public ErrorListenerConsoleImpl() {}
 
     /**
      * {@inheritDoc}

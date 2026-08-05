@@ -6,6 +6,7 @@ z-claude-done
 examples/**/Z*.java
 **/Debug*.java
 .claude/**
+.editorconfig
 
 # Compiled source #
 ###################

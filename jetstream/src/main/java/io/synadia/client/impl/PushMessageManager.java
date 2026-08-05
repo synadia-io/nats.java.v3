@@ -10,6 +10,10 @@ import static io.synadia.client.ErrorListener.FlowControlSource.HEARTBEAT;
 import static io.synadia.client.impl.JetStreamConstants.CONSUMER_STALLED_HDR;
 import static io.synadia.client.impl.MessageManager.ManageResult.*;
 
+/**
+ * The message manager for push subscriptions. It handles the flow control and idle heartbeat
+ * statuses that the server interleaves with the JetStream messages.
+ */
 public class PushMessageManager extends MessageManager {
 
     protected final JetStream js;
@@ -19,6 +23,13 @@ public class PushMessageManager extends MessageManager {
     protected final boolean fc;
     protected String lastFcSubject;
 
+    /**
+     * Construct a push message manager. Queue subscriptions never get flow control or heartbeats;
+     * otherwise both are enabled from the consumer configuration, and flow control requires heartbeats.
+     * @param conn the connection
+     * @param js the JetStream context
+     * @param subConf the subscription configuration, which carries the consumer info
+     */
     public PushMessageManager(
         NatsConnection conn,
         JetStream js,
@@ -39,8 +50,23 @@ public class PushMessageManager extends MessageManager {
         }
     }
 
+    /**
+     * Whether the subscription is part of a deliver group, which disables flow control and heartbeats.
+     * @return true if in queue mode
+     */
     public boolean isQueueMode()     { return queueMode; }
+
+    /**
+     * Whether flow control is active. Requires both the consumer flow control setting and an idle heartbeat.
+     * @return true if flow control is active
+     */
     public boolean isFc()            { return fc; }
+
+    /**
+     * The subject of the most recent flow control response published, kept so the same
+     * flow control request is not answered twice.
+     * @return the subject, null if no flow control has been processed
+     */
     public String getLastFcSubject() { return lastFcSubject; }
 
     @Override

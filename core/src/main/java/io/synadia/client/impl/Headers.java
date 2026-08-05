@@ -542,9 +542,14 @@ public class Headers {
 		return readOnly;
 	}
 
+	/**
+	 * Make the Headers read only. There is no way to undo this; any later modification attempt
+	 * throws {@link UnsupportedOperationException}.
+	 */
 	public void freeze() {
 		readOnly = true;
 	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
