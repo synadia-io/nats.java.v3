@@ -939,6 +939,7 @@ public class ReconnectTests {
                 };
                 try (NatsConnection nc = standardConnect(builder.servers(servers).build())) {
                     listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED, LONG_VALIDATE_TIMEOUT);
+                    listener.queueSocketWriteTimeout(LONG_VALIDATE_TIMEOUT);
                     listener.queueConnectionEvent(ConnectionEvents.RECONNECTED, LONG_VALIDATE_TIMEOUT);
 
                     String subject = random();
@@ -957,8 +958,13 @@ public class ReconnectTests {
                             }
                         }
                     }
-                    listener.validate();
+                    listener.validate(); // disconnected
                     assertTrue(gotOutputQueueIsFull.get());
+
+                    // The write watch raises socketWriteTimeout on its own schedule, it is not
+                    // sequenced against the disconnect, so wait for it instead of assuming the
+                    // disconnect implies it already landed.
+                    listener.validate();
                     assertTrue(listener.getSocketWriteTimeoutCount() > 0);
                 }
             }

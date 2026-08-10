@@ -46,7 +46,7 @@ public class NatsConnection implements AutoCloseable {
     protected Exception exceptionDuringConnectChange; // exception occurred in another thread while dis/connecting
     protected final ReentrantLock closeSocketLock;
 
-    private ConnectionStatus status;
+    private volatile ConnectionStatus status;
     protected final ReentrantLock statusLock;
     protected final Condition statusChanged;
 
@@ -771,6 +771,14 @@ public class NatsConnection implements AutoCloseable {
                 this.disconnecting = true;
                 this.exceptionDuringConnectChange = null;
                 wasConnected = (this.status == CONNECTED);
+
+                // Update the status before tearing the socket down, not after. closeSocketImpl
+                // clears the current server as its first act and can then block for as long as
+                // the reader and writer stop timeouts allow, so updating afterwards leaves a
+                // window where the connection reports CONNECTED with a null connected url.
+                // This is also the order forceReconnectImpl already uses.
+                updateStatus(DISCONNECTED);
+
                 statusChanged.signalAll();
             }
             finally {
@@ -781,7 +789,6 @@ public class NatsConnection implements AutoCloseable {
 
             statusLock.lock();
             try {
-                updateStatus(DISCONNECTED);
                 this.exceptionDuringConnectChange = null; // Ignore IOExceptions during closeSocketImpl()
                 this.disconnecting = false;
                 statusChanged.signalAll();
@@ -2433,29 +2440,34 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void updateStatus(ConnectionStatus newStatus, String uriDetail) {
-        ConnectionStatus oldStatus = this.status;
-
+        // The status is read under the lock and the event is chosen from the transition this
+        // call actually made, not from re-reading the field afterwards. Re-reading raises the
+        // event for whatever status another thread has since installed - or none at all, which
+        // is how a DISCONNECTED event goes missing when a reconnect follows closely behind.
+        ConnectionStatus oldStatus;
         statusLock.lock();
         try {
+            oldStatus = this.status;
             if (oldStatus == CLOSED || newStatus == oldStatus) {
                 return;
             }
             this.status = newStatus;
-        } finally {
             statusChanged.signalAll();
+        }
+        finally {
             statusLock.unlock();
         }
 
-        if (this.status == DISCONNECTED) {
+        if (newStatus == DISCONNECTED) {
             processConnectionEvent(ConnectionEvents.DISCONNECTED, uriDetail);
         }
-        else if (this.status == CLOSED) {
+        else if (newStatus == CLOSED) {
             processConnectionEvent(ConnectionEvents.CLOSED, uriDetail);
         }
-        else if (oldStatus == RECONNECTING && this.status == CONNECTED) {
+        else if (oldStatus == RECONNECTING && newStatus == CONNECTED) {
             processConnectionEvent(ConnectionEvents.RECONNECTED, uriDetail);
         }
-        else if (this.status == CONNECTED) {
+        else if (newStatus == CONNECTED) {
             processConnectionEvent(ConnectionEvents.CONNECTED, uriDetail);
         }
     }

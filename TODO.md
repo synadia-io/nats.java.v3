@@ -19,7 +19,9 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
-**SLOT OPEN — no implementation in progress.** Everything through `c6e0cdd8` is pushed; `main` == `origin/main`, working tree clean apart from this file.
+**INTEGRATION_PLAN_PR_1609.md — Under Review.** Status update ordering in `closeSocket`, plus the two PR #1547 `updateStatus` items v3 had never picked up. Three source changes in `NatsConnection`: `updateStatus(DISCONNECTED)` moved ahead of `closeSocketImpl` so the status and the connected url are never observably out of step; `updateStatus` now picks the event from the transition it actually made instead of re-reading the field after unlocking (which loses a DISCONNECTED event when a reconnect follows closely); `status` is now `volatile`. New `ConnectionStateConsistencyTests` fails 10/10 before and passes after.
+
+One existing test needed a fix: `ReconnectTests.testSocketDataPortTimeout` read the socket-write-timeout count immediately after the DISCONNECTED event, which only worked because the status update used to lag the teardown by 1-2 seconds — it now waits for the notification via `Listener.queueSocketWriteTimeout`. Baseline was taken on a detached worktree at `e8b6775a`, not by touching the working tree. Full suite green: 934 tests, 0 failures (core 542, jetstream 377, service 15). Not committed.
 
 ## Open / carried forward
 
@@ -49,6 +51,10 @@ Newest first. Detail lives in each plan/audit doc.
 
 
 ## Plans / Audits
+* INTEGRATION_PLAN_PR_1609.md
+  * status update ordering in `closeSocket` + the missing PR #1547 `updateStatus` changes
+  * [#1608](https://github.com/nats-io/nats.java/issues/1608) / [#1609](https://github.com/nats-io/nats.java/pull/1609)
+  * steps 1-3 DONE; step 4 (`currentServer` not volatile) deliberately not taken, still open
 * INTEGRATION_PLAN_PR_1578.md 
   * Reconnect Delay Behavior and options cleanup
   * [#1578](https://github.com/nats-io/nats.java/pull/1578) 
