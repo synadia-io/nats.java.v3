@@ -1,6 +1,7 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.PublishOptions;
+import io.synadia.client.utils.JetStreamApiUtils;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -14,18 +15,18 @@ public class PublishOptionsTests extends TestBase {
     public void testBuilder() {
         PublishOptions.Builder builder = PublishOptions.builder();
         PublishOptions po = builder.build();
-        assertEquals(PublishOptions.DEFAULT_TIMEOUT, po.getStreamTimeout());
+        assertEquals(JetStreamApiUtils.UNSET, po.getPublishTimeout());
         assertNull(po.getExpectedStream());
         assertNull(po.getExpectedLastMsgId());
-        assertEquals(PublishOptions.UNSET_LAST_SEQUENCE, po.getExpectedLastSequence());
-        assertEquals(PublishOptions.UNSET_LAST_SEQUENCE, po.getExpectedLastSubjectSequence());
+        assertEquals(JetStreamApiUtils.UNSET, po.getExpectedLastSequence());
+        assertEquals(JetStreamApiUtils.UNSET, po.getExpectedLastSubjectSequence());
         assertNull(po.getExpectedLastSubjectSequenceSubject());
         assertNull(po.getMessageTtl());
 
-        long streamTimeout = 99000;
+        long publishTimeout = 99000;
 
         po = builder
-            .streamTimeout(streamTimeout)
+            .publishTimeout(publishTimeout)
             .expectedStream("expectedStream")
             .expectedLastMsgId("1")
             .expectedLastSequence(42)
@@ -35,7 +36,7 @@ public class PublishOptionsTests extends TestBase {
             .messageTtlCustom("custom")
             .build();
 
-        assertEquals(streamTimeout, po.getStreamTimeout());
+        assertEquals(publishTimeout, po.getPublishTimeout());
         assertEquals("expectedStream", po.getExpectedStream());
         assertEquals("1", po.getExpectedLastMsgId());
         assertEquals(42, po.getExpectedLastSequence());
@@ -49,13 +50,13 @@ public class PublishOptionsTests extends TestBase {
 
         // these are not cleared
         assertEquals("expectedStream", po.getExpectedStream());
-        assertEquals(99000, po.getStreamTimeout());
+        assertEquals(99000, po.getPublishTimeout());
         assertEquals("custom", po.getMessageTtl());
 
         // these are cleared
         assertNull(po.getExpectedLastMsgId());
-        assertEquals(PublishOptions.UNSET_LAST_SEQUENCE, po.getExpectedLastSequence());
-        assertEquals(PublishOptions.UNSET_LAST_SEQUENCE, po.getExpectedLastSubjectSequence());
+        assertEquals(JetStreamApiUtils.UNSET, po.getExpectedLastSequence());
+        assertEquals(JetStreamApiUtils.UNSET, po.getExpectedLastSubjectSequence());
         assertNull(po.getExpectedLastSubjectSequenceSubject());
         assertNull(po.getMessageId());
     }
@@ -66,17 +67,17 @@ public class PublishOptionsTests extends TestBase {
         Properties p = new Properties();
         p.setProperty(PublishOptions.PROP_PUBLISH_TIMEOUT, "1200000");
         PublishOptions po = new PublishOptions.Builder(p).build();
-        assertEquals(1200000, po.getStreamTimeout(), "millis timeout");
+        assertEquals(1200000, po.getPublishTimeout(), "millis timeout");
 
         // ISO-8601 duration form (accepted, converted to millis)
         p = new Properties();
         p.setProperty(PublishOptions.PROP_PUBLISH_TIMEOUT, "PT20M");
         po = new PublishOptions.Builder(p).build();
-        assertEquals(1200000, po.getStreamTimeout(), "20M timeout");
+        assertEquals(1200000, po.getPublishTimeout(), "20M timeout");
 
         p = new Properties();
         po = new PublishOptions.Builder(p).build();
-        assertEquals(PublishOptions.DEFAULT_TIMEOUT, po.getStreamTimeout());
+        assertEquals(JetStreamApiUtils.UNSET, po.getPublishTimeout());
     }
 
     @Test

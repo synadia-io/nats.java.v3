@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import static io.synadia.client.api.SubscribeBehavior.DEFAULT_SUBSCRIBE_BEHAVIOR;
 import static io.synadia.client.impl.ConsumerCreateRequest.Action.Create;
 import static io.synadia.client.impl.MessageManager.ManageResult;
+import static io.synadia.client.utils.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.JetStreamClientError.JsSubNoMatchingStreamForSubject;
 import static io.synadia.client.utils.JsValidator.validateStreamName;
 import static io.synadia.client.utils.NatsRequestCompletableFuture.CancelAction;
@@ -455,7 +456,8 @@ public class JetStream extends JetStreamImpl {
             data = sData.getBytes(jso.getDefaultCharset());
         }
 
-        Message resp = makeInternalRequestResponseRequired(subject, merged, data, getTimeout());
+        long timeout = options == null || options.getPublishTimeout() == UNSET ? getTimeout() : options.getPublishTimeout();
+        Message resp = makeInternalRequestResponseRequired(subject, merged, data, timeout);
         return processPublishResponse(resp);
     }
 

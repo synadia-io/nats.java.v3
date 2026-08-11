@@ -1,13 +1,14 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.api.MessageTtl;
-import org.jspecify.annotations.Nullable;
+import io.synadia.client.utils.JetStreamApiUtils;
+import org.jspecify.annotations.NullUnmarked;
 
 import java.util.Properties;
 
-import static io.synadia.client.OptionsConstants.DEFAULT_CONNECTION_TIMEOUT;
 import static io.synadia.client.OptionsProperties.PFX;
 import static io.synadia.client.OptionsProperties.millisProperty;
+import static io.synadia.client.utils.JetStreamApiUtils.UNSET;
 import static io.synadia.client.utils.JsValidator.validateStreamName;
 import static io.synadia.client.utils.Validator.*;
 
@@ -15,18 +16,9 @@ import static io.synadia.client.utils.Validator.*;
  * The PublishOptions class specifies the options for publishing with JetStream enabled servers.
  * Options are created using a {@link PublishOptions.Builder Builder}.
  */
+@NullUnmarked
 public class PublishOptions {
-    /**
-     * Use this variable for the default publish timeout in milliseconds.
-     */
-    public static final long DEFAULT_TIMEOUT = DEFAULT_CONNECTION_TIMEOUT;
-
-    /**
-     * Use this variable to unset a sequence number in publish options.
-     */
-    public static final long UNSET_LAST_SEQUENCE = -1;
-
-    private final long streamTimeout;
+    private final long publishTimeout;
     private final String expectedStream;
     private final String expectedLastMsgId;
     private final long expectedLastSeq;
@@ -36,7 +28,7 @@ public class PublishOptions {
     private final MessageTtl messageTtl;
 
     private PublishOptions(Builder b) {
-        this.streamTimeout = b.streamTimeout;
+        this.publishTimeout = b.publishTimeout;
         this.expectedStream = b.expectedStream;
         this.expectedLastMsgId = b.expectedLastMsgId;
         this.expectedLastSeq = b.expectedLastSeq;
@@ -49,7 +41,7 @@ public class PublishOptions {
     @Override
     public String toString() {
         return "PublishOptions{" +
-            ", streamTimeout=" + streamTimeout +
+            ", publishTimeout=" + publishTimeout +
             ", expectedStream='" + expectedStream + '\'' +
             ", expectedLastMsgId='" + expectedLastMsgId + '\'' +
             ", expectedLastSeq=" + expectedLastSeq +
@@ -67,10 +59,10 @@ public class PublishOptions {
 
     /**
      * Gets the publish timeout in milliseconds.
-     * @return the publish timeout in milliseconds.
+     * @return the publish timeout in milliseconds or -1 if not set
      */
-    public long getStreamTimeout() {
-        return streamTimeout;
+    public long getPublishTimeout() {
+        return publishTimeout;
     }
 
     /**
@@ -145,11 +137,11 @@ public class PublishOptions {
      * prefix PROP_ in this class.
      */
     public static class Builder {
-        long streamTimeout = DEFAULT_TIMEOUT;
+        long publishTimeout = UNSET;
         String expectedStream;
         String expectedLastMsgId;
-        long expectedLastSeq = UNSET_LAST_SEQUENCE;
-        long expectedLastSubSeq = UNSET_LAST_SEQUENCE;
+        long expectedLastSeq = UNSET;
+        long expectedLastSubSeq = UNSET;
         String expectedLastSubSeqSubject;
         String msgId;
         MessageTtl messageTtl;
@@ -164,17 +156,17 @@ public class PublishOptions {
          * @param properties properties
          */
         public Builder(Properties properties) {
-            millisProperty(properties, PublishOptions.PROP_PUBLISH_TIMEOUT, this::streamTimeout);
+            millisProperty(properties, PublishOptions.PROP_PUBLISH_TIMEOUT, this::publishTimeout);
         }
 
         /**
          * Sets the timeout in milliseconds to wait for a publish acknowledgement from a JetStream
-         * enabled NATS server. Pass {@code null} to reset to the default ({@link PublishOptions#DEFAULT_TIMEOUT}).
+         * enabled NATS server. Pass {@code UNSET} ({@value JetStreamApiUtils#UNSET}) to reset to the default.
          * @param millis the publish timeout in milliseconds (must be {@code >= 0}), or {@code null} to use the default
          * @return The Builder
          */
-        public Builder streamTimeout(@Nullable Long millis) {
-            this.streamTimeout = millis == null ? DEFAULT_TIMEOUT : validateGtEqZero(millis, "Publish Timeout");
+        public Builder publishTimeout(long millis) {
+            this.publishTimeout = millis < 1 ? UNSET : millis;
             return this;
         }
 
@@ -300,15 +292,15 @@ public class PublishOptions {
          * <ul>
          *   <li>stream</li>
          *   <li>expectedStream</li>
-         *   <li>streamTimeout</li>
+         *   <li>publishTimeout</li>
          *   <li>messageTtl</li>
          * </ul>
          * @return The Builder
          */
         public Builder clearExpected() {
             expectedLastMsgId = null;
-            expectedLastSeq = UNSET_LAST_SEQUENCE;
-            expectedLastSubSeq = UNSET_LAST_SEQUENCE;
+            expectedLastSeq = UNSET;
+            expectedLastSubSeq = UNSET;
             expectedLastSubSeqSubject = null;
             msgId = null;
 
