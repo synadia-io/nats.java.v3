@@ -19,7 +19,7 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
-**INTEGRATION_PLAN_PR_1609.md — Committed, `4351b510`, pushed.** ⚠️ **The new test file is not in the commit** — `core/src/test/java/io/synadia/client/impl/ConnectionStateConsistencyTests.java` is still untracked. `4351b510` holds only the three modified files (`NatsConnection.java`, `ReconnectTests.java`, `TODO.md`), so the regression test for this fix is not on `main`.
+**INTEGRATION_PLAN_PR_1609.md — Committed, `4351b510`, pushed. One follow-up commit still owed.** `4351b510` holds only the three modified files (`NatsConnection.java`, `ReconnectTests.java`, `TODO.md`) — the new `core/src/test/java/io/synadia/client/impl/ConnectionStateConsistencyTests.java` was left untracked, so the regression test for this fix is not yet on `main`. **It is now staged, awaiting a commit.**
 
 Status update ordering in `closeSocket`, plus the two PR #1547 `updateStatus` items v3 had never picked up. Three source changes in `NatsConnection`: `updateStatus(DISCONNECTED)` moved ahead of `closeSocketImpl` so the status and the connected url are never observably out of step; `updateStatus` now picks the event from the transition it actually made instead of re-reading the field after unlocking (which loses a DISCONNECTED event when a reconnect follows closely); `status` is now `volatile`. New `ConnectionStateConsistencyTests` fails 10/10 before and passes after.
 
