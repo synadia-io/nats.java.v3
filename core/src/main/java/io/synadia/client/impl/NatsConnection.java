@@ -461,11 +461,18 @@ public class NatsConnection implements AutoCloseable {
         while ((cur = serverPool.nextServer()) != null) {
             if (first == null) {
                 first = cur;
-                invokeReconnectDelayHandler(++round);   // round becomes 1
+                ++round;   // round becomes 1
+                // Consume the lame duck signal here whatever the behavior does with it, otherwise a
+                // signal received under a behavior that ignores it survives into a later campaign.
+                boolean lameDuck = lameDuckTriggered;
+                lameDuckTriggered = false;
+                if (delayBeforeFirstRound(lameDuck)) {
+                    invokeReconnectDelayHandler(round, lameDuck);
+                }
             }
             else if (first.equals(cur)) {
                 // went around the pool an entire time
-                invokeReconnectDelayHandler(++round);
+                invokeReconnectDelayHandler(++round, false);
             }
 
             // let server list provider resolve hostnames
@@ -2553,12 +2560,24 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void invokeReconnectDelayHandler(long round) {
-        boolean ldt = lameDuckTriggered;
-        lameDuckTriggered = false;
+    /**
+     * Whether the reconnect delay handler is invoked before the first round of a reconnect campaign.
+     * Rounds after the first always invoke it. This is the only place {@link ReconnectDelayBehavior}
+     * is read, so the setting applies to every handler, including a custom one.
+     * @param lameDuck whether the campaign was triggered by a server lame duck signal
+     * @return true to invoke the handler before round 1
+     */
+    private boolean delayBeforeFirstRound(boolean lameDuck) {
+        return switch (options.reconnectDelayBehavior()) {
+            case BeforeAllRounds -> true;
+            case LameDuckAware -> lameDuck;
+            default -> false;   // BeforeSubsequentRounds
+        };
+    }
 
+    protected void invokeReconnectDelayHandler(long round, boolean lameDuckTriggered) {
         long currentWaitMillis = options.getReconnectDelayHandler()
-            .getWaitTimeMillis(round, options, serverPool.hasSecureServer(), ldt);
+            .getWaitTimeMillis(round, options, serverPool.hasSecureServer(), lameDuckTriggered);
 
         this.reconnectWaiter = new CompletableFuture<>();
 

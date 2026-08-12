@@ -30,13 +30,13 @@ The property loader accepts each key with or without the `io.nats.client.` prefi
 | `reconnectJitter` | `100` (ms) | Configure reconnectJitter. |
 | `reconnectJitterTls` | `1000` (ms) | Configure reconnectJitterTls. |
 | `reconnectDelayHandlerClass` | `(none)` | Configure a reconnectDelayHandler (class name). |
-| `reconnectDelayBehavior` | `LameDuckAware` | Configure the reconnectDelayBehavior (case-insensitive enum name). |
+| `reconnectDelayBehavior` | `BeforeSubsequentRounds` | Whether the reconnect delay applies before the first round (case-insensitive `BeforeSubsequentRounds`, `BeforeAllRounds`, or `LameDuckAware`). |
 | `pedantic` | `false` | Configure pedantic. |
 | `verbose` | `false` | Configure verbose. |
 | `noEcho` | `false` | Configure noEcho. |
 | `connectionName` | `(none)` | Configure connectionName. |
 | `noRandomize` | `false` | Configure noRandomize. |
-| `hostnameResolveMode` | `ResolveToAll` | Configure the hostname resolution mode (replaces the legacy noResolveHostnames and fast.fallback flags). |
+| `hostnameResolveMode` | `ResolveToAll` | Configure the hostname resolution mode (case-insensitive `ResolveToAll`, `ResolveToFirst`, `ResolveToAllIncludeIPV6`, `ResolveToFirstIncludeIPV6`, `Unresolved`, or `HappyEyeballs`). Replaces the legacy noResolveHostnames and fast.fallback flags. |
 | `subjectValidationType` | `Lenient` | Set the subject validation type (case-insensitive `None`, `Lenient`, or `Strict`). |
 | `clientSideLimitChecks` | `true` | Configure clientSideLimitChecks. |
 | `url` | `nats://localhost:4222` | Configure server. The value can be a comma-separated list of server URLs. |

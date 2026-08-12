@@ -115,7 +115,8 @@ public interface OptionsProperties {
     String PROP_RECONNECT_DELAY_HANDLER_CLASS = PFX + "reconnectDelayHandlerClass";
     /**
      * Property used to set the {@link ReconnectDelayBehavior}. {@value} The value is the case-insensitive
-     * name of a {@link ReconnectDelayBehavior} constant (e.g. {@code BeforeSubsequentRounds}, {@code BeforeAllRounds}).
+     * name of a {@link ReconnectDelayBehavior} constant ({@code BeforeSubsequentRounds}, {@code BeforeAllRounds}
+     * or {@code LameDuckAware}).
      * Unrecognized or missing values fall back to {@link ReconnectDelayBehavior#BeforeSubsequentRounds}.
      */
     String PROP_RECONNECT_DELAY_BEHAVIOR = PFX + "reconnectDelayBehavior";
@@ -141,7 +142,11 @@ public interface OptionsProperties {
     String PROP_NO_RANDOMIZE = PFX + "noRandomize";
     /**
      * Property used to configure hostname resolve mode. {@value}
-     * The value is the case-insensitive name of a {@link HostnameResolveMode} constant.
+     * The value is the case-insensitive name of a {@link HostnameResolveMode} constant
+     * ({@code ResolveToAll}, {@code ResolveToFirst}, {@code ResolveToAllIncludeIPV6},
+     * {@code ResolveToFirstIncludeIPV6}, {@code Unresolved} or {@code HappyEyeballs}).
+     * Unlike the other enum properties, an unrecognized value is ignored rather than falling back:
+     * the current value stays, which is {@link HostnameResolveMode#ResolveToAll} unless already set.
      */
     String PROP_HOSTNAME_RESOLVE_MODE = PFX + "hostnameResolveMode";
     /**

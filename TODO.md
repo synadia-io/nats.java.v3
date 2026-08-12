@@ -42,6 +42,7 @@ The single source of truth for the things currently in progress — so any sessi
 
 Newest first. Detail lives in each plan/audit doc.
 
+* **INTEGRATION_PLAN_PR_1578.md** — closed out 2026-08-12, doc archived to `z-claude-done/`. It had been fully implemented and committed for a while; only the bookkeeping was outstanding. Absorbed and extended by `z-claude-done/PLAN_RECONNECT_DELAY_HANDLER_REDESIGN.md` (handler is now `getWaitTimeMillis(round, options, secure, lameDuckTriggered)`, never-null `DefaultReconnectDelayHandler.INSTANCE`, `LameDuckAware` default, no enum branch in the reconnect loop). That redesign's leftover drift is tracked in `PLAN_RECONNECT_DELAY_FOLLOWUP.md`.
 * **INTEGRATION_PLAN_PR_1609.md** — `4351b510`, `d6914f41`. Upstream #1608/#1609 ported: `updateStatus(DISCONNECTED)` moved ahead of `closeSocketImpl`, plus the two PR #1547 `updateStatus` items (event chosen from the transition made, not a re-read after unlocking; `status` now `volatile`). Step 4 (`currentServer` not volatile) deliberately not taken, still open.
 * **`AuthTests` special-character test made cross-platform** — `c6e0cdd8`. Dropped a Windows-only skip that was masking a harness quoting bug; renamed to `testUserPassWithSpecialCharacters`.
 * **`ListenerIdTests`** — `900bed22`.
@@ -57,9 +58,6 @@ Newest first. Detail lives in each plan/audit doc.
 
 
 ## Plans / Audits
-* INTEGRATION_PLAN_PR_1578.md 
-  * Reconnect Delay Behavior and options cleanup
-  * [#1578](https://github.com/nats-io/nats.java/pull/1578) 
 * PLAN_REQUEST_CLEANUP_INTERVAL_SPLIT.md
 * UNDERSCORE_INTERNAL_NAMING_AUDIT.md
 * INTERFACE_DEFAULT_METHODS_AUDIT.md
@@ -90,6 +88,14 @@ Newest first. Detail lives in each plan/audit doc.
   * subsumes D4 (JS exception `.impl`→`.api`) and `OSGi_JPMS_TODO.md` O3; gated on [[project_connection_removal]]
 * RESOURCEUTILS_V3_PLAN.md
   * ResourceUtils missing-resource diagnostics (V3) cleanup
+* PLAN_RECONNECT_DELAY_FOLLOWUP.md
+  * **PR #1578 is fully implemented and committed** — the plan doc just never got closed out; not superseded by `PLAN_FORCE_RECONNECT_READER_STOP.md` (different subject), but absorbed and extended by `z-claude-done/PLAN_RECONNECT_DELAY_HANDLER_REDESIGN.md`
+  * what's left is that redesign's drift: 3 javadoc blocks + `MIGRATION_GUIDE.md` still name the old default/method, the `lameDuckTriggered` consume contract doesn't match the code, and the connection-side LDM wiring tests never landed
+  * **Item 3 DONE (3a-3f)** — V2's call-site gating restored: `reconnectDelayBehavior` governs *whether* the handler is called for round 1, custom handlers included. Connection decides whether to wait, handler decides how long, and `DefaultReconnectDelayHandler` is now a pure "how long". Round numbering stays 1-based — **it's a round, not an index**. Four new `ReconnectTests` pin the gate, verified failing in both directions (gate forced true → the skip tests fail; forced false → the BeforeAllRounds test fails)
+  * **Item 4 tried then reverted — the default is `BeforeSubsequentRounds`**, matching v2. Making `BeforeAllRounds` the default broke 3 ordinary reconnect tests on their timing budgets (attribution confirmed by flipping the default back and forth); that is what application code with a tight reconnect budget would have hit silently, so herd protection stays opt-in. Kept from the attempt: a much fuller `ReconnectDelayBehavior` javadoc (thundering-herd rationale, jitter is what does the spreading) and stronger `OptionsTests` probes. Full `core` green, 554 tests, javadoc clean
+  * 4-state `ReconnectDelayBehavior` (adding `…LameDuckAware` variants) considered and **rejected** — `BeforeAllRounds` already covers lame duck by construction, so the fourth cell would ship a constant that does nothing. Three states stand; the enum class javadoc now says so explicitly. That javadoc also moved the thundering-herd rationale up to class level, where a reader comparing the constants can see it
+  * Item 1a done — enum-valued properties now list their legal values in `README.md` and the `OptionsProperties` javadoc. Found a stale README default (`reconnectDelayBehavior` said `LameDuckAware`) and that `hostnameResolveMode` documented none of its six values. Decided against making `get(String)` lenient about punctuation/spacing: docs were the gap, and the real hazard is the silent fallback on an unrecognized value — still an open maintainer decision
+  * Items 1-2 done (documentation corrections; 1578 doc archived + overview flipped). Item 5 (LDM wiring tests) follows item 3. The zero-wait-future tweak was dropped — v3 already matches V2 there
 
 ## Plans / Audits TBD
 

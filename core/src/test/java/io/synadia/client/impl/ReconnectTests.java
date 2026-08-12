@@ -970,4 +970,81 @@ public class ReconnectTests {
             }
         }
     }
+
+    // ----------------------------------------------------------------------------------------------------
+    // ReconnectDelayBehavior gating. The behavior decides WHETHER the handler is invoked before
+    // round 1; rounds after the first always invoke it. The gate applies to a custom handler too,
+    // which is the part that is invisible when only the default handler is exercised.
+    // ----------------------------------------------------------------------------------------------------
+
+    @Test
+    public void testDelayBehaviorSkipsFirstRoundWhenBeforeSubsequentRounds() throws Exception {
+        List<Long> rounds = roundsSeenAcrossReconnect(ReconnectDelayBehavior.BeforeSubsequentRounds, null);
+        assertFalse(rounds.contains(1L), "round 1 must not invoke the handler: " + rounds);
+    }
+
+    @Test
+    public void testDelayBehaviorDelaysFirstRoundWhenBeforeAllRounds() throws Exception {
+        List<Long> rounds = roundsSeenAcrossReconnect(ReconnectDelayBehavior.BeforeAllRounds, null);
+        assertTrue(rounds.contains(1L), "round 1 must invoke the handler: " + rounds);
+    }
+
+    @Test
+    public void testDelayBehaviorSkipsFirstRoundWhenLameDuckAwareWithoutLameDuck() throws Exception {
+        // No lame duck signal, so LameDuckAware must behave as BeforeSubsequentRounds.
+        List<Long> rounds = roundsSeenAcrossReconnect(ReconnectDelayBehavior.LameDuckAware, null);
+        assertFalse(rounds.contains(1L), "round 1 must not invoke the handler without a lame duck signal: " + rounds);
+    }
+
+    @Test
+    public void testDelayHandlerSeesNoLameDuckOnOrdinaryReconnect() throws Exception {
+        // Every invocation of an ordinary (non lame duck) reconnect must report lameDuckTriggered false,
+        // on the first round and on the wrap-around rounds alike.
+        List<Boolean> lameDucks = Collections.synchronizedList(new ArrayList<>());
+        List<Long> rounds = roundsSeenAcrossReconnect(ReconnectDelayBehavior.BeforeAllRounds, lameDucks);
+        assertFalse(rounds.isEmpty(), "the handler must have been invoked at least once");
+        assertFalse(lameDucks.contains(true), "no invocation may report a lame duck: " + lameDucks);
+    }
+
+    /**
+     * Connect, drop the server, bring it back, and return the round numbers the reconnect delay handler
+     * was invoked with. The handler returns zero so the reconnect is not actually slowed down; the point
+     * is which rounds reach it at all. When {@code lameDucksOut} is supplied it also collects the
+     * lameDuckTriggered argument of each invocation.
+     */
+    private List<Long> roundsSeenAcrossReconnect(ReconnectDelayBehavior behavior,
+                                                 List<Boolean> lameDucksOut) throws Exception {
+        int port = NatsTestServer.nextPort();
+        List<Long> rounds = Collections.synchronizedList(new ArrayList<>());
+        Listener listener = new Listener();
+        NatsConnection nc;
+
+        try (NatsTestServer ts = new NatsTestServer(port)) {
+            Options options = optionsBuilder(ts)
+                .maxReconnects(-1)
+                .reconnectWait(50L)
+                .reconnectJitter(0L)
+                .reconnectDelayBehavior(behavior)
+                .reconnectDelayHandler((round, o, secure, lameDuckTriggered) -> {
+                    rounds.add(round);
+                    if (lameDucksOut != null) {
+                        lameDucksOut.add(lameDuckTriggered);
+                    }
+                    return 0L;
+                })
+                .connectionListener(listener)
+                .build();
+
+            nc = managedConnect(options);
+            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+        }
+
+        listener.validate(); // the server is down, the reconnect campaign is running
+
+        try (NatsTestServer ignored = new NatsTestServer(port)) {
+            confirmConnected(nc); // back up, campaign over
+        }
+
+        return rounds;
+    }
 }

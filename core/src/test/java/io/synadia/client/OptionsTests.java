@@ -1410,16 +1410,16 @@ public class OptionsTests extends TestBase {
     public void testReconnectDelayBehavior() {
         // Default
         Options o = new OptionsBuilder().build();
-        assertEquals(ReconnectDelayBehavior.LameDuckAware, o.reconnectDelayBehavior());
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, o.reconnectDelayBehavior());
 
-        // Explicit setter
-        o = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.BeforeAllRounds).build();
-        assertEquals(ReconnectDelayBehavior.BeforeAllRounds, o.reconnectDelayBehavior());
+        // Explicit setter. Probe with a non-default value so the assertion cannot pass on the default.
+        o = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.LameDuckAware).build();
+        assertEquals(ReconnectDelayBehavior.LameDuckAware, o.reconnectDelayBehavior());
 
         // null resets to default
-        o = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.BeforeAllRounds)
+        o = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.LameDuckAware)
                                 .reconnectDelayBehavior(null).build();
-        assertEquals(ReconnectDelayBehavior.LameDuckAware, o.reconnectDelayBehavior());
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, o.reconnectDelayBehavior());
 
         // Property — case-insensitive
         Properties props = new Properties();
@@ -1441,18 +1441,20 @@ public class OptionsTests extends TestBase {
         props.clear();
         props.setProperty(PROP_RECONNECT_DELAY_BEHAVIOR, "bogus");
         o = new OptionsBuilder(props).build();
-        assertEquals(ReconnectDelayBehavior.LameDuckAware, o.reconnectDelayBehavior());
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, o.reconnectDelayBehavior());
 
-        // Copy-constructor preserves the value
-        Options primed = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.BeforeAllRounds).build();
+        // Copy-constructor preserves the value. Prime with a non-default so it cannot pass on the default.
+        Options primed = new OptionsBuilder().reconnectDelayBehavior(ReconnectDelayBehavior.LameDuckAware).build();
         Options copy = new OptionsBuilder(primed).build();
-        assertEquals(ReconnectDelayBehavior.BeforeAllRounds, copy.reconnectDelayBehavior());
+        assertEquals(ReconnectDelayBehavior.LameDuckAware, copy.reconnectDelayBehavior());
 
         // Static factory direct coverage
-        assertEquals(ReconnectDelayBehavior.LameDuckAware, ReconnectDelayBehavior.get(null));
-        assertEquals(ReconnectDelayBehavior.LameDuckAware, ReconnectDelayBehavior.get(""));
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, ReconnectDelayBehavior.get(null));
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, ReconnectDelayBehavior.get(""));
+        assertEquals(ReconnectDelayBehavior.BeforeSubsequentRounds, ReconnectDelayBehavior.get("bogus"));
+        // A real match must resolve to itself, not to the fallback
         assertEquals(ReconnectDelayBehavior.BeforeAllRounds, ReconnectDelayBehavior.get("beforeallrounds"));
-        assertEquals(ReconnectDelayBehavior.LameDuckAware, ReconnectDelayBehavior.get("bogus"));
+        assertEquals(ReconnectDelayBehavior.LameDuckAware, ReconnectDelayBehavior.get("lameduckaware"));
     }
 
     @Test

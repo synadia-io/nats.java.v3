@@ -24,70 +24,34 @@ public class DefaultReconnectDelayHandlerTests {
     }
 
     private static void assertInWaitRange(long actual, long jitterMs) {
-        assertTrue(actual >= WAIT_MS, "expected >= " + WAIT_MS + " but was " + actual);
-        assertTrue(actual < WAIT_MS + jitterMs, "expected < " + (WAIT_MS + jitterMs) + " but was " + actual);
+        assertInWaitRange(actual, jitterMs, "");
+    }
+
+    private static void assertInWaitRange(long actual, long jitterMs, String desc) {
+        assertTrue(actual >= WAIT_MS, desc + " expected >= " + WAIT_MS + " but was " + actual);
+        assertTrue(actual < WAIT_MS + jitterMs, desc + " expected < " + (WAIT_MS + jitterMs) + " but was " + actual);
     }
 
     private final ReconnectDelayHandler h = DefaultReconnectDelayHandler.INSTANCE;
 
-    // ---------- BeforeSubsequentRounds (historical v2 semantics) ----------
+    // ---------- The handler answers "how long", never "whether" ----------
+    // Whether a round gets a delay at all is the connection's decision, driven by
+    // ReconnectDelayBehavior - see ReconnectTests. The handler returns the standard wait for
+    // every round it is asked about, so behavior, round number and the lame duck flag must not
+    // change what comes back. Only the secure flag does, by selecting which jitter applies.
 
     @Test
-    public void beforeSubsequentRounds_round1_noLdm_noWait() {
-        Options o = optsFor(ReconnectDelayBehavior.BeforeSubsequentRounds);
-        assertEquals(0L, h.getWaitTimeMillis(1L, o, false, false));
-    }
-
-    @Test
-    public void beforeSubsequentRounds_round1_withLdm_stillNoWait() {
-        Options o = optsFor(ReconnectDelayBehavior.BeforeSubsequentRounds);
-        assertEquals(0L, h.getWaitTimeMillis(1L, o, false, true));
-    }
-
-    @Test
-    public void beforeSubsequentRounds_round2_waits() {
-        Options o = optsFor(ReconnectDelayBehavior.BeforeSubsequentRounds);
-        assertInWaitRange(h.getWaitTimeMillis(2L, o, false, false), JITTER_MS);
-    }
-
-    @Test
-    public void beforeSubsequentRounds_round2_securePicksTlsJitter() {
-        Options o = optsFor(ReconnectDelayBehavior.BeforeSubsequentRounds);
-        assertInWaitRange(h.getWaitTimeMillis(2L, o, true, false), JITTER_TLS_MS);
-    }
-
-    // ---------- BeforeAllRounds ----------
-
-    @Test
-    public void beforeAllRounds_round1_noLdm_waits() {
-        Options o = optsFor(ReconnectDelayBehavior.BeforeAllRounds);
-        assertInWaitRange(h.getWaitTimeMillis(1L, o, false, false), JITTER_MS);
-    }
-
-    @Test
-    public void beforeAllRounds_round1_withLdm_waits() {
-        Options o = optsFor(ReconnectDelayBehavior.BeforeAllRounds);
-        assertInWaitRange(h.getWaitTimeMillis(1L, o, false, true), JITTER_MS);
-    }
-
-    // ---------- LameDuckAware (the new default) ----------
-
-    @Test
-    public void lameDuckAware_round1_noLdm_noWait() {
-        Options o = optsFor(ReconnectDelayBehavior.LameDuckAware);
-        assertEquals(0L, h.getWaitTimeMillis(1L, o, false, false));
-    }
-
-    @Test
-    public void lameDuckAware_round1_withLdm_waits() {
-        Options o = optsFor(ReconnectDelayBehavior.LameDuckAware);
-        assertInWaitRange(h.getWaitTimeMillis(1L, o, false, true), JITTER_MS);
-    }
-
-    @Test
-    public void lameDuckAware_round2_waits() {
-        Options o = optsFor(ReconnectDelayBehavior.LameDuckAware);
-        assertInWaitRange(h.getWaitTimeMillis(2L, o, false, false), JITTER_MS);
+    public void sameWaitForEveryBehaviorRoundAndLameDuckFlag() {
+        for (ReconnectDelayBehavior behavior : ReconnectDelayBehavior.values()) {
+            Options o = optsFor(behavior);
+            for (long round : new long[]{1L, 2L, 17L}) {
+                for (boolean lameDuck : new boolean[]{false, true}) {
+                    String desc = behavior + " round=" + round + " lameDuck=" + lameDuck;
+                    assertInWaitRange(h.getWaitTimeMillis(round, o, false, lameDuck), JITTER_MS, desc);
+                    assertInWaitRange(h.getWaitTimeMillis(round, o, true, lameDuck), JITTER_TLS_MS, desc + " secure");
+                }
+            }
+        }
     }
 
     // ---------- computeWaitMillis directly (also covers the "fix" from PLAN_DURATION_TO_MILLIS) ----------

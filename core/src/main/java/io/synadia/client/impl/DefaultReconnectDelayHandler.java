@@ -6,8 +6,12 @@ import io.synadia.client.ReconnectDelayHandler;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Standard {@link ReconnectDelayHandler} implementation. Stateless — switches purely
- * on {@link Options#reconnectDelayBehavior()} and the parameters the connection passes in.
+ * Standard {@link ReconnectDelayHandler} implementation. Stateless, and a pure function of the
+ * options — it returns the standard wait for every round it is asked about.
+ *
+ * <p>It does not consult {@link Options#reconnectDelayBehavior()}. The connection reads that to
+ * decide <i>whether</i> to invoke a handler before the first round; a handler is only ever asked
+ * <i>how long</i> to wait.
  *
  * <p>Use {@link #INSTANCE} when you want the standard behaviour; it is what
  * {@link io.synadia.client.OptionsBuilder} falls back to when no custom handler is supplied.
@@ -22,16 +26,7 @@ public final class DefaultReconnectDelayHandler implements ReconnectDelayHandler
 
     @Override
     public long getWaitTimeMillis(long round, Options options, boolean secure, boolean lameDuckTriggered) {
-        boolean firstRound = round <= 1;
-
-        return switch (options.reconnectDelayBehavior()) {
-            case BeforeAllRounds ->
-                computeWaitMillis(options, secure);
-            case LameDuckAware ->
-                (firstRound && !lameDuckTriggered)  ? 0L : computeWaitMillis(options, secure);
-            default ->
-                firstRound ? 0L : computeWaitMillis(options, secure);
-        };
+        return computeWaitMillis(options, secure);
     }
 
     /**

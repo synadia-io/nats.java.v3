@@ -99,7 +99,7 @@ public class OptionsBuilder {
 
     AuthHandler authHandler = null;
     ReconnectDelayHandler reconnectDelayHandler = null;
-    ReconnectDelayBehavior reconnectDelayBehavior = ReconnectDelayBehavior.LameDuckAware;
+    ReconnectDelayBehavior reconnectDelayBehavior = ReconnectDelayBehavior.BeforeSubsequentRounds;
 
     List<ErrorListener> errorListeners = new ArrayList<>();
     List<ConnectionListener> connectionListeners = new ArrayList<>();
@@ -968,17 +968,17 @@ public class OptionsBuilder {
     }
 
     /**
-     * Set the {@link ReconnectDelayBehavior} that controls when the
-     * {@link ReconnectDelayHandler} is invoked during reconnect attempts. Defaults to
-     * {@link ReconnectDelayBehavior#BeforeSubsequentRounds}. A null value resets to
-     * {@link ReconnectDelayBehavior#BeforeSubsequentRounds}.
+     * Set the {@link ReconnectDelayBehavior} that controls whether the {@link ReconnectDelayHandler} is
+     * invoked before the first round of a reconnect. Rounds after the first always invoke it. This applies
+     * to every handler, including a custom one. Defaults to {@link ReconnectDelayBehavior#BeforeSubsequentRounds}.
+     * A null value resets to {@link ReconnectDelayBehavior#BeforeSubsequentRounds}.
      *
      * @param reconnectDelayBehavior the behavior
      * @return the Builder for chaining
      */
     public OptionsBuilder reconnectDelayBehavior(ReconnectDelayBehavior reconnectDelayBehavior) {
         this.reconnectDelayBehavior = reconnectDelayBehavior == null
-            ? ReconnectDelayBehavior.LameDuckAware
+            ? ReconnectDelayBehavior.BeforeSubsequentRounds
             : reconnectDelayBehavior;
         return this;
     }
