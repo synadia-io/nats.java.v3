@@ -30,6 +30,10 @@ public class KeyValue extends AbstractBucketFeature {
     private final String readPrefix;
     private final String writePrefix;
 
+    KeyValue(String bucketName, NatsConnection connection) throws JetStreamException, InterruptedException {
+        this(bucketName, connection, null);
+    }
+
     KeyValue(String bucketName, NatsConnection connection, KeyValueOptions kvo) throws JetStreamException, InterruptedException {
         super(bucketName, connection, kvo);
         StreamInfo si = this.jsm.getStreamInfo(streamName);

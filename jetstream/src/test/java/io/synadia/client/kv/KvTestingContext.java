@@ -2,41 +2,26 @@ package io.synadia.client.kv;
 
 import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.StorageType;
-import io.synadia.client.api.StreamInfo;
 import io.synadia.client.impl.JetStream;
 import io.synadia.client.impl.JetStreamManagement;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.utils.TestBase;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class KvTestingContext implements AutoCloseable {
+    public final NatsConnection nc;
     public final JetStreamManagement jsm;
     public final JetStream js;
     public final KeyValueManagement kvm;
 
-    private final String subjectBase;
-    private final Map<Object, String> subjects;
-    private final String consumerNameBase;
-    private final Map<Object, String> consumerNames;
-    public String stream;
-    public StreamInfo si;
-
     private final Set<String> kvBuckets;
 
     public KvTestingContext(NatsConnection nc) throws JetStreamException {
+        this.nc = nc;
         jsm = new JetStreamManagement(nc);
         js = jsm.jetStream();
         kvm = new KeyValueManagement(nc);
-
-        stream = TestBase.random();
-        subjectBase = TestBase.random();
-        subjects = new HashMap<>();
-        consumerNameBase = TestBase.random();
-        consumerNames = new HashMap<>();
 
         kvBuckets = new HashSet<>();
     }
