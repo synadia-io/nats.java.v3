@@ -19,7 +19,19 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
-**SLOT OPEN — no implementation in progress.** PR #1609 is done and pushed (`4351b510` + `d6914f41`).
+**Reconnect Delay Behavior — Committed, build passed.** `8dee6cb5`, pushed to `main`; GitHub Actions "Build Main" green (run 31641993453). Full detail in `PLAN_RECONNECT_DELAY_FOLLOWUP.md`.
+
+Three things landed together:
+
+1. **Call-site gating restored (item 3).** `reconnectDelayBehavior` again governs *whether* the reconnect delay handler is invoked before round 1, and it governs it for **every** handler, custom ones included — the v3 redesign had moved that decision inside `DefaultReconnectDelayHandler`, which silently made the setting inert for anyone supplying their own handler. The connection now decides whether to wait (`NatsConnection.delayBeforeFirstRound`, the only place the enum is read and the only place the lame duck flag is consumed); the handler only says how long. `DefaultReconnectDelayHandler.getWaitTimeMillis` is a pure "how long" — one line.
+2. **Default changed `LameDuckAware` → `BeforeSubsequentRounds`,** matching v2. `BeforeAllRounds` was tried as the default and reverted the same day: it broke three ordinary reconnect tests purely on their timing budgets, which is what application code with a tight reconnect budget would have hit silently. Herd protection stays opt-in.
+3. **Docs.** `ReconnectDelayBehavior`'s class javadoc now carries the thundering-herd rationale (and that jitter, not the wait, is what spreads the storm); enum-valued properties list their legal values in `README.md` and `OptionsProperties`; a stale `README` default was fixed.
+
+Round numbers stay 1-based — it's a round, not an index. A 4-state enum (adding `…LameDuckAware` variants) was considered and rejected: `BeforeAllRounds` already covers lame duck, so the fourth cell would ship a constant that does nothing.
+
+**Item 5 done too, uncommitted (test-only).** `ReconnectTests.testLameDuckSignalDelaysFirstRoundThenIsConsumed` closes the last gap: a `NatsServerProtocolMock` announces `ldm:true` mid-connection then exits, so the client sees announcement-then-drop in the real order. Campaign 1 asserts round 1 invoked the handler with `lameDuckTriggered == true`; campaign 2 (real server bounced, no signal) asserts round 1 is skipped again, proving the flag is consumed and not sticky. Verified failing both ways — remove the `= true` and campaign 1 fails, remove the `= false` consume and campaign 2 fails. `git diff --quiet core/src/main` confirms no product code changed. **`PLAN_RECONNECT_DELAY_FOLLOWUP.md` is now complete, nothing open.**
+
+---
 
 `testConnectPendingCountCoverage` resolved 2026-08-11, both repos — details in the "Third pass" and "Resolution" sections of `FLAKY_TESTS_ANALYSIS.md`. The ported V2 fix closes the reconnect-buffer overflow but not the fast-box direction, and shrinking the flood made that worse: publishing takes 12-27 ms against a `sleep(1)` sampler, so 1 to 18 samples total, measured **4 failures in 100 runs**. It also tears its own pair — the two maxima are accumulated by separate reads, so `maxBytes` can come from a drained instant while `maxCount` came from a full one.
 
@@ -42,6 +54,7 @@ The single source of truth for the things currently in progress — so any sessi
 
 Newest first. Detail lives in each plan/audit doc.
 
+* **PLAN_RECONNECT_DELAY_FOLLOWUP.md items 1-4** — `8dee6cb5`, build green. Call-site gating restored so `reconnectDelayBehavior` applies to custom handlers too; default back to `BeforeSubsequentRounds`; enum/property docs filled in. Item 5 (LDM wiring tests) still open — see `## Current Implementation`.
 * **INTEGRATION_PLAN_PR_1578.md** — closed out 2026-08-12, doc archived to `z-claude-done/`. It had been fully implemented and committed for a while; only the bookkeeping was outstanding. Absorbed and extended by `z-claude-done/PLAN_RECONNECT_DELAY_HANDLER_REDESIGN.md` (handler is now `getWaitTimeMillis(round, options, secure, lameDuckTriggered)`, never-null `DefaultReconnectDelayHandler.INSTANCE`, `LameDuckAware` default, no enum branch in the reconnect loop). That redesign's leftover drift is tracked in `PLAN_RECONNECT_DELAY_FOLLOWUP.md`.
 * **INTEGRATION_PLAN_PR_1609.md** — `4351b510`, `d6914f41`. Upstream #1608/#1609 ported: `updateStatus(DISCONNECTED)` moved ahead of `closeSocketImpl`, plus the two PR #1547 `updateStatus` items (event chosen from the transition made, not a re-read after unlocking; `status` now `volatile`). Step 4 (`currentServer` not volatile) deliberately not taken, still open.
 * **`AuthTests` special-character test made cross-platform** — `c6e0cdd8`. Dropped a Windows-only skip that was masking a harness quoting bug; renamed to `testUserPassWithSpecialCharacters`.

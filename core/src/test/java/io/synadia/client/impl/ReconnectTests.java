@@ -1006,6 +1006,74 @@ public class ReconnectTests {
         assertFalse(lameDucks.contains(true), "no invocation may report a lame duck: " + lameDucks);
     }
 
+    @Test
+    public void testLameDuckSignalDelaysFirstRoundThenIsConsumed() throws Exception {
+        List<Long> rounds = Collections.synchronizedList(new ArrayList<>());
+        List<Boolean> lameDucks = Collections.synchronizedList(new ArrayList<>());
+        CompletableFuture<Boolean> clientReady = new CompletableFuture<>();
+        Listener listener = new Listener();
+
+        int mockPort = NatsTestServer.nextPort();
+        int realPort = NatsTestServer.nextPort();
+
+        // Announce lame duck mid-connection and then go away, which is the shape of a real drain.
+        // Returning from the customizer exits the mock, so the client sees the drop right after the signal.
+        NatsServerProtocolMock.Customizer ldmCustomizer = (ts, r, w) -> {
+            try {
+                clientReady.get(5, TimeUnit.SECONDS);
+            }
+            catch (Exception e) {
+                return; // the test will fail on the assertions below
+            }
+            w.write("INFO {\"server_id\":\"draining\",\"ldm\":true}\r\n");
+            w.flush();
+        };
+
+        NatsConnection nc;
+
+        // Campaign 1 - triggered by the lame duck signal, so LameDuckAware must delay before round 1.
+        try (NatsTestServer real = new NatsTestServer(realPort);
+             NatsServerProtocolMock mock = new NatsServerProtocolMock(ldmCustomizer, mockPort, true)) {
+
+            Options options = optionsBuilder(mock, real)
+                .noRandomize()
+                .maxReconnects(-1)
+                .reconnectWait(50L)
+                .reconnectJitter(0L)
+                .reconnectDelayBehavior(ReconnectDelayBehavior.LameDuckAware)
+                .reconnectDelayHandler((round, o, secure, lameDuckTriggered) -> {
+                    rounds.add(round);
+                    lameDucks.add(lameDuckTriggered);
+                    return 0L;
+                })
+                .connectionListener(listener)
+                .build();
+
+            nc = managedConnect(options);
+            listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+            clientReady.complete(Boolean.TRUE); // release the customizer: signal, then drop
+            listener.validate();                // reconnected, onto the real server
+
+            assertFalse(rounds.isEmpty(), "the handler must have been invoked");
+            assertEquals(1L, rounds.get(0), "the lame duck signal must make round 1 invoke the handler: " + rounds);
+            assertTrue(lameDucks.get(0), "round 1 must see lameDuckTriggered true: " + lameDucks);
+        }
+
+        // Campaign 2 - the real server just went down with no lame duck signal. The flag was consumed by
+        // campaign 1, so LameDuckAware must be back to skipping round 1. A sticky flag fails here.
+        rounds.clear();
+        lameDucks.clear();
+        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+
+        try (NatsTestServer ignored = new NatsTestServer(realPort)) {
+            listener.validate();
+            confirmConnected(nc);
+        }
+
+        assertFalse(rounds.contains(1L), "a consumed lame duck signal must not survive into a later campaign: " + rounds);
+        assertFalse(lameDucks.contains(true), "no invocation may report a lame duck: " + lameDucks);
+    }
+
     /**
      * Connect, drop the server, bring it back, and return the round numbers the reconnect delay handler
      * was invoked with. The handler returns zero so the reconnect is not actually slowed down; the point
