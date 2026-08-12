@@ -19,11 +19,12 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
-**INTEGRATION_PLAN_PR_1609.md — Committed, `4351b510`, pushed. One follow-up commit still owed.** `4351b510` holds only the three modified files (`NatsConnection.java`, `ReconnectTests.java`, `TODO.md`) — the new `core/src/test/java/io/synadia/client/impl/ConnectionStateConsistencyTests.java` was left untracked, so the regression test for this fix is not yet on `main`. **It is now staged, awaiting a commit.**
+**SLOT OPEN — no implementation in progress.** PR #1609 is done and pushed (`4351b510` + `d6914f41`).
 
-Status update ordering in `closeSocket`, plus the two PR #1547 `updateStatus` items v3 had never picked up. Three source changes in `NatsConnection`: `updateStatus(DISCONNECTED)` moved ahead of `closeSocketImpl` so the status and the connected url are never observably out of step; `updateStatus` now picks the event from the transition it actually made instead of re-reading the field after unlocking (which loses a DISCONNECTED event when a reconnect follows closely); `status` is now `volatile`. New `ConnectionStateConsistencyTests` fails 10/10 before and passes after.
+`testConnectPendingCountCoverage` resolved 2026-08-11, both repos — details in the "Third pass" and "Resolution" sections of `FLAKY_TESTS_ANALYSIS.md`. The ported V2 fix closes the reconnect-buffer overflow but not the fast-box direction, and shrinking the flood made that worse: publishing takes 12-27 ms against a `sleep(1)` sampler, so 1 to 18 samples total, measured **4 failures in 100 runs**. It also tears its own pair — the two maxima are accumulated by separate reads, so `maxBytes` can come from a drained instant while `maxCount` came from a full one.
 
-One existing test needed a fix: `ReconnectTests.testSocketDataPortTimeout` read the socket-write-timeout count immediately after the DISCONNECTED event, which only worked because the status update used to lag the teardown by 1-2 seconds — it now waits for the notification via `Listener.queueSocketWriteTimeout`. Baseline was taken on a detached worktree at `e8b6775a`, not by touching the working tree. Full suite green: 934 tests, 0 failures (core 542, jetstream 377, service 15).
+* **v3** — deleted; `ConnectTests.java` is byte-identical to HEAD again. `NatsConnectionImplTests.testOutgoingPendingCountCoverage` already covered both getters deterministically.
+* **V2 (`nats.java`, uncommitted in that working tree)** — fixed the same way rather than patching the sampler, since `getWriter()` is already `protected // For testing` and `NatsConnectionImplTests` already exists in `io.nats.client.impl`. Test removed from `ConnectTests` (plus three unused imports, two of which were already stale) and `testOutgoingPendingCountCoverage` added. Green 5/5, and verified **under a real Java 8 JDK**, not just `sourceCompatibility = 1.8`.
 
 ## Open / carried forward
 
@@ -33,12 +34,15 @@ One existing test needed a fix: `ReconnectTests.testSocketDataPortTimeout` read 
 
 **Mechanism:** it fails `assertThrows(AuthenticationException.class, ...)` with an `IOException`, which reads as a logic bug. `connectImpl` only throws `AuthenticationException` when `connectError` already holds the server's auth text — if the `-ERR 'Authorization Violation'` is not read before the socket closes, it falls through to the generic `IOException`. Pure timing. Recorded in the flaky doc so it is not re-diagnosed as structural.
 
+**Two V2 KV tests parked for the KV work — `KeyValueTests.testJustLimitMarkerCreatePurge` and `.testJustTtlForDeletePurge`.** Flapping in V2; a V2 session is investigating there and its notes will come back here. Both already sit in the `tdb/` staging copy of `KeyValueTests`, so they arrive with the KV port — read the notes before porting. Parked section at the end of `FLAKY_TESTS_ANALYSIS.md`.
+
 **Flaky tests — OPEN, monitoring, nothing changed.** Watch rather than act on an unreproduced hypothesis; recent runs pass, so the rate is low and does not justify changing tests on a theory. On the list: `TLSConnectTests.testProxyTlsFirst` / `.testReconnectFailsAfterCertExpires` / `.testForceReconnectFailsAfterCertExpires`, `WebsocketConnectTests.testTLSOnReconnect`, `AuthTests.testJWTAuthWithCredsFileAlso`, `JetStreamPushTests.testDeliveryPolicy` / `.testAcks`, `SimplificationTests.testFetchOrdered` / `.testFetchDurable` / `.testReconnectOverOrdered` (added 2026-08-11 — which of the two assertions in `validateOverOrdered` failed was not recorded; `count > 0` is a budget flake, `allInOrder` would be a product issue, so capture that before diagnosing), `ReconnectTests.testForceReconnectQueueBehaviorCheck` (added 2026-08-04 — flaked once during the javadoc pass, passed on retry and clean rerun; ruled out as caused by it since that diff had zero non-comment lines; ~29s and deliberately timing-sensitive via `ForceReconnectQueueCheckDataPort.DELAY = 75`). **No test or product code has been changed for these:** `CLIENT_CERT_VALIDITY_MILLIS` is still `5000` and the WAIT ladder / `connectionTimeout` are untouched, so the tension in `FLAKY_TESTS_ANALYSIS.md` ("Concrete lead") is still live. Revisit if the rate rises or one starts failing *consistently* — `testConnectPendingCountCoverage` is the precedent for "fails every time = real signal, not a flake".
 
 ## Recently Closed
 
 Newest first. Detail lives in each plan/audit doc.
 
+* **INTEGRATION_PLAN_PR_1609.md** — `4351b510`, `d6914f41`. Upstream #1608/#1609 ported: `updateStatus(DISCONNECTED)` moved ahead of `closeSocketImpl`, plus the two PR #1547 `updateStatus` items (event chosen from the transition made, not a re-read after unlocking; `status` now `volatile`). Step 4 (`currentServer` not volatile) deliberately not taken, still open.
 * **`AuthTests` special-character test made cross-platform** — `c6e0cdd8`. Dropped a Windows-only skip that was masking a harness quoting bug; renamed to `testUserPassWithSpecialCharacters`.
 * **`ListenerIdTests`** — `900bed22`.
 * **PUBLIC_API_MISSING_JAVADOC_AUDIT.md** — `2f03d342`, `998d5752`, `dc10cb9e`, `c697d7f8`. Every public declaration in `core`/`jetstream`/`service` documented; 0 javadoc errors, only the gitignored `DebugJs` left.
@@ -53,10 +57,6 @@ Newest first. Detail lives in each plan/audit doc.
 
 
 ## Plans / Audits
-* INTEGRATION_PLAN_PR_1609.md
-  * status update ordering in `closeSocket` + the missing PR #1547 `updateStatus` changes
-  * [#1608](https://github.com/nats-io/nats.java/issues/1608) / [#1609](https://github.com/nats-io/nats.java/pull/1609)
-  * steps 1-3 DONE; step 4 (`currentServer` not volatile) deliberately not taken, still open
 * INTEGRATION_PLAN_PR_1578.md 
   * Reconnect Delay Behavior and options cleanup
   * [#1578](https://github.com/nats-io/nats.java/pull/1578) 

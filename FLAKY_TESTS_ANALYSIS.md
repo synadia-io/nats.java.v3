@@ -201,3 +201,196 @@ The general lesson for the ladder: a global timeout bump is only safe for tests 
 The remaining three (`JetStreamPushTests.testDeliveryPolicy`, `testAcks`, `SimplificationTests.testFetchOrdered`) are JetStream delivery/ack/fetch timing and were not investigated. `SimplificationTests.testReconnectOverOrdered` (added 2026-08-11) is in the same untouched group.
 
 Cheap next step for `testReconnectOverOrdered`, worth doing before anything else on it: capture **which** of the two assertions in `validateOverOrdered` failed, and at which of the four call sites. `assertTrue(count > 0)` is another fixed-budget flake and belongs with the rest of this list. `assertTrue(allInOrder.get())` is not — a gap or a repeat in the stream sequence across an ordered consumer's reconnect reset would be the second product-code entry on this page after `AuthTests.testToken`, and would deserve the same treatment. Splitting the helper into two messages, or simply asserting with a message that names the call site, costs nothing and removes the ambiguity the next time it flaps.
+
+---
+
+# Third pass — the V2 fix for `testConnectPendingCountCoverage`, ported here, 2026-08-11
+
+`ConnectTests.testConnectPendingCountCoverage` is back in v3, copied from the manual fix made in V2. It is a faithful port — only the helper names differ (`runInJsServer` → `runInShared`, `subject()` → `random()`); the sampler thread, the payload, the loop count and both assertions are identical to `nats.java` `ConnectTests:649`.
+
+**Verdict: the fix is correct as far as it goes, but it only closes one of the two directions this test can fail in, and it makes the other one worse. Measured 4 failures in 100 runs on WSL.** Details below, then what to do about it.
+
+## What the fix does close
+
+The change is `5000 × 8KB` (~40MB) → `3000 × 2KB` (~6MB), with a comment explaining that the total must stay under the 8MB reconnect buffer. That is right, and it removes the original x5 failure mode exactly:
+
+* 6MB < the 8MB `reconnectBufferSize`, so the `_publish` overflow branch (NatsConnection.java:1033, *"Unable to queue any more messages during reconnect"*) can no longer be reached even if the connection does bounce mid-publish.
+* 3000 < `DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE` (5000), so `normalOutgoing` cannot block on the message-count limit either.
+
+Both of the first pass's diagnosed mechanisms are genuinely gone.
+
+## What it does not close — measured
+
+The first pass's verdict was that this shape is "an unwinnable race **in both directions** — a fast box drains the queue so the count is 0; a slow box backs the queue past the reconnect buffer and `publish` throws." The fix addresses the slow-box direction only. And because it cut the flood from 40MB to 6MB, it shrank the observation window that the fast-box direction depends on.
+
+Instrumented on WSL (gitignored `Debug*` probe, since removed), publishing the 3000 messages takes **12-27 ms end to end**. The sampler thread `sleep(1)`s per iteration, so it collects **1 to 18 samples for the entire test**. The whole assertion rests on whether a handful of samples happen to land while the queue is non-empty.
+
+100 runs of the exact test body:
+
+| Outcome | Count |
+|---|---|
+| `assertTrue(largestOutgoingPendingMessageCount.get() > 0)` would fail | **2 / 100** |
+| `assertTrue(largestOutgoingPendingBytes.get() > largestOutgoingPendingMessageCount.get() * 1000)` would fail | **4 / 100** (the 2 above, plus 2 more) |
+| Fewest samples taken in a run | **1** |
+
+The test itself passed 10/10 when run normally, which is consistent with a ~4% rate — it is not going to look broken locally.
+
+## The second assertion has its own, separate bug
+
+The two runs that failed only the ratio assertion are the interesting ones:
+
+```
+run=9   maxCount=16    maxBytes=4142     ->  4142 > 16000 ?  no
+run=24  maxCount=107   maxBytes=93195    ->  93195 > 107000 ? no
+```
+
+Both observed a real backlog, so this is not the fast-box problem. It is that **the two maxima are accumulated by two separate reads and can come from different instants**:
+
+```java
+largestOutgoingPendingMessageCount.set(Math.max(largestOutgoingPendingMessageCount.get(), nc.outgoingPendingMessageCount()));
+largestOutgoingPendingBytes.set(Math.max(largestOutgoingPendingBytes.get(), nc.outgoingPendingBytes()));
+```
+
+The count is read, the writer drains, then the bytes are read from an emptier queue. Run 24 works out to 871 bytes per message, which is not a size any message in this test has. A **consistently sampled** pair measures ~2077 bytes per message (2048 payload + ~29 protocol) — more than 2× the 1000-byte threshold — so the ratio assertion has a comfortable margin and can only fail when the pair is torn. That makes it a sampling defect, not a threshold that needs raising.
+
+Worth noting this flaw was present in the original 40MB version too. It was simply unreachable there: with 40MB in flight the queue was never near empty, so no sample could be torn far enough to matter. Shrinking the flood is what exposed it.
+
+## What to do
+
+**Both done, 2026-08-11.** v3's copy is deleted and V2 took the deterministic route rather than the two patches; see "Resolution" at the end. The reasoning that led there is below.
+
+**In v3: delete it.** v3 already has `NatsConnectionImplTests.testOutgoingPendingCountCoverage`, written during the first pass specifically to replace this test, covering the same two getters (`outgoingPendingMessageCount`, `outgoingPendingBytes`) with the same two assertions and no race at all — it stops the writer so nothing drains, publishes a fixed 20 messages, and reads the getters while CONNECTED. Re-adding the sampler version gives v3 two tests for one pair of getters, one of which fails 4% of the time. The reasoning that produced the deterministic version has not changed.
+
+**In V2, where there is no deterministic equivalent**, two cheap changes make the ported shape sound:
+1. **Sample the pair together.** Read both counters once per iteration and keep the pair with the larger count, rather than maximising the two independently. Removes the torn-pair failure entirely.
+2. **Drop the `sleep(1)`** from the sampler loop, or lengthen the publish window. At 12-27 ms of publishing, a 1 ms sleep is the binding constraint on whether the test observes anything — a free-running sampler takes thousands of samples over the same window instead of a handful.
+
+Either one alone roughly halves the failure rate; together they close both remaining modes. The far better option, if V2 exposes a comparable hook, is the same one v3 took: stop the writer and make the backlog deterministic instead of racing a live one.
+
+## Resolution (2026-08-11)
+
+**v3:** `ConnectTests.testConnectPendingCountCoverage` deleted. `ConnectTests.java` is byte-identical to its committed version again. `NatsConnectionImplTests.testOutgoingPendingCountCoverage` is unchanged and remains the coverage for both getters.
+
+**V2 (`nats.java`, at `b9c5f9da`): fixed the same way v3 was, not with the two sampler patches.** Checking the repo turned up the hooks v3 relied on, already present and already labelled for this purpose:
+
+* `NatsConnection.getWriter()` (NatsConnection.java:2346) is `protected` under a `// For testing` comment;
+* `NatsConnectionWriter.stop()` (NatsConnectionWriter.java:107) is package-private and returns `Future<Boolean>`;
+* `src/test/java/io/nats/client/impl/NatsConnectionImplTests.java` already exists in that package.
+
+So the deterministic version costs nothing extra in V2 and removes the race outright instead of narrowing it. Changes, both uncommitted in the V2 working tree:
+
+* `ConnectTests.java` — `testConnectPendingCountCoverage` removed, along with the now-unused `AtomicLong` import and two imports that were already unused in the working tree before this (`io.nats.client.support.Debug`, `AtomicInteger` — debugging leftovers).
+* `NatsConnectionImplTests.java` — added `testOutgoingPendingCountCoverage`, mirroring v3: stop the writer, publish 20 × 2KB, read both getters while CONNECTED. Uses `runInServer` with a cast to `NatsConnection`, and `LONG_TIMEOUT_MS` for the stop future since V2's `TestBase` has no `DEFAULT_WAIT`.
+
+Verified on WSL: 5 consecutive runs of `NatsConnectionImplTests` green, then the same run plus `ConnectTests` green **under a real Java 8 JDK** (`-Dorg.gradle.java.home=/usr/lib/jvm/java-8-openjdk-amd64`), not just against `sourceCompatibility = 1.8` — with `-source/-target 8` on a modern compiler a Java 9+ API still resolves at compile time and only fails at runtime on 8, so the setting alone would not have proved it. The added test uses nothing past Java 8 (`Future.get(long, TimeUnit)` and a lambda).
+
+The two sampler patches suggested above (sample the pair together; drop the `sleep(1)`) were therefore not applied. They remain the fallback if the deterministic version is ever unavailable — but they only reduce the failure rate, where stopping the writer removes the race.
+
+---
+
+# Two KV tests — V2 findings and the v3 plan (2026-08-11)
+
+Was parked awaiting a V2 investigation. Those notes are now in, below, along with what v3's staging copies do differently and what to change when the KV tests are ported.
+
+| Test | V2 | v3 staging copy |
+|---|---|---|
+| `KeyValueTests.testJustLimitMarkerCreatePurge` | `src/test/java/io/nats/client/impl/KeyValueTests.java:1969` | `tdb/io/synadia/client/impl/KeyValueTests.java:1879` |
+| `KeyValueTests.testJustTtlForDeletePurge` | `src/test/java/io/nats/client/impl/KeyValueTests.java:2079` | `tdb/io/synadia/client/impl/KeyValueTests.java:1978` |
+
+Both are `atLeast2_12`-gated, use a 1-second TTL (`limitMarker` / bucket `ttl`), assert the exact operation sequence of the raw stream messages from a dispatcher, and poll `getStreamInfo` for the message count to reach zero while asserting the elapsed wall clock is `>= 1000`ms.
+
+Nothing in `tdb/` is tracked in git or wired into a source set, so neither test compiles or runs in v3 today. **This is porting work, not a live defect.** The advantage of that is real: nothing here has to preserve "it was working", so the assertions can be made correct rather than merely tolerant.
+
+## What the V2 investigation found
+
+Neither failure was ever reproduced on the V2 investigator's machine — both passed repeatedly there. What was done instead was to instrument every timing-sensitive assertion and measure its actual margin. Two structural fragilities came out of that, both measured, neither confirmed as *the* cause.
+
+**1. The poll budget was iterations, not time.** V2's loop was `while (++safety < 10000 && errorLatch.getCount() > 0)` with no sleep. How much wall time 10000 unthrottled `getStreamInfo` round trips buys depends entirely on the machine. Measured on the V2 box: 0.70–0.88ms per poll, so the budget was worth 7–9 seconds against a 1.2–2.1 second need. Exhaust it and `gotZero` stays `-1`, and `assertTrue(gotZero - mark >= 1000)` fails **with no message**. Needs roughly a 4–6x faster poll rate to bite — plausible on fast hardware, and it would hit both tests, which is the only finding that explains both flapping together.
+
+**2. The TTL test measured from the wrong side of the write.** In `testJustTtlForDeletePurge`, `mark` was taken *after* `kv.delete(key)` returned. The message's 1-second clock starts when the **server** writes it, which is strictly before the client takes `mark`, so the interval being measured is shorter than the TTL by construction. Measured margins: **+249ms and +251ms**, against +1084ms and +2105ms for the marker test. That margin is supplied by the server's `max_age` expiry sweep lagging ~250ms behind the true expiry — not by anything the test controls. A server that expires more promptly fails it outright.
+
+V2 applied two fixes: time-bounded loops with a `sleep(10)`, and moving `mark` above the write. Both tests pass 4/4 there afterwards. Note the second fix is a *structural* correction, not a margin increase — moving `mark` gains only one round trip in absolute terms, but it changes elapsed from `1000 + sweepLag − roundTrip` to `1000 + sweepLag + roundTrip`, which is above 1000 unconditionally instead of conditionally.
+
+## What v3's copies do differently
+
+v3 has already factored the poll loop into a helper, which changes the picture:
+
+```java
+private static long waitForPurge(JetStreamTestingContext ctx, String rawStream) throws IOException, JetStreamApiException {
+    for (int tries = 0; tries < 20; tries++) {
+        sleep(500); // it takes a bit of time for the purge to happen, depends on the server load
+        StreamInfo si = ctx.jsm.getStreamInfo(rawStream);
+        if (si.getStreamState().getMessageCount() == 0) {
+            return System.currentTimeMillis();
+        }
+    }
+    return -1;
+}
+```
+
+**Finding 1 does not apply to v3.** 20 tries × 500ms is a wall-clock budget of ~10 seconds regardless of machine speed. That fragility was already designed out.
+
+**Finding 2 does apply**, unchanged — `tdb/…:158` is still `kv.delete(key); long createdTimeMark = System.currentTimeMillis();`.
+
+And the helper introduces two problems of its own:
+
+* **It sleeps before the first check.** The returned timestamp can be up to 500ms later than the moment the stream actually emptied, so every elapsed measurement is inflated by 0–500ms. That is currently *masking* finding 2 — the ~250ms deficit is hidden inside the sleep granularity. Fixing the mark without fixing this leaves the measurement coarse; fixing this without fixing the mark could newly expose finding 2.
+* **`-1` flows into arithmetic.** On timeout the caller computes `purgedTimeMark - createdTimeMark >= 1000` against `-1`, producing a large negative and an `assertTrue` failure with no message — the same no-diagnostic failure mode as V2's.
+
+## Additional: a stale mark in the marker test
+
+`testJustLimitMarkerCreatePurge` sets `createdTimeMark` once at line 58 and never reassigns it, so the *second* `assertTrue(purgedTimeMark - createdTimeMark >= 1000)` at line 82 measures the whole test rather than the purge TTL, and is trivially true. Present identically in V2, where it was deliberately left alone because re-marking turns a passing no-op assertion into a real one that could newly fail.
+
+In v3 that argument does not hold — the test is not running, so there is nothing to regress. Fix it here and find out what it actually asserts.
+
+## Plan
+
+Order matters: do 1 and 2 together, because 1 alone can expose 2.
+
+1. **`waitForPurge`: check first, then sleep, and shorten the interval.**
+
+```java
+private static long waitForPurge(JetStreamTestingContext ctx, String rawStream) throws IOException, JetStreamApiException {
+    long timeoutAt = System.currentTimeMillis() + 10_000;
+    while (System.currentTimeMillis() < timeoutAt) {
+        if (ctx.jsm.getStreamInfo(rawStream).getStreamState().getMessageCount() == 0) {
+            return System.currentTimeMillis();
+        }
+        sleep(50);
+    }
+    return -1;
+}
+```
+
+Same ~10 second bound, but the returned timestamp is within ~50ms of the real event instead of ~500ms, so the elapsed assertions measure what they claim to.
+
+2. **Move the mark above the write** in `testJustTtlForDeletePurge`:
+
+```java
+long createdTimeMark = System.currentTimeMillis();
+kv.delete(key);
+```
+
+3. **Re-mark before the purge** in `testJustLimitMarkerCreatePurge`'s second block, so the assertion stops being trivially true. Expect this one to need a look — it has never actually been evaluated in either repo.
+
+4. **Assert the timeout explicitly** rather than letting `-1` reach the arithmetic:
+
+```java
+long purgedTimeMark = waitForPurge(ctx, rawStream);
+assertTrue(purgedTimeMark > 0, "stream never emptied");
+assertTrue(purgedTimeMark - createdTimeMark >= 1000);
+```
+
+5. **Lower priority — the delivery race.** `assertEquals(2, messages.get())` reads a counter incremented by the dispatcher thread, immediately after a loop that polls *stream state*. Stream state reaching zero says the server removed the messages; it says nothing about the client having delivered them. V2 measured roughly a second of slack here (the marker is delivered at ~1s, the stream does not empty until ~2s), and a deliberate 200ms handler stall did **not** break it. It needs a stall over a second — a long GC pause, a loaded runner — so it is real but well down the list. If it does surface, wait for the count before asserting on it rather than widening the sleep.
+
+## Verification
+
+Whatever is changed, confirm the assertions still mean something by instrumenting once and reading the margins, as V2 did:
+
+```java
+System.out.println("PROBE elapsed=" + (purgedTimeMark - createdTimeMark)
+    + "ms (needs >=1000, margin " + (purgedTimeMark - createdTimeMark - 1000) + "ms)"
+    + "  messagesDelivered=" + messages.get() + " ops=" + ops);
+```
+
+A margin in the low hundreds of milliseconds means the assertion is riding on server expiry-sweep granularity and will flap somewhere else. V2's marker test showed +1084ms; its TTL test showed +249ms before the fix.
