@@ -975,6 +975,11 @@ public class ReconnectTests {
     // ReconnectDelayBehavior gating. The behavior decides WHETHER the handler is invoked before
     // round 1; rounds after the first always invoke it. The gate applies to a custom handler too,
     // which is the part that is invisible when only the default handler is exercised.
+    //
+    // Every test here keeps a second server listening for the whole test and kills the one the
+    // client is on, so the reconnect lands somewhere that is already up. Nothing waits for a port
+    // to become reusable, and maxReconnects is bounded, so a campaign that cannot succeed ends
+    // instead of looping forever.
     // ----------------------------------------------------------------------------------------------------
 
     @Test
@@ -998,8 +1003,6 @@ public class ReconnectTests {
 
     @Test
     public void testDelayHandlerSeesNoLameDuckOnOrdinaryReconnect() throws Exception {
-        // Every invocation of an ordinary (non lame duck) reconnect must report lameDuckTriggered false,
-        // on the first round and on the wrap-around rounds alike.
         List<Boolean> lameDucks = Collections.synchronizedList(new ArrayList<>());
         List<Long> rounds = roundsSeenAcrossReconnect(ReconnectDelayBehavior.BeforeAllRounds, lameDucks);
         assertFalse(rounds.isEmpty(), "the handler must have been invoked at least once");
@@ -1007,67 +1010,65 @@ public class ReconnectTests {
     }
 
     @Test
-    public void testLameDuckSignalDelaysFirstRoundThenIsConsumed() throws Exception {
+    public void testLameDuckSignalDelaysFirstRoundWhenLameDuckAware() throws Exception {
         List<Long> rounds = Collections.synchronizedList(new ArrayList<>());
         List<Boolean> lameDucks = Collections.synchronizedList(new ArrayList<>());
         CompletableFuture<Boolean> clientReady = new CompletableFuture<>();
         Listener listener = new Listener();
 
-        int mockPort = NatsTestServer.nextPort();
-        int realPort = NatsTestServer.nextPort();
+        try (NatsTestServer landing = new NatsTestServer();
+             NatsServerProtocolMock draining = drainingServer(clientReady)) {
 
-        // Announce lame duck mid-connection and then go away, which is the shape of a real drain.
-        // Returning from the customizer exits the mock, so the client sees the drop right after the signal.
-        NatsServerProtocolMock.Customizer ldmCustomizer = (ts, r, w) -> {
-            try {
-                clientReady.get(5, TimeUnit.SECONDS);
-            }
-            catch (Exception e) {
-                return; // the test will fail on the assertions below
-            }
-            w.write("INFO {\"server_id\":\"draining\",\"ldm\":true}\r\n");
-            w.flush();
-        };
-
-        NatsConnection nc;
-
-        // Campaign 1 - triggered by the lame duck signal, so LameDuckAware must delay before round 1.
-        try (NatsTestServer real = new NatsTestServer(realPort);
-             NatsServerProtocolMock mock = new NatsServerProtocolMock(ldmCustomizer, mockPort, true)) {
-
-            Options options = optionsBuilder(mock, real)
-                .noRandomize()
-                .maxReconnects(-1)
-                .reconnectWait(50L)
-                .reconnectJitter(0L)
-                .reconnectDelayBehavior(ReconnectDelayBehavior.LameDuckAware)
-                .reconnectDelayHandler((round, o, secure, lameDuckTriggered) -> {
-                    rounds.add(round);
-                    lameDucks.add(lameDuckTriggered);
-                    return 0L;
-                })
+            Options options = delayBehaviorOptions(ReconnectDelayBehavior.LameDuckAware, rounds, lameDucks)
+                .servers(new String[]{draining.getServerUri(), landing.getServerUri()})
                 .connectionListener(listener)
                 .build();
 
-            nc = managedConnect(options);
-            listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
-            clientReady.complete(Boolean.TRUE); // release the customizer: signal, then drop
-            listener.validate();                // reconnected, onto the real server
-
-            assertFalse(rounds.isEmpty(), "the handler must have been invoked");
-            assertEquals(1L, rounds.get(0), "the lame duck signal must make round 1 invoke the handler: " + rounds);
-            assertTrue(lameDucks.get(0), "round 1 must see lameDuckTriggered true: " + lameDucks);
+            try (NatsConnection ignored = managedConnect(options)) {
+                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+                clientReady.complete(Boolean.TRUE); // release the mock: announce, then go away
+                listener.validate();                // reconnected onto the landing server
+            }
         }
 
-        // Campaign 2 - the real server just went down with no lame duck signal. The flag was consumed by
-        // campaign 1, so LameDuckAware must be back to skipping round 1. A sticky flag fails here.
-        rounds.clear();
-        lameDucks.clear();
-        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+        assertFalse(rounds.isEmpty(), "the handler must have been invoked");
+        assertEquals(1L, rounds.get(0), "the lame duck signal must make round 1 invoke the handler: " + rounds);
+        assertTrue(lameDucks.get(0), "round 1 must see lameDuckTriggered true: " + lameDucks);
+    }
 
-        try (NatsTestServer ignored = new NatsTestServer(realPort)) {
-            listener.validate();
-            confirmConnected(nc);
+    @Test
+    public void testLameDuckSignalIsConsumedAfterTheCampaignItTriggered() throws Exception {
+        List<Long> rounds = Collections.synchronizedList(new ArrayList<>());
+        List<Boolean> lameDucks = Collections.synchronizedList(new ArrayList<>());
+        CompletableFuture<Boolean> clientReady = new CompletableFuture<>();
+        Listener listener = new Listener();
+
+        // Three servers, all up front: the draining mock, then two landing spots so the second
+        // campaign also has somewhere already listening to go.
+        try (NatsTestServer landing1 = new NatsTestServer();
+             NatsTestServer landing2 = new NatsTestServer();
+             NatsServerProtocolMock draining = drainingServer(clientReady)) {
+
+            Options options = delayBehaviorOptions(ReconnectDelayBehavior.LameDuckAware, rounds, lameDucks)
+                .servers(new String[]{draining.getServerUri(), landing1.getServerUri(), landing2.getServerUri()})
+                .connectionListener(listener)
+                .build();
+
+            try (NatsConnection ignored = managedConnect(options)) {
+                // Campaign 1 - triggered by the lame duck signal.
+                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+                clientReady.complete(Boolean.TRUE);
+                listener.validate();
+                assertTrue(lameDucks.contains(true), "campaign 1 must have seen the lame duck: " + lameDucks);
+
+                // Campaign 2 - landing1 goes away with no lame duck signal. The flag was consumed by
+                // campaign 1, so round 1 must be skipped again. A sticky flag fails here.
+                rounds.clear();
+                lameDucks.clear();
+                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+                landing1.close();
+                listener.validate();
+            }
         }
 
         assertFalse(rounds.contains(1L), "a consumed lame duck signal must not survive into a later campaign: " + rounds);
@@ -1075,42 +1076,71 @@ public class ReconnectTests {
     }
 
     /**
-     * Connect, drop the server, bring it back, and return the round numbers the reconnect delay handler
-     * was invoked with. The handler returns zero so the reconnect is not actually slowed down; the point
-     * is which rounds reach it at all. When {@code lameDucksOut} is supplied it also collects the
-     * lameDuckTriggered argument of each invocation.
+     * A mock that announces lame duck mid-connection and then goes away, which is the shape of a real
+     * drain. Returning from the customizer exits the mock, so the client sees the announcement and the
+     * drop in that order.
+     */
+    private NatsServerProtocolMock drainingServer(CompletableFuture<Boolean> clientReady) throws IOException {
+        NatsServerProtocolMock.Customizer customizer = (ts, r, w) -> {
+            try {
+                clientReady.get(5, TimeUnit.SECONDS);
+            }
+            catch (Exception e) {
+                return; // the assertions in the test will report this
+            }
+            w.write("INFO {\"server_id\":\"draining\",\"ldm\":true}\r\n");
+            w.flush();
+        };
+        return new NatsServerProtocolMock(customizer, NatsTestServer.nextPort(), true);
+    }
+
+    /**
+     * Options with a recording reconnect delay handler. The handler returns zero so the reconnect is not
+     * actually slowed; the point is which rounds reach it at all, and what they are told about lame duck.
+     * Callers add the servers. maxReconnects is bounded on purpose - an unbounded reconnect against a
+     * server that never returns keeps non-daemon threads alive and hangs the test JVM rather than failing.
+     */
+    private OptionsBuilder delayBehaviorOptions(ReconnectDelayBehavior behavior,
+                                                List<Long> rounds,
+                                                List<Boolean> lameDucksOut) {
+        return optionsBuilder()
+            .noRandomize()
+            .maxReconnects(10)
+            .reconnectWait(50L)
+            .reconnectJitter(0L)
+            .reconnectDelayBehavior(behavior)
+            .reconnectDelayHandler((round, o, secure, lameDuckTriggered) -> {
+                rounds.add(round);
+                if (lameDucksOut != null) {
+                    lameDucksOut.add(lameDuckTriggered);
+                }
+                return 0L;
+            });
+    }
+
+    /**
+     * Connect to the first of two running servers, kill it, and return the round numbers the reconnect
+     * delay handler was invoked with as the client moves to the second. The second server is up the whole
+     * time, so nothing here depends on a port becoming reusable.
      */
     private List<Long> roundsSeenAcrossReconnect(ReconnectDelayBehavior behavior,
                                                  List<Boolean> lameDucksOut) throws Exception {
-        int port = NatsTestServer.nextPort();
         List<Long> rounds = Collections.synchronizedList(new ArrayList<>());
         Listener listener = new Listener();
-        NatsConnection nc;
 
-        try (NatsTestServer ts = new NatsTestServer(port)) {
-            Options options = optionsBuilder(ts)
-                .maxReconnects(-1)
-                .reconnectWait(50L)
-                .reconnectJitter(0L)
-                .reconnectDelayBehavior(behavior)
-                .reconnectDelayHandler((round, o, secure, lameDuckTriggered) -> {
-                    rounds.add(round);
-                    if (lameDucksOut != null) {
-                        lameDucksOut.add(lameDuckTriggered);
-                    }
-                    return 0L;
-                })
+        try (NatsTestServer dying = new NatsTestServer();
+             NatsTestServer landing = new NatsTestServer()) {
+
+            Options options = delayBehaviorOptions(behavior, rounds, lameDucksOut)
+                .servers(new String[]{dying.getServerUri(), landing.getServerUri()})
                 .connectionListener(listener)
                 .build();
 
-            nc = managedConnect(options);
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
-        }
-
-        listener.validate(); // the server is down, the reconnect campaign is running
-
-        try (NatsTestServer ignored = new NatsTestServer(port)) {
-            confirmConnected(nc); // back up, campaign over
+            try (NatsConnection ignored = managedConnect(options)) {
+                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+                dying.close();
+                listener.validate();
+            }
         }
 
         return rounds;
