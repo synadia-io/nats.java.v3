@@ -236,9 +236,7 @@ public class JetStreamManagement extends JetStreamImpl {
     public boolean deleteConsumer(String streamName, String consumerName) throws JetStreamException, InterruptedException {
         validateNotNull(streamName, "Stream Name");
         validateNotNull(consumerName, "Consumer Name");
-        String subj = String.format(JSAPI_CONSUMER_DELETE, streamName, consumerName);
-        Message resp = makeRequestResponseRequired(subj, null, getTimeout(), "deleteConsumer");
-        return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
+        return _deleteConsumer(streamName, consumerName);
     }
 
     /**

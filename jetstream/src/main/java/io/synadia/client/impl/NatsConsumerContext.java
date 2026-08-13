@@ -93,7 +93,12 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
             }
             subscribeBehavior.dispatcher(d);
         }
-        return (JetStreamPullSubscription) streamCtx.js.createSubscription(ci, subscribeBehavior, initialPocc, optionalPmm);
+        // isOrdered is exactly the condition under which this call created the consumer above, so it is
+        // also exactly when a failed subscribe has to delete it again. The unordered branch is bound to a
+        // consumer it did not create and must leave it alone.
+        return (JetStreamPullSubscription) (isOrdered
+            ? streamCtx.js.subscribeDeleteConsumerOnException(streamCtx.streamName, ci, subscribeBehavior, initialPocc, optionalPmm)
+            : streamCtx.js.createSubscription(ci, subscribeBehavior, initialPocc, optionalPmm));
     }
 
     private void checkState() {

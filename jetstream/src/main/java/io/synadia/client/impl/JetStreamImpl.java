@@ -100,6 +100,18 @@ public class JetStreamImpl implements JetStreamConstants {
         }
     }
 
+    /**
+     * Delete a consumer. Internal, and deliberately does not validate: every caller already knows both
+     * arguments are good. The public {@link JetStreamManagement#deleteConsumer} validates before
+     * delegating here, and the delete-on-failed-subscribe path gets its stream from a create that
+     * already validated it and its name from the {@link ConsumerInfo} that create returned.
+     */
+    boolean _deleteConsumer(String stream, String consumerName) throws JetStreamException, InterruptedException {
+        String subj = String.format(JSAPI_CONSUMER_DELETE, stream, consumerName);
+        Message resp = makeRequestResponseRequired(subj, null, getTimeout(), "deleteConsumer");
+        return new SuccessApiResponse(resp).throwOnHasError().getSuccess();
+    }
+
     ConsumerInfo _createConsumer(String stream, ConsumerCreator<?> creator, ConsumerCreateRequest.Action action) throws JetStreamException, InterruptedException {
         validateStreamName(stream, true);
 

@@ -533,6 +533,56 @@ public class JetStream extends JetStreamImpl {
     MessageManagerFactory _pullOrderedMessageManagerFactory = PullOrderedMessageManager::new;
 
 
+    /**
+     * Subscribe to a consumer this call has just created, deleting it if the subscribe fails.
+     *
+     * <p><b>Only call this with a consumer this call created.</b> For a consumer the caller already owns
+     * - bound by name, or supplied as a {@code ConsumerInfo} - a failed subscribe would delete something
+     * that was never ours to delete. Those paths call {@link #createSubscription} directly.
+     *
+     * <p>The consumer exists only to back this subscription, so a failed subscribe would otherwise leave
+     * it orphaned on the server with nothing able to reach it. The create used the {@code Create} action,
+     * so its success proves the consumer did not exist beforehand and deleting restores the state the
+     * caller started in - which also means a retry is not met with "consumer already exists".
+     *
+     * <p>Everything after the consumer create can throw {@link IllegalStateException} when the connection
+     * or the dispatcher is closing or draining: creating the dispatcher, creating the subscription, and
+     * the dispatcher subscribe itself. When the cause is a closing connection the delete cannot be sent
+     * either and the orphan survives; when it is only the dispatcher, the delete goes through. The
+     * cleanup is best-effort for that reason, and it never replaces the original failure - a cleanup
+     * exception is attached as suppressed. That is the mistake jnats V2 issue #1596 was reported for.
+     *
+     * @param stream the stream the consumer was created on
+     * @param consumerInfo the consumer that was just created
+     * @param subscribeBehavior the behavior controlling the subscription, may be null
+     * @param orderedCreator the ordered consumer creator, may be null
+     * @param pmmInstance the pull message manager to reuse, may be null
+     * @return the subscription
+     */
+    NatsSubscription subscribeDeleteConsumerOnException(String stream,
+                                                        ConsumerInfo consumerInfo,
+                                                        @Nullable SubscribeBehavior subscribeBehavior,
+                                                        @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
+                                                        @Nullable PullMessageManager pmmInstance)
+    {
+        try {
+            return createSubscription(consumerInfo, subscribeBehavior, orderedCreator, pmmInstance);
+        }
+        catch (RuntimeException e) {
+            try {
+                _deleteConsumer(stream, consumerInfo.getName());
+            }
+            catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                e.addSuppressed(ie);
+            }
+            catch (Exception de) {
+                e.addSuppressed(de);
+            }
+            throw e;
+        }
+    }
+
     NatsSubscription createSubscription(ConsumerInfo consumerInfo,
                                         @Nullable SubscribeBehavior subscribeBehavior,
                                         @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
@@ -772,7 +822,7 @@ public class JetStream extends JetStreamImpl {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
-        return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, null, null);
+        return (JetStreamPushSubscription) subscribeDeleteConsumerOnException(stream, ci, subscribeBehavior, null, null);
     }
 
     /**
@@ -789,7 +839,7 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
-        return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, null, null);
+        return (JetStreamPushSubscription) subscribeDeleteConsumerOnException(stream, ci, subscribeBehavior, null, null);
     }
 
     /**
@@ -838,7 +888,7 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
-        return (JetStreamPushSubscription) createSubscription(ci, subscribeBehavior, creator, null);
+        return (JetStreamPushSubscription) subscribeDeleteConsumerOnException(stream, ci, subscribeBehavior, creator, null);
     }
 
     /**
@@ -992,7 +1042,8 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator) throws JetStreamException, InterruptedException {
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, null, null);
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return (JetStreamPullSubscription) subscribeDeleteConsumerOnException(stream, ci, null, null, null);
     }
 
     /**
@@ -1009,7 +1060,8 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return (JetStreamPullSubscription) subscribeDeleteConsumerOnException(stream, ci, subscribeBehavior, null, null);
     }
 
     /**
@@ -1025,7 +1077,8 @@ public class JetStream extends JetStreamImpl {
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, null, null);
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return (JetStreamPullSubscription) subscribeDeleteConsumerOnException(stream, ci, subscribeBehavior, null, null);
     }
 
     /**
@@ -1039,7 +1092,8 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator) throws JetStreamException, InterruptedException {
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), null, creator, null);
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return (JetStreamPullSubscription) subscribeDeleteConsumerOnException(stream, ci, null, creator, null);
     }
 
     /**
@@ -1057,7 +1111,8 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return (JetStreamPullSubscription) subscribeDeleteConsumerOnException(stream, ci, subscribeBehavior, creator, null);
     }
 
     /**
@@ -1073,7 +1128,8 @@ public class JetStream extends JetStreamImpl {
      */
     public JetStreamPullSubscription pullSubscribe(String stream, PullOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
-        return (JetStreamPullSubscription) createSubscription(_createConsumer(stream, creator, Create), subscribeBehavior, creator, null);
+        ConsumerInfo ci = _createConsumer(stream, creator, Create);
+        return (JetStreamPullSubscription) subscribeDeleteConsumerOnException(stream, ci, subscribeBehavior, creator, null);
     }
 
     /**

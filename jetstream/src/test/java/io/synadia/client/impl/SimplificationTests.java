@@ -1763,4 +1763,29 @@ public class SimplificationTests extends JetStreamTestBase {
         }
     }
 
+
+    @Test
+    public void testConsumerIsDeletedWhenTheSubscribeFails() throws Exception {
+        // createSubscription creates nothing itself, but everything in it can throw IllegalStateException
+        // when the connection or the dispatcher is closing. By then the consumer already exists, and it
+        // exists only to back this subscription, so a failed subscribe would orphan it on the server.
+        // A closed dispatcher is the case worth covering: it fails the subscribe while leaving the
+        // connection healthy, so the cleanup delete can actually be sent and its effect observed.
+        runInShared((nc, ctx) -> {
+            StreamContext streamContext = ctx.js.getStreamContext(ctx.stream);
+            String durable = random();
+
+            NatsDispatcher dispatcher = (NatsDispatcher) nc.createDispatcher();
+            nc.closeDispatcher(dispatcher);
+
+            SubscribeBehavior behavior = new SubscribeBehavior().handler(msg -> {}).dispatcher(dispatcher);
+            assertThrows(IllegalStateException.class,
+                () -> ctx.js.pullSubscribe(ctx.stream, new PullConsumerCreator().durable(durable), behavior),
+                "the subscribe must still fail - the cleanup must not swallow it");
+
+            assertFalse(streamContext.getConsumerNames().contains(durable),
+                "a consumer created for a subscribe that failed must be deleted, not orphaned");
+        });
+    }
+
 }
