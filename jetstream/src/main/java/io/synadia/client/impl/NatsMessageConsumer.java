@@ -149,14 +149,33 @@ class NatsMessageConsumer extends NatsMessageConsumerBase implements PullManager
             }
         };
 
+        // Whether the subscribe below succeeded, which is what decides if this attempt owns a
+        // subscription that has to be cleaned up when something after it fails. It cannot be inferred
+        // from the "sub" field: on the reset path that still refers to the previous, already shut down
+        // subscription, and shutdownSub() dereferences it without a null check.
+        boolean subInitialized = false;
         try {
             stopped.set(false);
             finished.set(false);
             super.initSub(subscriptionMaker.subscribe(mh, userDispatcher, pmm, null), !first);
+            subInitialized = true;
             fullResetPending();
             rePull();
         }
-        catch (JetStreamException e) {
+        catch (JetStreamException | RuntimeException e) {
+            if (subInitialized) {
+                // The "subscribe" succeeded and something after it did not, so this attempt is being
+                // abandoned while holding a live subscription. Nothing else will clean it up - on the
+                // first == true path the consumer never reaches the caller, so both the subscription
+                // and its heartbeat timer would be unreachable and leak.
+                shutdownSub();
+            }
+            // The unchecked case matters as much as the checked one. A connection or dispatcher that is
+            // closing or draining throws IllegalStateException out of the subscribe, and on the reset
+            // path (first == false) shutdownSub() has already run. Letting that escape leaves the
+            // consumer with no subscription and no heartbeat timer while stopped and finished both
+            // still report false - it silently stops delivering, permanently. Recovering is correct:
+            // resetOnException re-arms the heartbeat, which alarms again and retries the reset.
             if (first) {
                 throw e;
             }

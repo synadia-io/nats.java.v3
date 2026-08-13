@@ -6,8 +6,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ScheduledTaskTests extends TestBase {
 
@@ -82,6 +81,58 @@ public class ScheduledTaskTests extends TestBase {
         assertEquals(done, task.isDone());
         if (executing != null) {
             assertEquals(executing, task.isExecuting());
+        }
+    }
+
+    @Test
+    public void testThrowingRunnableEndsTheScheduleAndKeepsTheExceptionReadable() throws InterruptedException {
+        // A runnable that throws out of scheduleAtFixedRate ends the schedule - the executor's contract,
+        // which ScheduledTask deliberately does not interfere with, because a throwing runnable is a
+        // coding error and swallowing it would hide the bug. What the executor does not do is report it
+        // anywhere, so getException() surfaces what it recorded on the future.
+        ScheduledThreadPoolExecutor stpe = new ScheduledThreadPoolExecutor(1);
+        try {
+            AtomicInteger runs = new AtomicInteger();
+            IllegalStateException boom = new IllegalStateException("simulated coding error in the runnable");
+            ScheduledTask task = new ScheduledTask(stpe, 0, 50, TimeUnit.MILLISECONDS, () -> {
+                runs.incrementAndGet();
+                throw boom;
+            });
+
+            long giveUpAt = System.currentTimeMillis() + 5000;
+            while (!task.isDone() && System.currentTimeMillis() < giveUpAt) {
+                //noinspection BusyWait
+                Thread.sleep(10);
+            }
+
+            assertTrue(task.isDone(), "a throwing runnable must end the schedule");
+            assertEquals(1, runs.get(), "the schedule must not continue after the throw");
+            assertSame(boom, task.getException(), "the exception must stay readable, not be lost");
+            assertFalse(task.isExecuting(), "executing must be cleared even when the runnable throws");
+
+            // shutdown() releases the scheduled future, which is where the executor kept the
+            // exception. Recording it on the way out is what makes it outlive that.
+            task.shutdown();
+            assertSame(boom, task.getException(), "the exception must survive shutdown()");
+        }
+        finally {
+            stpe.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testGetExceptionIsNullWhenTheTaskDidNotThrow() throws InterruptedException {
+        ScheduledThreadPoolExecutor stpe = new ScheduledThreadPoolExecutor(1);
+        try {
+            ScheduledTask task = new ScheduledTask(stpe, 0, 50, TimeUnit.MILLISECONDS, () -> {});
+            Thread.sleep(120);
+            assertNull(task.getException(), "a healthy running task has no exception");
+
+            task.shutdown();
+            assertNull(task.getException(), "a cleanly shut down task has no exception");
+        }
+        finally {
+            stpe.shutdownNow();
         }
     }
 

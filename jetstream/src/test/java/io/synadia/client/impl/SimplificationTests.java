@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.synadia.client.impl.BaseConsumeOptions.*;
 import static io.synadia.client.utils.JetStreamApiUtils.ULONG_UNSET;
@@ -1678,4 +1679,88 @@ public class SimplificationTests extends JetStreamTestBase {
         assertTrue(allInOrder.get());
         assertTrue(count > 0);
     }
+
+    @Test
+    public void testResetSurvivesUncheckedSubscribeFailure() throws Exception {
+        // The ordered-consumer reset path is shutdownSub() then doSub(false). A connection or dispatcher
+        // that is closing or draining throws IllegalStateException out of the subscribe, and doSub used to
+        // catch only the checked JetStreamException. The unchecked one escaped after shutdownSub() had
+        // already run, so the consumer was left with no subscription and no heartbeat timer while
+        // isStopped() and isFinished() both still reported false - a silent, permanent stall.
+        runInShared((nc, ctx) -> {
+            StreamContext streamContext = ctx.js.getStreamContext(ctx.stream);
+            NatsConsumerContext consumerContext = (NatsConsumerContext)
+                streamContext.createOrUpdateConsumer(new PullConsumerCreator().durable(random()));
+
+            // Let the first subscribe through so the consumer constructs, then fail every later one the
+            // way a closing connection does.
+            AtomicInteger subscribes = new AtomicInteger();
+            SimplifiedSubscriptionMaker failsAfterFirst = (mh, d, pmm, threshold) -> {
+                if (subscribes.incrementAndGet() > 1) {
+                    throw new IllegalStateException("simulated: NatsConnection is Closed");
+                }
+                return consumerContext.subscribe(mh, d, pmm, threshold);
+            };
+
+            NatsMessageConsumer consumer = new NatsMessageConsumer(
+                failsAfterFirst, consumerContext.retrieveConsumerInfo(),
+                ConsumeOptions.DEFAULT_CONSUME_OPTIONS, null, msg -> {});
+            try {
+                assertDoesNotThrow(consumer::pullTerminatedByError,
+                    "an unchecked subscribe failure on the reset path must be recovered, not thrown");
+                assertEquals(2, subscribes.get(), "the reset must have attempted the re-subscribe");
+
+                // Recovered rather than dead: the heartbeat was re-armed, so the reset will be retried.
+                assertFalse(consumer.isStopped(), "the consumer must not report itself stopped");
+                assertFalse(consumer.isFinished(), "the consumer must not report itself finished");
+            }
+            finally {
+                consumer.stop();
+            }
+        });
+    }
+
+
+    @Test
+    public void testSubscriptionIsCleanedUpWhenDoSubFailsAfterSubscribing() throws Exception {
+        // doSub has two statements after the subscribe. If either throws, the attempt is abandoned while
+        // holding a live subscription. On the first == true path the consumer never reaches the caller,
+        // so without the cleanup both the subscription and its heartbeat timer are unreachable and leak.
+        runInShared((nc, ctx) -> {
+            StreamContext streamContext = ctx.js.getStreamContext(ctx.stream);
+            NatsConsumerContext consumerContext = (NatsConsumerContext)
+                streamContext.createOrUpdateConsumer(new PullConsumerCreator().durable(random()));
+
+            // Hold on to whatever subscription the subscribe hands back, so it can be inspected after
+            // the constructor fails and the consumer itself is unreachable.
+            AtomicReference<JetStreamPullSubscription> made = new AtomicReference<>();
+            SimplifiedSubscriptionMaker capturing = (mh, d, pmm, threshold) -> {
+                JetStreamPullSubscription sub = consumerContext.subscribe(mh, d, pmm, threshold);
+                made.set(sub);
+                return sub;
+            };
+
+            ConsumerInfo ci = consumerContext.retrieveConsumerInfo();
+            assertThrows(IllegalStateException.class,
+                () -> new RePullFailsConsumer(capturing, ci, ConsumeOptions.DEFAULT_CONSUME_OPTIONS),
+                "the failure must still reach the caller");
+
+            assertNotNull(made.get(), "the subscribe must have succeeded before the failure");
+            assertFalse(made.get().isActive(), "the abandoned subscription must have been cleaned up");
+        });
+    }
+
+    /** Subscribes normally, then fails in rePull - the last statement of doSub. */
+    static class RePullFailsConsumer extends NatsMessageConsumer {
+        RePullFailsConsumer(SimplifiedSubscriptionMaker maker, ConsumerInfo ci, ConsumeOptions opts)
+            throws JetStreamException, InterruptedException {
+            super(maker, ci, opts, null, msg -> {});
+        }
+
+        @Override
+        protected void rePull() {
+            throw new IllegalStateException("simulated: NatsConnection is Closed");
+        }
+    }
+
 }

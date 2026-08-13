@@ -1,5 +1,7 @@
 package io.synadia.client.utils;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +22,7 @@ public class ScheduledTask implements Runnable {
     private final String id;
     private final Runnable runnable;
     protected final AtomicReference<ScheduledFuture<?>> scheduledFutureRef;
+    protected final AtomicReference<Throwable> exceptionRef;
 
     protected final AtomicBoolean notShutdown;
     protected final AtomicBoolean executing;
@@ -98,6 +101,7 @@ public class ScheduledTask implements Runnable {
         this.runnable = runnable;
         notShutdown = new AtomicBoolean(true);
         executing = new AtomicBoolean(false);
+        exceptionRef = new AtomicReference<>();
         this.initialDelayNanos = unit.toNanos(initialDelay);
         this.periodNanos = unit.toNanos(period);
         scheduledFutureRef = new AtomicReference<>(
@@ -128,6 +132,14 @@ public class ScheduledTask implements Runnable {
                 runnable.run();
             }
         }
+        catch (Throwable t) {
+            // Recorded, then rethrown unchanged. The throw still ends the schedule, which is the
+            // executor's contract and the right outcome - a runnable that throws has a coding error
+            // and swallowing it would hide the bug. Recording is what makes it findable afterwards:
+            // the executor keeps it only on the scheduled future, and shutdown() releases that.
+            exceptionRef.set(t);
+            throw t;
+        }
         finally {
             executing.set(false);
         }
@@ -157,6 +169,21 @@ public class ScheduledTask implements Runnable {
     public boolean isDone() {
         ScheduledFuture<?> f = scheduledFutureRef.get();
         return f == null || f.isDone();
+    }
+
+    /**
+     * The exception the runnable threw, if this task ended by throwing.
+     *
+     * <p>An exception thrown out of a {@code scheduleAtFixedRate} task ends the schedule - the runnable
+     * does not run again. That is the executor's contract and this class does not interfere with it: a
+     * runnable that throws has a coding error, and hiding it would be worse than stopping. The exception
+     * is recorded on the way out so it stays available here, including after {@link #shutdown()}, which
+     * releases the scheduled future the executor otherwise keeps it on.
+     *
+     * @return the exception thrown by the runnable, or null if the runnable has never thrown
+     */
+    public @Nullable Throwable getException() {
+        return exceptionRef.get();
     }
 
     /**
