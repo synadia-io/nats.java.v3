@@ -19,6 +19,8 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
+**`_createConsumerAndSubscription` — Under Review.** Working tree, uncommitted, `JetStream.java` only. `_createConsumer` + the delete-on-failed-subscribe cleanup folded into one package-private method, applied to all 9 creator-based `pushSubscribe`/`pullSubscribe` overloads. Reviewed in `REVIEW_CREATE_CONSUMER_AND_SUBSCRIPTION.md`; nothing open in the changed code. Three findings were raised and fixed: the method needed a `throws JetStreamException, InterruptedException` clause (without it the checked exceptions came out wrapped in `RuntimeException` while all 9 public overloads still declared them), the cleanup catch had to widen from `JetStreamException` to `Exception` so an `IllegalStateException` from a delete on a closing connection is suppressed rather than replacing the original failure, and `_createConsumer` was hoisted out of the try so `ci` is a plain non-null local. Compiles clean, not yet run against a server.
+
 ## Recently Closed
 
 
@@ -72,6 +74,9 @@ The single source of truth for the things currently in progress — so any sessi
   * 6 sites, all the same double-read shape: `NatsMessageSink:76,:84,:141`, `NatsSubscription:90,:180-184`, `NatsConnection:2137-2151`. Fix: read once and pass the queue in, via a new `getDeliverabilityState(queue)` returning `AVAILABLE`/`FULL`/`NOT_AVAILABLE`
   * **Simpler than the V2 patch** - V3 normalises unlimited to `Long.MAX_VALUE` in `setPendingLimits`, so V2's `ml > 0` / `bl > 0` guards are dead code here. **Narrower too** - `NatsDispatcher.incoming` is `protected final`, so only a `NatsSubscription` can reach the gone-queue path
   * **The one thing that must not be missed:** the getters start returning `-1` instead of `0`, and `isDrained()` must move `== 0` -> `<= 0`. `cleanUpAfterDrain()` invalidates *before* `tracker.complete(this.isDrained())`, so that comparison is evaluated with the queue already gone on every drain - leaving `== 0` makes every subscription drain future complete `false`
+* REVIEW_CREATE_CONSUMER_AND_SUBSCRIPTION.md
+  * Review of the working-tree `JetStream.java` fold of `_createConsumer` + `subscribeDeleteConsumerOnException` into `_createConsumerAndSubscription`
+  * 2 real findings (checked exceptions wrapped in `RuntimeException`; cleanup catch narrowed so a failing delete replaces the original failure), 2 minor, plus the equivalence checks that came back clean — the ordered/non-ordered `instanceof` dispatch, the 8 converted sites, and the dropped `pmmInstance` parameter
 * PLAN_RECONNECT_DELAY_FOLLOWUP.md
   * **PR #1578 is fully implemented and committed** — the plan doc just never got closed out; not superseded by `PLAN_FORCE_RECONNECT_READER_STOP.md` (different subject), but absorbed and extended by `z-claude-done/PLAN_RECONNECT_DELAY_HANDLER_REDESIGN.md`
   * what's left is that redesign's drift: 3 javadoc blocks + `MIGRATION_GUIDE.md` still name the old default/method, the `lameDuckTriggered` consume contract doesn't match the code, and the connection-side LDM wiring tests never landed
