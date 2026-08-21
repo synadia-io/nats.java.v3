@@ -39,8 +39,7 @@ public class ParseTests extends TestBase {
 
     @Test
     public void testBadGather() throws Exception {
-        runInSharedOwnNc(c -> {
-            NatsConnection nc = (NatsConnection)c;
+        runInSharedOwnNc(nc -> {
             NatsConnectionReader reader = nc.getReader();
             _testBadGather(reader, "thisistoolong\r\n"); // too long protocol
             _testBadGather(reader, "PING\rPONG"); // missing Line Feed
@@ -55,8 +54,7 @@ public class ParseTests extends TestBase {
 
     @Test
     public void testBadParse() throws Exception {
-        runInSharedOwnNc(c -> {
-            NatsConnection nc = (NatsConnection)c;
+        runInSharedOwnNc(nc -> {
             NatsConnectionReader reader = nc.getReader();
             _testBadParse(reader, "MSG  1 1\r\n"); // missing subject
             _testBadParse(reader, "MSG subject  1\r\n"); // missing sid
@@ -76,20 +74,18 @@ public class ParseTests extends TestBase {
     @Test
     public void testTooShortMaxControlLineToConnect() throws Exception {
         try (NatsTestServer ts = new NatsTestServer()) {
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(optionsBuilder(ts).maxControlLine(16).build()));
         }
     }
 
     @Test
     public void testProtocolLineTooLong() throws Exception {
-        runInSharedOwnNc(optionsBuilder().maxControlLine(1024), c -> {
-            NatsConnection nc = (NatsConnection)c;
+        runInSharedOwnNc(optionsBuilder().maxControlLine(1024), nc -> {
             NatsConnectionReader reader = nc.getReader();
             StringBuilder longString = new StringBuilder();
             longString.append("INFO ");
-            for (int i=0;i<500;i++ ){
-                longString.append("helloworld");
-            }
+            longString.repeat("helloworld", 500);
 
             byte[] bytes = longString.toString().getBytes(StandardCharsets.US_ASCII);
             reader.fakeReadForTest(bytes);
@@ -120,8 +116,7 @@ public class ParseTests extends TestBase {
             OP_ERR, OP_INFO, OP_PING, OP_MSG,
             OP_OK, OP_PONG, OP_PONG, OP_MSG
         };
-        runInSharedOwnNc(c -> {
-            NatsConnection nc = (NatsConnection) c;
+        runInSharedOwnNc(nc -> {
             NatsConnectionReader reader = nc.getReader();
 
             for (int i=0; i<serverStrings.length; i++) {

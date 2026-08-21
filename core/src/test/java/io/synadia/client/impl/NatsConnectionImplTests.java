@@ -77,7 +77,7 @@ public class NatsConnectionImplTests extends TestBase {
     }
 
     private static void verifyInternalExecutors(Options options) throws InterruptedException {
-        try (NatsConnection nc = (NatsConnection) managedConnect(options)) {
+        try (NatsConnection nc = managedConnect(options)) {
             ExecutorService es = options.getExecutor();
             ScheduledExecutorService ses = options.getScheduledExecutor();
             ExecutorService callbackEs = options.getCallbackExecutor();
@@ -119,7 +119,7 @@ public class NatsConnectionImplTests extends TestBase {
                                                 ExecutorService userCallbackEs, ExecutorService userConnectEs,
                                                 ExecutorService userReaderEs, ExecutorService userWriterEs
     ) throws InterruptedException {
-        try (NatsConnection nc = (NatsConnection) managedConnect(options)) {
+        try (NatsConnection nc = managedConnect(options)) {
             ExecutorService es = options.getExecutor();
             ScheduledExecutorService ses = options.getScheduledExecutor();
             ExecutorService callbackEs = options.getCallbackExecutor();
@@ -215,8 +215,8 @@ public class NatsConnectionImplTests extends TestBase {
                 .build();
 
             // THESE SHARE THE EXACT SAME OPTIONS INSTANCE
-            NatsConnection nc1 = (NatsConnection) managedConnect(options);
-            NatsConnection nc2 = (NatsConnection) managedConnect(options);
+            NatsConnection nc1 = managedConnect(options);
+            NatsConnection nc2 = managedConnect(options);
 
             // Both connections live, both callbacks work
             nc1.makeCallback(count1::incrementAndGet);

@@ -7,6 +7,6 @@ import java.util.Map;
 public class NatsPackageScopeWorkarounds {
 
     public static Map<String, Dispatcher> getDispatchers(NatsConnection connection) {
-        return ((NatsConnection)connection).getDispatchers();
+        return connection.getDispatchers();
     }
 }

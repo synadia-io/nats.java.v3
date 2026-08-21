@@ -332,7 +332,7 @@ public class RequestTests extends TestBase {
         try (NatsTestServer ts = new NatsTestServer()) {
             long cleanupInterval = 10;
             Options options = optionsBuilder(ts).requestCleanupInterval(cleanupInterval).build();
-            NatsConnection nc = (NatsConnection) Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
 
             try {
 
@@ -597,7 +597,7 @@ public class RequestTests extends TestBase {
                     .server(ts.getServerUri())
                     .requestCleanupInterval(10000)
                     .build();
-            NatsConnection nc = (NatsConnection) Nats.connect(options);
+            NatsConnection nc = Nats.connect(options);
 
             NatsRequestCompletableFuture future = (NatsRequestCompletableFuture) nc.requestAsync("request", null);
             future.cancelClosing();

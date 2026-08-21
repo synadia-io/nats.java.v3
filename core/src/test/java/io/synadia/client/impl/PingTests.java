@@ -69,7 +69,7 @@ public class PingTests extends TestBase {
                 .maxPingsOut(2)
                 .maxReconnects(0)
                 .build();
-            try (NatsConnection nc = (NatsConnection)standardConnect(options)) {
+            try (NatsConnection nc = standardConnect(options)) {
                 nc.sendPing();
                 nc.sendPing();
                 assertNull(nc.sendPing(), "No future returned when past max");

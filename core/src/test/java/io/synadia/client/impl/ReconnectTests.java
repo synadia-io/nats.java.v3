@@ -74,7 +74,7 @@ public class ReconnectTests {
             optSetter.accept(ts, builder);
             Options options = builder.build();
 
-            nc = (NatsConnection) managedConnect(options);
+            nc = managedConnect(options);
 
             sub = nc.subscribe(subsubject);
 
@@ -138,7 +138,7 @@ public class ReconnectTests {
                 .connectionListener(listener)
                 .build();
             port = ts.getNatsPort();
-            nc = (NatsConnection) managedConnect(options);
+            nc = managedConnect(options);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         }
 
@@ -194,7 +194,7 @@ public class ReconnectTests {
                 .reconnectWait(1000L)
                 .connectionListener(listener)
                 .build();
-            nc = (NatsConnection) managedConnect(options);
+            nc = managedConnect(options);
 
             sub = nc.subscribe(subsubject);
 
@@ -282,7 +282,7 @@ public class ReconnectTests {
                     .connectionListener(listener)
                     .maxReconnects(-1)
                     .build();
-                nc = (NatsConnection) managedConnect(options);
+                nc = managedConnect(options);
                 assertEquals(ts2.getServerUri(), nc.getConnectedUrl());
                 listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
             }
@@ -306,7 +306,7 @@ public class ReconnectTests {
                     .connectionListener(listener)
                     .maxReconnects(-1)
                     .build();
-                nc = (NatsConnection) managedConnect(options);
+                nc = managedConnect(options);
                 assertEquals(ts2.getServerUri(), nc.getConnectedUrl());
                 listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
             }
@@ -443,7 +443,7 @@ public class ReconnectTests {
                 .connectionListener(listener)
                 .build();
             port = mockTs.getNatsPort();
-            nc = (NatsConnection) standardConnect(options);
+            nc = standardConnect(options);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
             nc.subscribe("test");
             subRef.get().get();
@@ -548,7 +548,7 @@ public class ReconnectTests {
                 .build();
 
             listener.queueConnectionEvent(ConnectionEvents.DISCOVERED_SERVERS);
-            nc = (NatsConnection) ConnectionUtils.managedConnect(options);
+            nc = ConnectionUtils.managedConnect(options);
             assertEquals(ts.getServerUri(), nc.getConnectedUrl());
 
             flushConnection(nc); // make sure we get the new server via info
@@ -580,7 +580,7 @@ public class ReconnectTests {
                 .connectionListener(listener)
                 .build();
 
-            nc = (NatsConnection) Nats.connect(options);
+            nc = Nats.connect(options);
             assertConnected(nc);
 
             for (int i = 0; i < 100; i++) {

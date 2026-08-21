@@ -30,8 +30,7 @@ public class AuthAndConnectTests extends TestBase {
 
     @Test()
     public void testConnectWhenClosed() throws Exception {
-        runInSharedOwnNc(c -> {
-            NatsConnection nc = (NatsConnection)c;
+        runInSharedOwnNc(nc -> {
             closeAndConfirm(nc);
             nc.connect(false); // should do nothing
             assertClosed(nc);
@@ -62,7 +61,7 @@ public class AuthAndConnectTests extends TestBase {
                     .errorListener(noopErrorListener)
                     .build();
 
-            try (NatsConnection nc = (NatsConnection) managedConnect(options)) {
+            try (NatsConnection nc = managedConnect(options)) {
 
                 // After we've connected, shut down, so we can attempt reconnecting.
                 ts.shutdown(true);
