@@ -611,52 +611,67 @@ public class JetStream extends JetStreamImpl {
                                            @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
                                            @Nullable PullMessageManager pmmInstance)
     {
+        // The config makes the dispatcher when the subscribe is async and the caller did not supply one,
+        // so from here on a failure has to close it - the subscription that would have owned it never exists.
         JetStreamSubscribeConfig jssc = new JetStreamSubscribeConfig(consumerInfo, subscribeBehavior, orderedCreator, conn::createDispatcher);
-        ConsumerConfiguration cc = jssc.consumerInfo.getConsumerConfiguration();
-        MessageHandler handler = jssc.getHandler();
-        NatsDispatcher dispatcher = jssc.getDispatcher();
+        try {
+            ConsumerConfiguration cc = jssc.consumerInfo.getConsumerConfiguration();
+            MessageHandler handler = jssc.getHandler();
 
-        String inbox = cc.getDeliverSubject();
-        boolean isPull = inbox == null;
-        if (isPull) {
-            inbox = conn.createInbox() + ".*";
-        }
+            String inbox = cc.getDeliverSubject();
+            boolean isPull = inbox == null;
+            if (isPull) {
+                inbox = conn.createInbox() + ".*";
+            }
 
-        MessageManager mm;
-        NatsSubscriptionFactory subFactory;
-        if (isPull) {
-            if (pmmInstance == null) {
-                MessageManagerFactory mmFactory = jssc.isOrdered ? _pullOrderedMessageManagerFactory : _pullMessageManagerFactory;
-                mm = mmFactory.createMessageManager(conn, this, jssc);
+            MessageManager mm;
+            NatsSubscriptionFactory subFactory;
+            if (isPull) {
+                if (pmmInstance == null) {
+                    MessageManagerFactory mmFactory = jssc.isOrdered ? _pullOrderedMessageManagerFactory : _pullMessageManagerFactory;
+                    mm = mmFactory.createMessageManager(conn, this, jssc);
+                }
+                else {
+                    mm = pmmInstance;
+                }
+                subFactory = (sid, lSubject, lQgroup, lConn, lDispatcher)
+                    -> new JetStreamPullSubscription(sid, lSubject, lConn, lDispatcher, this, jssc, mm);
             }
             else {
-                mm = pmmInstance;
+                MessageManagerFactory mmFactory = jssc.isOrdered ? _pushOrderedMessageManagerFactory : _pushMessageManagerFactory;
+                mm = mmFactory.createMessageManager(conn, this, jssc);
+                subFactory = (sid, lSubject, lQgroup, lConn, lDispatcher) -> {
+                    JetStreamPushSubscription sub =
+                        new JetStreamPushSubscription(sid, lSubject, lQgroup, lConn, lDispatcher, this, jssc, mm);
+                    // Pending limits only apply to a synchronous push subscription (it owns its own queue).
+                    // For async, set limits on the dispatcher directly; pull is bounded by its batch size.
+                    if (lDispatcher == null) {
+                        sub.setPendingLimits(jssc.getPendingMessageLimit(), jssc.getPendingByteLimit());
+                    }
+                    return sub;
+                };
             }
-            subFactory = (sid, lSubject, lQgroup, lConn, lDispatcher)
-                -> new JetStreamPullSubscription(sid, lSubject, lConn, lDispatcher, this, jssc, mm);
+
+            if (handler == null) {
+                return conn._createSubscriptionByFactory(inbox, cc.getDeliverGroup(), null, subFactory);
+            }
+
+            AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler, cc);
+            //noinspection DataFlowIssue DISPATCHER WILL NEVER BE NULL WHEN THERE IS A HANDLER!
+            return jssc.getDispatcher()._subscribeByFactory(inbox, cc.getDeliverGroup(), amh, subFactory);
         }
-        else {
-            MessageManagerFactory mmFactory = jssc.isOrdered ? _pushOrderedMessageManagerFactory : _pushMessageManagerFactory;
-            mm = mmFactory.createMessageManager(conn, this, jssc);
-            subFactory = (sid, lSubject, lQgroup, lConn, lDispatcher) -> {
-                JetStreamPushSubscription sub =
-                    new JetStreamPushSubscription(sid, lSubject, lQgroup, lConn, lDispatcher, this, jssc, mm);
-                // Pending limits only apply to a synchronous push subscription (it owns its own queue).
-                // For async, set limits on the dispatcher directly; pull is bounded by its batch size.
-                if (lDispatcher == null) {
-                    sub.setPendingLimits(jssc.getPendingMessageLimit(), jssc.getPendingByteLimit());
+        catch (RuntimeException e) {
+            if (jssc.internalDispatcher) {
+                try {
+                    //noinspection DataFlowIssue DISPATCHER WILL NEVER BE NULL WHEN IT IS INTERNAL!
+                    conn.closeDispatcher(jssc.getDispatcher());
                 }
-                return sub;
-            };
+                catch (Exception ce) {
+                    e.addSuppressed(ce);
+                }
+            }
+            throw e;
         }
-
-        if (handler == null) {
-            return conn._createSubscriptionByFactory(inbox, cc.getDeliverGroup(), null, subFactory);
-        }
-
-        AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler, cc);
-        //noinspection DataFlowIssue DISPATCHER WILL NEVER BE NULL WHEN THERE IS A HANDLER!
-        return dispatcher._subscribeByFactory(inbox, cc.getDeliverGroup(), amh, subFactory);
     }
 
     static class AsyncMessageHandler implements MessageHandler {
