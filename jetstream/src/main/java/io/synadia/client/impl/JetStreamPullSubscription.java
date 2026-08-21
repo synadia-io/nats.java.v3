@@ -136,7 +136,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
             long maxWaitNanos = maxWaitMillis * NANOS_PER_MILLI;
             long timeLeftNanos = maxWaitNanos;
             while (batchLeft > 0 && timeLeftNanos > 0) {
-                Message msg = nextMessageInternal(timeLeftNanos, TimeUnit.NANOSECONDS);
+                Message msg = _nextMessage(timeLeftNanos, TimeUnit.NANOSECONDS);
                 if (msg == null) {
                     return messages; // normal timeout
                 }
@@ -163,7 +163,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
             }
         }
         catch (InterruptedException e) {
-            // nextMessageInternal failed. By not throwing
+            // _nextMessage failed. By not throwing
             // this gives them the messages already added to the list
             Thread.currentThread().interrupt();
         }
@@ -174,7 +174,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
         List<Message> messages = new ArrayList<>(batchSize);
         try {
             while (true) {
-                Message msg = nextMessageInternal(null, TimeUnit.MILLISECONDS); // raw poll once; drain manages messages itself
+                Message msg = _nextMessage(null, TimeUnit.MILLISECONDS); // raw poll once; drain manages messages itself
                 if (msg == null) {
                     return messages; // no more message currently queued
                 }
@@ -188,7 +188,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
             }
         }
         catch (InterruptedException ignore) {
-            // nextMessageInternal failed. By not throwing
+            // _nextMessage failed. By not throwing
             // this gives them the messages already added to the list
             Thread.currentThread().interrupt();
         }

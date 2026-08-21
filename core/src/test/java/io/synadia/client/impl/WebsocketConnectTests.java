@@ -34,16 +34,16 @@ public class WebsocketConnectTests extends TestBase {
 
     private static OptionsBuilder wsBuilder(NatsTestServer ts) {
         return builder()
-            .server(NatsTestServer.getLocalhostUri(WS, ts.getPort(WS)));
+            .server(NatsTestServer.getLocalhostUri(WS, ts.getNonNatsPort()));
     }
 
     private static OptionsBuilder wssBuilder(NatsTestServer ts) throws Exception {
         return builder()
-            .server(NatsTestServer.getLocalhostUri(WSS, ts.getPort(WSS)))
+            .server(NatsTestServer.getLocalhostUri(WSS, ts.getNonNatsPort()))
             .sslContext(SslTestingHelper.createTestSSLContext());
     }
 
-    private static void _test(OptionsBuilder builder) throws InterruptedException {
+    private static void _test(OptionsBuilder builder) {
         try (NatsConnection connection = managedConnect(builder.build())) {
             Dispatcher dispatcher = connection.createDispatcher(
                 msg -> connection.publish(msg.getReplyTo(), (new String(msg.getData()) + ":reply").getBytes()));
@@ -171,7 +171,7 @@ public class WebsocketConnectTests extends TestBase {
 
             listener.queueConnectionEvent(CONNECTED);
             nc = Nats.connect(options);
-            assertInstanceOf(SocketDataPort.class, ((NatsConnection) nc).getDataPort(), "Correct data port class");
+            assertInstanceOf(SocketDataPort.class, nc.getDataPort(), "Correct data port class");
             listener.validate();
             assertConnected(nc);
         }
@@ -192,6 +192,7 @@ public class WebsocketConnectTests extends TestBase {
                 .dataPortType(CloseOnUpgradeAttempt.class.getCanonicalName())
                 .sslContext(ctx)
                 .build();
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(options));
         });
     }
@@ -200,8 +201,9 @@ public class WebsocketConnectTests extends TestBase {
     public void testClientInsecureServerSecureMismatchWss() throws Exception {
         runInSharedConfiguredServer("wss.conf", ts -> {
             Options options = builder()
-                .server(NatsTestServer.getLocalhostUri(WS, ts.getPort(WSS)))
+                .server(ts.getLocalhostUri(WS))
                 .build();
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(options));
         });
     }
@@ -210,8 +212,9 @@ public class WebsocketConnectTests extends TestBase {
     public void testClientInsecureServerSecureMismatchWssVerify() throws Exception {
         runInSharedConfiguredServer("wssverify.conf", ts -> {
             Options options = builder()
-                .server(NatsTestServer.getLocalhostUri(WS, ts.getPort(WSS)))
+                .server(NatsTestServer.getLocalhostUri(WS, ts.getNatsPort()))
                 .build();
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(options));
         });
     }
@@ -224,6 +227,7 @@ public class WebsocketConnectTests extends TestBase {
                 .server(nc.getConnectedUrl())
                 .sslContext(SslTestingHelper.createTestSSLContext())
                 .build();
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(options));
         });
     }
@@ -233,6 +237,7 @@ public class WebsocketConnectTests extends TestBase {
         runInSharedConfiguredServer("wss.conf", ts -> {
             SSLContext ctx = SslTestingHelper.createEmptySSLContext();
             Options options = wssBuilder(ts).sslContext(ctx).build();
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(options));
         });
     }
@@ -242,6 +247,7 @@ public class WebsocketConnectTests extends TestBase {
         runInSharedConfiguredServer("wssverify.conf", ts -> {
             SSLContext ctx = SslTestingHelper.createEmptySSLContext();
             Options options = wssBuilder(ts).sslContext(ctx).build();
+            //noinspection resource
             assertThrows(IOException.class, () -> Nats.connect(options));
         });
     }

@@ -140,9 +140,9 @@ public class Service {
 
     private void addDiscoveryContexts(String discoveryName, Dispatcher dUser, Dispatcher dInternal, ServiceMessageHandler handler) {
         Endpoint[] endpoints = new Endpoint[] {
-            internalEndpoint(discoveryName, null, null),
-            internalEndpoint(discoveryName, pingResponse.getName(), null),
-            internalEndpoint(discoveryName, pingResponse.getName(), pingResponse.getId())
+            newEndpoint(discoveryName, null, null),
+            newEndpoint(discoveryName, pingResponse.getName(), null),
+            newEndpoint(discoveryName, pingResponse.getName(), pingResponse.getId())
         };
 
         for (Endpoint endpoint : endpoints) {
@@ -169,7 +169,7 @@ public class Service {
         addDiscoveryContexts(SRV_STATS, dUser, dInternal, handler);
     }
 
-    private Endpoint internalEndpoint(String discoveryName, String optionalServiceNameSegment, String optionalServiceIdSegment) {
+    private Endpoint newEndpoint(String discoveryName, String optionalServiceNameSegment, String optionalServiceIdSegment) {
         String subject = toDiscoverySubject(discoveryName, optionalServiceNameSegment, optionalServiceIdSegment);
         return new Endpoint(subject, subject, null, null, false);
     }

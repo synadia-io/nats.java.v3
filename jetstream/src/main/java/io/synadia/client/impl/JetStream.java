@@ -91,7 +91,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, null, null, null, null);
+        return _publishSync(subject, null, null, null, null);
     }
 
     /**
@@ -103,7 +103,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, byte @Nullable[] data) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, null, data, null, null);
+        return _publishSync(subject, null, data, null, null);
     }
 
     /**
@@ -115,7 +115,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, @Nullable String data) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, null, null, data, null);
+        return _publishSync(subject, null, null, data, null);
     }
 
     /**
@@ -127,7 +127,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, headers, null, null, null);
+        return _publishSync(subject, headers, null, null, null);
     }
 
     /**
@@ -140,7 +140,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, byte @Nullable[] data) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, headers, data, null, null);
+        return _publishSync(subject, headers, data, null, null);
     }
 
     /**
@@ -153,7 +153,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, @Nullable String data) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, headers, null, data, null);
+        return _publishSync(subject, headers, null, data, null);
     }
 
     /**
@@ -166,7 +166,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, byte @Nullable [] data, PublishOptions options) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, null, data, null, options);
+        return _publishSync(subject, null, data, null, options);
     }
 
     /**
@@ -179,7 +179,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, @Nullable String data, PublishOptions options) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, null, null, data, options);
+        return _publishSync(subject, null, null, data, options);
     }
 
     /**
@@ -193,7 +193,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, byte[] data, PublishOptions options) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, headers, data, null, options);
+        return _publishSync(subject, headers, data, null, options);
     }
 
     /**
@@ -207,7 +207,7 @@ public class JetStream extends JetStreamImpl {
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
      */
     public PublishAck publish(String subject, Headers headers, String data, PublishOptions options) throws JetStreamException, InterruptedException {
-        return publishSyncInternal(subject, headers, null, data, options);
+        return _publishSync(subject, headers, null, data, options);
     }
 
     /**
@@ -220,7 +220,7 @@ public class JetStream extends JetStreamImpl {
      */
     public PublishAck publish(Message message) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
-        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, null);
+        return _publishSync(message.getSubject(), message.getHeaders(), message.getData(), null, null);
     }
 
     /**
@@ -234,7 +234,7 @@ public class JetStream extends JetStreamImpl {
      */
     public PublishAck publish(Message message, PublishOptions options) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
-        return publishSyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options);
+        return _publishSync(message.getSubject(), message.getHeaders(), message.getData(), null, options);
     }
 
     /**
@@ -260,7 +260,7 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body) {
-        return publishAsyncInternal(subject, null, body, null, null, true);
+        return _publishAsync(subject, null, body, null, null, true);
     }
 
     /**
@@ -270,7 +270,7 @@ public class JetStream extends JetStreamImpl {
      * @return a future that completes with the acknowledgement
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, String body) {
-        return publishAsyncInternal(subject, null, null, body, null, true);
+        return _publishAsync(subject, null, null, body, null, true);
     }
 
     /**
@@ -298,7 +298,7 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body) {
-        return publishAsyncInternal(subject, headers, body, null, null, true);
+        return _publishAsync(subject, headers, body, null, null, true);
     }
 
     /**
@@ -309,7 +309,7 @@ public class JetStream extends JetStreamImpl {
      * @return a future that completes with the acknowledgement
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body) {
-        return publishAsyncInternal(subject, headers, null, body, null, true);
+        return _publishAsync(subject, headers, null, body, null, true);
     }
 
     /**
@@ -335,7 +335,7 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body, PublishOptions options) {
-        return publishAsyncInternal(subject, null, body, null, options, true);
+        return _publishAsync(subject, null, body, null, options, true);
     }
 
     /**
@@ -346,7 +346,7 @@ public class JetStream extends JetStreamImpl {
      * @return a future that completes with the acknowledgement
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, String body, PublishOptions options) {
-        return publishAsyncInternal(subject, null, null, body, options, true);
+        return _publishAsync(subject, null, null, body, options, true);
     }
 
     /**
@@ -374,7 +374,7 @@ public class JetStream extends JetStreamImpl {
      * @return The future
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body, PublishOptions options) {
-        return publishAsyncInternal(subject, headers, body, null, options, true);
+        return _publishAsync(subject, headers, body, null, options, true);
     }
 
     /**
@@ -386,7 +386,7 @@ public class JetStream extends JetStreamImpl {
      * @return a future that completes with the acknowledgement
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body, PublishOptions options) {
-        return publishAsyncInternal(subject, headers, null, body, options, true);
+        return _publishAsync(subject, headers, null, body, options, true);
     }
 
     /**
@@ -416,7 +416,7 @@ public class JetStream extends JetStreamImpl {
      */
     public CompletableFuture<PublishAck> publishAsync(Message message) {
         validateNotNull(message, "Message");
-        return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, null, false);
+        return _publishAsync(message.getSubject(), message.getHeaders(), message.getData(), null, null, false);
     }
 
     /**
@@ -446,10 +446,10 @@ public class JetStream extends JetStreamImpl {
      */
     public CompletableFuture<PublishAck> publishAsync(Message message, PublishOptions options) {
         validateNotNull(message, "Message");
-        return publishAsyncInternal(message.getSubject(), message.getHeaders(), message.getData(), null, options, false);
+        return _publishAsync(message.getSubject(), message.getHeaders(), message.getData(), null, options, false);
     }
 
-    private PublishAck publishSyncInternal(String subject, @Nullable Headers headers, byte @Nullable[] data, @Nullable String sData, @Nullable PublishOptions options) throws JetStreamException, InterruptedException {
+    private PublishAck _publishSync(String subject, @Nullable Headers headers, byte @Nullable[] data, @Nullable String sData, @Nullable PublishOptions options) throws JetStreamException, InterruptedException {
         Headers merged = mergePublishOptions(headers, options);
 
         if (data == null && sData != null) {
@@ -461,7 +461,7 @@ public class JetStream extends JetStreamImpl {
         return processPublishResponse(resp);
     }
 
-    private CompletableFuture<PublishAck> publishAsyncInternal(String subject, @Nullable Headers headers, byte @Nullable [] data, @Nullable String sData, @Nullable PublishOptions options, boolean validateSubjectAndReplyTo) {
+    private CompletableFuture<PublishAck> _publishAsync(String subject, @Nullable Headers headers, byte @Nullable [] data, @Nullable String sData, @Nullable PublishOptions options, boolean validateSubjectAndReplyTo) {
         Headers merged = mergePublishOptions(headers, options);
 
         if (data == null && sData != null) {
@@ -538,7 +538,7 @@ public class JetStream extends JetStreamImpl {
      *
      * <p><b>Only call this with a consumer this call created.</b> For a consumer the caller already owns
      * - bound by name, or supplied as a {@code ConsumerInfo} - a failed subscribe would delete something
-     * that was never ours to delete. Those paths call {@link #createSubscription} directly.
+     * that was never ours to delete. Those paths call {@link #_createJsSubscription} directly.
      *
      * <p>The consumer exists only to back this subscription, so a failed subscribe would otherwise leave
      * it orphaned on the server with nothing able to reach it. The create used the {@code Create} action,
@@ -566,7 +566,7 @@ public class JetStream extends JetStreamImpl {
                                                         @Nullable PullMessageManager pmmInstance)
     {
         try {
-            return createSubscription(consumerInfo, subscribeBehavior, orderedCreator, pmmInstance);
+            return _createJsSubscription(consumerInfo, subscribeBehavior, orderedCreator, pmmInstance);
         }
         catch (RuntimeException e) {
             try {
@@ -583,10 +583,10 @@ public class JetStream extends JetStreamImpl {
         }
     }
 
-    NatsSubscription createSubscription(ConsumerInfo consumerInfo,
-                                        @Nullable SubscribeBehavior subscribeBehavior,
-                                        @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
-                                        @Nullable PullMessageManager pmmInstance)
+    NatsSubscription _createJsSubscription(ConsumerInfo consumerInfo,
+                                           @Nullable SubscribeBehavior subscribeBehavior,
+                                           @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
+                                           @Nullable PullMessageManager pmmInstance)
     {
         JetStreamSubscribeConfig jssc = new JetStreamSubscribeConfig(consumerInfo, subscribeBehavior, orderedCreator, conn::createDispatcher);
         ConsumerConfiguration cc = jssc.consumerInfo.getConsumerConfiguration();
@@ -628,12 +628,12 @@ public class JetStream extends JetStreamImpl {
         }
 
         if (handler == null) {
-            return conn.createSubscriptionInternal(inbox, cc.getDeliverGroup(), null, subFactory);
+            return conn._createSubscriptionByFactory(inbox, cc.getDeliverGroup(), null, subFactory);
         }
 
         AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler, cc);
         //noinspection DataFlowIssue DISPATCHER WILL NEVER BE NULL WHEN THERE IS A HANDLER!
-        return dispatcher.subscribeImplByFactory(inbox, cc.getDeliverGroup(), amh, subFactory);
+        return dispatcher._subscribeByFactory(inbox, cc.getDeliverGroup(), amh, subFactory);
     }
 
     static class AsyncMessageHandler implements MessageHandler {
@@ -660,7 +660,7 @@ public class JetStream extends JetStreamImpl {
      * @return the push subscription
      */
     public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo) {
-        return (JetStreamPushSubscription) createSubscription(consumerInfo, null, null, null);
+        return (JetStreamPushSubscription) _createJsSubscription(consumerInfo, null, null, null);
     }
 
     /**
@@ -674,7 +674,7 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo, MessageHandler messageHandler) {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
-        return (JetStreamPushSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
+        return (JetStreamPushSubscription) _createJsSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
@@ -687,7 +687,7 @@ public class JetStream extends JetStreamImpl {
      */
     public JetStreamPushSubscription pushSubscribe(ConsumerInfo consumerInfo, SubscribeBehavior subscribeBehavior) {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
-        return (JetStreamPushSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
+        return (JetStreamPushSubscription) _createJsSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
@@ -700,7 +700,7 @@ public class JetStream extends JetStreamImpl {
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public JetStreamPushSubscription pushSubscribe(String stream, String consumerName) throws JetStreamException, InterruptedException {
-        return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
+        return (JetStreamPushSubscription) _createJsSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
     /**
@@ -718,7 +718,7 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
-        return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
+        return (JetStreamPushSubscription) _createJsSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
@@ -734,7 +734,7 @@ public class JetStream extends JetStreamImpl {
      */
     public JetStreamPushSubscription pushSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
-        return (JetStreamPushSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
+        return (JetStreamPushSubscription) _createJsSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
@@ -898,7 +898,7 @@ public class JetStream extends JetStreamImpl {
      * @return the pull subscription
      */
     public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo) {
-        return (JetStreamPullSubscription) createSubscription(consumerInfo, null, null, null);
+        return (JetStreamPullSubscription) _createJsSubscription(consumerInfo, null, null, null);
     }
 
     /**
@@ -912,7 +912,7 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo, MessageHandler messageHandler) {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
-        return (JetStreamPullSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
+        return (JetStreamPullSubscription) _createJsSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
@@ -925,7 +925,7 @@ public class JetStream extends JetStreamImpl {
      */
     public JetStreamPullSubscription pullSubscribe(ConsumerInfo consumerInfo, SubscribeBehavior subscribeBehavior) {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
-        return (JetStreamPullSubscription) createSubscription(consumerInfo, subscribeBehavior, null, null);
+        return (JetStreamPullSubscription) _createJsSubscription(consumerInfo, subscribeBehavior, null, null);
     }
 
     /**
@@ -938,7 +938,7 @@ public class JetStream extends JetStreamImpl {
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public JetStreamPullSubscription pullSubscribe(String stream, String consumerName) throws JetStreamException, InterruptedException {
-        return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
+        return (JetStreamPullSubscription) _createJsSubscription(strictGetConsumerInfo(stream, consumerName), null, null, null);
     }
 
     /**
@@ -956,7 +956,7 @@ public class JetStream extends JetStreamImpl {
     public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws JetStreamException, InterruptedException {
         Validator.required(messageHandler, "MessageHandler");
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior().handler(messageHandler);
-        return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
+        return (JetStreamPullSubscription) _createJsSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**
@@ -972,7 +972,7 @@ public class JetStream extends JetStreamImpl {
      */
     public JetStreamPullSubscription pullSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         Validator.required(subscribeBehavior, "SubscribeBehavior");
-        return (JetStreamPullSubscription) createSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
+        return (JetStreamPullSubscription) _createJsSubscription(strictGetConsumerInfo(stream, consumerName), subscribeBehavior, null, null);
     }
 
     /**

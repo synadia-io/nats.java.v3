@@ -19,7 +19,26 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
-**Reconnect Delay Behavior — Committed, build passed.** `8dee6cb5`, pushed to `main`; GitHub Actions "Build Main" green (run 31641993453). Full detail in `PLAN_RECONNECT_DELAY_FOLLOWUP.md`.
+**Internal-marker naming (`_` / `Impl` / `internal`) — Under Review.** Working tree, uncommitted. Detail in `UNDERSCORE_INTERNAL_NAMING_AUDIT.md` and `NATSCONNECTION_NAMING_TABLE.md`.
+
+The rule that came out of it is one line: **`_` means internal, and a delegate is an internal thing, so it gets `_` too.** One marker, one meaning; the only thing the name still has to carry is the *stem* of the public method it backs (`_nextMessage` ← `nextMessage`). Removing a marker is licence to change the marker, not to rename the method — three names got rewritten on that mistake and were restored.
+
+Two deliberate exceptions, both because a marker would be lying:
+
+* **`NatsConnection`'s five lifecycle methods keep `Impl`** (`connectImpl`, `forceReconnectImpl`, `reconnectImpl`, `reconnectImplConnect`, `closeSocketImpl`) — the names carry history for the people who have read the code. A Composed Method pass renamed them and was fully reverted.
+* **`NatsDispatcher.internalStart` → `startImpl`, staying `protected`** — it is outward-facing extension API, not internal at all. `nats-java-vertx-client`'s `VertxDispatcher` subclasses into the impl package and calls it with `threaded=false` to drive the drain loop off the Vert.x event loop. That the flag looks dead in-repo (`@SuppressWarnings("SameParameterValue")`, no in-tree `false`) is exactly the trap. `_` would have claimed "not for you" to the only audience that uses it; `Impl` names the implementation half of `start` without making a claim about audience. Also recorded as `PLAN_CORE_JETSTREAM_BOUNDARY.md` §3c, because the same finding invalidates "package-private constructor ⇒ not extensible" and makes sealing the module a downstream-compat decision rather than a cleanup.
+
+**This is the audit's one public-API change and it breaks `nats-java-vertx-client`** — one line, `VertxDispatcher:16`. Deliberate, taken because v3 is a new release. That repo is not updated.
+
+Renames applied since: `ListRequestEngine.internalNextJson` (×2) → `_nextJson`, `internalStart` → `startImpl`; `core` + `jetstream` main and test all compile clean.
+
+**Three renaming traps, every one of which compiled green:** a method name can also be a field/parameter/comment elsewhere; the same name can be a parameter in an unrelated class; and `protected` in a base can be `public` in an override (so a "private" rename silently changes public API). Procedure: list every file an identifier rename will touch and confirm each hit is the method, check every override for widened visibility, then read the diff — do not trust the compiler.
+
+Next: `PLAN_CORE_JETSTREAM_BOUNDARY.md`, which now owns the follow-on visibility pass (package vs `protected` vs `private`) as its §3a/§3b/§3c.
+
+---
+
+**Reconnect Delay Behavior — Closed.** `8dee6cb5`, pushed to `main`; GitHub Actions "Build Main" green (run 31641993453). Full detail in `PLAN_RECONNECT_DELAY_FOLLOWUP.md`.
 
 Three things landed together:
 
@@ -56,13 +75,15 @@ Round numbers stay 1-based — it's a round, not an index. A 4-state enum (addin
 
 Newest first. Detail lives in each plan/audit doc.
 
+* **ISSUE_1596_REVIEW.md** — `0537c485`, `c47bb0d7`, both builds green; doc archived to `z-claude-done/`. V3 review of jnats V2 issue #1596: the reported bug is structurally impossible here (consumer-first ordering, confirmed across all 24 `createSubscription` call sites), but two underlying gaps were real and are fixed — an ordered consumer no longer dies silently on an unchecked exception and no longer abandons a subscription it created, and a consumer created for a subscribe that then fails is deleted rather than orphaned server-side. `ScheduledTask` now **records** a thrown exception and rethrows it, surviving `shutdown()` via a new `getException()`; it does not swallow, because the schedule ending is the executor contract and correct for a coding error. Finding 4 went to `REQUEST_BEHAVIOR_IMPROVEMENT.md` as field motivation.
+
 * **PLAN_RECONNECT_DELAY_FOLLOWUP.md items 1-4** — `8dee6cb5`, build green. Call-site gating restored so `reconnectDelayBehavior` applies to custom handlers too; default back to `BeforeSubsequentRounds`; enum/property docs filled in. Item 5 (LDM wiring tests) still open — see `## Current Implementation`.
 * **INTEGRATION_PLAN_PR_1578.md** — closed out 2026-08-12, doc archived to `z-claude-done/`. It had been fully implemented and committed for a while; only the bookkeeping was outstanding. Absorbed and extended by `z-claude-done/PLAN_RECONNECT_DELAY_HANDLER_REDESIGN.md` (handler is now `getWaitTimeMillis(round, options, secure, lameDuckTriggered)`, never-null `DefaultReconnectDelayHandler.INSTANCE`, `LameDuckAware` default, no enum branch in the reconnect loop). That redesign's leftover drift is tracked in `PLAN_RECONNECT_DELAY_FOLLOWUP.md`.
 * **INTEGRATION_PLAN_PR_1609.md** — `4351b510`, `d6914f41`. Upstream #1608/#1609 ported: `updateStatus(DISCONNECTED)` moved ahead of `closeSocketImpl`, plus the two PR #1547 `updateStatus` items (event chosen from the transition made, not a re-read after unlocking; `status` now `volatile`). Step 4 (`currentServer` not volatile) deliberately not taken, still open.
 * **`AuthTests` special-character test made cross-platform** — `c6e0cdd8`. Dropped a Windows-only skip that was masking a harness quoting bug; renamed to `testUserPassWithSpecialCharacters`.
 * **`ListenerIdTests`** — `900bed22`.
 * **PUBLIC_API_MISSING_JAVADOC_AUDIT.md** — `2f03d342`, `998d5752`, `dc10cb9e`, `c697d7f8`. Every public declaration in `core`/`jetstream`/`service` documented; 0 javadoc errors, only the gitignored `DebugJs` left.
-* **RESOURCEUTILS_V3_PLAN.md** — `c68ca6cb`. Dropped a vestigial `@SuppressWarnings` and added `ResourceUtilsTests`.
+* **RESOURCEUTILS_V3_PLAN.md** — `c68ca6cb`; doc archived to `z-claude-done/` 2026-08-14. Dropped a vestigial `@SuppressWarnings` and added `ResourceUtilsTests` (2 tests, green). Verified at archive time: V2 and V3 `ResourceUtils` differ in exactly the two places the plan predicted — V3-only `configResource`/`jwtResource`, and `readAllBytes()` vs V2's Java-8 buffer loop — so neither side has drifted. It had been listed under both `## Recently Closed` and `## Plans / Audits` at once, which is why it read as open.
 * **PLAN_FORCE_RECONNECT_READER_STOP.md** — `e64ad979`. `forceReconnectImpl` now stops i/o before closing and joins with the full connection timeout, so a stale reader can't fire on the healthy connection.
 * **`Nats.connectAsynchronously` returns a future** — `5f754250`. `CompletableFuture<NatsConnection>` plus an `Executor` overload.
 * **LISTENERS_ON_THE_FLY_PLAN.md** — `7e203856`. `ErrorListener`/`ConnectionListener` are multi-listener, add/remove live.
@@ -75,8 +96,21 @@ Newest first. Detail lives in each plan/audit doc.
 ## Plans / Audits
 * PLAN_REQUEST_CLEANUP_INTERVAL_SPLIT.md
 * UNDERSCORE_INTERNAL_NAMING_AUDIT.md
+  * **Settled 2026-08-15: `_` means internal, and a delegate is an internal thing** — one marker, one meaning. Delegate-vs-impl, caller counts and module boundaries all stop mattering at naming time; the call shape already shows them
+  * The one thing a name must keep is the **stem** of the public method it backs (`_nextMessage` <- `nextMessage`). Removing a marker is licence to change the marker, not to rename the method — three names were rewritten on that mistake and restored
+  * `internal` survives only as an adjective (`executorIsInternal`, `internalArray`, `queueInternalOutgoing`), several of which are public API. `NatsConnection`'s lifecycle keeps `Impl` deliberately — see `NATSCONNECTION_NAMING_TABLE.md`
+  * 14 methods renamed. All package-private or private except one deliberate API change: `NatsDispatcher.internalStart` -> **`startImpl`**, staying `protected` because it is real extension API — `nats-java-vertx-client`'s `VertxDispatcher` calls it with `threaded=false` to run the drain loop on the Vert.x event loop. `_` would have been wrong there; `Impl` names the implementation half of `start` without claiming anything about audience. **Breaks that repo, one line, not updated.** Also `ListRequestEngine.internalNextJson` (x2) -> `_nextJson`
+  * Three renaming traps recorded in the doc, each of which compiled cleanly: a method name that is a variable elsewhere, a parameter of the same name in another class, and a `protected` base method widened to `public` in an override. A fourth, from the `startImpl` finding: a parameter that looks dead in-repo (and carries `@SuppressWarnings("SameParameterValue")`) can be the whole point of the method for an out-of-tree subclass
+  * **Complete, archived to `z-claude-done/`.** The follow-on visibility pass (package vs `protected` vs `private`) is `PLAN_CORE_JETSTREAM_BOUNDARY.md` §3a/§3b/§3c, not a separate plan
 * INTERFACE_DEFAULT_METHODS_AUDIT.md
 * FLAKY_TESTS_ANALYSIS.md
+  * **Three "flaky" tests were port-4222 contention — RESOLVED 2026-08-17. It was a `NatsServerRunner` bug, not a conf-design problem.** `ws_operator.conf` / `wss_operator.conf` had no top-level `port` line, so nats-server used its 4222 default and any two of the up-to-6 parallel forks (`build.gradle:131`) collided. Adding the missing `port: 0` then traded that for `cannot assign port multiple times`: the runner allowed only one literal `port:` per file, counting a top-level one and one inside a `ws { }` block as a conflict — the guard ran *before* the brace-depth check, so a nested listener port claimed the top-level slot. **Fixed upstream by the repo owner (throws only for multiple top-level ports), released as `jnats-server-runner:4.0.0`; `build.gradle` bumped from 3.1.0.** Final conf state: a uniform literal `port: 0` in all five, the whole change being the two missing lines
+  * **Test-side half:** with the runner fixed, `WebsocketConnectTests` failed 12/19 — every positive connect test — building `ws://` URIs from `getNatsPort()` (one live server: conf nats `44917`, ws `46557`, test dialed `ws://…:44917`). 4.0.0 exposes `getNatsPort` / `getNonNatsPort` / `getConfigPort` / `getReadyPort` / `getMappedPort(String)`; the tests used only `getNatsPort`. Fixed by the owner in `wsBuilder`/`wssBuilder`, `testWebSocketCoverage`, and `NatsTestServer.getLocalhostUri(String)` / `getLocalhostUris(String,...)` which now choose the port from the schema
+  * **Full suite green: 937 tests, 0 failed** — core 542, jetstream 380, service 15 (`kv` is commented out of `settings.gradle`, `examples` has no tests). Measured *before* the last two `NatsTestServer` helper edits, so re-run to confirm those
+  * Two things worth carrying forward: the schema test was first written `equals(WS) == equals(WSS)`, true only when both are false — inverted, `||` intended, and **no test would have caught it**; and the four negative wss tests passed all through the broken period because they assert a connection *fails*, which it did for the wrong reason. A passing negative test proves nothing until you know why it failed
+  * Reference, since it drove several wrong turns: a **literal** `port:` is rewritten with the value `getPort()` returns; a **named token** (`<ws>`, `<wss>`, `<p>`) gets an *independent* allocation under that name. `<p>` is a valid placeholder but must not be used for a port a test intends to dial — one live server's conf read `45727` while the test dialed `45723`. Also: only 3 of the 19 `WebsocketConnectTests` cases dial the plain client port, which is most of why this stayed hidden
+  * **My earlier retraction was the error, not the original call.** I "verified" the runner substitutes the port by diffing a generated conf — but that showed the *websocket* port templated, never the client port the error names. Verify substitution on the port named in the error
+  * **Always clean before a full run.** Windows: `C:\Programs\nt3.bat` (nkill + storage wipe + conf wipe + `gradlew clean test`). **`nkill.bat` cannot see WSL processes** — kill there too (`pkill -9 nats-server`, `rm -f /tmp/nats_java_test*.conf`). Every run recorded before this was measured dirty; 3596 stale conf files and 3 stray servers were found in WSL
   * maybe ask claude to look for other potential flaky - maybe by pointing to the build history of V2
 * INTERFACES_REPORT.md
     * Dispatcher unsubscribe - Every Subscription is a NatsSubscription. Review this when looking at INTERFACE
@@ -97,21 +131,18 @@ Newest first. Detail lives in each plan/audit doc.
   * V3 port of `FORCE_RECONNECT_AUDIT.md` Finding 1 — `forceReconnectImpl` joins reader/writer only 100 ms then proceeds; a reader that outlives that window can fire `handleCommunicationIssue` on the now-healthy connection and stomp the shared `running` flag
   * fix: stop before close (ordering) + join with full connection timeout; **V3 adaptation** — `getConnectionTimeout()` is `long` millis, not a `Duration`
   * V2 already implemented in nats.java as the reference; plan only on V3
+* PLAN_PENDING_QUEUE_LOOKUP_RACE.md
+  * V3 port of nats.java PR #1615 (open, replaces #1614 - do not port both). `NatsMessageSink` reads the queue reference twice per call, so an `invalidate()` on another thread nulls it between the check and the dereference -> NPE on the reader thread, which `NatsConnectionReader:466` relabels `IOException("Gather Message Data")`, escalating a dropped message into a forced reconnect on a healthy connection
+  * **Step 0 is re-verification, not editing.** Written against the 2026-08-17/18 tree with the naming work still uncommitted, which touches every file this plan edits except `NatsMessageSink.java` - all line numbers should be assumed stale. The doc carries the greps to re-run and the 4 claims the design leans on (dispatcher queue still `protected final`, limits still normalised to `Long.MAX_VALUE`, `cleanUpAfterDrain` still before `tracker.complete`, only one `== 0` comparison). Re-read the upstream PR too, it was open when this was written
+  * 6 sites, all the same double-read shape: `NatsMessageSink:76,:84,:141`, `NatsSubscription:90,:180-184`, `NatsConnection:2137-2151`. Fix: read once and pass the queue in, via a new `getDeliverabilityState(queue)` returning `AVAILABLE`/`FULL`/`NOT_AVAILABLE`
+  * **Simpler than the V2 patch** - V3 normalises unlimited to `Long.MAX_VALUE` in `setPendingLimits`, so V2's `ml > 0` / `bl > 0` guards are dead code here. **Narrower too** - `NatsDispatcher.incoming` is `protected final`, so only a `NatsSubscription` can reach the gone-queue path
+  * **The one thing that must not be missed:** the getters start returning `-1` instead of `0`, and `isDrained()` must move `== 0` -> `<= 0`. `cleanUpAfterDrain()` invalidates *before* `tracker.complete(this.isDrained())`, so that comparison is evaluated with the queue already gone on every drain - leaving `== 0` makes every subscription drain future complete `false`
 * PLAN_CORE_JETSTREAM_BOUNDARY.md
+  * **Absorbs the package/protected/private visibility question** — do not start a separate plan for it. §3a (added 2026-08-15) records the member-level pass done as a by-product of the naming audit: 11 cross-object internal accesses exist, **only 2 cross a module boundary**, both `JetStream` reaching into core (`_createSubscriptionByFactory`, `_subscribeByFactory`). The second is a new finding and matches what §8 predicted
+  * Still outstanding for its Phase 0: `Headers`, `NatsMessage`, and inheritance-based reach (`JetStreamSubscription extends NatsSubscription`), which the qualified-call sweep cannot see
   * Make JetStream consume core only through public API; kill the split-package reach (`.impl`/`.api`/`.utils` shared by both jars, no `module-info`)
   * measured coupling map replaces the old estimate; 3 buckets (connection ops / value types / shared utils) + recommend distinct per-module internal packages + `module-info` as the enforcement ratchet
   * subsumes D4 (JS exception `.impl`→`.api`) and `OSGi_JPMS_TODO.md` O3; gated on [[project_connection_removal]]
-* RESOURCEUTILS_V3_PLAN.md
-  * ResourceUtils missing-resource diagnostics (V3) cleanup
-* ISSUE_1596_REVIEW.md
-  * V3 review of jnats V2 issue [#1596](https://github.com/nats-io/nats.java/issues/1596) (ordered consumer create failure) — **review done 2026-08-13; findings 2 and 3 implemented (3 pushed, 2 uncommitted); finding 4 is a note to fold into `REQUEST_BEHAVIOR_IMPROVEMENT.md`; 1 and 5 need nothing**
-  * **Finding 2 done:** new `JetStream.subscribeDeleteConsumerOnException(stream, consumerInfo, ...)` wraps the subscribe and deletes the consumer if it fails, so a close/drain race no longer orphans it server-side. Applied to the 10 call sites that create the consumer they subscribe to; the other 14 bind to one the caller owns and are untouched — that distinction cannot be made inside `createSubscription`, which is why the wrapper lives at the call sites. `_deleteConsumer` added to `JetStreamImpl` beside `_createConsumer`, with `JetStreamManagement.deleteConsumer` delegating. Cleanup failures are `addSuppressed`, never allowed to replace the original exception — that masking is the exact V2 #1596 bug
-  * **Finding 3 done — three changes, each verified by a test that fails without it:** (1) `NatsMessageConsumer.doSub` catch widened to `JetStreamException | RuntimeException` — the `first == true` path still propagates, only the reset path recovers; (2) the same method now tracks a `subInitialized` flag and calls `shutdownSub()` when the subscribe succeeded but a later statement threw, closing a real leak on the constructor path where the consumer never reaches the caller (the flag is required — `shutdownSub()` has no null check and `sub` may still be the previous subscription); (3) `ScheduledTask` **records the exception and rethrows it** — it does NOT swallow. The schedule still ends, which is the executor contract and correct for what is a coding error; the exception is captured into a field and exposed by a new `getException()` so it survives `shutdown()`, which releases the future the executor kept it on
-  * **Flaky-test mechanism found while verifying:** `SimplificationTests.testFetchDurable` failed 5/5 and looked like a regression. It is `assertTrue(elapsed < 100)` at `SimplificationTests.java:286` — a 100 ms fetch round-trip budget, load-sensitive. Proven not mine: with source byte-identical to HEAD this tree failed 3/3 while a worktree at the same commit passed 3/3 concurrently. Belongs in `FLAKY_TESTS_ANALYSIS.md` as the mechanism for that watch-list entry
-  * The reported V2 bug is structurally impossible in V3 (consumer-first ordering confirmed across all 24 `createSubscription` call sites), but two underlying gaps are real
-  * **Finding 2 — V3 is worse than V2 here.** `JetStream.createSubscription` has no try/catch, so a close/drain race after the consumer is created orphans it *server-side*. V2 leaks only a client-side subscription and at least attempts cleanup
-  * **Finding 3 — silent permanent stall.** `NatsMessageConsumer.doSub` / `pullTerminatedByError` catch only checked exceptions, so an unchecked one leaves an ordered consumer with no subscription and no heartbeat while `stopped`/`finished` still report false. Plus `ScheduledTask.run()` has no `catch` and schedules via `scheduleAtFixedRate`, so one escaping alarm kills the timer permanently — that half is core-wide, not JetStream-specific
-  * Recommended order if picked up: finding 3 (small, self-contained, highest severity), then finding 2 (needs a design call — only the create paths should delete). Finding 4 is motivation to attach to `REQUEST_BEHAVIOR_IMPROVEMENT.md`, not separate work
 * PLAN_RECONNECT_DELAY_FOLLOWUP.md
   * **PR #1578 is fully implemented and committed** — the plan doc just never got closed out; not superseded by `PLAN_FORCE_RECONNECT_READER_STOP.md` (different subject), but absorbed and extended by `z-claude-done/PLAN_RECONNECT_DELAY_HANDLER_REDESIGN.md`
   * what's left is that redesign's drift: 3 javadoc blocks + `MIGRATION_GUIDE.md` still name the old default/method, the `lameDuckTriggered` consume contract doesn't match the code, and the connection-side LDM wiring tests never landed
@@ -191,8 +222,7 @@ where is appropriate to use connectionTimeout and where should we use a differen
 
 StreamCreatorConfigurationTests
 
- 
-### Improve Server Pool
+ ### Improve Server Pool
 in relation to A/P
 
 ### RTT

@@ -65,7 +65,7 @@ public class ConnectionListenerTests extends TestBase {
                 .maxReconnects(-1)
                 .connectionListener(listener)
                 .build();
-            port = ts.getPort();
+            port = ts.getNatsPort();
             nc = managedConnect(options);
             assertEquals(ts.getServerUri(), nc.getConnectedUrl());
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);

@@ -28,7 +28,75 @@ Context: passes locally on Windows (individually and full-suite), flaps on the G
 - Why not Windows: the callback executor drains the task before/within `close()`; CI loses that race.
 - Ideas: after `close()`, poll for `getExceptions() > 0` with a short timeout instead of reading once; or flush/await the callback executor before asserting. The comment "should force the exception listener through" assumes close synchronously drains callbacks — it doesn't guarantee that for already-dropped messages.
 
+### Port 4222 contention under parallel forks — RESOLVED 2026-08-17: a `NatsServerRunner` bug, fixed in 4.0.0
+
+`AuthTests.testWsJWTAuthWithCredsFile`, `AuthTests.testWssJWTAuthWithCredsFile` and `ReconnectTests.testWsReconnect` failed together on a clean Windows run. The server never starts:
+
+```
+java.lang.IllegalStateException: Failed to run [nats-server --config ...]
+[FTL] Error listening on port: localhost:4222, "listen tcp 127.0.0.1:4222: bind: Only one usage of each socket address"
+```
+
+The websocket listener comes up fine — it is the **ordinary client port** that fails.
+
+**Immediate cause:** `ws_operator.conf` and `wss_operator.conf` had no top-level `port` line, so nats-server used its built-in default of 4222. `build.gradle:131` sets `maxParallelForks = Math.min(6, mpf)`, so any two of those tests scheduled together collided and the second server died. Which pair collided depended on scheduling, which is why it presented as flakiness rather than a consistent failure.
+
+**Root cause, and the reason the obvious fix did not work: a bug in `NatsServerRunner`.** Adding the missing `port: 0` traded the bind failure for `IOException: Improper configuration, cannot assign port multiple times.` The runner allowed only one literal `port:` line per config file, counting one at the top level and one inside a `ws { }` block as a conflict. In the bytecode the guard was evaluated *before* the brace-depth check, so a nested listener port claimed the top-level slot and the test that would have distinguished them ran too late to matter.
+
+Fixed upstream by the repo owner — the runner now throws only for multiple *top-level* ports. Released as **`io.nats:jnats-server-runner:4.0.0`**; `build.gradle` bumped from 3.1.0.
+
+**Final state: all five ws confs use a literal `port: 0`, uniformly.** The whole change is the two lines that were missing:
+
+| File | Change |
+|---|---|
+| `ws_operator.conf` | `port: 0` added — had no top-level port line |
+| `wss_operator.conf` | `port: 0` added — had no top-level port line |
+| `ws.conf`, `wss.conf`, `wssverify.conf` | unchanged; already `port: 0` |
+
+**Second half of the fix: the test helpers were building websocket URIs from the nats port.** With the runner corrected, `WebsocketConnectTests` failed 12 of 19 — every *positive* connect test — dialing `ws://` at the plain client port. A paired reading on one live server: conf `port: 44917` (nats) and `port: 46557` (ws block), test dialed `ws://127.0.0.1:44917`.
+
+`NatsServerRunner` 4.0.0 exposes `getNatsPort()`, `getNonNatsPort()`, `getConfigPort()`, `getReadyPort()` and `getMappedPort(String)`. The test code reached only for `getNatsPort()` — `getMappedPort` was never called anywhere in the test sources. Fixed by the repo owner in `WebsocketConnectTests.wsBuilder` / `wssBuilder`, `WebsocketSupportClassesTests.testWebSocketCoverage` (a raw `Socket` driving WebSocket framing), and `NatsTestServer.getLocalhostUri(String)` / `getLocalhostUris(String, ...)`, which now pick the port from the schema instead of always using the nats port.
+
+Worth remembering from that last one: the schema test was first written `schema.equals(WS) == schema.equals(WSS)`, which is true only when **both** are false — a string cannot be `"ws"` and `"wss"` at once — so it selected the websocket port for exactly the non-websocket schemas. `||` was intended. The suite would not have caught it, because no caller passed a `nats`/`tls` schema and the websocket callers landed back on the old behaviour.
+
+**A note on what "green" proved here.** The four negative wss tests (`testClientInsecureServerSecureMismatchWss`, `testClientServerCertMismatchWss` and the `WssVerify` pair) passed throughout the broken period — they assert a connection *fails*, and it did, just because the port was unreachable rather than because of the TLS mismatch they exist to exercise. A passing negative test says nothing until you know *why* it failed.
+
+**How the runner assigns ports**, worth keeping because it drove every wrong turn below:
+
+* A **literal** `port: <number>` is *rewritten* with the port the runner assigned, and that is what `getPort()` returns. `tls.conf` ships `port: 4443` and generates `port: 45797`. The value in the template is decorative — `0`, `4443`, `22222`, `2222` all appear across the confs.
+* A **named token** — `<ws>`, `<wss>`, `<p>` — gets its own separate allocation stored under that name, retrievable via `getPort("ws")`. `<p>` is a valid generic placeholder, but the port it receives is allocated *independently* of the one `getPort()` returns, so it must not be used for a port a test intends to dial. Measured on one live server: conf read `port: 45727`, test dialed `45723`.
+
+**Three wrong turns, recorded because each was disproved by measurement rather than argument:**
+
+| Attempt | Outcome |
+|---|---|
+| "the confs are fine, don't touch them" | Wrong. Verified the runner templates *a* port — but it was the **websocket** port, never the client port the error names. Verify the substitution on the port named in the error. |
+| all five confs to `port: <p>` | Operator pair fixed, but 15 `WebsocketConnectTests` failures — `testWs`/`testWss`/`testWssVerify` also dial the plain client port, and hit the `<p>`/`getPort()` divergence. Isolated in a throwaway worktree with identical source. |
+| all five to `port: 0` | `WebsocketConnectTests` green, operator pair failing on `cannot assign port multiple times` — which is what exposed the runner bug. |
+
+Only 3 of the 19 `WebsocketConnectTests` cases are sensitive to the top-level value at all: `testWs`, `testWss` and `testWssVerify` connect twice, once plain and once over websocket. The other 16 dial `ws://` only and pass under any of these configurations, which is most of why the problem stayed hidden.
+
+**Remaining risk is unchanged in kind:** anything else holding 4222 breaks these runs the same way — a dev server, or a `nats-server` left over from an earlier run (see the next section for the WSL blind spot). No longer a design dependency of the suite, but an occupied 4222 is still worth ruling out first.
+
+### `nkill.bat` cannot see WSL — a cross-boundary blind spot
+
+`nkill.bat` is `taskkill /F /IM nats-server.exe`, which only reaches **Windows** processes. A `nats-server` left running under WSL survives it completely.
+
+That matters because WSL2 forwards localhost: a WSL server holding 4222 is invisible to `nkill` and will break a Windows run with the exact error above, with nothing in the Windows environment to explain it. When this was checked, **three `nats-server` processes were still running in WSL** from earlier runs (ports 51019, 50557, 50845 — so not the cause on this occasion, but they could have been), alongside **3596 accumulated `/tmp/nats_java_test*.conf` files**.
+
+Before a Windows run, kill on both sides:
+
+```
+pkill -9 nats-server          # WSL
+rm -f /tmp/nats_java_test*.conf
+```
+
+WSL still has no `nclean` equivalent of its own.
+
 ### AuthTests.testWssJWTAuthWithCredsFile — flaps
+
+> **Superseded in part (2026-08-15, updated 2026-08-17).** On Windows this test failed for the port-4222 reason above — now **resolved** by giving the ws confs a `port: <p>` placeholder — not for the handshake-timing reason below. The timing analysis may still explain earlier CI observations, but check the server actually started before pursuing it: a `Failed to run [nats-server ...]` is a bind failure, not slow TLS. Re-measure before treating anything below as live, since every observation predates the conf fix.
+
 - `managedConnect` with `maxReconnects(0)` over **wss + TLS + JWT/creds** — the heaviest, slowest handshake path. Ends CLOSED (status), so `waitUntilStatus` throws `AssertionFailedError`.
 - Critical detail: `managedConnect`'s 10× retry loop only catches `IOException` (ConnectionUtils.java:53). A handshake that overruns the connection timeout with `maxReconnects(0)` lands in **CLOSED**, surfaced as `AssertionFailedError` — which the loop does **not** retry. So this "retrying" helper gives the slowest connect path exactly one shot.
 - Why not Windows: the wss upgrade + TLS negotiation completes inside the timeout locally; on a loaded CI runner it occasionally doesn't.
@@ -158,11 +226,98 @@ Across roughly six full `:core:test :jetstream:test` runs, each of these failed 
 | `AuthTests.testJWTAuthWithCredsFileAlso` | plain `Nats.connect(url, credentials)` |
 | `JetStreamPushTests.testDeliveryPolicy` | |
 | `JetStreamPushTests.testAcks` | |
-| `SimplificationTests.testFetchOrdered` | serial fetch sizing/expiry assertions |
-| `SimplificationTests.testFetchDurable` | added 2026-08-04 — sibling of the above, same `_testFetch` helper, flaked once during the forceReconnect work and passed on rerun |
+| `SimplificationTests.testFetchOrdered` | serial fetch sizing/expiry assertions. **Mechanism identified 2026-08-13** — same `_testFetch` helper as `testFetchDurable`, see the note below the table |
+| `SimplificationTests.testFetchDurable` | added 2026-08-04 — sibling of the above, same `_testFetch` helper, flaked once during the forceReconnect work and passed on rerun. **Mechanism identified 2026-08-13, see the note below the table** |
 | `SimplificationTests.testReconnectOverOrdered` | added 2026-08-11. **Which assertion failed was not recorded**, and it matters — see below. The test is built entirely out of fixed sleeps around three server stop/start cycles (`sleep(500)`, then `sleep(3500)` × 3) with `expiresIn(1000)`, so a 500ms idle heartbeat and an alarm at 3× it. `validateOverOrdered` asserts two independent things and either can be the failure: `allInOrder` (no gap and no repeat in the stream sequence) and `count > 0` (some message arrived in the window). They point in completely different directions — `count > 0` is a pure budget problem on a loaded box, `allInOrder` would be an ordered-consumer reset landing on the wrong sequence, which is a product question. Structural details that make it timing-sensitive: the handler `sleep(50)`s per message against `batchSize(100)`, so a large client-side buffer builds up ahead of the handler while the server is killed; `messageCount` is reset before each window but `nextExpectedSequence` is **not**, so `allInOrder` has to hold continuously across all three reconnects; and it is the one test on this list that connects via `ConnectionUtils.managedConnect`, so the un-retried-CLOSED gap discussed under "One hypothesis checked and rejected" **does** apply here, unlike the five connect-side tests where it was ruled out. Mechanism unverified — nothing below is a diagnosis |
 | `AuthTests.testToken` | **SEE THE PRIORITY SECTION ABOVE — product-code race, not test robustness.** Added 2026-08-04, WINDOWS, failed once in a full run, passed 3/3 on rerun. **The one flake here that does not look like a flake**, so read the mechanism before re-diagnosing it: it fails `assertThrows(AuthenticationException.class, ...)` with an `IOException` instead. That reads as a structural/logic bug, but `connectImpl` only throws `AuthenticationException` when `connectError` already holds the server's auth text; if the `-ERR 'Authorization Violation'` has not been read before the socket closes, it falls through to the generic `IOException`. Whether that read wins is pure timing |
 | `ReconnectTests.testForceReconnectQueueBehaviorCheck` | added 2026-08-04 — flaked once during the javadoc pass, passed on retry and on a clean rerun. **Ruled out as caused by that work: the diff had zero non-comment lines.** The longest test in the suite at ~29s, and deliberately timing-sensitive — it drives `ForceReconnectQueueCheckDataPort` with `DELAY = 75` on every matching write. Measured at 29.098/29.302s before the forceReconnect fix and 28.811/29.778s after, so its duration is inherent, not a regression |
+
+### The `_testFetch` mechanism — identified 2026-08-13, not fixed
+
+`SimplificationTests.testFetchDurable` and `.testFetchOrdered` (and `.testFetchEphemeral`, not yet on this list) all run the same `_testFetch` helper. The flake is **`assertTrue(elapsed < 100)`** — a 100 ms wall-clock budget, at `SimplificationTests.java:286` for cases 1A/1B/2B and again at `:296` for case 2A.
+
+**It is load, not code.** Found while verifying the `z-claude-done/ISSUE_1596_REVIEW.md` work, where it failed 5/5 in a full run and looked exactly like a regression. It is not: with the source reverted byte-identical to `HEAD`, this working tree still failed **3/3** while a `git worktree` at the same commit passed **3/3** concurrently on the same machine. Cleaning the build directories changed nothing. On a later run `testFetchDurable` passed and its sibling `testOverflowFetch` flaked instead and passed on retry — that wandering between tests of the same class is the signature.
+
+**The assertion is load-bearing, so it must not simply be deleted.** The fetch is configured `expiresIn(2000)`, and the two branches assert opposite behaviors:
+
+| cases | meaning | assertion |
+|---|---|---|
+| 1A / 1B / 2B / 2A | the fetch was satisfied, so it returns immediately | `elapsed < 100` |
+| 1C / 1D / 2C | the fetch could not be filled, so it waits for expiry | `elapsed >= 1500` |
+
+Removing the fast-side assertion would lose the coverage that a satisfied fetch returns early rather than sitting until expiry.
+
+**Proposed fix when flaky work is picked up: widen both `elapsed < 100` to `< 750`.** The discriminator only has to separate "immediate" from a 2000 ms expiry, and the slow branch already uses 1500 as its floor, so 750 leaves a clean dead band. A regression where the fetch stops returning early lands near 2000 and still fails. This is not the `testToken` situation — there is no product race being hidden here, only a measurement budget far tighter than the behavior it is discriminating. Two characters, and it covers two entries on this list at once.
+
+### Before trusting ANY full-run result: clean the environment first
+
+A full run must start from a clean slate, and none of the runs recorded in the section below did. On Windows the workflow is `C:\Programs\nt3.bat`, which is the authority:
+
+```
+nt3.bat   -> call nclean
+             gradlew clean test
+             taskkill /F /IM nats-server.exe
+             nreport3
+
+nclean.bat -> call nkill                                  (taskkill /F /IM nats-server.exe)
+              rd /s /q C:\nats\z-jetstream-storage
+              rd /s /q C:\temp\jetstream-storage
+              rd /S /Q %LOCALAPPDATA%\Temp\nats
+              rd /S /Q %LOCALAPPDATA%\Temp\jetstream
+              del %LOCALAPPDATA%\Temp\nats_java_test*.conf
+              del %LOCALAPPDATA%\Temp\nats_net_test*.conf
+```
+
+Three things it does that a bare `gradlew test` does not: **kill stray `nats-server` processes**, **delete JetStream storage directories**, and **delete accumulated per-test conf files**. A stray server holds a port; leftover JetStream storage means a "new" stream may not be empty.
+
+**This is not hypothetical.** At the point the runs below were recorded, the Windows environment held **443 leftover `nats_java_test*.conf` files** and a populated `%LOCALAPPDATA%\Temp\nats`. Every result in the next section — WSL and Windows alike — was measured against a dirty environment and should be treated as suggestive only, not as evidence about any particular test.
+
+The WSL side has no equivalent script yet. At minimum: `pkill -9 nats-server`, and clear the `/tmp/nats_java_test*.conf` accumulation.
+
+### Connect-under-load: one pattern, a different test each run — observed 2026-08-15
+
+Four consecutive full `:core:test` runs on the same rename-only working tree (diff verified as names, whitespace and comments — zero behavior change) failed a **different** test each time, and every failure was connection establishment:
+
+| Run | Failed | Build |
+|---|---|---|
+| A | `RequestTests.testSafeRequest` | green on retry |
+| B | `testSafeRequest`, `TLSConnectTests.testForceReconnectFailsAfterCertExpires` | green on retry |
+| C | `WebsocketConnectTests` ×4 — `testWssVerify`, `testWssVerifyOpenTLS`, `testWssVerifyInterceptor`, `testWssVerifyTlsFirstIgnored` | **BUILD FAILED** |
+| D | `ReconnectTests.testReconnectWait` | green on retry |
+
+Every one passes in isolation — the four websocket tests passed 7/7 as a class immediately after failing in the full run. The messages are all connect-time: `Unable to connect to NATS servers: [nats://127.0.0.1:PORT]` and `Unable to make a connection` (the latter is `ConnectionUtils.managedConnect` giving up **after its 10 retries**).
+
+**This is not four flaky tests, it is one condition.** A full run starts and stops a large number of `nats-server` instances; under that load a fresh server is not always accepting when the client dials. Which test loses the race is close to arbitrary, which is why the watch list keeps growing one entry at a time — each new name is a symptom of the same thing rather than a new defect.
+
+Two consequences worth keeping in mind:
+
+* **A green build does not mean a clean run.** Runs A, B and D were all `BUILD SUCCESSFUL` because the retry plugin re-ran and passed. Only run C tipped over into a real failure. Anyone judging "did my change break something" from the exit code alone will miss this entirely.
+* **`managedConnect` failing is the strong signal.** It already retries 10 times with increasing backoff. When *that* gives up, the machine is genuinely saturated, not merely slow — which is what run C shows and what separates it from the single-attempt cases like `testSafeRequest`.
+
+Before diagnosing any single entry on this list as a product defect, reproduce it in isolation first. So far nothing on the list has survived that step.
+
+### `RequestTests.testSafeRequest` — new 2026-08-15, mechanism identified, not fixed
+
+Failed in **two consecutive full `:core:test` runs** while passing **3/3 in isolation** with forced recompiles. Passed on the retry plugin's rerun both times, so the build stayed green and it is easy to miss.
+
+**It is not the request logic — it is the connect.** The failure is at `RequestTests.java:139`:
+
+```
+java.io.IOException: Unable to connect to NATS servers: [nats://127.0.0.1:50261]
+```
+
+which is the `Nats.connect(...)` inside the try-with-resources, before any request is made:
+
+```java
+try (NatsTestServer ts = new NatsTestServer();
+     NatsConnection nc = Nats.connect(optionsBuilder(ts).maxReconnects(0).build())) {
+```
+
+`maxReconnects(0)` gives the connect **no retry budget at all**, and it runs immediately after the server is constructed. Under full-suite load the server is not always accepting yet, and there is no second attempt. Alone on an idle machine it always wins the race; in a full run it sometimes does not.
+
+**Note the contrast with the harness that exists for exactly this.** `ConnectionUtils.managedConnect` retries the connect up to 10 times with an increasing delay. These tests use raw `Nats.connect`, so they opt out of it.
+
+**Proposed fix when flaky work is picked up:** use `managedConnect` here, or drop `maxReconnects(0)` where the test is not actually asserting anything about reconnect behavior — `testSafeRequest` is not. The pattern is not isolated: `maxReconnects(0)` appears throughout `RequestTests`, so the same race is latent in its siblings and `testSafeRequest` may simply be the one that lost first.
 
 ## What was verified — and what was not
 

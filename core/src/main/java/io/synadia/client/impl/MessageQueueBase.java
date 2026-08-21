@@ -77,7 +77,7 @@ abstract class MessageQueueBase {
     }
 
     // Poll a message off the queue, honoring the timeout convention shared by the whole incoming-message
-    // reader chain (Subscription.nextMessage -> nextMessageInternal -> pop -> _poll). The timeout is a
+    // reader chain (Subscription.nextMessage -> _nextMessage -> pop -> _poll). The timeout is a
     // @Nullable Long number of milliseconds/nanoseconds
     //   null           -> poll once and return immediately (whatever is buffered, or null) -- no waiting
     //   <= 0 (e.g. 0)  -> wait forever (until a message arrives, or pause() enqueues a POISON_PILL)

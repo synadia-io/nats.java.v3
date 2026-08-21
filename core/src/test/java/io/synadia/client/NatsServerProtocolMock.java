@@ -110,7 +110,7 @@ public class NatsServerProtocolMock implements Closeable, TestServer {
     }
 
     @Override
-    public int getPort() {
+    public int getNatsPort() {
         return port;
     }
 

@@ -61,14 +61,14 @@ public abstract class AbstractListReader {
     }
 
     protected byte[] nextJson() {
-        return engine.internalNextJson();
+        return engine._nextJson();
     }
 
     protected byte[] nextJson(@Nullable String filter) {
         if (filterFieldName == null) {
             throw new IllegalArgumentException("Filter not supported.");
         }
-        return engine.internalNextJson(filterFieldName, filter);
+        return engine._nextJson(filterFieldName, filter);
     }
 
     /**

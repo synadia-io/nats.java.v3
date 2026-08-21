@@ -18,7 +18,7 @@ public class NatsConnectionImplTests extends TestBase {
     public void testConnectionClosedProperly() throws Exception {
         runInSharedServer(server -> {
             Options options = Options.builder()
-                .server(NatsTestServer.getLocalhostUri(server.getPort()))
+                .server(NatsTestServer.getLocalhostUri(server.getNatsPort()))
                 .build();
             verifyInternalExecutors(options);
 
@@ -37,7 +37,7 @@ public class NatsConnectionImplTests extends TestBase {
             assertFalse(ses.isShutdown());
 
             options = Options.builder()
-                .server(NatsTestServer.getLocalhostUri(server.getPort()))
+                .server(NatsTestServer.getLocalhostUri(server.getNatsPort()))
                 .executor(es)
                 .scheduledExecutor(ses)
                 .callbackExecutor(callbackEs)
@@ -53,7 +53,7 @@ public class NatsConnectionImplTests extends TestBase {
             ThreadFactory callbackThreadFactory = r -> new Thread(r, "callback");
             ThreadFactory connectThreadFactory = r -> new Thread(r, "connect");
             options = Options.builder()
-                .server(NatsTestServer.getLocalhostUri(server.getPort()))
+                .server(NatsTestServer.getLocalhostUri(server.getNatsPort()))
                 .executor(es)
                 .scheduledExecutor(ses)
                 .callbackThreadFactory(callbackThreadFactory)
@@ -211,7 +211,7 @@ public class NatsConnectionImplTests extends TestBase {
             AtomicLong count2 = new AtomicLong();
 
             Options options = Options.builder()
-                .server(NatsTestServer.getLocalhostUri(server.getPort()))
+                .server(NatsTestServer.getLocalhostUri(server.getNatsPort()))
                 .build();
 
             // THESE SHARE THE EXACT SAME OPTIONS INSTANCE
@@ -257,7 +257,7 @@ public class NatsConnectionImplTests extends TestBase {
             ThreadFactory writerTf = r -> { Thread t = new Thread(r, "writer"); created.add(t.getName()); return t; };
 
             Options options = Options.builder()
-                .server(NatsTestServer.getLocalhostUri(server.getPort()))
+                .server(NatsTestServer.getLocalhostUri(server.getNatsPort()))
                 .readerThreadFactory(readerTf)
                 .writerThreadFactory(writerTf)
                 .build();

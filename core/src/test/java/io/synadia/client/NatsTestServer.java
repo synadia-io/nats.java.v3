@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.logging.Level;
 
 import static io.synadia.client.utils.ResourceUtils.configResource;
+import static io.synadia.client.utils.TestBase.WS;
+import static io.synadia.client.utils.TestBase.WSS;
 
 public class NatsTestServer extends NatsServerRunner implements TestServer {
 
@@ -15,7 +17,8 @@ public class NatsTestServer extends NatsServerRunner implements TestServer {
         NatsTestServer.quiet();
         NatsRunnerUtils.setDefaultConnectValidateTries(10);
         NatsRunnerUtils.setDefaultConnectValidateTimeout(200);
-        NatsRunnerUtils.setDefaultOutputSupplier(ConsoleOutput::new);    }
+        NatsRunnerUtils.setDefaultOutputSupplier(ConsoleOutput::new);
+    }
 
     public static void quiet() {
         NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
@@ -66,12 +69,13 @@ public class NatsTestServer extends NatsServerRunner implements TestServer {
     }
 
     public String getLocalhostUri(String schema) {
-        return NatsRunnerUtils.getLocalhostUri(schema, getPort());
+        int port = schema.equals(WS) || schema.equals(WSS) ? getNonNatsPort() : getNatsPort();
+        return NatsRunnerUtils.getLocalhostUri(schema, port);
     }
 
     @Override
     public String getServerUri() {
-        return NatsRunnerUtils.getNatsLocalhostUri(getPort());
+        return NatsRunnerUtils.getNatsLocalhostUri(getNatsPort());
     }
 
     public static String getLocalhostUri(int port) {
@@ -85,7 +89,8 @@ public class NatsTestServer extends NatsServerRunner implements TestServer {
     public static String[] getLocalhostUris(String schema, NatsTestServer... servers) {
         String[] results = new String[servers.length];
         for (int x = 0; x < servers.length; x++) {
-            results[x] = NatsRunnerUtils.getLocalhostUri(schema, servers[x].getPort());
+            int port = schema.equals(WS) || schema.equals(WSS) ? servers[x].getNonNatsPort() : servers[x].getNatsPort();
+            results[x] = NatsRunnerUtils.getLocalhostUri(schema, port);
         }
         return results;
     }

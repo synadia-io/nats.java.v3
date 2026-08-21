@@ -53,7 +53,7 @@ public class AuthTests extends TestBase {
         String[] customArgs = { "--user", "uuu", "--pass", "ppp" };
         try (NatsTestServer ts = new NatsTestServer(customArgs)) {
             // u/p in url
-            Options upInUrlOpts = optionsBuilder(userPassInUrl("uuu", "ppp", ts.getPort())).maxReconnects(0).build();
+            Options upInUrlOpts = optionsBuilder(userPassInUrl("uuu", "ppp", ts.getNatsPort())).maxReconnects(0).build();
             assertCanConnect(upInUrlOpts);
 
             // u/p in options
@@ -77,7 +77,7 @@ public class AuthTests extends TestBase {
     @Test
     public void testEncodedPassword() throws Exception {
         runInConfiguredServer("encoded_pass.conf", ts -> {
-            int port = ts.getPort();
+            int port = ts.getNatsPort();
             assertEncoded("space%20space", port);
             assertEncoded("colon%3Acolon", port);
             assertEncoded("colon%3acolon", port); // just making sure lower case hex
@@ -163,7 +163,7 @@ public class AuthTests extends TestBase {
         int port;
 
         try (NatsTestServer ts = new NatsTestServer(customArgs)) {
-            port = ts.getPort();
+            port = ts.getNatsPort();
             // See config file for user/pass
             Options options = optionsBuilder(ts).maxReconnects(-1)
                     .userInfo("uuu".toCharArray(), "ppp".toCharArray()).connectionListener(listener).build();
@@ -222,9 +222,9 @@ public class AuthTests extends TestBase {
         String[] customArgs = { "--user", "uuu", "--pass", "ppp" };
 
         try (NatsTestServer ts = new NatsTestServer(customArgs)) {
-            port = ts.getPort();
+            port = ts.getNatsPort();
             // See config file for user/pass
-            Options options = new OptionsBuilder().server(userPassInUrl("uuu", "ppp", ts.getPort()))
+            Options options = new OptionsBuilder().server(userPassInUrl("uuu", "ppp", ts.getNatsPort()))
                 .maxReconnects(-1).connectionListener(listener).errorListener(NOOP_EL).build();
             nc = managedConnect(options);
 
@@ -262,8 +262,8 @@ public class AuthTests extends TestBase {
         Listener listener = new Listener();
         try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
              NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = userPassInUrl("uuu", "ppp", ts1.getPort());
-            String url2 = userPassInUrl("uuu2", "ppp2", ts2.getPort());
+            String url1 = userPassInUrl("uuu", "ppp", ts1.getNatsPort());
+            String url2 = userPassInUrl("uuu2", "ppp2", ts2.getNatsPort());
             Options options = optionsBuilder(url1, url2)
                 .maxReconnects(4)
                 .noRandomize()
@@ -288,7 +288,7 @@ public class AuthTests extends TestBase {
         Listener listener = new Listener();
         try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
              NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = userPassInUrl("uuu", "ppp", ts1.getPort());
+            String url1 = userPassInUrl("uuu", "ppp", ts1.getNatsPort());
             Options options = optionsBuilder(url1, ts2.getNatsLocalhostUri())
                 .userInfo("uuu2".toCharArray(), "ppp2".toCharArray())
                 .maxReconnects(4)
@@ -314,8 +314,8 @@ public class AuthTests extends TestBase {
         Listener listener = new Listener();
         try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
              NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = tokenInUrl("token_one", ts1.getPort());
-            String url2 = tokenInUrl("token_two", ts2.getPort());
+            String url1 = tokenInUrl("token_one", ts1.getNatsPort());
+            String url2 = tokenInUrl("token_two", ts2.getNatsPort());
             Options options = optionsBuilder(url1, url2)
                 .maxReconnects(4)
                 .noRandomize()
@@ -342,7 +342,7 @@ public class AuthTests extends TestBase {
         Listener listener = new Listener();
         try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
              NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = tokenInUrl("token_one", ts1.getPort());
+            String url1 = tokenInUrl("token_one", ts1.getNatsPort());
             Options options = optionsBuilder(url1, ts2.getNatsLocalhostUri())
                 .token("token_two".toCharArray())
                 .maxReconnects(4)
@@ -376,7 +376,7 @@ public class AuthTests extends TestBase {
             assertCanConnect(options);
 
             // token in url
-            options = optionsBuilder(tokenInUrl("token", ts.getPort()))
+            options = optionsBuilder(tokenInUrl("token", ts.getNatsPort()))
                 .maxReconnects(0).build();
             assertCanConnect(options);
 
@@ -478,7 +478,7 @@ public class AuthTests extends TestBase {
     @Test
     public void testWsJWTAuthWithCredsFile() throws Exception {
         runInConfiguredServer("ws_operator.conf", ts -> {
-            String uri = ts.getLocalhostUri(WS);
+            String uri = NatsTestServer.getLocalhostUri(WS, ts.getNonNatsPort());
             // in options
             Options options = optionsBuilder(uri).maxReconnects(0)
                 .authHandler(getUserCredsAuthHander()).build();
@@ -494,7 +494,7 @@ public class AuthTests extends TestBase {
     public void testWssJWTAuthWithCredsFile() throws Exception {
         SSLContext ctx = SslTestingHelper.createTestSSLContext();
         runInConfiguredServer("wss_operator.conf", ts -> {
-            String uri = ts.getLocalhostUri("wss");
+            String uri = NatsTestServer.getLocalhostUri(WSS, ts.getNonNatsPort());
             // wss + TLS + JWT is the heaviest connect path and can transiently drop right after
             // connecting under CI load. maxReconnects(0) gives it zero recovery, so a momentary
             // drop lands the connection in CLOSED and the test fails. Allow reconnects and a longer
@@ -589,7 +589,7 @@ public class AuthTests extends TestBase {
                 String server1 = ts1.getServerUri();
                 String server2 = ts2.getServerUri();
                 server2Ref.set(server2);
-                port2Ref.set(ts2.getPort());
+                port2Ref.set(ts2.getNatsPort());
                 Options options = optionsBuilder(server1, server2)
                     .noRandomize()
                     .maxReconnects(-1)

@@ -330,7 +330,7 @@ public class JetStreamManagement extends JetStreamImpl {
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public List<String> getStreamNames() throws JetStreamException, InterruptedException {
-        return getStreamNamesInternal(null);
+        return _getStreamNames(null);
     }
 
     /**
@@ -342,7 +342,7 @@ public class JetStreamManagement extends JetStreamImpl {
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public List<String> getStreamNames(String subjectFilter) throws JetStreamException, InterruptedException {
-        return getStreamNamesInternal(subjectFilter);
+        return _getStreamNames(subjectFilter);
     }
 
     /**

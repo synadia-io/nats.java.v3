@@ -50,7 +50,10 @@ public class ReconnectTests {
     @Test
     public void testWsReconnect() throws Exception { //Includes test for subscriptions and dispatchers across reconnect
         _testReconnect(configFileBuilder("ws_operator.conf"),
-            (ts, optionsBuilder) -> optionsBuilder.server(ts.getLocalhostUri(WS)).authHandler(getUserCredsAuthHander()));
+            (ts, optionsBuilder) -> {
+                String uri = NatsTestServer.getLocalhostUri(WS, ts.getNonNatsPort());
+                optionsBuilder.server(uri).authHandler(getUserCredsAuthHander());
+            });
     }
 
     private void _testReconnect(NatsServerRunner.Builder nsrb, BiConsumer<NatsTestServer, OptionsBuilder> optSetter) throws Exception {
@@ -134,7 +137,7 @@ public class ReconnectTests {
                 .reconnectWait(20L)
                 .connectionListener(listener)
                 .build();
-            port = ts.getPort();
+            port = ts.getNatsPort();
             nc = (NatsConnection) managedConnect(options);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
         }
@@ -439,7 +442,7 @@ public class ReconnectTests {
                 .reconnectWait(reconnectWait)
                 .connectionListener(listener)
                 .build();
-            port = mockTs.getPort();
+            port = mockTs.getNatsPort();
             nc = (NatsConnection) standardConnect(options);
             listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
             nc.subscribe("test");
@@ -560,7 +563,7 @@ public class ReconnectTests {
             listener.validate();
 
             URI uri = options.createURIForServer(nc.getConnectedUrl());
-            assertEquals(ts2.getPort(), uri.getPort()); // full uri will have some ip address, just check port
+            assertEquals(ts2.getNatsPort(), uri.getPort()); // full uri will have some ip address, just check port
             closeAndConfirm(nc);
         }
     }

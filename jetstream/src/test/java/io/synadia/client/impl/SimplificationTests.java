@@ -1766,7 +1766,7 @@ public class SimplificationTests extends JetStreamTestBase {
 
     @Test
     public void testConsumerIsDeletedWhenTheSubscribeFails() throws Exception {
-        // createSubscription creates nothing itself, but everything in it can throw IllegalStateException
+        // _createJsSubscription creates nothing itself, but everything in it can throw IllegalStateException
         // when the connection or the dispatcher is closing. By then the consumer already exists, and it
         // exists only to back this subscription, so a failed subscribe would orphan it on the server.
         // A closed dispatcher is the case worth covering: it fails the subscribe while leaving the

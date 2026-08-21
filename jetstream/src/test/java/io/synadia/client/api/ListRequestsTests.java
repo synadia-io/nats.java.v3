@@ -66,25 +66,25 @@ public class ListRequestsTests extends JetStreamTestBase {
     public void testListRequestEngine() throws Exception {
         TestableListRequestEngine tlr = new TestableListRequestEngine();
         assertTrue(tlr.hasMore());
-        assertEquals("{\"offset\":0}", new String(tlr.internalNextJson()));
-        assertEquals("{\"offset\":0}", new String(tlr.internalNextJson("name", null)));
-        assertEquals("{\"offset\":0,\"name\":\"value\"}", new String(tlr.internalNextJson("name", "value")));
+        assertEquals("{\"offset\":0}", new String(tlr._nextJson()));
+        assertEquals("{\"offset\":0}", new String(tlr._nextJson("name", null)));
+        assertEquals("{\"offset\":0,\"name\":\"value\"}", new String(tlr._nextJson("name", "value")));
         tlr = new TestableListRequestEngine(getDataMessage(dataAsString("ListResponsePage1.json")));
         assertEquals(15, tlr.getTotal());
         assertEquals(10, tlr.getLimit());
         assertEquals(0, tlr.getLastOffset());
 
         assertTrue(tlr.hasMore());
-        assertEquals("{\"offset\":10}", new String(tlr.internalNextJson()));
-        assertEquals("{\"offset\":10,\"name\":\"value\"}", new String(tlr.internalNextJson("name", "value")));
+        assertEquals("{\"offset\":10}", new String(tlr._nextJson()));
+        assertEquals("{\"offset\":10,\"name\":\"value\"}", new String(tlr._nextJson("name", "value")));
         tlr = new TestableListRequestEngine(getDataMessage(dataAsString("ListResponsePage2.json")));
         assertEquals(15, tlr.getTotal());
         assertEquals(10, tlr.getLimit());
         assertEquals(10, tlr.getLastOffset());
 
         assertFalse(tlr.hasMore());
-        assertNull(tlr.internalNextJson());
-        assertNull(tlr.internalNextJson("name", "value"));
+        assertNull(tlr._nextJson());
+        assertNull(tlr._nextJson("name", "value"));
 
         String json = dataAsString("GenericErrorResponse.json");
         NatsMessage m = new NatsMessage("sub", null, json.getBytes(StandardCharsets.US_ASCII));

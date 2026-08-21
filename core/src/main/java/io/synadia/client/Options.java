@@ -274,7 +274,7 @@ public class Options {
         executorsLock.lock();
         try {
             if (resolvedExecutor == null || resolvedExecutor.isShutdown()) {
-                resolvedExecutor = userExecutor == null ? _getInternalExecutor() : userExecutor;
+                resolvedExecutor = userExecutor == null ? newExecutor() : userExecutor;
             }
             return resolvedExecutor;
         }
@@ -283,15 +283,15 @@ public class Options {
         }
     }
 
-    private ExecutorService _getInternalExecutor() {
+    private ExecutorService newExecutor() {
         String threadPrefix = nullOrEmpty(this.connectionName) ? DEFAULT_THREAD_NAME_PREFIX : this.connectionName;
-        return _getInternalExecutor(new DefaultThreadFactory(threadPrefix));
+        return newExecutor(new DefaultThreadFactory(threadPrefix));
     }
 
     // a cached pool that creates a thread per task from the given factory (so each submitted task — e.g.
     // a reader/writer loop that is re-submitted on reconnect — gets its own thread and never serializes
     // behind a not-yet-returned prior task, even when an Options is shared across connections)
-    private ExecutorService _getInternalExecutor(ThreadFactory threadFactory) {
+    private ExecutorService newExecutor(ThreadFactory threadFactory) {
         return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
             500L, TimeUnit.MILLISECONDS,
             new SynchronousQueue<>(),
@@ -306,7 +306,7 @@ public class Options {
         executorsLock.lock();
         try {
             if (resolvedScheduledExecutor == null || resolvedScheduledExecutor.isShutdown()) {
-                resolvedScheduledExecutor = userScheduledExecutor == null ? _getInternalScheduledExecutor() : userScheduledExecutor;
+                resolvedScheduledExecutor = userScheduledExecutor == null ? newScheduledExecutor() : userScheduledExecutor;
             }
             return resolvedScheduledExecutor;
         }
@@ -315,7 +315,7 @@ public class Options {
         }
     }
 
-    private ScheduledExecutorService _getInternalScheduledExecutor() {
+    private ScheduledExecutorService newScheduledExecutor() {
         String threadPrefix = nullOrEmpty(this.connectionName) ? DEFAULT_THREAD_NAME_PREFIX : this.connectionName;
         // the core pool size of 3 is chosen considering where we know the scheduler is used.
         // 1. Ping timer, 2. cleanup timer, 3. SocketDataPort write-timeout watch
@@ -394,7 +394,7 @@ public class Options {
             if (resolvedReaderExecutor == null || resolvedReaderExecutor.isShutdown()) {
                 resolvedReaderExecutor = userReaderExecutor != null
                     ? userReaderExecutor
-                    : _getInternalExecutor(userReaderThreadFactory);
+                    : newExecutor(userReaderThreadFactory);
             }
             return resolvedReaderExecutor;
         }
@@ -419,7 +419,7 @@ public class Options {
             if (resolvedWriterExecutor == null || resolvedWriterExecutor.isShutdown()) {
                 resolvedWriterExecutor = userWriterExecutor != null
                     ? userWriterExecutor
-                    : _getInternalExecutor(userWriterThreadFactory);
+                    : newExecutor(userWriterThreadFactory);
             }
             return resolvedWriterExecutor;
         }

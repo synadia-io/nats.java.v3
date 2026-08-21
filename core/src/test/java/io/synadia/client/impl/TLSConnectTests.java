@@ -93,7 +93,7 @@ public class TLSConnectTests extends TestBase {
     @Test
     public void testSimpleIPTLSConnection() throws Exception {
         runInSharedConfiguredServer("tls.conf", 1, ts1 -> {
-            String servers = "127.0.0.1:" + ts1.getPort();
+            String servers = "127.0.0.1:" + ts1.getNatsPort();
             assertCanConnectAndPubSub(createTestOptionsManually(servers));
             assertCanConnectAndPubSub(createTestOptionsViaProperties(servers));
             assertCanConnectAndPubSub(createTestOptionsViaFactoryInstance(servers));
@@ -206,7 +206,7 @@ public class TLSConnectTests extends TestBase {
     @Test
     public void testURISchemeTLSConnection() throws Exception {
         runInSharedConfiguredServer("tlsverify.conf", ts -> {
-            String servers = "tls://localhost:" + ts.getPort();
+            String servers = "tls://localhost:" + ts.getNatsPort();
             assertCanConnectAndPubSub(createTestOptionsManually(servers));
             assertCanConnectAndPubSub(createTestOptionsViaProperties(servers));
             assertCanConnectAndPubSub(createTestOptionsViaFactoryInstance(servers));
@@ -217,7 +217,7 @@ public class TLSConnectTests extends TestBase {
     @Test
     public void testURISchemeIPTLSConnection() throws Exception {
         runInSharedConfiguredServer("tlsverify.conf", ts -> {
-            String servers = "tls://127.0.0.1:" + ts.getPort();
+            String servers = "tls://127.0.0.1:" + ts.getNatsPort();
             assertCanConnectAndPubSub(createTestOptionsManually(servers));
             assertCanConnectAndPubSub(createTestOptionsViaProperties(servers));
             assertCanConnectAndPubSub(createTestOptionsViaFactoryInstance(servers));

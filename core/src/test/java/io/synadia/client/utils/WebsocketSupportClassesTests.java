@@ -309,7 +309,7 @@ public class WebsocketSupportClassesTests extends TestBase {
     public void testWebSocketCoverage() throws Exception {
         AtomicReference<String> lastMethod = new AtomicReference<>();
         runInConfiguredServer("ws.conf", ts -> {
-            try (Socket tcpSocket = new Socket("localhost", ts.getPort(WS))) {
+            try (Socket tcpSocket = new Socket("localhost", ts.getNonNatsPort())) {
                 WebSocket webSocket = new WebSocket(new Socket() {
                     @Override
                     public InputStream getInputStream() throws IOException {
@@ -376,7 +376,7 @@ public class WebsocketSupportClassesTests extends TestBase {
                     }
 
                     @Override
-                    public boolean getTcpNoDelay() throws SocketException {
+                    public boolean getTcpNoDelay() {
                         lastMethod.set("getTcpNoDelay");
                         return true;
                     }

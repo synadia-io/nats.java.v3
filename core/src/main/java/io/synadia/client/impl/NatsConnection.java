@@ -1161,7 +1161,7 @@ public class NatsConnection implements AutoCloseable {
     @NonNull
     public NatsSubscription subscribe(@NonNull String subject) {
         subjectValidate(subject);
-        return createSubscriptionInternal(subject, null, null, null);
+        return _createSubscriptionByFactory(subject, null, null, null);
     }
 
     /**
@@ -1184,7 +1184,7 @@ public class NatsConnection implements AutoCloseable {
     public NatsSubscription subscribe(@NonNull String subject, @NonNull String queueName) {
         subjectValidate(subject);
         Validator.validateQueueName(queueName, true);
-        return createSubscriptionInternal(subject, queueName, null, null);
+        return _createSubscriptionByFactory(subject, queueName, null, null);
     }
 
     protected void invalidate(NatsSubscription sub) {
@@ -1235,10 +1235,10 @@ public class NatsConnection implements AutoCloseable {
 
     // Assumes the null/empty checks were handled elsewhere
     @NonNull
-    NatsSubscription createSubscriptionInternal(@NonNull String subject,
-                                                @Nullable String queueName,
-                                                @Nullable NatsDispatcher dispatcher,
-                                                @Nullable NatsSubscriptionFactory factory) {
+    NatsSubscription _createSubscriptionByFactory(@NonNull String subject,
+                                                  @Nullable String queueName,
+                                                  @Nullable NatsDispatcher dispatcher,
+                                                  @Nullable NatsSubscriptionFactory factory) {
         if (isClosed()) {
             throw new IllegalStateException("NatsConnection is Closed");
         }
@@ -2149,7 +2149,7 @@ public class NatsConnection implements AutoCloseable {
             }
             else if (q != null) {
                 s.markNotSlow();
-                // beforeQueueProcessor returns true if the message is allowed to be queued
+                // the before queue processor contract is to return true if the message is allowed to be queued
                 if (sub.getBeforeQueueProcessor().apply(msg)) {
                     q.push(msg);
                 }

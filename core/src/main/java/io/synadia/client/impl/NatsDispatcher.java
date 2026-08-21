@@ -62,11 +62,11 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
 
     @Override
     public void start(String id) {
-        internalStart(id, true);
+        startImpl(id, true);
     }
 
     @SuppressWarnings("SameParameterValue")
-    protected void internalStart(String id, boolean threaded) {
+    protected void startImpl(String id, boolean threaded) {
         if (!started.get()) {
             this.id = id;
             this.running.set(true);
@@ -217,19 +217,19 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
             throw new IllegalStateException("Dispatcher was made without a default handler.");
         }
         connection.subjectValidate(subject);
-        return this.subscribeImplCore(subject, null, null);
+        return _subscribeCore(subject, null, null);
     }
 
     public NatsSubscription subscribe(String subject, MessageHandler handler) {
         connection.subjectValidate(subject);
         required(handler, "Handler");
-        return this.subscribeImplCore(subject, null, handler);
+        return _subscribeCore(subject, null, handler);
     }
 
     public NatsSubscription subscribe(String subject, String queueName) {
         connection.subjectValidate(subject);
         validateQueueName(queueName, true);
-        return this.subscribeImplCore(subject, queueName, null);
+        return _subscribeCore(subject, queueName, null);
     }
 
     public NatsSubscription subscribe(String subject, String queueName,  MessageHandler handler) {
@@ -238,12 +238,12 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
         if (handler == null) {
             throw new IllegalArgumentException("MessageHandler is required in subscribe");
         }
-        return this.subscribeImplCore(subject, queueName, handler);
+        return _subscribeCore(subject, queueName, handler);
     }
 
     // Assumes the subj/queuename checks are done, does check for closed status
-    NatsSubscription subscribeImplCore(@NonNull String subject, @Nullable String queueName, @Nullable MessageHandler handler) {
-        checkBeforeSubImpl();
+    NatsSubscription _subscribeCore(@NonNull String subject, @Nullable String queueName, @Nullable MessageHandler handler) {
+        requireActiveConnection();
 
         // If the handler is null, then we use the default handler, which will not allow
         // duplicate subscriptions to exist.
@@ -251,7 +251,7 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
             NatsSubscription sub = this.subWithDefaultHandlerBySubject.get(subject);
 
             if (sub == null) {
-                sub = connection.createSubscriptionInternal(subject, queueName, this, null);
+                sub = connection._createSubscriptionByFactory(subject, queueName, this, null);
                 NatsSubscription wonTheRace = this.subWithDefaultHandlerBySubject.putIfAbsent(subject, sub);
                 if (wonTheRace != null) {
                     this.connection.unsubscribe(sub, -1); // Could happen on very bad timing
@@ -261,16 +261,16 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
             return sub;
         }
 
-        return _subscribeImplHandlerProvided(subject, queueName, handler, null);
+        return _subscribeByFactoryAndTrack(subject, queueName, handler, null);
     }
 
-    NatsSubscription subscribeImplByFactory(@NonNull String subject, @Nullable String queueName, @NonNull MessageHandler handler, @NonNull NatsSubscriptionFactory nsf) {
-        checkBeforeSubImpl();
-        return _subscribeImplHandlerProvided(subject, queueName, handler, nsf);
+    NatsSubscription _subscribeByFactory(@NonNull String subject, @Nullable String queueName, @NonNull MessageHandler handler, @NonNull NatsSubscriptionFactory nsf) {
+        requireActiveConnection();
+        return _subscribeByFactoryAndTrack(subject, queueName, handler, nsf);
     }
 
-    private NatsSubscription _subscribeImplHandlerProvided(String subject, String queueName, MessageHandler handler, NatsSubscriptionFactory nsf) {
-        NatsSubscription sub = connection.createSubscriptionInternal(subject, queueName, this, nsf);
+    private NatsSubscription _subscribeByFactoryAndTrack(@NonNull String subject, @Nullable String queueName, @NonNull MessageHandler handler, @Nullable NatsSubscriptionFactory nsf) {
+        NatsSubscription sub = connection._createSubscriptionByFactory(subject, queueName, this, nsf);
         trackSubWithUserHandler(sub.getSID(), sub, handler);
         return sub;
     }
@@ -289,7 +289,7 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
         nonDefaultHandlerBySid.put(sid, handler);
     }
 
-    private void checkBeforeSubImpl() {
+    private void requireActiveConnection() {
         if (!running.get()) {
             throw new IllegalStateException("Dispatcher is closed");
         }

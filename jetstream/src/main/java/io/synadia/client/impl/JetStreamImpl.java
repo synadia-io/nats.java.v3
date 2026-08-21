@@ -181,11 +181,11 @@ public class JetStreamImpl implements JetStreamConstants {
 
     @Nullable
     String lookupStreamBySubject(String subject) throws JetStreamException, InterruptedException {
-        List<String> list = getStreamNamesInternal(subject);
+        List<String> list = _getStreamNames(subject);
         return list.size() == 1 ? list.get(0) : null;
     }
 
-    List<String> getStreamNamesInternal(@Nullable String subjectFilter) throws JetStreamException, InterruptedException {
+    List<String> _getStreamNames(@Nullable String subjectFilter) throws JetStreamException, InterruptedException {
         StreamNamesReader snr = new StreamNamesReader();
         while (snr.hasMore()) {
             Message resp = makeRequestResponseRequired(JSAPI_STREAM_NAMES, snr.nextJson(subjectFilter), getTimeout(), "getStreamNames");

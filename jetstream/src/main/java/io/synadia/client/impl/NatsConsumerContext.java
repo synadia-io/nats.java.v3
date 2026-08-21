@@ -98,7 +98,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
         // consumer it did not create and must leave it alone.
         return (JetStreamPullSubscription) (isOrdered
             ? streamCtx.js.subscribeDeleteConsumerOnException(streamCtx.streamName, ci, subscribeBehavior, initialPocc, optionalPmm)
-            : streamCtx.js.createSubscription(ci, subscribeBehavior, initialPocc, optionalPmm));
+            : streamCtx.js._createJsSubscription(ci, subscribeBehavior, initialPocc, optionalPmm));
     }
 
     private void checkState() {
