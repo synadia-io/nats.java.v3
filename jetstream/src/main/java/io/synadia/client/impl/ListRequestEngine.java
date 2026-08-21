@@ -45,11 +45,11 @@ public class ListRequestEngine extends ApiResponse<ListRequestEngine> {
         return (OFFSET_JSON_START + nextOffset() + "}").getBytes(StandardCharsets.UTF_8);
     }
 
-    byte[] _nextJson() {
+    byte[] nextJson() {
         return hasMore() ? noFilterJson() : null;
     }
 
-    byte[] _nextJson(String fieldName, String filter) {
+    byte[] nextJson(String fieldName, String filter) {
         if (hasMore()) {
             if (filter == null) {
                 return noFilterJson();

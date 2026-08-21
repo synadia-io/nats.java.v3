@@ -28,13 +28,13 @@ public class TestableListRequestEngine extends ListRequestEngine {
     }
 
     @Override
-    public byte[] _nextJson() {
-        return super._nextJson();
+    public byte[] nextJson() {
+        return super.nextJson();
     }
 
     @Override
-    public byte[] _nextJson(String fieldName, String filter) {
-        return super._nextJson(fieldName, filter);
+    public byte[] nextJson(String fieldName, String filter) {
+        return super.nextJson(fieldName, filter);
     }
 
     @Override

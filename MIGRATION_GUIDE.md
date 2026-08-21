@@ -197,6 +197,12 @@ The `default` is not optional and not a wart: `JetStreamException` is deliberate
 
   **The most common gotcha is `nextMessage`.** v3 maps `null` = poll once and `<= 0` = wait forever. If you used a v2 idiom that passed a negative/zero `Duration` to mean "return immediately," pass `null` now — **not `0L`, which now waits forever.** The reading methods are boxed (`Long`) specifically so `null` survives; the non-reading ones (`request`, `requestAsync`, `flush`, `drain`, `ackSync`) are plain `long` and have no `null` form.
 
+- **`NatsDispatcher.internalStart` renamed to `startImpl`.** Visibility and signature are unchanged — `protected void startImpl(String id, boolean threaded)` — only the name. This affects one kind of code: a subclass of `NatsDispatcher` declared in the client's impl package that drives the message drain loop itself instead of letting the dispatcher start its own thread. The known case is `nats-java-vertx-client`'s `VertxDispatcher`, which calls it with `threaded = false` so messages are delivered on the Vert.x event loop. If you subclass `NatsDispatcher`, rename the call; nothing else changes.
+
+  | v2 | v3 |
+  |---|---|
+  | `internalStart(id, false)` | `startImpl(id, false)` |
+
 ---
 
 ## JetStream
