@@ -533,56 +533,6 @@ public class JetStream extends JetStreamImpl {
     MessageManagerFactory _pullOrderedMessageManagerFactory = PullOrderedMessageManager::new;
 
 
-    /**
-     * Subscribe to a consumer this call has just created, deleting it if the subscribe fails.
-     *
-     * <p><b>Only call this with a consumer this call created.</b> For a consumer the caller already owns
-     * - bound by name, or supplied as a {@code ConsumerInfo} - a failed subscribe would delete something
-     * that was never ours to delete. Those paths call {@link #_createJsSubscription} directly.
-     *
-     * <p>The consumer exists only to back this subscription, so a failed subscribe would otherwise leave
-     * it orphaned on the server with nothing able to reach it. The create used the {@code Create} action,
-     * so its success proves the consumer did not exist beforehand and deleting restores the state the
-     * caller started in - which also means a retry is not met with "consumer already exists".
-     *
-     * <p>Everything after the consumer create can throw {@link IllegalStateException} when the connection
-     * or the dispatcher is closing or draining: creating the dispatcher, creating the subscription, and
-     * the dispatcher subscribe itself. When the cause is a closing connection the delete cannot be sent
-     * either and the orphan survives; when it is only the dispatcher, the delete goes through. The
-     * cleanup is best-effort for that reason, and it never replaces the original failure - a cleanup
-     * exception is attached as suppressed. That is the mistake jnats V2 issue #1596 was reported for.
-     *
-     * @param stream the stream the consumer was created on
-     * @param consumerInfo the consumer that was just created
-     * @param subscribeBehavior the behavior controlling the subscription, may be null
-     * @param orderedCreator the ordered consumer creator, may be null
-     * @param pmmInstance the pull message manager to reuse, may be null
-     * @return the subscription
-     */
-    NatsSubscription subscribeDeleteConsumerOnException(String stream,
-                                                        ConsumerInfo consumerInfo,
-                                                        @Nullable SubscribeBehavior subscribeBehavior,
-                                                        @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
-                                                        @Nullable PullMessageManager pmmInstance)
-    {
-        try {
-            return _createJsSubscription(consumerInfo, subscribeBehavior, orderedCreator, pmmInstance);
-        }
-        catch (RuntimeException e) {
-            try {
-                _deleteConsumer(stream, consumerInfo.getName());
-            }
-            catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                e.addSuppressed(ie);
-            }
-            catch (Exception de) {
-                e.addSuppressed(de);
-            }
-            throw e;
-        }
-    }
-
     NatsSubscription _createConsumerAndSubscription(String stream, ConsumerCreator<?> creator, @Nullable SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException {
         ConsumerInfo ci = _createConsumer(stream, creator, Create);
         try {

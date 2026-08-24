@@ -63,7 +63,6 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
                                                @Nullable Long optionalInactiveThreshold)
         throws JetStreamException, InterruptedException
     {
-        ConsumerInfo ci;
         if (isOrdered) {
             NatsMessageConsumerBase lastCon = lastConsumer.get();
             long lastStreamSeq = 0;
@@ -72,14 +71,47 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
                 highestSeq.set(lastStreamSeq);
             }
             ConsumerCreator<?> creator = new PullOrderedConsumerCreator(initialPocc, lastStreamSeq, optionalInactiveThreshold);
-            ci = streamCtx.js._createConsumer(streamCtx.streamName, creator, ConsumerCreateRequest.Action.Create);
+            ConsumerInfo ci = streamCtx.js._createConsumer(streamCtx.streamName, creator, ConsumerCreateRequest.Action.Create);
             cachedConsumerInfo.set(ci);
             consumerName.set(ci.getName());
-        }
-        else {
-            ci = unorderedConsumerInfo;
+
+            // Deliberately outside the try: this can only throw when the connection or the dispatcher is
+            // closing, which is exactly when the delete could not be sent either, so covering it would buy
+            // a doomed round trip on a consumer the server reaps on its own.
+            SubscribeBehavior behavior = subscribeBehavior(messageHandler, userDispatcher);
+
+            // This call made the consumer just above, so a failed subscribe has to delete it again. The
+            // _createConsumer used the Create action, so its success proves the consumer did not exist beforehand
+            // and deleting restores the state the caller started in.
+            try {
+                return (JetStreamPullSubscription) streamCtx.js._createJsSubscription(ci, behavior, initialPocc, optionalPmm);
+            }
+            catch (RuntimeException e) {
+                // Best effort: everything after the consumer create throws IllegalStateException when the
+                // connection or the dispatcher is closing or draining, and when the cause is the connection
+                // the delete cannot be sent either, so the orphan survives. The cleanup never replaces the
+                // original failure - that is the mistake jnats V2 issue #1596 was reported for.
+                try {
+                    streamCtx.js._deleteConsumer(streamCtx.streamName, ci.getName());
+                }
+                catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    e.addSuppressed(ie);
+                }
+                catch (Exception de) {
+                    e.addSuppressed(de);
+                }
+                throw e;
+            }
         }
 
+        // Bound to a consumer this call did not create, so a failed subscribe must leave it alone.
+        return (JetStreamPullSubscription) streamCtx.js._createJsSubscription(unorderedConsumerInfo, subscribeBehavior(messageHandler, userDispatcher), initialPocc, optionalPmm);
+    }
+
+    // The handler decides everything here: no handler means a sync subscription with nothing to set.
+    // The dispatcher is the caller's if they supplied one, otherwise this context's own, made once.
+    private SubscribeBehavior subscribeBehavior(@Nullable MessageHandler messageHandler, @Nullable NatsDispatcher userDispatcher) {
         SubscribeBehavior subscribeBehavior = new SubscribeBehavior();
         if (messageHandler != null) {
             subscribeBehavior.handler(messageHandler);
@@ -93,12 +125,7 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
             }
             subscribeBehavior.dispatcher(d);
         }
-        // isOrdered is exactly the condition under which this call created the consumer above, so it is
-        // also exactly when a failed subscribe has to delete it again. The unordered branch is bound to a
-        // consumer it did not create and must leave it alone.
-        return (JetStreamPullSubscription) (isOrdered
-            ? streamCtx.js.subscribeDeleteConsumerOnException(streamCtx.streamName, ci, subscribeBehavior, initialPocc, optionalPmm)
-            : streamCtx.js._createJsSubscription(ci, subscribeBehavior, initialPocc, optionalPmm));
+        return subscribeBehavior;
     }
 
     private void checkState() {
