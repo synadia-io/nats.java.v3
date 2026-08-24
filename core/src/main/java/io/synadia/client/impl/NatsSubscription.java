@@ -20,7 +20,10 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
     private final String queueName;
     private String sid;
 
-    private NatsDispatcher dispatcher;
+    // Null means this subscription is synchronous and owns its own queue. Deliberately not exposed:
+    // a dispatcher the subscribe made is owned by the subscription, not by the caller, and handing
+    // it out invites subscribing on something that dies with this subscription.
+    @Nullable NatsDispatcher dispatcher;
     private ConsumerMessageQueue incoming;
 
     private final AtomicLong unSubMessageLimit;
@@ -53,13 +56,13 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
 
     void reSubscribe(String newDeliverSubject) {
         connection.sendUnsub(this, 0);
+        // The handler is keyed by the sid being replaced, so it has to be read before the remove clears it.
+        MessageHandler handler = dispatcher == null ? null : dispatcher.getNonDefaultHandlerBySid(sid);
+        connection.remove(this); // the old sid, out of the connection's map and the dispatcher's
         if (dispatcher == null) {
-            connection.remove(this);
-            sid = connection.reSubscribe(this, newDeliverSubject, queueName);
+            sid = connection.reSubscribe(this, newDeliverSubject, queueName, null);
         }
         else {
-            MessageHandler handler = dispatcher.getNonDefaultHandlerBySid(sid);
-            dispatcher.remove(this);
             sid = dispatcher.reSubscribe(this, newDeliverSubject, queueName, handler);
         }
         subject = newDeliverSubject;
@@ -69,7 +72,7 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
      * {@inheritDoc}
      */
     public boolean isActive() {
-        return (this.dispatcher != null || this.incoming != null);
+        return (dispatcher != null || incoming != null);
     }
 
     void setBeforeQueueProcessorFunction(@Nullable Function<NatsMessage, Boolean> beforeQueueProcessor) {
@@ -87,49 +90,40 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
     }
 
     void invalidate() {
-        if (this.incoming != null) {
-            this.incoming.pause();
+        if (incoming != null) {
+            incoming.pause();
         }
         this.dispatcher = null;
         this.incoming = null;
     }
 
     void setUnsubLimit(long cd) {
-        this.unSubMessageLimit.set(cd);
+        unSubMessageLimit.set(cd);
     }
 
     boolean reachedUnsubLimit() {
-        long max = this.unSubMessageLimit.get();
-        long recv = this.getDeliveredCount();
+        long max = unSubMessageLimit.get();
+        long recv = getDeliveredCount();
         return (max > 0) && (max <= recv);
     }
 
     @Override
     ConsumerMessageQueue getMessageQueue() {
-        return this.incoming;
+        return incoming;
     }
 
     /** {@inheritDoc} */
     @Override
     @NonNull
     public String getSubject() {
-        return this.subject;
+        return subject;
     }
 
     /** {@inheritDoc} */
     @Override
     @Nullable
     public String getQueueName() {
-        return this.queueName;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @Nullable
-    public NatsDispatcher getDispatcher() {
-        return this.dispatcher;
+        return queueName;
     }
 
     /**
@@ -138,7 +132,7 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
      */
     @NonNull
     public String getSID() {
-        return this.sid;
+        return sid;
     }
 
     /** {@inheritDoc} */
@@ -174,25 +168,25 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
     // Raw primitive: null = poll once (no wait), <= 0 = wait forever, > 0 = wait that long. No arg validation.
     // Public nextMessage* methods validate and delegate here; JetStream subclasses use it for unmanaged reads.
     @Nullable Message _nextMessage(@Nullable Long timeout, TimeUnit timeoutUnit) throws InterruptedException {
-        if (this.dispatcher != null) {
+        if (dispatcher != null) {
             throw new IllegalStateException("Subscriptions that belong to a dispatcher cannot respond to nextMessage directly.");
         }
-        else if (this.incoming == null) {
+        else if (incoming == null) {
             throw new IllegalStateException("This subscription is inactive.");
         }
 
         NatsMessage msg = incoming.pop(timeout, timeoutUnit);
 
-        if (this.incoming == null || !this.incoming.isRunning()) { // We were unsubscribed while waiting
+        if (incoming == null || !incoming.isRunning()) { // We were unsubscribed while waiting
             throw new IllegalStateException("This subscription became inactive.");
         }
 
         if (msg != null) {
-            this.incrementDeliveredCount();
+            incrementDeliveredCount();
         }
 
-        if (this.reachedUnsubLimit()) {
-            this.connection.invalidate(this);
+        if (reachedUnsubLimit()) {
+            connection.invalidate(this);
         }
 
         return msg;
@@ -226,12 +220,12 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
     /** {@inheritDoc} */
     @Override
     void sendUnsubForDrain() {
-        this.connection.sendUnsub(this, -1);
+        connection.sendUnsub(this, -1);
     }
 
     /** {@inheritDoc} */
     @Override
     void cleanUpAfterDrain() {
-        this.connection.invalidate(this);
+        connection.invalidate(this);
     }
 }

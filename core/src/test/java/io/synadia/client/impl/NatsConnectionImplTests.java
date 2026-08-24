@@ -311,4 +311,28 @@ public class NatsConnectionImplTests extends TestBase {
             assertTrue(nc.outgoingPendingBytes() > nc.outgoingPendingMessageCount() * 1000);
         });
     }
+
+    @Test
+    public void testUnsubscribeWithLimitAlreadyReachedRemovesTheSid() throws Exception {
+        runInShared(nc -> {
+            int sinkCount = nc.getSinkCount();
+
+            String subject = random();
+            NatsSubscription sub = nc.subscribe(subject);
+            nc.flush(DEFAULT_WAIT);
+
+            nc.publish(subject, null);
+            nc.publish(subject, null);
+            assertNotNull(sub.nextMessage(DEFAULT_WAIT));
+            assertNotNull(sub.nextMessage(DEFAULT_WAIT));
+
+            // both messages are already delivered, so this unsubscribe ends the subscription
+            // on the spot instead of arming a limit
+            sub.unsubscribe(2);
+            nc.flush(DEFAULT_WAIT);
+
+            // the sid goes with it - the subscription is not just taken out of service
+            assertEquals(sinkCount, nc.getSinkCount());
+        });
+    }
 }

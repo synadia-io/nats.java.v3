@@ -437,6 +437,43 @@ public class DispatcherTests extends TestBase {
     }
 
     @Test
+    public void testReSubscribeReplacesTheSid() throws Exception {
+        runInShared(nc -> {
+            Dispatcher d = nc.createDispatcher(null);
+
+            String subject = random();
+            LinkedBlockingQueue<Message> received = new LinkedBlockingQueue<>();
+            NatsSubscription sub = d.subscribe(subject, received::add);
+            nc.flush(500);
+
+            nc.publish(subject, null);
+            assertNotNull(received.poll(500, TimeUnit.MILLISECONDS));
+
+            int sinkCount = nc.getSinkCount();
+
+            String newSubject = random();
+            sub.reSubscribe(newSubject);
+            nc.flush(500);
+
+            // the old sid is replaced, not left behind
+            assertEquals(sinkCount, nc.getSinkCount());
+            assertEquals(newSubject, sub.getSubject());
+
+            // and the handler came across with it
+            nc.publish(newSubject, null);
+            Message msg = received.poll(500, TimeUnit.MILLISECONDS);
+            assertNotNull(msg);
+            assertEquals(newSubject, msg.getSubject());
+
+            // nothing is delivered on the subject it moved off of
+            nc.publish(subject, null);
+            assertNull(received.poll(200, TimeUnit.MILLISECONDS));
+
+            nc.closeDispatcher(d);
+        });
+    }
+
+    @Test
     public void testPublishAndFlushFromCallback() throws Exception {
         runInShared(nc -> {
             String subject = random();

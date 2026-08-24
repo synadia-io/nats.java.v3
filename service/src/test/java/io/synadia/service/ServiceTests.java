@@ -665,7 +665,7 @@ public class ServiceTests extends TestBase {
     @Test
     public void testDispatchers() throws Exception {
         runInOwnServer(nc -> {
-            Map<String, Dispatcher> dispatchers = getDispatchers(nc);
+            Set<Dispatcher> dispatchers = getDispatchers(nc);
             assertEquals(0, dispatchers.size());
 
             Dispatcher dPing = nc.createDispatcher();
@@ -706,8 +706,8 @@ public class ServiceTests extends TestBase {
 
             dispatchers = getDispatchers(nc);
             assertEquals(2, dispatchers.size()); // dEnd and dStats
-            assertTrue(dispatchers.containsValue(dStats));
-            assertTrue(dispatchers.containsValue(dEnd));
+            assertTrue(dispatchers.contains(dStats));
+            assertTrue(dispatchers.contains(dEnd));
 
             service = new ServiceBuilder()
                 .connection(nc)

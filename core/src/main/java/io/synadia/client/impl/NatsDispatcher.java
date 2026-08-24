@@ -33,8 +33,6 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     protected final AtomicBoolean running;
     protected final AtomicBoolean started;
 
-    protected String id;
-
     // This tracks subscriptions made with the default handlers
     // There can only be one default handler subscription for any given subject
     protected final Map<String, NatsSubscription> subWithDefaultHandlerBySubject;
@@ -61,16 +59,15 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     @Override
-    public void start(String id) {
-        startImpl(id, true);
+    public void start() {
+        startImpl(true);
     }
 
     @SuppressWarnings("SameParameterValue")
-    protected void startImpl(String id, boolean threaded) {
+    protected void startImpl(boolean threaded) {
         if (!started.get()) {
-            this.id = id;
-            this.running.set(true);
-            this.started.set(true);
+            running.set(true);
+            started.set(true);
             if (threaded) {
                 thread = connection.getExecutor().submit(this, Boolean.TRUE);
             }
@@ -78,13 +75,13 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     boolean breakRunLoop() {
-        return this.incoming.isDrained();
+        return incoming.isDrained();
     }
 
     public void run() {
         try {
             while (running.get() && !Thread.interrupted()) {
-                NatsMessage msg = this.incoming.pop(WAIT_FOR_MESSAGE_MINUTES, TimeUnit.MINUTES);
+                NatsMessage msg = incoming.pop(WAIT_FOR_MESSAGE_MINUTES, TimeUnit.MINUTES);
                 if (msg != null) {
                     NatsSubscription sub = msg.getNatsSubscription();
                     if (sub != null && sub.isActive()) {
@@ -97,7 +94,7 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
                         // and the [non-default] handler has already been removed from subscriptionHandlers
                         if (handler != null) {
                             sub.incrementDeliveredCount();
-                            this.incrementDeliveredCount();
+                            incrementDeliveredCount();
 
                             try {
                                 handler.onMessage(msg);
@@ -120,25 +117,25 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
             }
         }
         catch (InterruptedException exp) {
-            if (this.running.get()){
-                this.connection.processException(exp);
+            if (running.get()){
+                connection.processException(exp);
             } //otherwise we did it
             Thread.currentThread().interrupt();
         }
         finally {
-            this.running.set(false);
+            running.set(false);
             this.thread = null;
         }
     }
 
     void stop(boolean unsubscribeAll) {
-        this.running.set(false);
-        this.incoming.pause();
+        running.set(false);
+        incoming.pause();
 
-        if (this.thread != null) {
+        if (thread != null) {
             try {
-                if (!this.thread.isCancelled()) {
-                    this.thread.cancel(true);
+                if (!thread.isCancelled()) {
+                    thread.cancel(true);
                 }
             } catch (Exception exp) {
                 // let it go
@@ -157,11 +154,7 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     public boolean isActive() {
-        return this.running.get();
-    }
-
-    String getId() {
-        return id;
+        return running.get();
     }
 
     ConsumerMessageQueue getMessageQueue() {
@@ -172,14 +165,24 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
         return nonDefaultHandlerBySid.get(sid);
     }
 
+    // Answered from our own tracking maps - the subscription is not asked who it belongs to.
+    // Same guard rails as remove: the default handler map is by subject, so the sid is double-checked.
+    private boolean owns(NatsSubscription sub) {
+        if (subWithNonDefaultHandlerBySid.containsKey(sub.getSID())) {
+            return true;
+        }
+        NatsSubscription defaultSub = subWithDefaultHandlerBySubject.get(sub.getSubject());
+        return defaultSub != null && defaultSub.getSID().equals(sub.getSID());
+    }
+
     boolean hasNoSubs() {
         return subWithDefaultHandlerBySubject.isEmpty() && subWithNonDefaultHandlerBySid.isEmpty();
     }
 
     void resendSubscriptions() {
-        this.subWithDefaultHandlerBySubject.forEach((subject, sub) ->
+        subWithDefaultHandlerBySubject.forEach((subject, sub) ->
             connection.sendSubscriptionMessage(sub.getSID(), subject, sub.getQueueName(), true));
-        this.subWithNonDefaultHandlerBySid.forEach((sid, sub) ->
+        subWithNonDefaultHandlerBySid.forEach((sid, sub) ->
             connection.sendSubscriptionMessage(sid, sub.getSubject(), sub.getQueueName(), true));
     }
 
@@ -248,13 +251,13 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
         // If the handler is null, then we use the default handler, which will not allow
         // duplicate subscriptions to exist.
         if (handler == null) {
-            NatsSubscription sub = this.subWithDefaultHandlerBySubject.get(subject);
+            NatsSubscription sub = subWithDefaultHandlerBySubject.get(subject);
 
             if (sub == null) {
                 sub = connection._createSubscriptionByFactory(subject, queueName, this, null);
-                NatsSubscription wonTheRace = this.subWithDefaultHandlerBySubject.putIfAbsent(subject, sub);
+                NatsSubscription wonTheRace = subWithDefaultHandlerBySubject.putIfAbsent(subject, sub);
                 if (wonTheRace != null) {
-                    this.connection.unsubscribe(sub, -1); // Could happen on very bad timing
+                    connection.unsubscribe(sub, -1); // Could happen on very bad timing
                 }
             }
 
@@ -276,7 +279,7 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     String reSubscribe(NatsSubscription sub, String subject, String queueName, MessageHandler handler) {
-        String sid = connection.reSubscribe(sub, subject, queueName);
+        String sid = connection.reSubscribe(sub, subject, queueName, this);
         trackSubWithUserHandler(sid, sub, handler);
         return sid;
     }
@@ -300,15 +303,15 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     public Dispatcher unsubscribe(String subject) {
-        return this.unsubscribe(subject, -1);
+        return unsubscribe(subject, -1);
     }
 
     public Dispatcher unsubscribe(Subscription subscription) {
-        return this.unsubscribe(subscription, -1);
+        return unsubscribe(subscription, -1);
     }
 
     public Dispatcher unsubscribe(String subject, int after) {
-        if (!this.running.get()) {
+        if (!running.get()) {
             throw new IllegalStateException("Dispatcher is closed");
         }
 
@@ -337,7 +340,7 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     public Dispatcher unsubscribe(Subscription subscription, int after) {
-        if (!this.running.get()) {
+        if (!running.get()) {
             throw new IllegalStateException("Dispatcher is closed");
         }
 
@@ -345,13 +348,13 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
             return this;
         }
 
-        if (subscription.getDispatcher() != this) {
-            throw new IllegalArgumentException("Subscription is not managed by this Dispatcher");
-        }
-
         // This should never, ever happen
         if (!(subscription instanceof NatsSubscription ns)) {
             throw new IllegalArgumentException("This Subscription implementation class type is not managed by the Dispatcher implementation");
+        }
+
+        if (!owns(ns)) {
+            throw new IllegalArgumentException("Subscription is not managed by this Dispatcher");
         }
         
         // Grab the NatsSubscription to verify we weren't given a different manager's subscription.
@@ -370,7 +373,7 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     void cleanUpAfterDrain() {
-        this.connection.cleanupDispatcher(this);
+        connection.cleanupDispatcher(this);
     }
 
     public boolean isDrained() {

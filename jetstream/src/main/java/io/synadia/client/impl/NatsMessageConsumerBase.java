@@ -108,12 +108,7 @@ abstract class NatsMessageConsumerBase implements MessageConsumer, PullManagerOb
     protected void shutdownSub() {
         try {
             if (sub.isActive()) {
-                if (sub.getDispatcher() != null) {
-                    sub.getDispatcher().unsubscribe(sub);
-                }
-                else {
-                    sub.unsubscribe();
-                }
+                sub.unsubscribe(); // routes through the dispatcher when there is one
             }
         }
         catch (Throwable ignore) {

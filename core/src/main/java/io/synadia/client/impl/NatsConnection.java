@@ -63,8 +63,8 @@ public class NatsConnection implements AutoCloseable {
 
     protected final AtomicReference<ServerInfo> serverInfo;
 
-    protected final Map<String, NatsSubscription> subscribers;
-    protected final Map<String, NatsDispatcher> dispatchers; // use a concurrent map so we get more consistent iteration behavior
+    protected final Map<String, SubscriptionInfo> subscriptions;
+    protected final Set<NatsDispatcher> dispatchers; // use a concurrent set so we get more consistent iteration behavior
     protected final Map<String, ConnectionListener> connectionListeners;
     protected final Map<String, ErrorListener> errorListeners;
     protected final Map<String, NatsRequestCompletableFuture> responsesAwaiting;
@@ -123,15 +123,15 @@ public class NatsConnection implements AutoCloseable {
 
         advancedTracking = options.isTrackAdvancedStats();
         this.statistics = options.getStatisticsCollector() == null ? new NatsStatistics() : options.getStatisticsCollector();
-        this.statistics.setAdvancedTracking(advancedTracking);
+        statistics.setAdvancedTracking(advancedTracking);
 
         this.closeSocketLock = new ReentrantLock();
 
         this.statusLock = new ReentrantLock();
-        this.statusChanged = this.statusLock.newCondition();
+        this.statusChanged = statusLock.newCondition();
         this.status = DISCONNECTED;
         this.reconnectWaiter = new CompletableFuture<>();
-        this.reconnectWaiter.complete(Boolean.TRUE);
+        reconnectWaiter.complete(Boolean.TRUE);
 
         // seeded from the options; two listeners sharing an id means the last one wins
         this.connectionListeners = new ConcurrentHashMap<>();
@@ -144,8 +144,8 @@ public class NatsConnection implements AutoCloseable {
             addErrorListener(el);
         }
 
-        this.dispatchers = new ConcurrentHashMap<>();
-        this.subscribers = new ConcurrentHashMap<>();
+        this.dispatchers = ConcurrentHashMap.newKeySet();
+        this.subscriptions = new ConcurrentHashMap<>();
         this.responsesAwaiting = new ConcurrentHashMap<>();
         this.responsesRespondedTo = new ConcurrentHashMap<>();
         this.serverAuthErrors = new ConcurrentHashMap<>();
@@ -232,7 +232,7 @@ public class NatsConnection implements AutoCloseable {
             throw new IllegalArgumentException("No servers provided in options");
         }
 
-        this.lastError.set("");
+        lastError.set("");
 
         Set<NatsUri> failList = new HashSet<>();
         boolean keepGoing = true;
@@ -270,8 +270,8 @@ public class NatsConnection implements AutoCloseable {
 
                 String err = connectError.get();
 
-                if (this.isAuthenticationError(err)) {
-                    this.serverAuthErrors.put(resolved, err);
+                if (isAuthenticationError(err)) {
+                    serverAuthErrors.put(resolved, err);
                 }
             }
 
@@ -286,10 +286,10 @@ public class NatsConnection implements AutoCloseable {
                 reconnectImpl(); // call the impl here otherwise the tryingToConnect guard will block the behavior
             }
             else {
-                this.close(true, false);
+                close(true, false);
 
                 String err = connectError.get();
-                if (this.isAuthenticationError(err)) {
+                if (isAuthenticationError(err)) {
                     throw new AuthenticationException("Authentication error connecting to NATS server: " + err);
                 }
                 throw new IOException("Unable to connect to NATS servers: " + failList);
@@ -356,8 +356,8 @@ public class NatsConnection implements AutoCloseable {
             // resulting IOException as an expected shutdown rather than a communication issue. Both stop
             // methods return a future completed when the thread actually exits; both are initialized to an
             // already-completed future at construction, so joining one that never started returns at once.
-            Future<Boolean> readerStopped = this.reader.stop(false);
-            Future<Boolean> writerStopped = this.writer.stop();
+            Future<Boolean> readerStopped = reader.stop(false);
+            Future<Boolean> writerStopped = writer.stop();
 
             // close the data port as a task so as not to block reconnecting
             if (dataPort != null) {
@@ -422,28 +422,28 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if (options.getMaxReconnects() == 0) {
-            this.close(true, false);
+            close(true, false);
             return;
         }
 
         writer.enterReconnectMode();
 
-        if (!isConnected() && !isClosed() && !this.isClosing()) {
+        if (!isConnected() && !isClosed() && !isClosing()) {
             reconnectImplConnect();
         }
 
         if (!isConnected()) {
-            this.close(true, false);
+            close(true, false);
             return;
         }
 
-        this.subscribers.forEach((sid, sub) -> {
-            if (sub.getDispatcher() == null && !sub.isDraining()) {
-                sendSubscriptionMessage(sub.getSID(), sub.getSubject(), sub.getQueueName(), true);
+        subscriptions.forEach((sid, subscription) -> {
+            if (subscription.dispatcher == null && !subscription.sub.isDraining()) {
+                sendSubscriptionMessage(sid, subscription.sub.getSubject(), subscription.sub.getQueueName(), true);
             }
         });
 
-        this.dispatchers.forEach((nuid, d) -> {
+        dispatchers.forEach(d -> {
             if (!d.isDraining()) {
                 d.resendSubscriptions();
             }
@@ -483,7 +483,7 @@ public class NatsConnection implements AutoCloseable {
                     return;
                 }
                 connectError.set(""); // reset on each loop
-                if (isDisconnectingOrClosed() || this.isClosing()) {
+                if (isDisconnectingOrClosed() || isClosing()) {
                     return;
                 }
                 updateStatus(RECONNECTING, resolved, cur);
@@ -497,8 +497,8 @@ public class NatsConnection implements AutoCloseable {
                 }
 
                 String err = connectError.get();
-                if (this.isAuthenticationError(err)) {
-                    if (err.equals(this.serverAuthErrors.get(resolved))) {
+                if (isAuthenticationError(err)) {
+                    if (err.equals(serverAuthErrors.get(resolved))) {
                         return; // double auth error
                     }
                     serverAuthErrors.put(resolved, err);
@@ -531,7 +531,7 @@ public class NatsConnection implements AutoCloseable {
 
             statusLock.lock();
             try {
-                if (this.connecting) {
+                if (connecting) {
                     return;
                 }
                 this.connecting = true;
@@ -548,23 +548,23 @@ public class NatsConnection implements AutoCloseable {
             // Make sure the reader and writer are stopped
             long timeLeftNanos = timeCheck(end);
             if (reader.isRunning()) {
-                this.reader.stop().get(timeLeftNanos, TimeUnit.NANOSECONDS);
+                reader.stop().get(timeLeftNanos, TimeUnit.NANOSECONDS);
             }
             timeLeftNanos = timeCheck(end);
             if (writer.isRunning()) {
-                this.writer.stop().get(timeLeftNanos, TimeUnit.NANOSECONDS);
+                writer.stop().get(timeLeftNanos, TimeUnit.NANOSECONDS);
             }
 
             timeCheck(end);
             cleanUpPongQueue();
 
             timeLeftNanos = timeCheck(end);
-            DataPort newDataPort = this.options.createDataPort();
+            DataPort newDataPort = options.createDataPort();
             newDataPort.connect(this, resolved, timeLeftNanos);
 
             // Notify any threads waiting on the sockets
             this.dataPort = newDataPort;
-            this.dataPortFuture.complete(this.dataPort);
+            dataPortFuture.complete(dataPort);
 
             // Wait for the INFO message manually.
             // All other traffic will use the reader and writer
@@ -598,12 +598,12 @@ public class NatsConnection implements AutoCloseable {
 
             // start the reader and writer after we secured the connection, if necessary
             timeCheck(end);
-            this.reader.start(this.dataPortFuture);
+            reader.start(dataPortFuture);
             timeCheck(end);
-            this.writer.start(this.dataPortFuture);
+            writer.start(dataPortFuture);
 
             timeCheck(end);
-            this.sendConnect(resolved);
+            sendConnect(resolved);
 
             timeLeftNanos = timeCheck(end);
             Future<Boolean> pongFuture = sendPing();
@@ -614,7 +614,7 @@ public class NatsConnection implements AutoCloseable {
 
             if (pingTask == null) {
                 timeCheck(end);
-                long pingMillis = this.options.getPingInterval();
+                long pingMillis = options.getPingInterval();
                 if (pingMillis > 0) {
                     pingTask = new ScheduledTask(scheduledExecutor, pingMillis, () -> {
                         if (isConnected() && !isClosing()) {
@@ -628,7 +628,7 @@ public class NatsConnection implements AutoCloseable {
                     });
                 }
 
-                long cleanMillis = this.options.getRequestCleanupInterval();
+                long cleanMillis = options.getRequestCleanupInterval();
                 if (cleanMillis > 0) {
                     cleanupTask = new ScheduledTask(scheduledExecutor, cleanMillis, () -> cleanResponses(false));
                 }
@@ -640,12 +640,12 @@ public class NatsConnection implements AutoCloseable {
             try {
                 this.connecting = false;
 
-                if (this.exceptionDuringConnectChange != null) {
-                    throw this.exceptionDuringConnectChange;
+                if (exceptionDuringConnectChange != null) {
+                    throw exceptionDuringConnectChange;
                 }
 
                 this.currentServer = cur;
-                this.serverAuthErrors.clear(); // reset on successful connection
+                serverAuthErrors.clear(); // reset on successful connection
                 updateStatus(CONNECTED); // will signal status change, we also signal in finally
             }
             finally {
@@ -657,7 +657,7 @@ public class NatsConnection implements AutoCloseable {
             try {
                 // allow force reconnect since this is pretty exceptional,
                 // a connection failure while trying to connect
-                this.closeSocket(false, true);
+                closeSocket(false, true);
             }
             catch (InterruptedException e) {
                 processException(e);
@@ -726,7 +726,7 @@ public class NatsConnection implements AutoCloseable {
         // If we are connecting or disconnecting, note exception and leave
         statusLock.lock();
         try {
-            if (this.connecting || this.disconnecting || this.status == CLOSED || this.isDraining()) {
+            if (connecting || disconnecting || status == CLOSED || isDraining()) {
                 this.exceptionDuringConnectChange = io;
                 return;
             }
@@ -749,7 +749,7 @@ public class NatsConnection implements AutoCloseable {
 
                     // any issue that brings us here is pretty serious
                     // so we are comfortable forcing the close
-                    this.closeSocket(true, true);
+                    closeSocket(true, true);
                 }
                 catch (InterruptedException e) {
                     processException(e);
@@ -772,12 +772,12 @@ public class NatsConnection implements AutoCloseable {
             statusLock.lock();
             try {
                 if (isDisconnectingOrClosed()) {
-                    waitForDisconnectOrClose(this.options.getConnectionTimeout());
+                    waitForDisconnectOrClose(options.getConnectionTimeout());
                     return;
                 }
                 this.disconnecting = true;
                 this.exceptionDuringConnectChange = null;
-                wasConnected = (this.status == CONNECTED);
+                wasConnected = (status == CONNECTED);
 
                 // Update the status before tearing the socket down, not after. closeSocketImpl
                 // clears the current server as its first act and can then block for as long as
@@ -805,7 +805,7 @@ public class NatsConnection implements AutoCloseable {
             }
 
             if (isClosing()) { // isClosing() means we are in the close method or were asked to be
-                this.close(true, false);
+                close(true, false);
             }
             else if (wasConnected && tryReconnectIfConnected) {
                 reconnectImpl(); // call the impl here otherwise the tryingToConnect guard will block the behavior
@@ -830,7 +830,7 @@ public class NatsConnection implements AutoCloseable {
     @Override
     public void close() {
         try {
-            this.close(true, false);
+            close(true, false);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupt status; do not propagate from close()
@@ -843,14 +843,14 @@ public class NatsConnection implements AutoCloseable {
     protected void close(boolean checkDrainStatus, boolean forceClose) throws InterruptedException {
         statusLock.lock();
         try {
-            if (checkDrainStatus && this.isDraining()) {
-                waitForDisconnectOrClose(this.options.getConnectionTimeout());
+            if (checkDrainStatus && isDraining()) {
+                waitForDisconnectOrClose(options.getConnectionTimeout());
                 return;
             }
 
             this.closing = true;// We were asked to close, so do it
             if (isDisconnectingOrClosed()) {
-                waitForDisconnectOrClose(this.options.getConnectionTimeout());
+                waitForDisconnectOrClose(options.getConnectionTimeout());
                 return;
             }
             else {
@@ -865,18 +865,18 @@ public class NatsConnection implements AutoCloseable {
 
         // Stop the reconnect wait timer after we stop the writer/reader (only if we are
         // really closing, not on errors)
-        if (this.reconnectWaiter != null) {
-            this.reconnectWaiter.cancel(true);
+        if (reconnectWaiter != null) {
+            reconnectWaiter.cancel(true);
         }
 
         closeSocketImpl(forceClose);
 
-        this.dispatchers.forEach((nuid, d) -> d.stop(false));
+        dispatchers.forEach(d -> d.stop(false));
 
-        this.subscribers.forEach((sid, sub) -> sub.invalidate());
+        subscriptions.forEach((sid, subscription) -> subscription.sub.invalidate());
 
-        this.dispatchers.clear();
-        this.subscribers.clear();
+        dispatchers.clear();
+        subscriptions.clear();
 
         if (pingTask != null) {
             pingTask.shutdown();
@@ -936,8 +936,8 @@ public class NatsConnection implements AutoCloseable {
         clearCurrentServer();
 
         // Signal both to stop.
-        final Future<Boolean> readStop = this.reader.stop();
-        final Future<Boolean> writeStop = this.writer.stop();
+        final Future<Boolean> readStop = reader.stop();
+        final Future<Boolean> writeStop = writer.stop();
 
         // Now wait until they both stop before closing the socket.
         try {
@@ -977,13 +977,13 @@ public class NatsConnection implements AutoCloseable {
         cleanUpPongQueue();
 
         try {
-            this.reader.stop().get(10, TimeUnit.SECONDS);
+            reader.stop().get(10, TimeUnit.SECONDS);
         }
         catch (Exception ex) {
             processException(ex);
         }
         try {
-            this.writer.stop().get(10, TimeUnit.SECONDS);
+            writer.stop().get(10, TimeUnit.SECONDS);
         }
         catch (Exception ex) {
             processException(ex);
@@ -1126,7 +1126,7 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if ((status == RECONNECTING || status == DISCONNECTED)
-            && !this.writer.canQueueDuringReconnect(ipm)) {
+            && !writer.canQueueDuringReconnect(ipm)) {
             throw new IllegalStateException(
                 "Unable to queue any more messages during reconnect, max buffer is " + options.getReconnectBufferSize());
         }
@@ -1193,11 +1193,10 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void remove(NatsSubscription sub) {
-        CharSequence sid = sub.getSID();
-        subscribers.remove(sid);
+        SubscriptionInfo subscription = subscriptions.remove(sub.getSID());
 
-        if (sub.getDispatcher() != null) {
-            sub.getDispatcher().remove(sub);
+        if (subscription != null && subscription.dispatcher != null) {
+            subscription.dispatcher.remove(sub);
         }
     }
 
@@ -1207,13 +1206,13 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if (after <= 0) {
-            this.invalidate(sub); // Will clean it up
+            invalidate(sub); // Will clean it up
         }
         else {
             sub.setUnsubLimit(after);
 
             if (sub.reachedUnsubLimit()) {
-                sub.invalidate();
+                invalidate(sub); // takes the sid out of subscriptions, not just the sub out of service
             }
         }
 
@@ -1233,6 +1232,21 @@ public class NatsConnection implements AutoCloseable {
         queueOutgoing(new ProtocolMessage(bab, true));
     }
 
+    /**
+     * What the connection knows about one sid: the subscription, and the dispatcher delivering to it
+     * if there is one. The connection owns this link, so delivery, reconnect and drain never have to
+     * ask a subscription what it belongs to.
+     */
+    protected static final class SubscriptionInfo {
+        protected final NatsSubscription sub;
+        protected final @Nullable NatsDispatcher dispatcher;
+
+        protected SubscriptionInfo(NatsSubscription sub, @Nullable NatsDispatcher dispatcher) {
+            this.sub = sub;
+            this.dispatcher = dispatcher;
+        }
+    }
+
     // Assumes the null/empty checks were handled elsewhere
     @NonNull
     NatsSubscription _createSubscriptionByFactory(@NonNull String subject,
@@ -1242,7 +1256,7 @@ public class NatsConnection implements AutoCloseable {
         if (isClosed()) {
             throw new IllegalStateException("NatsConnection is Closed");
         }
-        else if (isDraining() && (dispatcher == null || dispatcher != this.inboxDispatcher.get())) {
+        else if (isDraining() && (dispatcher == null || dispatcher != inboxDispatcher.get())) {
             throw new IllegalStateException("NatsConnection is Draining");
         }
 
@@ -1255,7 +1269,7 @@ public class NatsConnection implements AutoCloseable {
         else {
             sub = factory.createNatsSubscription(sid, subject, queueName, this, dispatcher);
         }
-        subscribers.put(sid, sub);
+        subscriptions.put(sid, new SubscriptionInfo(sub, dispatcher));
 
         sendSubscriptionMessage(sid, subject, queueName, false);
         return sub;
@@ -1265,10 +1279,10 @@ public class NatsConnection implements AutoCloseable {
         return Long.toString(nextSid.getAndIncrement());
     }
 
-    protected String reSubscribe(NatsSubscription sub, String subject, String queueName) {
+    protected String reSubscribe(NatsSubscription sub, String subject, String queueName, @Nullable NatsDispatcher dispatcher) {
         String sid = getNextSid();
         sendSubscriptionMessage(sid, subject, queueName, false);
-        subscribers.put(sid, sub);
+        subscriptions.put(sid, new SubscriptionInfo(sub, dispatcher));
         return sid;
     }
 
@@ -1621,10 +1635,9 @@ public class NatsConnection implements AutoCloseable {
                     NatsDispatcher d = dispatcherFactory.createDispatcher(this, this::deliverReply);
 
                     // Ensure the dispatcher is started before publishing messages
-                    String id = this.nuid.next();
-                    this.dispatchers.put(id, d);
-                    d.start(id);
-                    d.subscribe(this.mainInbox);
+                    dispatchers.add(d);
+                    d.start();
+                    d.subscribe(mainInbox);
                     inboxDispatcher.set(d);
                 }
             }
@@ -1633,7 +1646,7 @@ public class NatsConnection implements AutoCloseable {
             }
         }
 
-        String responseInbox = createResponseInbox(this.mainInbox);
+        String responseInbox = createResponseInbox(mainInbox);
         String responseToken = getResponseToken(responseInbox);
         NatsRequestCompletableFuture future =
             new NatsRequestCompletableFuture(cancelAction,
@@ -1736,9 +1749,8 @@ public class NatsConnection implements AutoCloseable {
         }
 
         NatsDispatcher dispatcher = dispatcherFactory.createDispatcher(this, handler);
-        String id = this.nuid.next();
-        this.dispatchers.put(id, dispatcher);
-        dispatcher.start(id);
+        dispatchers.add(dispatcher);
+        dispatcher.start();
         return dispatcher;
     }
 
@@ -1764,7 +1776,7 @@ public class NatsConnection implements AutoCloseable {
             return; // No op while draining
         }
 
-        if (!this.dispatchers.containsKey(nd.getId())) {
+        if (!dispatchers.contains(nd)) {
             throw new IllegalArgumentException("Dispatcher is already closed.");
         }
 
@@ -1773,11 +1785,11 @@ public class NatsConnection implements AutoCloseable {
 
     protected void cleanupDispatcher(NatsDispatcher nd) {
         nd.stop(true);
-        this.dispatchers.remove(nd.getId());
+        dispatchers.remove(nd);
     }
 
-    protected Map<String, Dispatcher> getDispatchers() {
-        return Collections.unmodifiableMap(dispatchers);
+    protected Set<Dispatcher> getDispatchers() {
+        return Collections.unmodifiableSet(dispatchers);
     }
 
     /**
@@ -1898,7 +1910,7 @@ public class NatsConnection implements AutoCloseable {
                 waitForIt.get(remainingNanos, TimeUnit.NANOSECONDS);
             }
 
-            this.statistics.incrementFlushCounter();
+            statistics.incrementFlushCounter();
         }
         catch (ExecutionException | CancellationException e) {
             throw new TimeoutException(e.toString());
@@ -1907,7 +1919,7 @@ public class NatsConnection implements AutoCloseable {
 
     protected void sendConnect(NatsUri nuri) throws IOException {
         try {
-            ServerInfo info = this.serverInfo.get();
+            ServerInfo info = serverInfo.get();
             // This is changed - we used to use info.isAuthRequired(), but are changing it to
             // better match older versions of the server. It may change again in the future.
             CharBuffer connectOptions = options.buildProtocolConnectOptionsString(
@@ -1923,11 +1935,11 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected CompletableFuture<Boolean> sendPing() {
-        return this.sendPing(true);
+        return sendPing(true);
     }
 
     protected void softPing() {
-        this.sendPing(false);
+        sendPing(false);
     }
 
     /**
@@ -1974,10 +1986,10 @@ public class NatsConnection implements AutoCloseable {
             return retVal;
         }
 
-        if (!treatAsInternal && !this.needPing.get()) {
+        if (!treatAsInternal && !needPing.get()) {
             CompletableFuture<Boolean> retVal = new CompletableFuture<>();
             retVal.complete(Boolean.TRUE);
-            this.needPing.set(true);
+            needPing.set(true);
             return retVal;
         }
 
@@ -1997,8 +2009,8 @@ public class NatsConnection implements AutoCloseable {
             queueOutgoing(new ProtocolMessage(PING_PROTO));
         }
 
-        this.needPing.set(true);
-        this.statistics.incrementPingCount();
+        needPing.set(true);
+        statistics.incrementPingCount();
         return pongFuture;
     }
 
@@ -2030,7 +2042,7 @@ public class NatsConnection implements AutoCloseable {
         boolean gotCR = false;
 
         while (!gotCRLF) {
-            int read = this.dataPort.read(readBuffer, 0, readBuffer.length);
+            int read = dataPort.read(readBuffer, 0, readBuffer.length);
 
             if (read < 0) {
                 break;
@@ -2083,17 +2095,17 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void handleInfo(String infoJson) {
-        ServerInfo serverInfo = new ServerInfo(infoJson);
-        this.serverInfo.set(serverInfo);
+        ServerInfo newServerInfo = new ServerInfo(infoJson);
+        serverInfo.set(newServerInfo);
 
-        List<String> urls = this.serverInfo.get().getConnectURLs();
+        List<String> urls = newServerInfo.getConnectURLs();
         if (!urls.isEmpty()) {
             if (serverPool.acceptDiscoveredUrls(urls)) {
                 processConnectionEvent(ConnectionEvents.DISCOVERED_SERVERS, urls.toString());
             }
         }
 
-        if (serverInfo.isLameDuckMode()) {
+        if (newServerInfo.isLameDuckMode()) {
             processConnectionEvent(ConnectionEvents.LAME_DUCK, uriDetail(currentServer));
             this.lameDuckTriggered = true;
         }
@@ -2103,9 +2115,9 @@ public class NatsConnection implements AutoCloseable {
         if (options.clientSideLimitChecks()) {
             if (getMaxPayload() > 0 && msg.getPayloadSize() > getMaxPayload()) {
                 throw new IllegalArgumentException(
-                    "Message payload size exceed server configuration " + msg.getPayloadSize() + " vs " + this.getMaxPayload());
+                    "Message payload size exceed server configuration " + msg.getPayloadSize() + " vs " + getMaxPayload());
             }
-            if (msg.getControlLineLength() > this.options.getMaxControlLine()) {
+            if (msg.getControlLineLength() > options.getMaxControlLine()) {
                 throw new IllegalArgumentException("Control line is too long");
             }
         }
@@ -2120,25 +2132,26 @@ public class NatsConnection implements AutoCloseable {
 
     protected void queueInternalOutgoing(NatsMessage msg) {
         validatePayloadAndControlLineSizes(msg);
-        this.writer.queueInternalMessage(msg);
+        writer.queueInternalMessage(msg);
     }
 
     protected void deliverMessage(NatsMessage msg) {
-        this.needPing.set(false);
-        this.statistics.incrementIn(msg.getSizeInBytes());
+        needPing.set(false);
+        statistics.incrementIn(msg.getSizeInBytes());
 
-        NatsSubscription sub = subscribers.get(msg.getSID());
+        SubscriptionInfo subscription = subscriptions.get(msg.getSID());
 
-        if (sub != null) {
+        if (subscription != null) {
+            NatsSubscription sub = subscription.sub;
             msg.setSubscription(sub);
 
-            NatsDispatcher d = sub.getDispatcher();
+            NatsDispatcher d = subscription.dispatcher;
             NatsMessageSink s = (d == null) ? sub : d;
             ConsumerMessageQueue q = ((d == null) ? sub.getMessageQueue() : d.getMessageQueue());
 
             if (s.hasReachedPendingLimits()) {
                 // Drop the message and count it
-                this.statistics.incrementDroppedCount();
+                statistics.incrementDroppedCount();
                 s.incrementDroppedCount();
 
                 // Notify the first time
@@ -2160,7 +2173,7 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void processOK() {
-        this.statistics.incrementOkCount();
+        statistics.incrementOkCount();
     }
 
     protected void makeCallback(Runnable callback) {
@@ -2195,7 +2208,7 @@ public class NatsConnection implements AutoCloseable {
      * @param exp the exception
      */
     public void processException(Exception exp) {
-        this.statistics.incrementExceptionCount();
+        statistics.incrementExceptionCount();
         notifyErrorListener((c, el) -> el.exceptionOccurred(c, exp));
     }
 
@@ -2206,14 +2219,14 @@ public class NatsConnection implements AutoCloseable {
      * @param errorText the error text as sent by the server
      */
     public void processError(String errorText) {
-        this.statistics.incrementErrCount();
+        statistics.incrementErrCount();
 
-        this.lastError.set(errorText);
-        this.connectError.set(errorText); // even if this isn't during connection, save it just in case
+        lastError.set(errorText);
+        connectError.set(errorText); // even if this isn't during connection, save it just in case
 
         // If we get an authentication error, save it
-        if (this.isAuthenticationError(errorText) && currentServer != null) {
-            this.serverAuthErrors.put(currentServer, errorText);
+        if (isAuthenticationError(errorText) && currentServer != null) {
+            serverAuthErrors.put(currentServer, errorText);
         }
 
         notifyErrorListener((c, el) -> el.errorOccurred(c, errorText));
@@ -2296,7 +2309,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public Options getOptions() {
-        return this.options;
+        return options;
     }
 
     /**
@@ -2305,20 +2318,20 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public Statistics getStatistics() {
-        return this.statistics.getStatistics();
+        return statistics.getStatistics();
     }
 
     protected StatisticsCollector getStatisticsCollector() {
-        return this.statistics;
+        return statistics;
     }
 
     protected DataPort getDataPort() {
-        return this.dataPort;
+        return dataPort;
     }
 
     // Used for testing
     protected int getSinkCount() {
-        return this.subscribers.size() + this.dispatchers.size();
+        return subscriptions.size() + dispatchers.size();
     }
 
     /**
@@ -2328,7 +2341,7 @@ public class NatsConnection implements AutoCloseable {
      * @return the maximum size of a message payload
      */
     public long getMaxPayload() {
-        ServerInfo info = this.serverInfo.get();
+        ServerInfo info = serverInfo.get();
 
         if (info == null) {
             return -1;
@@ -2403,7 +2416,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public ConnectionStatus getStatus() {
-        return this.status;
+        return status;
     }
 
     /**
@@ -2454,7 +2467,7 @@ public class NatsConnection implements AutoCloseable {
         ConnectionStatus oldStatus;
         statusLock.lock();
         try {
-            oldStatus = this.status;
+            oldStatus = status;
             if (oldStatus == CLOSED || newStatus == oldStatus) {
                 return;
             }
@@ -2480,25 +2493,25 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected boolean isClosing() {
-        return this.closing;
+        return closing;
     }
 
     protected boolean isClosed() {
-        return this.status == CLOSED;
+        return status == CLOSED;
     }
 
     protected boolean isConnected() {
-        return this.status == CONNECTED;
+        return status == CONNECTED;
     }
 
     protected boolean isDisconnected() {
-        return this.status == DISCONNECTED;
+        return status == DISCONNECTED;
     }
 
     protected boolean isConnectedOrConnecting() {
         statusLock.lock();
         try {
-            return this.status == CONNECTED || this.connecting;
+            return status == CONNECTED || connecting;
         } finally {
             statusLock.unlock();
         }
@@ -2507,7 +2520,7 @@ public class NatsConnection implements AutoCloseable {
     protected boolean isDisconnectingOrClosed() {
         statusLock.lock();
         try {
-            return this.status == CLOSED || this.disconnecting;
+            return status == CLOSED || disconnecting;
         } finally {
             statusLock.unlock();
         }
@@ -2516,18 +2529,18 @@ public class NatsConnection implements AutoCloseable {
     protected boolean isDisconnecting() {
         statusLock.lock();
         try {
-            return this.disconnecting;
+            return disconnecting;
         } finally {
             statusLock.unlock();
         }
     }
 
     protected void waitForDisconnectOrClose(long timeoutMillis) throws InterruptedException {
-        waitWhile(timeoutMillis < 0 ? -1 : timeoutMillis * NANOS_PER_MILLI, (Void) -> this.isDisconnecting() && !this.isClosed() );
+        waitWhile(timeoutMillis < 0 ? -1 : timeoutMillis * NANOS_PER_MILLI, (Void) -> isDisconnecting() && !isClosed() );
     }
 
     protected void waitForConnectOrClose(long timeoutMillis) throws InterruptedException {
-        waitWhile(timeoutMillis < 0 ? -1 : timeoutMillis * NANOS_PER_MILLI, (Void) -> !this.isConnected() && !this.isClosed());
+        waitWhile(timeoutMillis < 0 ? -1 : timeoutMillis * NANOS_PER_MILLI, (Void) -> !isConnected() && !isClosed());
     }
 
     // operates purely in nanoseconds (precise, monotonic); the millis-facing wrappers above convert once at the edge.
@@ -2582,9 +2595,9 @@ public class NatsConnection implements AutoCloseable {
         this.reconnectWaiter = new CompletableFuture<>();
 
         long start = NatsSystemClock.nanoTime();
-        while (currentWaitMillis > 0 && !isDisconnectingOrClosed() && !isConnected() && !this.reconnectWaiter.isDone()) {
+        while (currentWaitMillis > 0 && !isDisconnectingOrClosed() && !isConnected() && !reconnectWaiter.isDone()) {
             try {
-                this.reconnectWaiter.get(currentWaitMillis, TimeUnit.MILLISECONDS);
+                reconnectWaiter.get(currentWaitMillis, TimeUnit.MILLISECONDS);
             } catch (Exception exp) {
                 // ignore, try to loop again
             }
@@ -2593,7 +2606,7 @@ public class NatsConnection implements AutoCloseable {
             start = NatsSystemClock.nanoTime();
         }
 
-        this.reconnectWaiter.complete(Boolean.TRUE);
+        reconnectWaiter.complete(Boolean.TRUE);
     }
 
     protected ByteBuffer enlargeBuffer(ByteBuffer buffer) {
@@ -2607,25 +2620,25 @@ public class NatsConnection implements AutoCloseable {
 
     // For testing
     protected NatsConnectionReader getReader() {
-        return this.reader;
+        return reader;
     }
 
     // For testing
     protected NatsConnectionWriter getWriter() {
-        return this.writer;
+        return writer;
     }
 
     // For testing
     protected Future<DataPort> getDataPortFuture() {
-        return this.dataPortFuture;
+        return dataPortFuture;
     }
 
     protected boolean isDraining() {
-        return this.draining.get() != null;
+        return draining.get() != null;
     }
 
     protected boolean isDrained() {
-        CompletableFuture<Boolean> tracker = this.draining.get();
+        CompletableFuture<Boolean> tracker = draining.get();
 
         try {
             if (tracker != null && tracker.getNow(false)) {
@@ -2671,28 +2684,32 @@ public class NatsConnection implements AutoCloseable {
             throw new IllegalStateException("A connection can't be drained during close.");
         }
 
-        this.statusLock.lock();
+        statusLock.lock();
         try {
             if (isDraining()) {
-                return this.draining.get();
+                return draining.get();
             }
-            this.draining.set(new CompletableFuture<>());
+            draining.set(new CompletableFuture<>());
         } finally {
-            this.statusLock.unlock();
+            statusLock.unlock();
         }
 
-        final CompletableFuture<Boolean> tracker = this.draining.get();
+        final CompletableFuture<Boolean> tracker = draining.get();
         long startNanos = NatsSystemClock.nanoTime();
 
-        // Don't include subscribers with dispatchers
-        HashSet<NatsSubscription> pureSubscribers = new HashSet<>(this.subscribers.values());
-        pureSubscribers.removeIf((s) -> s.getDispatcher() != null);
+        // Don't include subscriptions with dispatchers
+        HashSet<NatsSubscription> pureSubscriptions = new HashSet<>();
+        for (SubscriptionInfo subscription : subscriptions.values()) {
+            if (subscription.dispatcher == null) {
+                pureSubscriptions.add(subscription.sub);
+            }
+        }
 
         final HashSet<NatsMessageSink> sinks = new HashSet<>();
-        sinks.addAll(pureSubscribers);
-        sinks.addAll(this.dispatchers.values());
+        sinks.addAll(pureSubscriptions);
+        sinks.addAll(dispatchers);
 
-        NatsDispatcher inboxer = this.inboxDispatcher.get();
+        NatsDispatcher inboxer = inboxDispatcher.get();
 
         if (inboxer != null) {
             sinks.add(inboxer);
@@ -2705,9 +2722,9 @@ public class NatsConnection implements AutoCloseable {
         });
 
         try {
-            this.flush(timeoutMillis); // Flush and wait up to the timeout, if this fails, let the caller know
+            flush(timeoutMillis); // Flush and wait up to the timeout, if this fails, let the caller know
         } catch (Exception e) {
-            this.close(false, false);
+            close(false, false);
             throw e;
         }
 
@@ -2728,27 +2745,27 @@ public class NatsConnection implements AutoCloseable {
                 }
 
                 // Stop publishing
-                this.blockPublishForDrain.set(true);
+                blockPublishForDrain.set(true);
 
                 // One last flush
                 if (timeoutMillis <= 0) {
-                    this.flush(0);
+                    flush(0);
                 } else {
                     long remainingMillis = timeoutMillis - (NatsSystemClock.nanoTime() - startNanos) / NANOS_PER_MILLI;
                     if (remainingMillis > 0) {
-                        this.flush(remainingMillis);
+                        flush(remainingMillis);
                     }
                 }
-                this.close(false, false); // close the connection after the last flush
+                close(false, false); // close the connection after the last flush
                 tracker.complete(sinks.isEmpty());
             } catch (TimeoutException e) {
-                this.processException(e);
+                processException(e);
             } catch (InterruptedException e) {
-                this.processException(e);
+                processException(e);
                 Thread.currentThread().interrupt();
             } finally {
                 try {
-                    this.close(false, false);// close the connection after the last flush
+                    close(false, false);// close the connection after the last flush
                 } catch (InterruptedException e) {
                     processException(e);
                     Thread.currentThread().interrupt();

@@ -27,12 +27,9 @@ import java.util.concurrent.CompletableFuture;
 public interface Dispatcher {
 
     /**
-     * Start the dispatcher with a given id.
-     * Use post-construction to start to the dispatcher,
-     * which should not be started on construction.
-     * @param id the assigned id of the dispatcher
+     * Start the dispatcher. Used post-construction, since a dispatcher is not started on construction.
      */
-    void start(String id);
+    void start();
 
     /**
      * Whether this dispatcher is still processing messages; false after it is stopped.

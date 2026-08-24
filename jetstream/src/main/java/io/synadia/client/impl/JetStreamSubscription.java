@@ -8,6 +8,7 @@ import io.synadia.client.global.NatsSystemClock;
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * This is a JetStream specific subscription.
@@ -33,6 +34,12 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
 
     protected MessageManager manager;
 
+    // The dispatcher is internal if the subscribe is async and the caller supplied none. It exists
+    // only to serve this subscription, so it is closed when the subscription ends. Holds null when
+    // the dispatcher is the caller's, or when there is none. Taken with getAndSet because invalidate
+    // can run twice - drain and connection close both reach it - and the close must happen once.
+    private final AtomicReference<NatsDispatcher> internalDispatcher;
+
     JetStreamSubscription(String sid, String subject, String queueName,
                           NatsConnection connection, NatsDispatcher dispatcher,
                           JetStream js,
@@ -41,6 +48,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
     {
         super(sid, subject, queueName, connection, dispatcher);
 
+        this.internalDispatcher = new AtomicReference<>(subConf.internalDispatcher ? dispatcher : null);
         this.js = js;
         this.stream = subConf.consumerInfo.getStreamName();
         this.consumerName = subConf.consumerInfo.getName(); // should not be null since this comes from actual consumer info
@@ -89,6 +97,17 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
     protected void invalidate() {
         manager.shutdown();
         super.invalidate();
+        NatsDispatcher internal = internalDispatcher.getAndSet(null);
+        if (internal != null) {
+            try {
+                connection.closeDispatcher(internal);
+            }
+            catch (RuntimeException e) {
+                // The connection is on its way down and takes its own dispatchers with it, so there
+                // is nothing left to close. invalidate has callers - the dispatcher thread, drain -
+                // that a cleanup failure must not escape into.
+            }
+        }
     }
 
     /** {@inheritDoc} */

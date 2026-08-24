@@ -1,6 +1,5 @@
 package io.synadia.client;
 
-import io.synadia.client.impl.NatsDispatcher;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -41,12 +40,6 @@ public interface Subscription {
      * @return the queue name
      */
     @Nullable String getQueueName();
-
-    /**
-     * the Dispatcher that owns this subscription, or null
-     * @return the dispatcher instance
-     */
-    @Nullable NatsDispatcher getDispatcher();
 
     /**
      * Get the subscription unique id
