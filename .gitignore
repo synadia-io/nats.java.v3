@@ -2,7 +2,6 @@
 #################
 gnatsd.log
 *.csv
-z-claude-done
 examples/**/Z*.java
 **/Debug*.java
 .claude/**
