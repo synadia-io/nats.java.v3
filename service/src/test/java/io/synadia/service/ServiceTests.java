@@ -1583,13 +1583,9 @@ public class ServiceTests extends TestBase {
             Discovery discovery = new Discovery(nc, 100, 1);
             TestInboxSupplier supplier = new TestInboxSupplier();
             discovery.setInboxSupplier(supplier);
-            try {
-                discovery.ping("servicename");
-            }
-            catch (Exception e) {
-                // we know it will throw exception b/c there is no service
-                // running, we just care about it make the call
-            }
+            // no service is running, so this is the no responders path - it returns empty
+            // instead of throwing, which is what the discoverMany status guard is for
+            assertTrue(discovery.ping("servicename").isEmpty());
             assertTrue(supplier.wasCalled);
         });
     }

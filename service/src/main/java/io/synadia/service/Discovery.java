@@ -198,9 +198,13 @@ public class Discovery {
             long start = NatsSystemClock.nanoTime();
             long timeLeftNanos = maxTimeNanos;
             while (resultsLeft > 0 && timeLeftNanos > 0) {
-                long timeoutMillis = Math.max(1, timeLeftNanos / NANOS_PER_MILLI);
-                Message msg = sub.nextMessage(timeoutMillis);
-                if (msg == null) {
+                long millis = timeLeftNanos / NANOS_PER_MILLI;
+                Message msg = sub.nextMessage(millis < 1 ? 1 : millis);
+                // A status message here is the server's 503 no responders: this path rolls its own
+                // reply subscription, so there is no response future for the 503 to fail and it
+                // arrives as an ordinary zero-payload message. No responders means no results,
+                // which is the same outcome as the wait expiring.
+                if (msg == null || msg.isStatusMessage()) {
                     return;
                 }
                 dataConsumer.accept(msg.getData());

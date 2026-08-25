@@ -238,6 +238,25 @@ public class NatsMessageTests extends TestBase {
     }
 
     @Test
+    public void testNoRespondersStatusIsDeliveredToASubscription() throws Exception {
+        runInShared(nc -> {
+            // A request routes a no responders 503 through the response future, where it turns into
+            // an exception. A plain publish with a reply to has no future behind it, so the status is
+            // delivered to the reply subscription like any other message, carrying no payload.
+            // Anything reading such a subscription has to expect a status message.
+            String replyTo = nc.createInbox();
+            NatsSubscription sub = nc.subscribe(replyTo);
+            nc.publish(random(), replyTo, null);
+
+            Message m = sub.nextMessage(1000L);
+            assertNotNull(m);
+            assertTrue(m.isStatusMessage());
+            assertEquals(503, m.getStatus().getCode());
+            assertEquals(0, m.getData().length);
+        });
+    }
+
+    @Test
     public void testFactoryProducesStatusMessage() {
         IncomingHeadersProcessor incomingHeadersProcessor =
                 new IncomingHeadersProcessor("NATS/1.0 503 No Responders\r\n".getBytes());
