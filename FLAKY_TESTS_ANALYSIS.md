@@ -549,3 +549,13 @@ System.out.println("PROBE elapsed=" + (purgedTimeMark - createdTimeMark)
 ```
 
 A margin in the low hundreds of milliseconds means the assertion is riding on server expiry-sweep granularity and will flap somewhere else. V2's marker test showed +1084ms; its TTL test showed +249ms before the fix.
+
+## New candidate, seen 2026-08-23: `SimplificationTests._testFetch` — `assertTrue(elapsed >= 1500)`
+
+Two full-suite runs on the same day each failed one of the sibling tests that share the `_testFetch` helper (`SimplificationTests.java:293`), and neither failed when the class was run alone: `testFetchOrdered` on a working tree, `testFetchDurable` on a clean `b4e15f4a` worktree. Different method, same assertion, only under whole-suite load — so it is the helper, not either test.
+
+The assertion is a timing **lower** bound: cases 1C, 1D and 2C ask for more messages than the stream holds, so the fetch is supposed to sit until the pull request expires, and the test requires at least 1500ms of that. A failure means the fetch ended *early*, which load does not cause directly — the suspect is the idle-heartbeat alarm firing on a loaded box and terminating the fetch, so `nextMessage` returns null before expiry. Worth an instrumented probe of `elapsed` (as under **Verification** above) before changing anything.
+
+Also failed once in the same clean-worktree run, unrelated and not investigated: `TLSConnectTests.testReconnectFailsAfterCertExpires()`.
+
+**Later the same day it spread, and the machine state is what moves it.** Six more runs, alternating a working tree against a clean `b4e15f4a` worktree, at a point where the whole module ran in ~2.5 minutes instead of ~6 - so more forks live at once. Both trees failed, and the failing test moved every run: `testFetchDurable`, `testFetchEphemeral`, `testFetchOrdered`, `testOverflowFetch`, and `JetStreamPushTests.testDeliveryPolicy`, which is outside the `_testFetch` family. Sometimes the retry cleared it and the build passed; sometimes all five attempts failed and it did not. The same tree gave a fully green 937 earlier in the day. Treat a `SimplificationTests` or `JetStreamPushTests` timing failure as a machine-load reading until it reproduces on an idle box, and confirm any suspect change against a clean worktree run taken back to back with it - a single green or red run on one tree proves nothing here.
