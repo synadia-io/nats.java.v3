@@ -9,11 +9,24 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SlowConsumerTests extends TestBase {
+
+    // From PR #1614 (zileongggg), kept so nothing from that PR is lost by porting #1615 alone. The
+    // stronger form of this coverage - seeded queue, split assertions, the -1 contract,
+    // DeliverabilityState - lives in NatsMessageSinkPendingTests.
+    //
+    // 0 and not -1 is correct here: the first lookup hands back a live but empty queue, so these
+    // read a real 0. -1 is only for a sink with no queue at all.
+    @Test
+    public void testPendingCountsUseSingleQueueLookup() {
+        assertEquals(0, new QueueInvalidatingSink().getPendingMessageCount());
+        assertEquals(0, new QueueInvalidatingSink().getPendingByteCount());
+    }
 
     @Test
     public void testDefaultPendingLimits() throws Exception {
@@ -254,5 +267,31 @@ public class SlowConsumerTests extends TestBase {
             assertEquals(1, listener.consumers.size()); // should only appear once
             assertEquals(sub, listener.consumers.get(0));
         });
+    }
+
+    private static class QueueInvalidatingSink extends NatsMessageSink {
+        private final AtomicInteger queueLookups = new AtomicInteger();
+
+        QueueInvalidatingSink() {
+            super(null);
+        }
+
+        @Override
+        public boolean isActive() {
+            return true;
+        }
+
+        @Override
+        ConsumerMessageQueue getMessageQueue() {
+            return queueLookups.getAndIncrement() == 0 ? new ConsumerMessageQueue() : null;
+        }
+
+        @Override
+        void sendUnsubForDrain() {
+        }
+
+        @Override
+        void cleanUpAfterDrain() {
+        }
     }
 }

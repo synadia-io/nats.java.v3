@@ -79,13 +79,13 @@ public interface Dispatcher {
 
     /**
      * How far behind the dispatcher currently is, by message count. Compare against the pending message limit to see how close it is to dropping.
-     * @return the number of messages currently waiting in this dispatcher's delivery queue
+     * @return the number of messages currently waiting in this dispatcher's delivery queue, or -1 if the queue is not available
      */
     long getPendingMessageCount();
 
     /**
      * How far behind the dispatcher currently is, by size. Compare against the pending byte limit to see how close it is to dropping.
-     * @return the cumulative size in bytes of the messages currently waiting in this dispatcher's delivery queue
+     * @return the cumulative size in bytes of the messages currently waiting in this dispatcher's delivery queue, or -1 if the queue is not available
      */
     long getPendingByteCount();
 

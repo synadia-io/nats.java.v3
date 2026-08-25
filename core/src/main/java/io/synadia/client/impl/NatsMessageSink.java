@@ -2,6 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.OptionsConstants;
 import io.synadia.client.global.NatsSystemClock;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -70,18 +71,20 @@ abstract class NatsMessageSink {
 
     /**
      * How full the sink currently is, in messages, relative to the pending message limit.
-     * @return the number of messages waiting to be delivered/popped.
+     * @return the number of messages waiting to be delivered/popped, or -1 if the queue is not available.
      */
     public long getPendingMessageCount() {
-        return this.getMessageQueue() != null ? this.getMessageQueue().length() : 0;
+        ConsumerMessageQueue copy = getMessageQueue();
+        return copy == null ? -1 : copy.length();
     }
 
     /**
      * How full the sink currently is, in bytes, relative to the pending byte limit.
-     * @return the cumulative size of the messages waiting to be delivered/popped.
+     * @return the cumulative size of the messages waiting to be delivered/popped, or -1 if the queue is not available.
      */
     public long getPendingByteCount() {
-        return this.getMessageQueue() != null ? this.getMessageQueue().sizeInBytes() : 0;
+        ConsumerMessageQueue copy = getMessageQueue();
+        return copy == null ? -1 : copy.sizeInBytes();
     }
 
     /**
@@ -129,8 +132,26 @@ abstract class NatsMessageSink {
         return this.slow.get();
     }
 
-    boolean hasReachedPendingLimits() {
-        return getPendingMessageCount() >= maxMessages || getPendingByteCount() >= maxBytes;
+    enum DeliverabilityState {
+        AVAILABLE,
+        FULL,
+        NOT_AVAILABLE
+    }
+
+    // The queue is supplied by the caller rather than looked up here, so the caller's single read
+    // is the only read on the delivery path - the queue this judges is provably the same object the
+    // caller then pushes to. Looking it up again here would let an invalidate() on another thread
+    // come between the verdict and the push.
+    // No > 0 guards on the limits: setPendingLimits normalises unlimited to Long.MAX_VALUE, so
+    // length() >= Long.MAX_VALUE is simply false.
+    DeliverabilityState getDeliverabilityState(@Nullable ConsumerMessageQueue queue) {
+        if (queue == null) {
+            return DeliverabilityState.NOT_AVAILABLE;
+        }
+        if (queue.length() >= maxMessages || queue.sizeInBytes() >= maxBytes) {
+            return DeliverabilityState.FULL;
+        }
+        return DeliverabilityState.AVAILABLE;
     }
 
     void markDraining(CompletableFuture<Boolean> future) {
@@ -138,8 +159,9 @@ abstract class NatsMessageSink {
     }
 
     void markUnsubedForDrain() {
-        if (this.getMessageQueue() != null) {
-            this.getMessageQueue().drain();
+        ConsumerMessageQueue copy = getMessageQueue();
+        if (copy != null) {
+            copy.drain();
         }
     }
 
@@ -152,7 +174,10 @@ abstract class NatsMessageSink {
     }
 
     boolean isDrained() {
-        return isDraining() && this.getPendingMessageCount() == 0;
+        // <= 0 not == 0: the count is -1 once the queue is gone, and a sink with no queue has
+        // nothing left to drain. cleanUpAfterDrain() invalidates before drain() completes its
+        // future, so this is read in exactly that state on every subscription drain.
+        return isDraining() && getPendingMessageCount() <= 0;
     }
 
     /**

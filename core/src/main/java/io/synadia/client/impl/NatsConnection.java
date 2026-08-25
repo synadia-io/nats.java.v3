@@ -2147,27 +2147,37 @@ public class NatsConnection implements AutoCloseable {
 
             NatsDispatcher d = subscription.dispatcher;
             NatsMessageSink s = (d == null) ? sub : d;
+            // The only read of the queue reference on this path: q is what is judged below and q is
+            // what is pushed to, so an invalidate() on another thread cannot change it underneath
+            // the decision.
             ConsumerMessageQueue q = ((d == null) ? sub.getMessageQueue() : d.getMessageQueue());
 
-            if (s.hasReachedPendingLimits()) {
-                // Drop the message and count it
-                statistics.incrementDroppedCount();
-                s.incrementDroppedCount();
+            switch (s.getDeliverabilityState(q)) {
+                case AVAILABLE -> {
+                    s.markNotSlow();
+                    // the before queue processor contract is to return true if the message is allowed to be queued
+                    if (sub.getBeforeQueueProcessor().apply(msg)) {
+                        q.push(msg);
+                    }
+                }
+                case FULL -> {
+                    // Drop the message and count it
+                    statistics.incrementDroppedCount();
+                    s.incrementDroppedCount();
 
-                // Notify the first time
-                if (!s.isMarkedSlow()) {
-                    s.markSlow();
-                    processSlowConsumer(sub);
+                    // Notify the first time
+                    if (!s.isMarkedSlow()) {
+                        s.markSlow();
+                        processSlowConsumer(sub);
+                    }
+                }
+                case NOT_AVAILABLE -> {
+                    // The subscription went away between registration and delivery. Count the drop,
+                    // but do not mark slow - a subscription that is gone is not a slow consumer.
+                    statistics.incrementDroppedCount();
+                    s.incrementDroppedCount();
                 }
             }
-            else if (q != null) {
-                s.markNotSlow();
-                // the before queue processor contract is to return true if the message is allowed to be queued
-                if (sub.getBeforeQueueProcessor().apply(msg)) {
-                    q.push(msg);
-                }
-            }
-
         }
 //      else Drop messages we don't have a subscriber for (could be extras on an auto-unsub for example)
     }

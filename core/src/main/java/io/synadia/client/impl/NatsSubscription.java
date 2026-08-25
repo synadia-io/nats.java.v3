@@ -90,8 +90,9 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
     }
 
     void invalidate() {
-        if (incoming != null) {
-            incoming.pause();
+        ConsumerMessageQueue copy = incoming;
+        if (copy != null) {
+            copy.pause();
         }
         this.dispatcher = null;
         this.incoming = null;
@@ -171,13 +172,19 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
         if (dispatcher != null) {
             throw new IllegalStateException("Subscriptions that belong to a dispatcher cannot respond to nextMessage directly.");
         }
-        else if (incoming == null) {
+
+        ConsumerMessageQueue copy = incoming;
+        if (copy == null) {
             throw new IllegalStateException("This subscription is inactive.");
         }
 
-        NatsMessage msg = incoming.pop(timeout, timeoutUnit);
+        NatsMessage msg = copy.pop(timeout, timeoutUnit);
 
-        if (incoming == null || !incoming.isRunning()) { // We were unsubscribed while waiting
+        // The field read catches invalidate() nulling it, the isRunning() catches pause(). Both are
+        // needed: invalidate() pauses before nulling, but the pause is a CAS from RUNNING, so a queue
+        // that was already DRAINING stays DRAINING and isRunning() alone would miss it. Reading the
+        // field is only a null comparison - copy is what gets dereferenced, and copy cannot be null here.
+        if (incoming == null || !copy.isRunning()) { // We were unsubscribed while waiting
             throw new IllegalStateException("This subscription became inactive.");
         }
 
