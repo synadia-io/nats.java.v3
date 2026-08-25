@@ -16,7 +16,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install Nats Server
         uses: synadia-io/workflows/.github/actions/install_nats_server@main
       - name: Compile and Test
