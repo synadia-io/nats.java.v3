@@ -11,7 +11,6 @@ import org.jspecify.annotations.Nullable;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
-import static io.synadia.client.api.SubscribeBehavior.DEFAULT_SUBSCRIBE_BEHAVIOR;
 import static io.synadia.client.impl.ConsumerCreateRequest.Action.Create;
 import static io.synadia.client.impl.MessageManager.ManageResult;
 import static io.synadia.client.utils.JetStreamApiUtils.UNSET;
@@ -606,7 +605,7 @@ public class JetStream extends JetStreamImpl {
                 return conn._createSubscriptionByFactory(inbox, cc.getDeliverGroup(), null, subFactory);
             }
 
-            AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler, cc);
+            AsyncMessageHandler amh = new AsyncMessageHandler(mm, handler);
             //noinspection DataFlowIssue DISPATCHER WILL NEVER BE NULL WHEN THERE IS A HANDLER!
             return jssc.getDispatcher()._subscribeByFactory(inbox, cc.getDeliverGroup(), amh, subFactory);
         }
@@ -628,7 +627,7 @@ public class JetStream extends JetStreamImpl {
         MessageManager manager;
         MessageHandler userHandler;
 
-        public AsyncMessageHandler(MessageManager manager, MessageHandler userHandler, ConsumerConfiguration settledServerCC) {
+        public AsyncMessageHandler(MessageManager manager, MessageHandler userHandler) {
             this.manager = manager;
             this.userHandler = userHandler;
         }
@@ -737,7 +736,7 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalStateException if no single stream carries the subject
      */
     public JetStreamPushSubscription pushSubscribe(String subject) throws JetStreamException, InterruptedException {
-        return pushSubscribe(subject, DEFAULT_SUBSCRIBE_BEHAVIOR);
+        return pushSubscribe(subject, new SubscribeBehavior());
     }
 
     /**
@@ -792,7 +791,7 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPushSubscription pushSubscribe(String stream, PushConsumerCreator creator) throws JetStreamException, InterruptedException {
-        return pushSubscribe(stream, creator, DEFAULT_SUBSCRIBE_BEHAVIOR);
+        return pushSubscribe(stream, creator, new SubscribeBehavior());
     }
 
     /**
@@ -839,7 +838,7 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalArgumentException if the stream name is null, empty, or not a valid stream name
      */
     public JetStreamPushSubscription pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws JetStreamException, InterruptedException {
-        return pushSubscribe(stream, creator, DEFAULT_SUBSCRIBE_BEHAVIOR);
+        return pushSubscribe(stream, creator, new SubscribeBehavior());
     }
 
     /**
@@ -972,7 +971,7 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalStateException if no single stream carries the subject
      */
     public JetStreamPullSubscription pullSubscribe(String subject) throws JetStreamException, InterruptedException {
-        return pullSubscribe(subject, DEFAULT_SUBSCRIBE_BEHAVIOR);
+        return pullSubscribe(subject, new SubscribeBehavior());
     }
 
     /**

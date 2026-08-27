@@ -1,6 +1,7 @@
 package io.synadia.client;
 
 import io.synadia.client.impl.NatsSubscription;
+import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -133,12 +134,12 @@ public interface Dispatcher {
      *
      *
      * @param subject The subject to subscribe to.
-     * @param queue The queue group to join.
+     * @param queueGroup The queue group to join.
      * @return The NatsSubscription.
      * @throws IllegalStateException if the dispatcher was previously closed
      * @throws IllegalArgumentException if the subject or the queue is invalid
      */
-    NatsSubscription subscribe(String subject, String queue);
+    NatsSubscription subscribe(String subject, @NonNull String queueGroup);
 
     /**
      * Create a subscription to the specified subject under the control of this
@@ -157,7 +158,7 @@ public interface Dispatcher {
      * @throws IllegalStateException if the dispatcher was previously closed
      * @throws IllegalArgumentException if the subject is invalid, or the handler is null
      */
-    NatsSubscription subscribe(String subject, MessageHandler handler);
+    NatsSubscription subscribe(String subject, @NonNull MessageHandler handler);
 
     /**
      * Create a subscription to the specified subject under the control of this
@@ -171,13 +172,13 @@ public interface Dispatcher {
      *
      *
      * @param subject The subject to subscribe to.
-     * @param queue The queue group to join.
+     * @param queueGroup The queue group to join.
      * @param handler The target for the messages
      * @return The NatsSubscription, so subscriptions may be later unsubscribed manually.
      * @throws IllegalStateException if the dispatcher was previously closed
      * @throws IllegalArgumentException if the subject or the queue is invalid, or the handler is null
      */
-    NatsSubscription subscribe(String subject, String queue, MessageHandler handler);
+    NatsSubscription subscribe(String subject, @NonNull String queueGroup, @NonNull MessageHandler handler);
 
     /**
      * Unsubscribe from the specified subject, the queue is implicit.

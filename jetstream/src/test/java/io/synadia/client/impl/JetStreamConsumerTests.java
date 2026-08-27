@@ -3,6 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
+import io.synadia.client.OptionsBuilder;
 import io.synadia.client.api.*;
 import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.ListenerStatusType;
@@ -227,7 +228,8 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
     @Test
     public void testHeartbeatError() throws Exception {
         Listener listener = new Listener();
-        runInSharedOwnNc(listener, (nc, ctx) -> {
+        OptionsBuilder builder = new OptionsBuilder().errorListener(listener);
+        runInShared(builder, (nc, ctx) -> {
             SimulatorState state = setupPushFactory(ctx.js);
             PushConsumerCreator creator = new PushConsumerCreator().subjects(ctx.subject()).idleHeartbeat(100);
             JetStreamPushSubscription pushSub = ctx.js.pushSubscribe(ctx.stream, creator);
@@ -314,7 +316,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
 
     @Test
     public void testMultipleSubjectFilters() throws Exception {
-        runInSharedCustom(VersionUtils::atLeast2_10, (nc, ctx) -> {
+        runInSharedCustomContext(VersionUtils::atLeast2_10, (nc, ctx) -> {
             ctx.createOrReplaceStream(2);
             jsPublish(ctx.js, ctx.subject(0), 10);
             jsPublish(ctx.js, ctx.subject(1), 5);
@@ -367,8 +369,9 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
 
     @Test
     public void testRaiseStatusWarnings1194() throws Exception {
-        Listener listener = new Listener(false, false);
-        runInSharedOwnNc(listener, (nc, ctx) -> {
+        Listener listener = new Listener();
+        OptionsBuilder builder = new OptionsBuilder().errorListener(listener);
+        runInShared(builder, (nc, ctx) -> {
             // Setup
             StreamContext streamContext = ctx.js.getStreamContext(ctx.stream);
 

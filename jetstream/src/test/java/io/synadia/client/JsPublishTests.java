@@ -29,7 +29,7 @@ public class JsPublishTests extends JetStreamTestBase {
 
         String streamName = random();
 
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             StreamCreator sc = new StreamCreator(streamName)
                 .subjects(noSpacesUtfSubjects)
                 .storageType(StorageType.Memory);

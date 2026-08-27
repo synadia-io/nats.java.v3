@@ -60,7 +60,10 @@ public class NatsSubscription extends NatsMessageSink implements Subscription {
         MessageHandler handler = dispatcher == null ? null : dispatcher.getNonDefaultHandlerBySid(sid);
         connection.remove(this); // the old sid, out of the connection's map and the dispatcher's
         if (dispatcher == null) {
-            sid = connection.reSubscribe(this, newDeliverSubject, queueName, null);
+            // No dispatcher means nothing is keyed to the sid beyond the connection's own map,
+            // so there is nothing to register before the connection announces it.
+            sid = connection.getNextSid();
+            connection.reSubscribe(sid, this, newDeliverSubject, queueName, null);
         }
         else {
             sid = dispatcher.reSubscribe(this, newDeliverSubject, queueName, handler);

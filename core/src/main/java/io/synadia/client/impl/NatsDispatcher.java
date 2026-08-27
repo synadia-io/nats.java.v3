@@ -85,28 +85,18 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
                 if (msg != null) {
                     NatsSubscription sub = msg.getNatsSubscription();
                     if (sub != null && sub.isActive()) {
-                        MessageHandler handler = nonDefaultHandlerBySid.get(sub.getSID());
+                        MessageHandler nonDefault = nonDefaultHandlerBySid.get(sub.getSID());
+                        MessageHandler handler = nonDefault == null ? defaultHandler : nonDefault;
+                        // No handler means the dispatcher is closing, or the sid was cleared by a
+                        // resubscribe. Count the drop - a silent one here is invisible, which is how
+                        // the subscribe ordering race went unnoticed for so long.
                         if (handler == null) {
-                            handler = defaultHandler;
+                            incrementDroppedCount();
                         }
-                        // A dispatcher can have a null defaultHandler. You can't subscribe without a handler,
-                        // but messages might come in while the dispatcher is being closed or after unsubscribe
-                        // and the [non-default] handler has already been removed from subscriptionHandlers
-                        if (handler != null) {
+                        else {
                             sub.incrementDeliveredCount();
                             incrementDeliveredCount();
-
-                            try {
-                                handler.onMessage(msg);
-                            } catch (Exception exp) {
-                                connection.processException(exp);
-                            } catch (Error err) {
-                                connection.processException(new Exception(err));
-                            }
-
-                            if (sub.reachedUnsubLimit()) {
-                                connection.invalidate(sub);
-                            }
+                            deliverToHandler(handler, msg, sub);
                         }
                     }
                 }
@@ -125,6 +115,22 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
         finally {
             running.set(false);
             this.thread = null;
+        }
+    }
+
+    protected void deliverToHandler(MessageHandler handler, NatsMessage msg, NatsSubscription sub) {
+        try {
+            handler.onMessage(msg);
+        }
+        catch (Exception exp) {
+            connection.processException(exp);
+        }
+        catch (Error err) {
+            connection.processException(new Exception(err));
+        }
+
+        if (sub.reachedUnsubLimit()) {
+            connection.invalidate(sub);
         }
     }
 
@@ -216,72 +222,80 @@ public class NatsDispatcher extends NatsMessageSink implements Dispatcher, Runna
     }
 
     public NatsSubscription subscribe(String subject) {
+        return _subscribeCoreDefaultHandler(subject, null, false);
+    }
+
+    public NatsSubscription subscribe(String subject, @NonNull String queueGroup) {
+        return _subscribeCoreDefaultHandler(subject, queueGroup, true);
+    }
+
+    NatsSubscription _subscribeCoreDefaultHandler(@NonNull String subject, @Nullable String queueGroup, boolean queueGroupExpected) {
         if (defaultHandler == null) {
             throw new IllegalStateException("Dispatcher was made without a default handler.");
         }
         connection.subjectValidate(subject);
-        return _subscribeCore(subject, null, null);
-    }
-
-    public NatsSubscription subscribe(String subject, MessageHandler handler) {
-        connection.subjectValidate(subject);
-        required(handler, "Handler");
-        return _subscribeCore(subject, null, handler);
-    }
-
-    public NatsSubscription subscribe(String subject, String queueName) {
-        connection.subjectValidate(subject);
-        validateQueueName(queueName, true);
-        return _subscribeCore(subject, queueName, null);
-    }
-
-    public NatsSubscription subscribe(String subject, String queueName,  MessageHandler handler) {
-        connection.subjectValidate(subject);
-        validateQueueName(queueName, true);
-        if (handler == null) {
-            throw new IllegalArgumentException("MessageHandler is required in subscribe");
+        if (queueGroupExpected) {
+            validateQueueName(queueGroup, true);
         }
-        return _subscribeCore(subject, queueName, handler);
-    }
-
-    // Assumes the subj/queuename checks are done, does check for closed status
-    NatsSubscription _subscribeCore(@NonNull String subject, @Nullable String queueName, @Nullable MessageHandler handler) {
         requireActiveConnection();
 
-        // If the handler is null, then we use the default handler, which will not allow
-        // duplicate subscriptions to exist.
-        if (handler == null) {
-            NatsSubscription sub = subWithDefaultHandlerBySubject.get(subject);
+        NatsSubscription sub = subWithDefaultHandlerBySubject.get(subject);
 
-            if (sub == null) {
-                sub = connection._createSubscriptionByFactory(subject, queueName, this, null);
-                NatsSubscription wonTheRace = subWithDefaultHandlerBySubject.putIfAbsent(subject, sub);
-                if (wonTheRace != null) {
-                    connection.unsubscribe(sub, -1); // Could happen on very bad timing
-                }
+        if (sub == null) {
+            sub = connection._createSubscriptionByFactory(subject, queueGroup, this, null);
+            NatsSubscription wonTheRace = subWithDefaultHandlerBySubject.putIfAbsent(subject, sub);
+            if (wonTheRace != null) {
+                connection.unsubscribe(sub, -1); // Could happen on very bad timing
             }
-
-            return sub;
         }
 
-        return _subscribeByFactoryAndTrack(subject, queueName, handler, null);
-    }
-
-    NatsSubscription _subscribeByFactory(@NonNull String subject, @Nullable String queueName, @NonNull MessageHandler handler, @NonNull NatsSubscriptionFactory nsf) {
-        requireActiveConnection();
-        return _subscribeByFactoryAndTrack(subject, queueName, handler, nsf);
-    }
-
-    private NatsSubscription _subscribeByFactoryAndTrack(@NonNull String subject, @Nullable String queueName, @NonNull MessageHandler handler, @Nullable NatsSubscriptionFactory nsf) {
-        NatsSubscription sub = connection._createSubscriptionByFactory(subject, queueName, this, nsf);
-        trackSubWithUserHandler(sub.getSID(), sub, handler);
         return sub;
     }
 
-    String reSubscribe(NatsSubscription sub, String subject, String queueName, MessageHandler handler) {
-        String sid = connection.reSubscribe(sub, subject, queueName, this);
-        trackSubWithUserHandler(sid, sub, handler);
-        return sid;
+    public NatsSubscription subscribe(String subject, @NonNull MessageHandler handler) {
+        return _subscribeCoreUserHandler(subject, null, false, handler);
+    }
+
+    public NatsSubscription subscribe(String subject, @NonNull String queueGroup,  @NonNull MessageHandler handler) {
+        validateQueueName(queueGroup, true);
+        return _subscribeCoreUserHandler(subject, queueGroup, true, handler);
+    }
+
+    NatsSubscription _subscribeCoreUserHandler(@NonNull String subject, @Nullable String queueGroup, boolean queueGroupExpected, @NonNull MessageHandler handler) {
+        connection.subjectValidate(subject);
+        required(handler, "Handler");
+        if (queueGroupExpected) {
+            validateQueueName(queueGroup, true);
+        }
+        return _subscribeByFactory(subject, queueGroup, handler, null);
+    }
+
+    // Called directly by JetStream, which has already validated everything else, and by
+    // _subscribeCoreUserHandler once it has validated the subject, handler and queue group.
+    NatsSubscription _subscribeByFactory(@NonNull String subject, @Nullable String queueGroup, @NonNull MessageHandler handler, @Nullable NatsSubscriptionFactory nsf) {
+        requireActiveConnection();
+        // Track inside the factory. The connection runs it once the sid exists and before the SUB
+        // is sent, which is the only safe window: the server can push the moment it has the SUB - a
+        // JetStream consumer with messages already waiting does exactly that - and the run loop
+        // discards a message whose sid it cannot route. Tracking after the connection returns is
+        // one frame too late.
+        NatsSubscriptionFactory base = nsf == null ? NatsSubscription::new : nsf;
+        return connection._createSubscriptionByFactory(subject, queueGroup, this,
+            (sid, factorySubject, factoryQueueName, factoryConn, factoryDispatcher) -> {
+                NatsSubscription sub = base.createNatsSubscription(
+                    sid, factorySubject, factoryQueueName, factoryConn, factoryDispatcher);
+                trackSubWithUserHandler(sid, sub, handler);
+                return sub;
+            });
+    }
+
+    String reSubscribe(NatsSubscription sub, String subject, String queueGroup, MessageHandler handler) {
+        // Same rule, no factory to hang it on - the subscription already exists - so the sid is
+        // taken up front and the tracking done before the connection is asked to announce it.
+        String resubSid = connection.getNextSid();
+        trackSubWithUserHandler(resubSid, sub, handler);
+        connection.reSubscribe(resubSid, sub, subject, queueGroup, this);
+        return resubSid;
     }
 
     private void trackSubWithUserHandler(String sid, NatsSubscription sub, MessageHandler handler) {

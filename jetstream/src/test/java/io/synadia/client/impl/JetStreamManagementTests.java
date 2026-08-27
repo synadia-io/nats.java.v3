@@ -3,6 +3,7 @@ package io.synadia.client.impl;
 import io.nats.json.DateTimeUtils;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
+import io.synadia.client.OptionsBuilder;
 import io.synadia.client.api.*;
 import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.VersionUtils;
@@ -28,7 +29,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     public void testStreamCreate() throws Exception {
         long now = ZonedDateTime.now().toEpochSecond();
 
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             String subject0 = ctx.subject(0);
             String subject1 = ctx.subject(1);
 
@@ -73,7 +74,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testStreamCreate210() throws Exception {
-        runInSharedCustom(VersionUtils::atLeast2_10, (nc, ctx) -> {
+        runInSharedCustomContext(VersionUtils::atLeast2_10, (nc, ctx) -> {
             StreamInfo si = ctx.createOrReplaceStream(ctx.scBuilder(1)
                 .firstSequence(42));
             assertNotNull(si.getTimestamp());
@@ -85,7 +86,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testStreamMetadata() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             Map<String, String> metaData = new HashMap<>(); metaData.put(META_KEY, META_VALUE);
             StreamInfo si = ctx.createOrReplaceStream(ctx.scBuilder(1).metadata(metaData));
             assertNotNull(si.getConfiguration());
@@ -96,7 +97,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     @Test
     public void testStreamCreateWithNoSubject() throws Exception {
         long now = ZonedDateTime.now().toEpochSecond();
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             StreamInfo si = ctx.addStream(ctx.scBuilder().subjects());
             assertTrue(now <= si.getCreateTime().toEpochSecond());
 
@@ -135,7 +136,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testUpdateStream() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             ctx.createOrReplaceStream(2);
             String subject0 = ctx.subject(0);
             String subject1 = ctx.subject(1);
@@ -203,7 +204,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testStreamExceptions() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             //noinspection DataFlowIssue addStream parameter annotated as non null
             assertThrows(IllegalArgumentException.class, () -> ctx.jsm.addStream(null));
 
@@ -242,7 +243,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testUpdateStreamInvalids() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             //noinspection DataFlowIssue updateStream is specified non null
             assertThrows(IllegalArgumentException.class, () -> ctx.jsm.updateStream(null));
 
@@ -279,7 +280,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testGetStreamInfo() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             assertThrows(JetStreamApiException.class, () -> ctx.jsm.getStreamInfo(ctx.stream));
 
             String[] subjects = new String[6];
@@ -497,7 +498,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testPurgeStreamAndOptions() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             // invalid to have both keep and seq
             assertThrows(IllegalArgumentException.class,
                 () -> PurgeOptions.builder().keep(1).sequence(1).build());
@@ -550,7 +551,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testAddDeleteConsumerPart1() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             String subject = random();
             ctx.createOrReplaceStream(subjectGt(subject));
 
@@ -581,7 +582,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testAddDeleteConsumerPart2() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             boolean atLeast2dot9 = nc.getServerInfo().isSameOrNewerThanVersion("2.9");
             String subject = random();
             ctx.createOrReplaceStream(subjectGt(subject));
@@ -752,7 +753,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testValidConsumerUpdates() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             String subject = random();
             String subjectGt = subjectGt(subject);
             ctx.createOrReplaceStream(subjectGt);
@@ -785,7 +786,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testInvalidConsumerUpdates() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             String subject = random();
             String subjectGt = subjectGt(subject);
             ctx.createOrReplaceStream(subjectGt);
@@ -1038,7 +1039,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testGetMessage() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             ctx.createOrReplaceStream(2);
             assertFalse(ctx.si.getConfiguration().getAllowDirect());
 
@@ -1286,8 +1287,10 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testNoRespondersWhenConsumerDeleted1026() throws Exception {
+        VersionUtils.VersionCheck vc = VersionUtils::atLeast2_10_26;
         Listener listener = new Listener();
-        runInSharedOwnNc(listener, VersionUtils::atLeast2_10_26, (nc, ctx) -> {
+        OptionsBuilder builder = new OptionsBuilder().errorListener(listener);
+        runInShared(vc, builder, (nc, ctx) -> {
             String subject = ctx.subject();
             for (int x = 0; x < 5; x++) {
                 ctx.js.publish(subject, (String)null);

@@ -2,6 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
+import io.synadia.client.OptionsBuilder;
 import io.synadia.client.OptionsConstants;
 import io.synadia.client.api.*;
 import io.synadia.client.utils.Listener;
@@ -120,7 +121,7 @@ public class JetStreamPushTests extends JetStreamTestBase {
     }
 
     private void _testPushDurable(boolean useDeliverSubject) throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             String subjectDotGt = random() + ".>";
             ctx.createOrReplaceStream(subjectDotGt);
 
@@ -364,7 +365,7 @@ public class JetStreamPushTests extends JetStreamTestBase {
 
     @Test
     public void testDeliveryPolicy() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             String subject = ctx.subject();
             String subjectStar = subjectStar(subject);
             ctx.createOrReplaceStream(subjectStar);
@@ -475,7 +476,8 @@ public class JetStreamPushTests extends JetStreamTestBase {
     @Test
     public void testPushSyncFlowControl() throws Exception {
         Listener listener = new Listener();
-        runInSharedOwnNc(listener, (nc, ctx) -> {
+        OptionsBuilder builder = new OptionsBuilder().errorListener(listener);
+        runInShared(builder, (nc, ctx) -> {
             byte[] data = new byte[1024 * 10];
             int MSG_COUNT = 1000;
 

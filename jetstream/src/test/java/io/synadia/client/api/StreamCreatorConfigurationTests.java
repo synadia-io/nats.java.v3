@@ -41,7 +41,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
 
     @Test
     public void testRoundTrip() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             StreamCreator sc = getTestStreamCreator(ctx.stream)
                 .mirror(null)
                 .sources()

@@ -2353,7 +2353,5 @@ public class ApiFieldsTest {
         assertEquals(123L, copy.getMessageAlarmTime());
         assertEquals(456L, copy.getPendingMessageLimit());
         assertEquals(789L, copy.getPendingByteLimit());
-
-        assertNotNull(SubscribeBehavior.DEFAULT_SUBSCRIBE_BEHAVIOR);
     }
 }

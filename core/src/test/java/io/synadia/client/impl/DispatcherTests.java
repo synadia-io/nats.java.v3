@@ -100,6 +100,12 @@ public class DispatcherTests extends TestBase {
             IllegalStateException ise = assertThrows(IllegalStateException.class, () -> dNoHandler.subscribe(random()));
             assertTrue(ise.getMessage().contains("Dispatcher was made without a default handler."));
 
+            // the queue-name overload takes the same null-handler path, so it must refuse too. It
+            // used to succeed and hand back a subscription that could never route a message.
+            ise = assertThrows(IllegalStateException.class, () -> dNoHandler.subscribe(random(), random()));
+            assertTrue(ise.getMessage().contains("Dispatcher was made without a default handler."));
+            dNoHandler.subscribe(random(), random(), m -> {}); // still fine when a handler is supplied
+
             nc.closeDispatcher(dNoHandler);
         });
     }

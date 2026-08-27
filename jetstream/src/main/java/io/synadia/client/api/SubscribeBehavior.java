@@ -13,10 +13,6 @@ import java.util.Objects;
  */
 @NullMarked
 public class SubscribeBehavior {
-    /**
-     * The default SubscribeBehavior instance with all settings at their defaults.
-     */
-    public final static SubscribeBehavior DEFAULT_SUBSCRIBE_BEHAVIOR = new SubscribeBehavior();
 
     protected @Nullable NatsDispatcher dispatcher;
     protected @Nullable MessageHandler handler;

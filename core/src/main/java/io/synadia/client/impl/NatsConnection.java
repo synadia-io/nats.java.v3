@@ -1250,7 +1250,7 @@ public class NatsConnection implements AutoCloseable {
     // Assumes the null/empty checks were handled elsewhere
     @NonNull
     NatsSubscription _createSubscriptionByFactory(@NonNull String subject,
-                                                  @Nullable String queueName,
+                                                  @Nullable String queueGroup,
                                                   @Nullable NatsDispatcher dispatcher,
                                                   @Nullable NatsSubscriptionFactory factory) {
         if (isClosed()) {
@@ -1264,14 +1264,14 @@ public class NatsConnection implements AutoCloseable {
         String sid = getNextSid();
 
         if (factory == null) {
-            sub = new NatsSubscription(sid, subject, queueName, this, dispatcher);
+            sub = new NatsSubscription(sid, subject, queueGroup, this, dispatcher);
         }
         else {
-            sub = factory.createNatsSubscription(sid, subject, queueName, this, dispatcher);
+            sub = factory.createNatsSubscription(sid, subject, queueGroup, this, dispatcher);
         }
         subscriptions.put(sid, new SubscriptionInfo(sub, dispatcher));
 
-        sendSubscriptionMessage(sid, subject, queueName, false);
+        sendSubscriptionMessage(sid, subject, queueGroup, false);
         return sub;
     }
 
@@ -1279,21 +1279,22 @@ public class NatsConnection implements AutoCloseable {
         return Long.toString(nextSid.getAndIncrement());
     }
 
-    protected String reSubscribe(NatsSubscription sub, String subject, String queueName, @Nullable NatsDispatcher dispatcher) {
-        String sid = getNextSid();
-        sendSubscriptionMessage(sid, subject, queueName, false);
-        subscriptions.put(sid, new SubscriptionInfo(sub, dispatcher));
-        return sid;
+    // The sid comes from the caller so that anything keyed to it - a dispatcher's handler - can be
+    // registered before this runs. The put stays ahead of the send for the same reason: the server
+    // can push as soon as it has the SUB, and deliverMessage drops a message with no entry here.
+    void reSubscribe(String resubSid, NatsSubscription sub, String subject, String queueGroup, @Nullable NatsDispatcher dispatcher) {
+        subscriptions.put(resubSid, new SubscriptionInfo(sub, dispatcher));
+        sendSubscriptionMessage(resubSid, subject, queueGroup, false);
     }
 
-    protected void sendSubscriptionMessage(String sid, String subject, String queueName, boolean treatAsInternal) {
+    protected void sendSubscriptionMessage(String sid, String subject, String queueGroup, boolean treatAsInternal) {
         if (!isConnected()) {
             return; // We will set up sub on reconnect or ignore
         }
 
         ByteArrayBuilder bab = new ByteArrayBuilder(UTF_8).append(SUB_SP_BYTES).append(subject);
-        if (queueName != null) {
-            bab.append(SP).append(queueName);
+        if (queueGroup != null) {
+            bab.append(SP).append(queueGroup);
         }
         bab.append(SP).append(sid);
 

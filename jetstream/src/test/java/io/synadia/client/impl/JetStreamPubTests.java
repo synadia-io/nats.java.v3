@@ -88,7 +88,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
     }
 
     private void assertNextMessage(Subscription s, String data, String header) throws InterruptedException {
-        Message m = s.nextMessage(DEFAULT_TIMEOUT);
+        Message m = s.nextMessage(DEFAULT_TIMEOUT_MS);
         assertNotNull(m);
         if (data == null) {
             assertNotNull(m.getData());
@@ -145,7 +145,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
 
             JetStreamPushSubscription s = ctx.js.pushSubscribe(ctx.subject());
             for (int x = 1; x <= 6; x++) {
-                Message m = s.nextMessage(DEFAULT_TIMEOUT);
+                Message m = s.nextMessage(DEFAULT_TIMEOUT_MS);
                 assertNotNull(m);
                 String data = new String(m.getData());
                 assertEquals(data(x), data);
@@ -222,7 +222,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
 
     @Test
     public void testPublishExpectations() throws Exception {
-        runInSharedCustom((nc, jstc1) -> {
+        runInSharedCustomContext((nc, jstc1) -> {
             try (JetStreamTestingContext ctx2 = new JetStreamTestingContext(nc, 1);
                  JetStreamTestingContext ctx3 = new JetStreamTestingContext(nc, 1);
                  JetStreamTestingContext ctx4 = new JetStreamTestingContext(nc, 1)
@@ -421,7 +421,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
 
     @Test
     public void testMaxPayloadJs() throws Exception {
-        runInSharedCustom(optionsBuilder().noReconnect(), (nc, ctx) -> {
+        runInSharedCustomContext(optionsBuilder().noReconnect(), (nc, ctx) -> {
             long expectedSeq = 0;
             StreamCreator builder = ctx.scBuilder().maxMessageSize(1000);
             ctx.createOrReplaceStream(builder);
@@ -496,7 +496,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
 
     @Test
     public void testMsgDeleteMarkerMaxAge() throws Exception {
-        runInSharedCustom((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
             StreamCreator sc = ctx.scBuilder(1)
                 .allowMessageTtl()
                 .subjectDeleteMarkerTtl(Duration.ofSeconds(50))

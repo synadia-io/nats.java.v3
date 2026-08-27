@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class JetStreamTestBase extends TestBase {
 
-    public static final long DEFAULT_TIMEOUT = 1000;
+    public static final long DEFAULT_TIMEOUT_MS = 1000;
 
     // ----------------------------------------------------------------------------------------------------
     // Publish / Read
@@ -406,8 +406,8 @@ public class JetStreamTestBase extends TestBase {
     static final String SHARED_NAME = "SHARED";
 
     private static void _runInShared(
-        OptionsBuilder optionsBuilder,
         VersionCheck vc,
+        OptionsBuilder optionsBuilder,
         OneConnectionTest oneNcTest,
         TwoConnectionTest twoNcTest,
         int jstcTestSubjectCount,
@@ -475,42 +475,30 @@ public class JetStreamTestBase extends TestBase {
     }
 
     public static void runInShared(VersionCheck vc, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(null, vc, null, null, 1, ctxTest);
+        _runInShared(vc, null, null, null, 1, ctxTest);
     }
 
-    public static void runInSharedOwnNc(ErrorListener el, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(optionsBuilder(el), null, null, null, 1, ctxTest);
+    public static void runInShared(VersionCheck vc, OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
+        _runInShared(vc, builder, null, null, 1, ctxTest);
     }
 
-    public static void runInSharedOwnNc(ErrorListener el, VersionCheck vc, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(optionsBuilder(el), vc, null, null, 1, ctxTest);
-    }
-
-    public static void runInSharedOwnNc(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(builder, null, null, null, 1, ctxTest);
-    }
-
-    public static void runInSharedOwnNc(OptionsBuilder builder, VersionCheck vc, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(builder, vc, null, null, 1, ctxTest);
+    public static void runInShared(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
+        _runInShared(null, builder, null, null, 1, ctxTest);
     }
 
     // --------------------------------------------------
     // JetStream: 1 stream custom subjects, kv or os
     // --------------------------------------------------
-    public static void runInSharedCustom(JetStreamTestingContextTest ctxTest) throws Exception {
+    public static void runInSharedCustomContext(JetStreamTestingContextTest ctxTest) throws Exception {
         _runInShared(null, null, null, null, 0, ctxTest);
     }
 
-    public static void runInSharedCustom(VersionCheck vc, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(null, vc, null, null, 0, ctxTest);
+    public static void runInSharedCustomContext(VersionCheck vc, JetStreamTestingContextTest ctxTest) throws Exception {
+        _runInShared(vc, null, null, null, 0, ctxTest);
     }
 
-    public static void runInSharedCustom(ErrorListener el, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(optionsBuilder(el), null, null, null, 0, ctxTest);
-    }
-
-    public static void runInSharedCustom(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
-        _runInShared(builder, null, null, null, 0, ctxTest);
+    public static void runInSharedCustomContext(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
+        _runInShared(null, builder, null, null, 0, ctxTest);
     }
 
     // --------------------------------------------------
@@ -518,6 +506,13 @@ public class JetStreamTestBase extends TestBase {
     // --------------------------------------------------
     public static void runInLocal(JetStreamTestingContextTest ctxTest) throws Exception {
         try (NatsConnection nc = Nats.connect()) {
+            try (JetStreamTestingContext ctx = new JetStreamTestingContext(nc, 1)) {
+                ctxTest.test(nc, ctx);
+            }
+        }
+    }
+    public static void runInLocal(OptionsBuilder builder, JetStreamTestingContextTest ctxTest) throws Exception {
+        try (NatsConnection nc = Nats.connect(builder.build())) {
             try (JetStreamTestingContext ctx = new JetStreamTestingContext(nc, 1)) {
                 ctxTest.test(nc, ctx);
             }
