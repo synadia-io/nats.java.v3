@@ -87,6 +87,22 @@ public class ConsumerConfiguration extends LazyApiObject {
     }
 
     /**
+     * Indicates if the client is configured as a push consumer
+     * @return the flag
+     */
+    public boolean isPushConsumer() {
+        return getDeliverSubject() != null;
+    }
+
+    /**
+     * Indicates if the client is configured as a push consumer
+     * @return the flag
+     */
+    public boolean isPullConsumer() {
+        return !isPushConsumer();
+    }
+
+    /**
      * Queue group sharing the deliver subject, so its members split the messages between them.
      * @return the deliver group.
      */

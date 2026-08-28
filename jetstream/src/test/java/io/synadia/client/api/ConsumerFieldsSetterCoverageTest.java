@@ -112,6 +112,16 @@ class ConsumerFieldsSetterCoverageTest {
         "isPush()"      // push/pull flag is a builder-time choice
     );
 
+    /**
+     * Getters that legitimately exist on ConsumerConfiguration only — they derive an answer from
+     * the deliver subject the server reported. The builder already answers the same question with
+     * its own {@code isPush()}, which is creator-only above.
+     */
+    private static final Set<String> CONFIG_ONLY_GETTERS = Set.of(
+        "isPushConsumer()",
+        "isPullConsumer()"
+    );
+
     @Test
     void consumerCreatorAndConfigurationHaveSameGetters() {
         Set<String> creatorGetters = collectPublicGetters(ConsumerCreator.class);
@@ -129,6 +139,9 @@ class ConsumerFieldsSetterCoverageTest {
         }
 
         for (String sig : configGetters) {
+            if (CONFIG_ONLY_GETTERS.contains(sig)) {
+                continue;
+            }
             if (!creatorGetters.contains(sig)) {
                 failures.add("ConsumerCreator is missing getter: " + sig);
             }

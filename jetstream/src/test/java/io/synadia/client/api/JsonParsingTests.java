@@ -4,6 +4,7 @@ import io.nats.json.DateTimeUtils;
 import io.nats.json.LazyJsonParser;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,19 @@ public class JsonParsingTests {
         assertEquals(17, al.getStorageMaxStreamBytes());
         assertTrue(al.isMaxBytesRequired());
         assertNotNull(al.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testAccountLimitsEmpty() {
+        AccountLimits al = new AccountLimits(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals(-1, al.getMaxMemory());
+        assertEquals(-1, al.getMaxStorage());
+        assertEquals(-1, al.getMaxStreams());
+        assertEquals(-1, al.getMaxConsumers());
+        assertEquals(0, al.getMaxAckPending());
+        assertEquals(0, al.getMemoryMaxStreamBytes());
+        assertEquals(0, al.getStorageMaxStreamBytes());
+        assertFalse(al.isMaxBytesRequired());
     }
 
     // ====================================================================================================
@@ -57,6 +71,11 @@ public class JsonParsingTests {
         Map<String, AccountTier> tiers = as.getTiers();
         validateTier(tiers.get("R1"), 400, 500);
         validateTier(tiers.get("R3"), 600, 700);
+
+        // lazy fields return the cached instance on the second call
+        assertSame(api, as.getApiStats());
+        assertSame(tiers, as.getTiers());
+        assertSame(as.getLimits(), as.getLimits());
 
         assertNotNull(as.toString()); // COVERAGE
 
@@ -150,6 +169,7 @@ public class JsonParsingTests {
         assertTrue(al.isMaxBytesRequired());
 
         assertNotNull(tier.toString()); // COVERAGE
+        assertSame(al, tier.getLimits()); // lazy field is cached
     }
 
     // ====================================================================================================
@@ -164,6 +184,15 @@ public class JsonParsingTests {
         assertEquals(43, api.getErrors());
         assertEquals(44, api.getInFlight());
         assertNotNull(api.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testApiStatsEmpty() {
+        ApiStats api = new ApiStats(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals(0, api.getLevel());
+        assertEquals(0, api.getTotal());
+        assertEquals(0, api.getErrors());
+        assertEquals(0, api.getInFlight());
     }
 
     // ====================================================================================================
@@ -183,6 +212,7 @@ public class JsonParsingTests {
         List<Replica> replicas = ci.getReplicas();
         assertNotNull(replicas);
         assertEquals(2, replicas.size());
+        assertSame(replicas, ci.getReplicas()); // lazy field is cached
 
         Replica r0 = replicas.get(0);
         assertEquals("ci-rep0", r0.getName());
@@ -199,6 +229,18 @@ public class JsonParsingTests {
         assertEquals(54, r1.getLag());
 
         assertNotNull(ci.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testClusterInfoEmpty() {
+        ClusterInfo ci = new ClusterInfo(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertNull(ci.getName());
+        assertNull(ci.getRaftGroup());
+        assertNull(ci.getLeader());
+        assertNull(ci.getLeaderSince());
+        assertFalse(ci.isSystemAccount());
+        assertNull(ci.getTrafficAccount());
+        assertTrue(ci.getReplicas().isEmpty());
     }
 
     // ====================================================================================================
@@ -253,6 +295,15 @@ public class JsonParsingTests {
         assertNotNull(pr.toString()); // COVERAGE
     }
 
+    @Test
+    public void testConsumerPauseResponseEmpty() {
+        // no paused and no pause_until keys at all
+        ConsumerPauseResponse pr = new ConsumerPauseResponse(getDataMessage(dataAsString("Empty.json")));
+        assertFalse(pr.isPaused());
+        assertNull(pr.getPauseUntil());
+        assertNull(pr.getPauseRemaining());
+    }
+
     // ====================================================================================================
     // Error
     // ====================================================================================================
@@ -270,6 +321,25 @@ public class JsonParsingTests {
         Error opt = Error.optionalInstance(LazyJsonParser.parseUnchecked(json));
         assertNotNull(opt);
         assertEquals(71, opt.getCode());
+    }
+
+    @Test
+    public void testErrorEmpty() {
+        // no code, no err_code, no description -> both NOT_SET and the default description
+        Error err = new Error(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals(Error.NOT_SET, err.getCode());
+        assertEquals(Error.NOT_SET, err.getApiErrorCode());
+        assertEquals("Unknown JetStream Error", err.getDescription());
+        assertEquals("Unknown JetStream Error", err.toString());
+        assertNotNull(Error.optionalInstance(LazyJsonParser.parseUnchecked(dataAsString("Empty.json"))));
+    }
+
+    @Test
+    public void testErrorPredefined() {
+        assertEquals(400, Error.JsBadRequestErr.getCode());
+        assertEquals(10003, Error.JsBadRequestErr.getApiErrorCode());
+        assertEquals(404, Error.JsNoMessageFoundErr.getCode());
+        assertEquals(10037, Error.JsNoMessageFoundErr.getApiErrorCode());
     }
 
     @Test
@@ -332,6 +402,13 @@ public class JsonParsingTests {
         assertEquals(83L, msgs.get(2));
         assertEquals(Long.valueOf(84L), lsd.getBytes());
         assertNotNull(lsd.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testLostStreamDataEmpty() {
+        LostStreamData lsd = new LostStreamData(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertTrue(lsd.getMessages().isEmpty());
+        assertNull(lsd.getBytes());
     }
 
     // ====================================================================================================
@@ -429,6 +506,24 @@ public class JsonParsingTests {
         assertNotNull(mi.toString()); // COVERAGE
     }
 
+    @Test
+    public void testMirrorInfoNegativeActive() {
+        String json = dataAsString("MirrorInfoNegativeActive.json");
+        MirrorInfo mi = new MirrorInfo(LazyJsonParser.parseUnchecked(json));
+        assertEquals("mi-neg-active-name", mi.getName());
+        assertEquals(Duration.ZERO, mi.getActive());
+        assertNull(mi.getExternal());
+        assertTrue(mi.getSubjectTransforms().isEmpty());
+        assertNull(mi.getError());
+    }
+
+    @Test
+    public void testMirrorInfoEmpty() {
+        MirrorInfo mi = new MirrorInfo(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals("", mi.getName());
+        assertEquals(Duration.ZERO, mi.getActive());
+    }
+
     // ====================================================================================================
     // Placement
     // ====================================================================================================
@@ -461,7 +556,7 @@ public class JsonParsingTests {
 
     @Test
     public void testPlacementEmpty() {
-        String json = dataAsString("PlacementEmpty.json");
+        String json = dataAsString("Empty.json");
         Placement p = new Placement(LazyJsonParser.parseUnchecked(json));
         assertFalse(p.hasData());
         assertNull(p.getCluster());
@@ -507,6 +602,21 @@ public class JsonParsingTests {
         assertNotNull(pgs.toString()); // COVERAGE
     }
 
+    @Test
+    public void testPriorityGroupStateMinimal() {
+        String json = dataAsString("PriorityGroupStateMinimal.json");
+        PriorityGroupState pgs = new PriorityGroupState(LazyJsonParser.parseUnchecked(json));
+        assertEquals("pgs-minimal-group", pgs.getGroup());
+        assertNull(pgs.getPinnedClientId());
+        assertNull(pgs.getPinnedTime());
+    }
+
+    @Test
+    public void testPriorityGroupStateEmpty() {
+        PriorityGroupState pgs = new PriorityGroupState(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals("", pgs.getGroup());
+    }
+
     // ====================================================================================================
     // PurgeResponse
     // ====================================================================================================
@@ -517,6 +627,21 @@ public class JsonParsingTests {
         assertTrue(pr.isSuccess());
         assertEquals(5, pr.getPurged());
         assertNotNull(pr.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testPurgeResponseFailure() {
+        String json = dataAsString("PurgeResponseFailure.json");
+        PurgeResponse pr = new PurgeResponse(getDataMessage(json));
+        assertFalse(pr.isSuccess());
+        assertEquals(0, pr.getPurged());
+    }
+
+    @Test
+    public void testPurgeResponseEmpty() {
+        PurgeResponse pr = new PurgeResponse(getDataMessage(dataAsString("Empty.json")));
+        assertFalse(pr.isSuccess());
+        assertEquals(0, pr.getPurged());
     }
 
     // ====================================================================================================
@@ -546,6 +671,14 @@ public class JsonParsingTests {
         assertNotNull(r.toString()); // COVERAGE
     }
 
+    @Test
+    public void testReplicaEmpty() {
+        Replica r = new Replica(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals("", r.getName());
+        assertEquals(Duration.ZERO, r.getActive());
+        assertEquals(0, r.getLag());
+    }
+
     // ====================================================================================================
     // Republish
     // ====================================================================================================
@@ -570,6 +703,14 @@ public class JsonParsingTests {
         assertEquals(132, si.getStreamSequence());
         assertEquals(DateTimeUtils.parseDateTime("2024-04-18T13:14:15.000000133Z"), si.getLastActive());
         assertNotNull(si.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testSequenceInfoEmpty() {
+        SequenceInfo si = new SequenceInfo(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals(0, si.getConsumerSequence());
+        assertEquals(0, si.getStreamSequence());
+        assertNull(si.getLastActive());
     }
 
     // ====================================================================================================
@@ -675,6 +816,13 @@ public class JsonParsingTests {
         assertNotNull(sa.toString()); // COVERAGE
     }
 
+    @Test
+    public void testStreamAlternateEmpty() {
+        StreamAlternate sa = new StreamAlternate(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals("", sa.getName());
+        assertEquals("", sa.getCluster());
+    }
+
     // ====================================================================================================
     // StreamState
     // ====================================================================================================
@@ -698,6 +846,8 @@ public class JsonParsingTests {
         Map<String, Long> subjectMap = ss.getSubjectMap();
         assertNotNull(subjectMap);
         assertEquals(3, subjectMap.size());
+        assertSame(subjects, ss.getSubjects());     // lazy field is cached
+        assertSame(subjectMap, ss.getSubjectMap()); // lazy field is cached
         assertEquals(Long.valueOf(168L), subjectMap.get("ss.sub.a"));
         assertEquals(Long.valueOf(169L), subjectMap.get("ss.sub.b"));
         assertEquals(Long.valueOf(170L), subjectMap.get("ss.sub.c"));
@@ -744,6 +894,32 @@ public class JsonParsingTests {
         assertNull(ss.getLostStreamData());
 
         assertNotNull(ss.toString()); // COVERAGE
+    }
+
+    @Test
+    public void testStreamStateEmpty() {
+        // uint64 fields default to 0, not -1; see UINT64_AUDIT.md
+        StreamState ss = new StreamState(LazyJsonParser.parseUnchecked(dataAsString("Empty.json")));
+        assertEquals(0, ss.getMessageCount());
+        assertEquals(BigInteger.ZERO, ss.getMessageCountAsBigInteger());
+        assertNull(ss.getFirstTime());
+        assertTrue(ss.getDeleted().isEmpty());
+        assertTrue(ss.getSubjects().isEmpty());
+        assertTrue(ss.getSubjectMap().isEmpty());
+        assertNull(ss.getLostStreamData());
+    }
+
+    @Test
+    public void testStreamStateUnsigned() {
+        // top-half uint64 (> Long.MAX_VALUE): the long getter returns the two's-complement bit
+        // pattern (negative), the BigInteger getter returns the true non-negative value. This is
+        // the case the old readLong path silently dropped to the default. See UINT64_AUDIT.md.
+        String json = dataAsString("StreamStateUnsigned.json");
+        StreamState ss = new StreamState(LazyJsonParser.parseUnchecked(json));
+        assertEquals(-1L, ss.getMessageCount());                                        // 2^64-1 as signed long
+        assertEquals(new BigInteger("18446744073709551615"), ss.getMessageCountAsBigInteger());
+        assertEquals(Long.MIN_VALUE, ss.getFirstSequence());                            // 2^63 as signed long
+        assertEquals(new BigInteger("9223372036854775808"), ss.getFirstSequenceAsBigInteger());
     }
 
     // ====================================================================================================

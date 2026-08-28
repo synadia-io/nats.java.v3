@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.synadia.client.utils.ResourceUtils.dataAsString;
+import static io.synadia.client.utils.TestBase.getDataMessage;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ConsumerInfoJsonTests {
@@ -120,6 +121,39 @@ public class ConsumerInfoJsonTests {
         assertEquals("group2", pgs.getGroup());
         assertEquals("pci2", pgs.getPinnedClientId());
         assertEquals(DateTimeUtils.parseDateTime("2025-09-24T16:02:02.163377Z"), pgs.getPinnedTime());
+
+        // num_pending (24) + delivered consumer_seq (1)
+        assertEquals(25, ci.getCalculatedPending());
+
+        // lazy fields return the cached instance on the second call
+        assertSame(c, ci.getConsumerConfiguration());
+        assertSame(ci.getDelivered(), ci.getDelivered());
+        assertSame(ci.getAckFloor(), ci.getAckFloor());
+        assertSame(ci.getPriorityGroupStates(), ci.getPriorityGroupStates());
+
+        // the Message-based constructor produces equivalent state
+        assertEquals(ci, new ConsumerInfo(getDataMessage(json)));
+    }
+
+    @Test
+    public void testConsumerInfoError() {
+        // hasError -> default consumer configuration and EMPTY sequence info
+        String json = dataAsString("GenericErrorResponse.json");
+        ConsumerInfo ci = new ConsumerInfo(LazyJsonParser.parseUnchecked(json));
+        assertTrue(ci.hasError());
+        assertNotNull(ci.getConsumerConfiguration());
+        assertEquals(SequenceInfo.EMPTY, ci.getDelivered());
+        assertEquals(SequenceInfo.EMPTY, ci.getAckFloor());
+    }
+
+    @Test
+    public void testConsumerInfoNoConfig() {
+        // a missing config key still yields a default configuration rather than null
+        String json = dataAsString("ConsumerInfoNoConfig.json");
+        ConsumerInfo ci = new ConsumerInfo(LazyJsonParser.parseUnchecked(json));
+        assertEquals("no-config-stream", ci.getStreamName());
+        assertEquals("no-config-name", ci.getName());
+        assertNotNull(ci.getConsumerConfiguration());
     }
 
     @Test

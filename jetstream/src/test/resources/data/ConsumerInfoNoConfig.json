@@ -1,0 +1,5 @@
+{
+  "type": "io.nats.jetstream.api.v1.consumer_info_response",
+  "stream_name": "no-config-stream",
+  "name": "no-config-name"
+}

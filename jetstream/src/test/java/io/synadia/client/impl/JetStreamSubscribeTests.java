@@ -100,6 +100,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
         assertSame(orderedCreator, config.orderedCreator);
         assertEquals(orderedCreator != null, config.isOrdered);
         assertEquals(orderedCreator == null ? null : orderedCreator.getNamePrefix(), config.orderedNamePrefix);
+        assertEquals(!isPull, config.isPush);
         assertEquals(isPull, config.isPull);
     }
 

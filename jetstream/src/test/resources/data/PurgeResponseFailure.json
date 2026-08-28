@@ -1,0 +1,4 @@
+{
+  "type": "io.nats.jetstream.api.v1.stream_purge_response",
+  "success": false
+}

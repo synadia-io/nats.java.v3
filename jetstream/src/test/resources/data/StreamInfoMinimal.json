@@ -1,0 +1,8 @@
+{
+  "type": "io.nats.jetstream.api.v1.stream_info_response",
+  "created": "2021-01-25T20:09:10.6225191Z",
+  "config": {
+    "name": "minimal-stream"
+  },
+  "state": {}
+}

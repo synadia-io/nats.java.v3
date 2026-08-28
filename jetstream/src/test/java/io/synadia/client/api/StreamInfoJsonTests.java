@@ -70,6 +70,30 @@ public class StreamInfoJsonTests {
     }
 
     @Test
+    public void testStreamInfoLazyFieldsAndMinimal() {
+        StreamInfo si = new StreamInfo(getDataMessage(STREAM_INFO_JSON));
+
+        // lazy fields return the cached instance on the second call
+        assertSame(si.getConfiguration(), si.getConfiguration());
+        assertSame(si.getStreamState(), si.getStreamState());
+        assertSame(si.getSources(), si.getSources());
+        assertSame(si.getAlternates(), si.getAlternates());
+
+        // the LazyJsonValue-based constructor produces equivalent state
+        assertEquals(si, new StreamInfo(LazyJsonParser.parseUnchecked(STREAM_INFO_JSON)));
+
+        // missing cluster/mirror/ts/did_create -> null/false; missing sources/alternates -> empty
+        StreamInfo mini = new StreamInfo(getDataMessage(dataAsString("StreamInfoMinimal.json")));
+        assertEquals("minimal-stream", mini.getConfiguration().getName());
+        assertNull(mini.getClusterInfo());
+        assertNull(mini.getMirrorInfo());
+        assertNull(mini.getTimestamp());
+        assertFalse(mini.didCreate());
+        assertTrue(mini.getSources().isEmpty());
+        assertTrue(mini.getAlternates().isEmpty());
+    }
+
+    @Test
     public void testStreamInfoFromLazyJsonValue() {
         LazyJsonValue ljv = LazyJsonParser.parseUnchecked(STREAM_INFO_JSON);
         StreamInfo si = new StreamInfo(ljv);

@@ -23,6 +23,9 @@ public class JetStreamSubscribeConfig extends SubscribeBehavior {
     /** The configuration of {@link #consumerInfo}, kept out for convenience. */
     public final ConsumerConfiguration consumerConf;
 
+    /** True if the consumer is push based */
+    public final boolean isPush;
+
     /** True if the consumer is pull based, so messages must be requested rather than pushed by the server. */
     public final boolean isPull;
 
@@ -45,7 +48,8 @@ public class JetStreamSubscribeConfig extends SubscribeBehavior {
         this.orderedCreator = orderedCreator;
         this.consumerInfo = consumerInfo;
         this.consumerConf = consumerInfo.getConsumerConfiguration();
-        this.isPull = consumerInfo.getConsumerConfiguration().getDeliverSubject() == null;
+        this.isPush = this.consumerConf.isPushConsumer();
+        this.isPull = !isPush;
         if (orderedCreator != null) {
             this.isOrdered = true;
             this.orderedNamePrefix = orderedCreator.getNamePrefix();

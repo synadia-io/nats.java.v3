@@ -24,7 +24,7 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
-_(empty - ready for the next item)_
+- **Test JSON to resource files** - **Committed**. All inline JSON is out of `ApiFieldsTest`; 21 tests that duplicated `JsonParsingTests` / `ConsumerInfoJsonTests` / `StreamInfoJsonTests` / `ApiResponseTests` / `PublishAckTests` were deleted in favor of those, with their real gaps (empty-object defaults, lazy-field caching, a few edges) folded in as 17 new tests. One shared `Empty.json` replaces `PlacementEmpty.json` and every `{}` literal. Also: `JetStreamSubscribeConfig` ordered/prefix coverage, and a `CONFIG_ONLY_GETTERS` exclusion so the creator/configuration parity test accepts `isPushConsumer()`/`isPullConsumer()`. Written up in `~development-history/APIFIELDSTEST_JSON_TO_RESOURCES.md`.
 
 ## Recently Closed
 

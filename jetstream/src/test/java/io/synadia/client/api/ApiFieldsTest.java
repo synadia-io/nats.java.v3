@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
+import static io.synadia.client.utils.ResourceUtils.dataAsString;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -39,6 +40,11 @@ public class ApiFieldsTest {
     /** Parse JSON without throwing checked exceptions. */
     private static LazyJsonValue lj(String json) {
         return LazyJsonParser.parseUnchecked(json);
+    }
+
+    /** Parse one of the shared json files from src/test/resources/data. */
+    private static LazyJsonValue ljData(String fileName) {
+        return lj(dataAsString(fileName));
     }
 
     /** Build a NatsMessage from JSON for ApiResponse Message-based constructors. */
@@ -77,10 +83,10 @@ public class ApiFieldsTest {
         assertEquals(Duration.ofMillis(12000), l2.getInactiveThreshold());
 
         // ---- from-counterpart constructor ----
-        ConsumerLimits original = new ConsumerLimits(lj("{\"inactive_threshold\":60000000000,\"max_ack_pending\":100}"));
+        ConsumerLimits original = new ConsumerLimits(ljData("ConsumerLimits.json"));
         ConsumerLimitsCreator fromCounterpart = new ConsumerLimitsCreator(original);
-        assertEquals(Duration.ofSeconds(60), fromCounterpart.getInactiveThreshold());
-        assertEquals(100L, fromCounterpart.getMaxAckPending());
+        assertEquals(Duration.ofNanos(61000000000L), fromCounterpart.getInactiveThreshold());
+        assertEquals(62L, fromCounterpart.getMaxAckPending());
 
         ConsumerLimits round = new ConsumerLimits(lj(fromCounterpart.toJson()));
         assertEquals(original.getInactiveThreshold(), round.getInactiveThreshold());
@@ -150,10 +156,10 @@ public class ApiFieldsTest {
         assertEquals("deliver2", ext2.getDeliver());
 
         // ---- from-counterpart constructor ----
-        External original = new External(lj("{\"api\":\"api1\",\"deliver\":\"d1\"}"));
+        External original = new External(ljData("External.json"));
         ExternalCreator fromCounterpart = new ExternalCreator(original);
-        assertEquals("api1", fromCounterpart.getApi());
-        assertEquals("d1", fromCounterpart.getDeliver());
+        assertEquals("ext-api", fromCounterpart.getApi());
+        assertEquals("ext-deliver", fromCounterpart.getDeliver());
 
         External round = new External(lj(fromCounterpart.toJson()));
         assertEquals(original.getApi(), round.getApi());
@@ -169,7 +175,7 @@ public class ApiFieldsTest {
         assertNull(c.getDeliver());
 
         // ---- default string coverage ----
-        External e = new External(lj("{}"));
+        External e = new External(ljData("Empty.json"));
         assertEquals("", e.getApi());
     }
 
@@ -207,7 +213,7 @@ public class ApiFieldsTest {
         assertEquals(ZDT_A, mirror.getStartTime());
         assertEquals("filter.>", mirror.getFilterSubject());
 
-        Mirror empty = new Mirror(lj("{}"));
+        Mirror empty = new Mirror(ljData("Empty.json"));
         assertEquals("", empty.getStreamName());
 
         External ext = mirror.getExternal();
@@ -223,20 +229,13 @@ public class ApiFieldsTest {
         assertEquals("m_dst1", transforms.get(1).getDestination());
 
         // ---- from-counterpart constructor ----
-        String json = "{"
-            + "\"name\":\"m1\","
-            + "\"opt_start_seq\":5,"
-            + "\"filter_subject\":\"x.>\","
-            + "\"external\":{\"api\":\"a\",\"deliver\":\"d\"},"
-            + "\"subject_transforms\":[{\"src\":\"s\",\"dest\":\"d\"}]"
-            + "}";
-        Mirror original = new Mirror(lj(json));
+        Mirror original = new Mirror(ljData("Mirror.json"));
         MirrorCreator fromCounterpart = new MirrorCreator(original);
-        assertEquals("m1", fromCounterpart.getStreamName());
-        assertEquals(5L, fromCounterpart.getStartSequence());
-        assertEquals("x.>", fromCounterpart.getFilterSubject());
+        assertEquals("mirror-name", fromCounterpart.getStreamName());
+        assertEquals(91L, fromCounterpart.getStartSequence());
+        assertEquals("mirror.filter", fromCounterpart.getFilterSubject());
         assertNotNull(fromCounterpart.getExternalCreator());
-        assertEquals(1, fromCounterpart.getSubjectTransformCreators().size());
+        assertEquals(2, fromCounterpart.getSubjectTransformCreators().size());
 
         // ---- copy-rename constructor ----
         MirrorCreator renamed = new MirrorCreator("m2", fromCounterpart);
@@ -320,10 +319,10 @@ public class ApiFieldsTest {
         assertEquals(2, p3.getTags().size());
 
         // ---- from-counterpart constructor ----
-        Placement original = new Placement(lj("{\"cluster\":\"c1\",\"tags\":[\"t1\",\"t2\"]}"));
+        Placement original = new Placement(ljData("Placement.json"));
         PlacementCreator fromCounterpart = new PlacementCreator(original);
-        assertEquals("c1", fromCounterpart.getCluster());
-        assertEquals(2, fromCounterpart.getTags().size());
+        assertEquals("placement-cluster", fromCounterpart.getCluster());
+        assertEquals(3, fromCounterpart.getTags().size());
         Placement round = new Placement(lj(fromCounterpart.toJson()));
         assertEquals(original.getCluster(), round.getCluster());
         assertEquals(original.getTags(), round.getTags());
@@ -877,7 +876,7 @@ public class ApiFieldsTest {
         assertEquals("dest.>", republish.getDestination());
         assertTrue(republish.isHeadersOnly());
 
-        Republish empty = new Republish(lj("{}"));
+        Republish empty = new Republish(ljData("Empty.json"));
         assertEquals("", empty.getSource());
         assertEquals("", empty.getDestination());
 
@@ -894,10 +893,10 @@ public class ApiFieldsTest {
         assertFalse(creator3.isHeadersOnly());
 
         // ---- from-counterpart constructor ----
-        Republish original = new Republish(lj("{\"src\":\"s.>\",\"dest\":\"d.>\",\"headers_only\":true}"));
+        Republish original = new Republish(ljData("Republish.json"));
         RepublishCreator fromCounterpart = new RepublishCreator(original);
-        assertEquals("s.>", fromCounterpart.getSource());
-        assertEquals("d.>", fromCounterpart.getDestination());
+        assertEquals("rep.src.>", fromCounterpart.getSource());
+        assertEquals("rep.dest.>", fromCounterpart.getDestination());
         assertTrue(fromCounterpart.isHeadersOnly());
 
         Republish round = new Republish(lj(fromCounterpart.toJson()));
@@ -950,16 +949,11 @@ public class ApiFieldsTest {
         assertEquals("s_dst", transforms.get(0).getDestination());
 
         // ---- from-counterpart constructor ----
-        String json = "{"
-            + "\"name\":\"s1\","
-            + "\"opt_start_seq\":11,"
-            + "\"filter_subject\":\"y.>\""
-            + "}";
-        Source original = new Source(lj(json));
+        Source original = new Source(ljData("Source.json"));
         SourceCreator fromCounterpart = new SourceCreator(original);
-        assertEquals("s1", fromCounterpart.getStreamName());
-        assertEquals(11L, fromCounterpart.getStartSequence());
-        assertEquals("y.>", fromCounterpart.getFilterSubject());
+        assertEquals("source-name", fromCounterpart.getStreamName());
+        assertEquals(141L, fromCounterpart.getStartSequence());
+        assertEquals("source.filter", fromCounterpart.getFilterSubject());
 
         // ---- copy-rename constructor ----
         SourceCreator renamed = new SourceCreator("s2", fromCounterpart);
@@ -1181,9 +1175,9 @@ public class ApiFieldsTest {
 
         // sources(Source...) and sources(Collection<Source>) both end up in the
         // sourceCreators list (Source is converted via SourceCreator::new).
-        s.sources(new Source(lj("{\"name\":\"s1\"}")), new Source(lj("{\"name\":\"s2\"}")));
+        s.sources(new Source(ljData("SourceMinimal.json")), new Source(ljData("Source.json")));
         assertEquals(2, s.getSourceCreators().size());
-        s.sources(List.of(new Source(lj("{\"name\":\"s3\"}"))));
+        s.sources(List.of(new Source(ljData("SourceMinimal.json"))));
         assertEquals(1, s.getSourceCreators().size());
 
         // sourceCreators(SourceCreator...)
@@ -1220,16 +1214,16 @@ public class ApiFieldsTest {
         assertEquals("b.>", st.getDestination());
 
         // ---- from-counterpart constructor ----
-        SubjectTransform original = new SubjectTransform(lj("{\"src\":\"a.>\",\"dest\":\"b.>\"}"));
+        SubjectTransform original = new SubjectTransform(ljData("SubjectTransform.json"));
         SubjectTransformCreator fromCounterpart = new SubjectTransformCreator(original);
-        assertEquals("a.>", fromCounterpart.getSource());
-        assertEquals("b.>", fromCounterpart.getDestination());
+        assertEquals("st.src.>", fromCounterpart.getSource());
+        assertEquals("st.dest.>", fromCounterpart.getDestination());
 
         SubjectTransform round = new SubjectTransform(lj(fromCounterpart.toJson()));
         assertEquals(original.getSource(), round.getSource());
         assertEquals(original.getDestination(), round.getDestination());
 
-        SubjectTransform empty = new SubjectTransform(lj("{}"));
+        SubjectTransform empty = new SubjectTransform(ljData("Empty.json"));
         assertEquals("", empty.getSource());
         assertEquals("", empty.getDestination());
     }
@@ -1274,11 +1268,11 @@ public class ApiFieldsTest {
         c.sourceCreators((Collection<SourceCreator>) null);
         assertTrue(c.getSourceCreators().isEmpty());
         // sources(Source...) and sources(Collection<Source>) also populate sourceCreators
-        c.sources(new Source(lj("{\"name\":\"s1\"}")));
+        c.sources(new Source(ljData("SourceMinimal.json")));
         assertEquals(1, c.getSourceCreators().size());
         c.sources(new ArrayList<>());
         assertTrue(c.getSourceCreators().isEmpty());
-        c.sources(new Source(lj("{\"name\":\"s1\"}")));
+        c.sources(new Source(ljData("SourceMinimal.json")));
         c.sources();
         assertTrue(c.getSourceCreators().isEmpty());
 
@@ -1424,426 +1418,6 @@ public class ApiFieldsTest {
     // ====================================================================================================
 
     @Test
-    public void testAccountLimits() {
-        String json = "{"
-            + "\"max_memory\":1000,"
-            + "\"max_storage\":2000,"
-            + "\"max_streams\":50,"
-            + "\"max_consumers\":75,"
-            + "\"max_ack_pending\":42,"
-            + "\"memory_max_stream_bytes\":3000,"
-            + "\"storage_max_stream_bytes\":4000,"
-            + "\"max_bytes_required\":true"
-            + "}";
-        AccountLimits limits = new AccountLimits(lj(json));
-        assertEquals(1000L, limits.getMaxMemory());
-        assertEquals(2000L, limits.getMaxStorage());
-        assertEquals(50L, limits.getMaxStreams());
-        assertEquals(75L, limits.getMaxConsumers());
-        assertEquals(42L, limits.getMaxAckPending());
-        assertEquals(3000L, limits.getMemoryMaxStreamBytes());
-        assertEquals(4000L, limits.getStorageMaxStreamBytes());
-        assertTrue(limits.isMaxBytesRequired());
-        assertNotNull(limits.toString());
-
-        // defaults / not present
-        AccountLimits empty = new AccountLimits(lj("{}"));
-        assertEquals(-1L, empty.getMaxMemory());
-        assertEquals(-1L, empty.getMaxStorage());
-        assertFalse(empty.isMaxBytesRequired());
-    }
-
-    @Test
-    public void testAccountTier() {
-        String json = "{"
-            + "\"memory\":11,"
-            + "\"storage\":22,"
-            + "\"reserved_memory\":33,"
-            + "\"reserved_storage\":44,"
-            + "\"streams\":5,"
-            + "\"consumers\":6,"
-            + "\"limits\":{\"max_memory\":1000,\"max_storage\":2000}"
-            + "}";
-        AccountTier tier = new AccountTier(lj(json));
-        assertEquals(11L, tier.getMemoryBytes());
-        assertEquals(22L, tier.getStorageBytes());
-        assertEquals(33L, tier.getReservedMemoryBytes());
-        assertEquals(44L, tier.getReservedStorageBytes());
-        assertEquals(5L, tier.getStreams());
-        assertEquals(6L, tier.getConsumers());
-
-        // exercises lazy _limits field
-        AccountLimits limits = tier.getLimits();
-        assertNotNull(limits);
-        assertEquals(1000L, limits.getMaxMemory());
-        assertEquals(2000L, limits.getMaxStorage());
-
-        // second call returns cached instance
-        AccountLimits limits2 = tier.getLimits();
-        assertEquals(limits, limits2);
-        assertNotNull(tier.toString());
-    }
-
-    @Test
-    public void testApiStats() {
-        String json = "{"
-            + "\"level\":99,"
-            + "\"total\":1234,"
-            + "\"errors\":56,"
-            + "\"inflight\":7"
-            + "}";
-        ApiStats stats = new ApiStats(lj(json));
-        assertEquals(99, stats.getLevel());
-        assertEquals(1234L, stats.getTotal());
-        assertEquals(56L, stats.getErrors());
-        assertEquals(7L, stats.getInFlight());
-        assertNotNull(stats.toString());
-
-        ApiStats empty = new ApiStats(lj("{}"));
-        assertEquals(0, empty.getLevel());
-        assertEquals(0L, empty.getTotal());
-    }
-
-    @Test
-    public void testClusterInfo() {
-        String json = "{"
-            + "\"name\":\"clstr1\","
-            + "\"raft_group\":\"raft1\","
-            + "\"leader\":\"node-a\","
-            + "\"leader_since\":\"2026-01-02T03:04:05Z\","
-            + "\"system_account\":true,"
-            + "\"traffic_account\":\"acct-x\","
-            + "\"replicas\":["
-            + "{\"name\":\"r1\",\"current\":true,\"offline\":false,\"active\":1000000000,\"lag\":5},"
-            + "{\"name\":\"r2\",\"current\":false,\"offline\":true,\"active\":2000000000,\"lag\":10}"
-            + "]"
-            + "}";
-        ClusterInfo ci = new ClusterInfo(lj(json));
-        assertEquals("clstr1", ci.getName());
-        assertEquals("raft1", ci.getRaftGroup());
-        assertEquals("node-a", ci.getLeader());
-        assertNotNull(ci.getLeaderSince());
-        assertTrue(ci.isSystemAccount());
-        assertEquals("acct-x", ci.getTrafficAccount());
-
-        // exercises lazy _replicas
-        List<Replica> replicas = ci.getReplicas();
-        assertNotNull(replicas);
-        assertEquals(2, replicas.size());
-        assertEquals("r1", replicas.get(0).getName());
-        assertTrue(replicas.get(0).isCurrent());
-        assertFalse(replicas.get(0).isOffline());
-        assertEquals(Duration.ofSeconds(1), replicas.get(0).getActive());
-        assertEquals(5L, replicas.get(0).getLag());
-
-        // second call returns cached
-        assertEquals(replicas, ci.getReplicas());
-        assertNotNull(ci.toString());
-
-        // empty fields default behavior
-        ClusterInfo empty = new ClusterInfo(lj("{}"));
-        assertNull(empty.getName());
-        assertNull(empty.getRaftGroup());
-        assertNull(empty.getLeader());
-        assertNull(empty.getLeaderSince());
-        assertFalse(empty.isSystemAccount());
-        assertNull(empty.getTrafficAccount());
-        assertTrue(empty.getReplicas().isEmpty());
-    }
-
-    @Test
-    public void testError() {
-        // From JSON
-        Error err = new Error(lj("{\"code\":400,\"err_code\":10003,\"description\":\"bad request\"}"));
-        assertEquals(400, err.getCode());
-        assertEquals(10003, err.getApiErrorCode());
-        assertEquals("bad request", err.getDescription());
-        assertTrue(err.toString().contains("bad request"));
-        assertTrue(err.toString().contains("10003"));
-
-        // Empty json - default description
-        Error errEmpty = new Error(lj("{}"));
-        assertEquals(Error.NOT_SET, errEmpty.getCode());
-        assertEquals(Error.NOT_SET, errEmpty.getApiErrorCode());
-        assertEquals("Unknown JetStream Error", errEmpty.getDescription());
-        // toString: both NOT_SET should just be the description
-        assertEquals("Unknown JetStream Error", errEmpty.toString());
-
-        // optionalInstance
-        assertNull(Error.optionalInstance(null));
-        assertNotNull(Error.optionalInstance(lj("{}")));
-
-        // code-only branch (apiErrorCode NOT_SET, code set)
-        Error errCodeOnly = new Error(lj("{\"code\":500,\"description\":\"d\"}"));
-        String s = errCodeOnly.toString();
-        assertTrue(s.contains("d"));
-        assertTrue(s.contains("500"));
-
-        // err_code only, code NOT_SET branch
-        Error errApi = new Error(lj("{\"err_code\":42,\"description\":\"e\"}"));
-        assertEquals(Error.NOT_SET, errApi.getCode());
-        assertEquals(42, errApi.getApiErrorCode());
-        // toString: code is NOT_SET and apiErrorCode is set -> description
-        assertEquals("e", errApi.toString());
-
-        // Pre-defined errors
-        assertEquals(400, Error.JsBadRequestErr.getCode());
-        assertEquals(10003, Error.JsBadRequestErr.getApiErrorCode());
-        assertEquals(404, Error.JsNoMessageFoundErr.getCode());
-        assertEquals(10037, Error.JsNoMessageFoundErr.getApiErrorCode());
-    }
-
-    @Test
-    public void testLostStreamData() {
-        String json = "{\"msgs\":[1,2,3,4],\"bytes\":1024}";
-        LostStreamData lost = new LostStreamData(lj(json));
-        List<Long> msgs = lost.getMessages();
-        assertEquals(4, msgs.size());
-        assertEquals(1L, msgs.get(0));
-        assertEquals(4L, msgs.get(3));
-        Long bytes = lost.getBytes();
-        assertNotNull(bytes);
-        assertEquals(1024L, bytes);
-        assertNotNull(lost.toString());
-
-        // missing fields
-        LostStreamData empty = new LostStreamData(lj("{}"));
-        assertTrue(empty.getMessages().isEmpty());
-        assertNull(empty.getBytes());
-    }
-
-    @Test
-    public void testMirrorInfo() {
-        String json = "{"
-            + "\"name\":\"mname\","
-            + "\"filter_subject\":\"x.>\","
-            + "\"lag\":7,"
-            + "\"active\":5000000000,"
-            + "\"external\":{\"api\":\"api1\",\"deliver\":\"d1\"},"
-            + "\"subject_transforms\":[{\"src\":\"s1\",\"dest\":\"d1\"}],"
-            + "\"error\":{\"code\":500,\"err_code\":12345,\"description\":\"oops\"}"
-            + "}";
-        MirrorInfo info = new MirrorInfo(lj(json));
-        assertEquals("mname", info.getName());
-        assertEquals("x.>", info.getFilterSubject());
-        assertEquals(7L, info.getLag());
-        assertEquals(Duration.ofSeconds(5), info.getActive());
-
-        MirrorInfo empty = new MirrorInfo(lj("{}"));
-        assertEquals("", empty.getName());
-        assertEquals(Duration.ZERO, empty.getActive());
-
-        External ext = info.getExternal();
-        assertNotNull(ext);
-        assertEquals("api1", ext.getApi());
-        assertEquals("d1", ext.getDeliver());
-
-        List<SubjectTransform> sts = info.getSubjectTransforms();
-        assertEquals(1, sts.size());
-        assertEquals("s1", sts.get(0).getSource());
-
-        Error err = info.getError();
-        assertNotNull(err);
-        assertEquals(500, err.getCode());
-        assertEquals(12345, err.getApiErrorCode());
-        assertEquals("oops", err.getDescription());
-
-        assertNotNull(info.toString());
-
-        // negative active returns null
-        MirrorInfo neg = new MirrorInfo(lj("{\"name\":\"n\",\"active\":-1}"));
-        assertEquals(Duration.ZERO, neg.getActive());
-        assertNull(neg.getExternal());
-        assertTrue(neg.getSubjectTransforms().isEmpty());
-        assertNull(neg.getError());
-    }
-
-    @Test
-    public void testPriorityGroupState() {
-        String json = "{"
-            + "\"group\":\"grp-A\","
-            + "\"pinned_client_id\":\"cli-1\","
-            + "\"pinned_ts\":\"2026-01-02T03:04:05Z\""
-            + "}";
-        PriorityGroupState pgs = new PriorityGroupState(lj(json));
-        assertEquals("grp-A", pgs.getGroup());
-        assertEquals("cli-1", pgs.getPinnedClientId());
-        assertNotNull(pgs.getPinnedTime());
-        assertNotNull(pgs.toString());
-
-        PriorityGroupState minimal = new PriorityGroupState(lj("{\"group\":\"g\"}"));
-        assertEquals("g", minimal.getGroup());
-        assertNull(minimal.getPinnedClientId());
-        assertNull(minimal.getPinnedTime());
-
-        PriorityGroupState empty = new PriorityGroupState(lj("{}"));
-        assertEquals("", empty.getGroup());
-    }
-
-    @Test
-    public void testReplica() {
-        String json = "{"
-            + "\"name\":\"node-1\","
-            + "\"current\":true,"
-            + "\"offline\":false,"
-            + "\"active\":10000000000,"
-            + "\"lag\":2"
-            + "}";
-        Replica r = new Replica(lj(json));
-        assertEquals("node-1", r.getName());
-        assertTrue(r.isCurrent());
-        assertFalse(r.isOffline());
-        assertEquals(Duration.ofSeconds(10), r.getActive());
-        assertEquals(2L, r.getLag());
-        assertNotNull(r.toString());
-
-        // no active -> Duration.ZERO
-        Replica r2 = new Replica(lj("{\"name\":\"n\"}"));
-        assertEquals("n", r2.getName());
-        assertEquals(Duration.ZERO, r2.getActive());
-        assertEquals(0L, r2.getLag());
-
-        // no active -> Duration.ZERO
-        Replica empty = new Replica(lj("{}"));
-        assertEquals("", empty.getName());
-        assertEquals(Duration.ZERO, empty.getActive());
-    }
-
-    @Test
-    public void testSequenceInfo() {
-        String json = "{"
-            + "\"consumer_seq\":11,"
-            + "\"stream_seq\":22,"
-            + "\"last_active\":\"2026-01-02T03:04:05Z\""
-            + "}";
-        SequenceInfo si = new SequenceInfo(lj(json));
-        assertEquals(11L, si.getConsumerSequence());
-        assertEquals(22L, si.getStreamSequence());
-        assertNotNull(si.getLastActive());
-        assertNotNull(si.toString());
-
-        SequenceInfo empty = new SequenceInfo(lj("{}"));
-        assertEquals(0L, empty.getConsumerSequence());
-        assertEquals(0L, empty.getStreamSequence());
-        assertNull(empty.getLastActive());
-    }
-
-    @Test
-    public void testSourceInfo() {
-        String json = "{"
-            + "\"name\":\"sname\","
-            + "\"filter_subject\":\"y.>\","
-            + "\"lag\":11,"
-            + "\"active\":3000000000"
-            + "}";
-        SourceInfo info = new SourceInfo(lj(json));
-        assertEquals("sname", info.getName());
-        assertEquals("y.>", info.getFilterSubject());
-        assertEquals(11L, info.getLag());
-        assertEquals(Duration.ofSeconds(3), info.getActive());
-        assertNull(info.getExternal());
-        assertTrue(info.getSubjectTransforms().isEmpty());
-        assertNull(info.getError());
-        assertNotNull(info.toString());
-    }
-
-    @Test
-    public void testStreamAlternate() {
-        String json = "{"
-            + "\"name\":\"alt-stream\","
-            + "\"domain\":\"dom1\","
-            + "\"cluster\":\"clstr-x\""
-            + "}";
-        StreamAlternate sa = new StreamAlternate(lj(json));
-        assertEquals("alt-stream", sa.getName());
-        assertEquals("dom1", sa.getDomain());
-        assertEquals("clstr-x", sa.getCluster());
-        assertNotNull(sa.toString());
-
-        StreamAlternate empty = new StreamAlternate(lj("{}"));
-        assertEquals("", empty.getName());
-        assertEquals("", empty.getCluster());
-    }
-
-    @Test
-    public void testStreamState() {
-        String json = "{"
-            + "\"messages\":100,"
-            + "\"bytes\":2048,"
-            + "\"first_seq\":1,"
-            + "\"first_ts\":\"2026-01-02T03:04:05Z\","
-            + "\"last_seq\":50,"
-            + "\"last_ts\":\"2026-01-02T04:04:05Z\","
-            + "\"consumer_count\":3,"
-            + "\"num_subjects\":4,"
-            + "\"num_deleted\":2,"
-            + "\"deleted\":[5,6],"
-            + "\"subjects\":{\"sub.a\":10,\"sub.b\":20},"
-            + "\"lost\":{\"msgs\":[99],\"bytes\":256}"
-            + "}";
-        StreamState state = new StreamState(lj(json));
-        assertEquals(100L, state.getMessageCount());
-        assertEquals(2048L, state.getByteCount());
-        assertEquals(1L, state.getFirstSequence());
-        assertNotNull(state.getFirstTime());
-        assertEquals(50L, state.getLastSequence());
-        assertNotNull(state.getLastTime());
-        assertEquals(3L, state.getConsumerCount());
-        assertEquals(4L, state.getSubjectCount());
-        assertEquals(2L, state.getDeletedCount());
-
-        List<Long> deleted = state.getDeleted();
-        assertEquals(2, deleted.size());
-        assertEquals(5L, deleted.get(0));
-        assertEquals(6L, deleted.get(1));
-
-        // exercises lazy _subjects
-        List<Subject> subjects = state.getSubjects();
-        assertEquals(2, subjects.size());
-        // second call should return cached
-        assertEquals(subjects, state.getSubjects());
-
-        // exercises lazy _subjectMap
-        Map<String, Long> map = state.getSubjectMap();
-        assertEquals(2, map.size());
-        assertEquals(10L, map.get("sub.a"));
-        assertEquals(20L, map.get("sub.b"));
-        // cached
-        assertEquals(map, state.getSubjectMap());
-
-        // lost stream data
-        LostStreamData lost = state.getLostStreamData();
-        assertNotNull(lost);
-        assertEquals(1, lost.getMessages().size());
-        assertEquals(99L, lost.getMessages().get(0));
-        assertEquals(256L, lost.getBytes());
-
-        assertNotNull(state.toString());
-
-        // empty — uint64 fields default to 0 (not -1; see UINT64_AUDIT.md)
-        StreamState empty = new StreamState(lj("{}"));
-        assertEquals(0L, empty.getMessageCount());
-        assertEquals(BigInteger.ZERO, empty.getMessageCountAsBigInteger());
-        assertNull(empty.getFirstTime());
-        assertTrue(empty.getDeleted().isEmpty());
-        assertTrue(empty.getSubjects().isEmpty());
-        assertTrue(empty.getSubjectMap().isEmpty());
-        assertNull(empty.getLostStreamData());
-
-        // top-half uint64 (> Long.MAX_VALUE): the long getter returns the two's-complement bit
-        // pattern (negative), the BigInteger getter returns the true non-negative value. This is
-        // the case the old readLong path silently dropped to the default. See UINT64_AUDIT.md.
-        BigInteger uint64Max = new BigInteger("18446744073709551615"); // 2^64 - 1
-        BigInteger twoPow63 = new BigInteger("9223372036854775808");  // 2^63 (smallest top-half)
-        StreamState topHalf = new StreamState(lj(
-            "{\"messages\":18446744073709551615,\"first_seq\":9223372036854775808}"));
-        assertEquals(-1L, topHalf.getMessageCount());                    // 2^64-1 as signed long
-        assertEquals(uint64Max, topHalf.getMessageCountAsBigInteger());
-        assertEquals(Long.MIN_VALUE, topHalf.getFirstSequence());       // 2^63 as signed long
-        assertEquals(twoPow63, topHalf.getFirstSequenceAsBigInteger());
-    }
-
-    @Test
     public void testSubject() {
         Subject s = new Subject("foo.bar", 42L);
         assertEquals("foo.bar", s.getName());
@@ -1855,342 +1429,6 @@ public class ApiFieldsTest {
         assertTrue(s.compareTo(other) > 0);
         assertTrue(other.compareTo(s) < 0);
         assertEquals(0, s.compareTo(new Subject("foo.bar", 99L))); // name-only comparison
-    }
-
-    // ====================================================================================================
-    // PART 3: ApiResponse hierarchy
-    // ====================================================================================================
-
-    @Test
-    public void testAccountStatistics() {
-        String json = "{"
-            + "\"type\":\"io.nats.jetstream.api.v1.account_info_response\","
-            + "\"memory\":101,"
-            + "\"storage\":102,"
-            + "\"reserved_memory\":105,"
-            + "\"reserved_storage\":106,"
-            + "\"streams\":103,"
-            + "\"consumers\":104,"
-            + "\"limits\":{\"max_memory\":201,\"max_storage\":202},"
-            + "\"domain\":\"ngs\","
-            + "\"api\":{\"level\":303,\"total\":301,\"errors\":302,\"inflight\":304},"
-            + "\"tiers\":{"
-            + "\"R1\":{\"memory\":401,\"storage\":402},"
-            + "\"R3\":{\"memory\":601,\"storage\":602}"
-            + "}"
-            + "}";
-        AccountStatistics stats = new AccountStatistics(msg(json));
-        assertFalse(stats.hasError());
-        assertEquals("io.nats.jetstream.api.v1.account_info_response", stats.getType());
-
-        assertEquals(101L, stats.getMemory());
-        assertEquals(102L, stats.getStorage());
-        assertEquals(105L, stats.getReservedMemory());
-        assertEquals(106L, stats.getReservedStorage());
-        assertEquals(103L, stats.getStreams());
-        assertEquals(104L, stats.getConsumers());
-
-        AccountLimits limits = stats.getLimits();
-        assertEquals(201L, limits.getMaxMemory());
-        assertEquals(202L, limits.getMaxStorage());
-
-        assertEquals("ngs", stats.getDomain());
-
-        ApiStats api = stats.getApiStats();
-        assertEquals(303, api.getLevel());
-        assertEquals(301L, api.getTotal());
-        assertEquals(302L, api.getErrors());
-        assertEquals(304L, api.getInFlight());
-
-        Map<String, AccountTier> tiers = stats.getTiers();
-        assertEquals(2, tiers.size());
-        assertEquals(401L, tiers.get("R1").getMemoryBytes());
-        assertEquals(601L, tiers.get("R3").getMemoryBytes());
-
-        // Cached on second invocation
-        assertEquals(tiers, stats.getTiers());
-        assertEquals(api, stats.getApiStats());
-    }
-
-    @Test
-    public void testApiResponse_baseBehaviors() throws JetStreamException {
-        // Test the various ApiResponse constructors and accessors through SuccessApiResponse.
-        // Null message ctor -> empty
-        SuccessApiResponse nullMsg = new SuccessApiResponse(null);
-        assertFalse(nullMsg.hasError());
-        assertEquals(ApiResponse.NO_TYPE, nullMsg.getType());
-
-        // Invalid JSON falls back to parse error JSON
-        SuccessApiResponse bad = new SuccessApiResponse(msg("not json at all"));
-        assertTrue(bad.hasError());
-        assertEquals(500, bad.getErrorCode());
-        assertEquals(-1, bad.getApiErrorCode());
-        assertNotNull(bad.getError());
-        assertNotNull(bad.getDescription());
-        assertNotNull(bad.getErrorObject());
-
-        // No error, getError returns null
-        SuccessApiResponse ok = new SuccessApiResponse(msg("{\"success\":true}"));
-        assertNull(ok.getError());
-        assertNull(ok.getDescription());
-        assertNull(ok.getErrorObject());
-        assertEquals(Error.NOT_SET, ok.getErrorCode());
-        assertEquals(Error.NOT_SET, ok.getApiErrorCode());
-        assertNotNull(ok.getSourceLazyJsonValue());
-
-        // throwOnHasError throws on error
-        SuccessApiResponse err = new SuccessApiResponse(msg("{\"error\":{\"code\":401,\"description\":\"nope\"}}"));
-        assertThrows(JetStreamApiException.class, err::throwOnHasError);
-        // No-error case returns this
-        try {
-            assertEquals(ok, ok.throwOnHasError());
-        }
-        catch (JetStreamApiException e) {
-            fail("Should not throw on non-error response");
-        }
-    }
-
-    @Test
-    public void testConsumerInfo() {
-        String json = "{"
-            + "\"type\":\"io.nats.jetstream.api.v1.consumer_info_response\","
-            + "\"stream_name\":\"the-stream\","
-            + "\"name\":\"the-consumer\","
-            + "\"created\":\"2026-01-02T03:04:05Z\","
-            + "\"ts\":\"2026-05-17T12:30:45Z\","
-            + "\"config\":{\"name\":\"the-consumer\",\"durable_name\":\"the-consumer\"},"
-            + "\"delivered\":{\"consumer_seq\":1,\"stream_seq\":2},"
-            + "\"ack_floor\":{\"consumer_seq\":3,\"stream_seq\":4},"
-            + "\"num_pending\":7,"
-            + "\"num_waiting\":8,"
-            + "\"num_ack_pending\":9,"
-            + "\"num_redelivered\":10,"
-            + "\"paused\":true,"
-            + "\"pause_remaining\":15000000000,"
-            + "\"cluster\":{\"name\":\"cl\"},"
-            + "\"push_bound\":true,"
-            + "\"priority_groups\":[{\"group\":\"g1\"},{\"group\":\"g2\"}]"
-            + "}";
-        // both Message-based and LazyJsonValue-based ctors
-        ConsumerInfo ciMsg = new ConsumerInfo(msg(json));
-        ConsumerInfo ci = new ConsumerInfo(lj(json));
-
-        assertEquals("the-consumer", ci.getName());
-        assertEquals("the-stream", ci.getStreamName());
-        assertNotNull(ci.getCreationTime());
-        assertNotNull(ci.getTimestamp());
-
-        ConsumerConfiguration cfg = ci.getConsumerConfiguration();
-        assertNotNull(cfg);
-        assertEquals("the-consumer", cfg.getName());
-
-        SequenceInfo delivered = ci.getDelivered();
-        assertEquals(1L, delivered.getConsumerSequence());
-        assertEquals(2L, delivered.getStreamSequence());
-
-        SequenceInfo ackFloor = ci.getAckFloor();
-        assertEquals(3L, ackFloor.getConsumerSequence());
-        assertEquals(4L, ackFloor.getStreamSequence());
-
-        assertEquals(7L, ci.getNumPending());
-        assertEquals(8L, ci.getNumWaiting());
-        assertEquals(9L, ci.getNumAckPending());
-        assertEquals(10L, ci.getRedelivered());
-        assertTrue(ci.getPaused());
-        assertEquals(Duration.ofSeconds(15), ci.getPauseRemaining());
-
-        ClusterInfo cluster = ci.getClusterInfo();
-        assertNotNull(cluster);
-        assertEquals("cl", cluster.getName());
-
-        assertTrue(ci.isPushBound());
-
-        List<PriorityGroupState> pgs = ci.getPriorityGroupStates();
-        assertEquals(2, pgs.size());
-        assertEquals("g1", pgs.get(0).getGroup());
-
-        // getCalculatedPending = num_pending (7) + delivered consumer_seq (1)
-        assertEquals(8L, ci.getCalculatedPending());
-
-        // cached on second invocation
-        assertEquals(cfg, ci.getConsumerConfiguration());
-        assertEquals(delivered, ci.getDelivered());
-        assertEquals(ackFloor, ci.getAckFloor());
-        assertEquals(pgs, ci.getPriorityGroupStates());
-
-        // Sanity: Message-based ctor produced equivalent state
-        assertEquals(ci, ciMsg);
-
-        // Error case: hasError -> default consumer configuration, EMPTY seq info
-        String errJson = "{\"error\":{\"code\":500,\"description\":\"bad\"}}";
-        ConsumerInfo errCi = new ConsumerInfo(lj(errJson));
-        assertTrue(errCi.hasError());
-        assertNotNull(errCi.getConsumerConfiguration());
-        assertEquals(SequenceInfo.EMPTY, errCi.getDelivered());
-        assertEquals(SequenceInfo.EMPTY, errCi.getAckFloor());
-
-        // Missing config -> invalidJson causes default configuration
-        ConsumerInfo missingCfg = new ConsumerInfo(lj("{\"name\":\"x\",\"stream_name\":\"s\"}"));
-        assertNotNull(missingCfg.getConsumerConfiguration());
-    }
-
-    @Test
-    public void testConsumerPauseResponse() {
-        String json = "{"
-            + "\"paused\":true,"
-            + "\"pause_until\":\"2026-01-02T03:04:05Z\","
-            + "\"pause_remaining\":10000000000"
-            + "}";
-        ConsumerPauseResponse resp = new ConsumerPauseResponse(msg(json));
-        assertTrue(resp.isPaused());
-        assertNotNull(resp.getPauseUntil());
-        assertEquals(Duration.ofSeconds(10), resp.getPauseRemaining());
-
-        ConsumerPauseResponse notPaused = new ConsumerPauseResponse(msg("{\"paused\":false}"));
-        assertFalse(notPaused.isPaused());
-        assertNull(notPaused.getPauseUntil());
-        assertNull(notPaused.getPauseRemaining());
-    }
-
-    @Test
-    public void testPublishAck() throws Exception {
-        String json = "{"
-            + "\"stream\":\"S1\","
-            + "\"seq\":42,"
-            + "\"domain\":\"dom-x\","
-            + "\"duplicate\":true,"
-            + "\"val\":\"7\","
-            + "\"batch\":\"batch-1\","
-            + "\"count\":3"
-            + "}";
-        PublishAck ack = new PublishAck(msg(json));
-        assertEquals("S1", ack.getStream());
-        assertEquals(42L, ack.getSequenceNumber());
-        assertEquals("dom-x", ack.getDomain());
-        assertTrue(ack.isDuplicate());
-        assertEquals("7", ack.getVal());
-        assertEquals("batch-1", ack.getBatchId());
-        assertEquals(3, ack.getBatchSize());
-
-        // Minimal valid ack
-        PublishAck minimal = new PublishAck(msg("{\"stream\":\"x\",\"seq\":1}"));
-        assertEquals("x", minimal.getStream());
-        assertEquals(1L, minimal.getSequenceNumber());
-        assertNull(minimal.getDomain());
-        assertFalse(minimal.isDuplicate());
-        assertNull(minimal.getVal());
-        assertNull(minimal.getBatchId());
-        assertEquals(-1, minimal.getBatchSize());
-
-        // Error JSON -> throws JetStreamApiException
-        assertThrows(JetStreamApiException.class,
-            () -> new PublishAck(msg("{\"error\":{\"code\":500,\"description\":\"bad\"}}")));
-
-        // Missing/empty stream -> IOException
-        assertThrows(JetStreamProtocolException.class, () -> new PublishAck(msg("{\"seq\":1}")));
-
-        // Missing/negative seq -> IOException
-        assertThrows(JetStreamProtocolException.class, () -> new PublishAck(msg("{\"stream\":\"x\"}")));
-    }
-
-    @Test
-    public void testPurgeResponse() {
-        PurgeResponse resp = new PurgeResponse(msg("{\"success\":true,\"purged\":42}"));
-        assertTrue(resp.isSuccess());
-        assertEquals(42L, resp.getPurged());
-
-        PurgeResponse fail = new PurgeResponse(msg("{\"success\":false}"));
-        assertFalse(fail.isSuccess());
-        assertEquals(0L, fail.getPurged());
-
-        // Defaults
-        PurgeResponse defaults = new PurgeResponse(msg("{}"));
-        assertFalse(defaults.isSuccess());
-        assertEquals(0L, defaults.getPurged());
-    }
-
-    @Test
-    public void testStreamInfo() {
-        String json = "{"
-            + "\"type\":\"io.nats.jetstream.api.v1.stream_info_response\","
-            + "\"created\":\"2026-01-02T03:04:05Z\","
-            + "\"ts\":\"2026-05-17T12:30:45Z\","
-            + "\"config\":{\"name\":\"the-stream\"},"
-            + "\"state\":{\"messages\":42,\"bytes\":1024},"
-            + "\"cluster\":{\"name\":\"cl\"},"
-            + "\"mirror\":{\"name\":\"mref\"},"
-            + "\"sources\":[{\"name\":\"src1\"},{\"name\":\"src2\"}],"
-            + "\"alternates\":[{\"name\":\"alt1\",\"cluster\":\"cl1\"},{\"name\":\"alt2\",\"cluster\":\"cl2\"}],"
-            + "\"did_create\":true"
-            + "}";
-
-        // both Message-based and LazyJsonValue-based ctors
-        StreamInfo siMsg = new StreamInfo(msg(json));
-        StreamInfo si = new StreamInfo(lj(json));
-
-        assertNotNull(si.getCreateTime());
-        assertNotNull(si.getTimestamp());
-        assertEquals("the-stream", si.getConfiguration().getName());
-        assertEquals(42L, si.getStreamState().getMessageCount());
-
-        ClusterInfo cluster = si.getClusterInfo();
-        assertNotNull(cluster);
-        assertEquals("cl", cluster.getName());
-
-        MirrorInfo mirror = si.getMirrorInfo();
-        assertNotNull(mirror);
-        assertEquals("mref", mirror.getName());
-
-        List<SourceInfo> sources = si.getSources();
-        assertEquals(2, sources.size());
-
-        List<StreamAlternate> alternates = si.getAlternates();
-        assertEquals(2, alternates.size());
-        assertEquals("alt1", alternates.get(0).getName());
-        assertEquals("alt2", alternates.get(1).getName());
-
-        assertTrue(si.didCreate());
-
-        // cached on second invocation
-        assertSame(si.getConfiguration(), si.getConfiguration());
-        assertSame(si.getStreamState(), si.getStreamState());
-        assertSame(si.getSources(), si.getSources());
-        assertSame(si.getAlternates(), si.getAlternates());
-
-        // Sanity: Message-based ctor produced equivalent state
-        assertEquals(si, siMsg);
-
-        // Minimal JSON: missing cluster/mirror/did_create -> null/false; empty alternates/sources
-        String minimal = "{\"created\":\"2026-01-02T03:04:05Z\",\"config\":{\"name\":\"min\"},\"state\":{}}";
-        StreamInfo mini = new StreamInfo(lj(minimal));
-        assertNull(mini.getClusterInfo());
-        assertNull(mini.getMirrorInfo());
-        assertNull(mini.getTimestamp());
-        assertFalse(mini.didCreate());
-        assertTrue(mini.getAlternates().isEmpty());
-        assertTrue(mini.getSources().isEmpty());
-    }
-
-    @Test
-    public void testSuccessApiResponse() {
-        // Explicit success true
-        SuccessApiResponse a = new SuccessApiResponse(msg("{\"success\":true}"));
-        assertTrue(a.getSuccess());
-
-        // Explicit success false
-        SuccessApiResponse b = new SuccessApiResponse(msg("{\"success\":false}"));
-        assertFalse(b.getSuccess());
-
-        // No success field, no error -> infer success
-        SuccessApiResponse c = new SuccessApiResponse(msg("{}"));
-        assertTrue(c.getSuccess());
-
-        // No success field, has error -> not success
-        SuccessApiResponse d = new SuccessApiResponse(msg("{\"error\":{\"code\":500,\"description\":\"bad\"}}"));
-        assertFalse(d.getSuccess());
-        assertTrue(d.hasError());
-        assertEquals(500, d.getErrorCode());
-        assertEquals("bad", d.getDescription());
     }
 
     // ====================================================================================================

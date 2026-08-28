@@ -169,6 +169,46 @@ public class ApiResponseTests {
     }
 
     @Test
+    public void testNullMessageAndNoErrorAccessors() {
+        // null message -> empty, no error, no type
+        SuccessApiResponse nullMsg = new SuccessApiResponse(null);
+        assertFalse(nullMsg.hasError());
+        assertEquals(NO_TYPE, nullMsg.getType());
+
+        // no error -> every error accessor is null / NOT_SET, and throwOnHasError returns this
+        SuccessApiResponse ok = new SuccessApiResponse(getDataMessage(dataAsString("Empty.json")));
+        assertFalse(ok.hasError());
+        assertNull(ok.getError());
+        assertNull(ok.getDescription());
+        assertNull(ok.getErrorObject());
+        assertEquals(NOT_SET, ok.getErrorCode());
+        assertEquals(NOT_SET, ok.getApiErrorCode());
+        assertNotNull(ok.getSourceLazyJsonValue());
+        assertSame(ok, assertDoesNotThrow(ok::throwOnHasError));
+
+        // garbage json -> the parse-error fallback populates every error accessor
+        SuccessApiResponse bad = new SuccessApiResponse(getDataMessage("not json at all"));
+        assertTrue(bad.hasError());
+        assertEquals(500, bad.getErrorCode());
+        assertEquals(NOT_SET, bad.getApiErrorCode());
+        assertNotNull(bad.getError());
+        assertNotNull(bad.getDescription());
+        assertNotNull(bad.getErrorObject());
+    }
+
+    @Test
+    public void testSuccessApiResponseError() {
+        // no success field but an error present -> not success
+        SuccessApiResponse r = new SuccessApiResponse(getDataMessage(dataAsString("GenericErrorResponse.json")));
+        assertTrue(r.hasError());
+        assertFalse(r.getSuccess());
+        assertEquals(500, r.getErrorCode());
+        assertEquals(12345, r.getApiErrorCode());
+        assertEquals("the description", r.getDescription());
+        assertThrows(JetStreamApiException.class, r::throwOnHasError);
+    }
+
+    @Test
     public void testSuccessApiResponseCoverage() {
         SuccessApiResponse r = new SuccessApiResponse(getDataMessage("{}"));
         assertFalse(r.hasError());
