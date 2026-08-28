@@ -1,4 +1,76 @@
-# Flaky tests on GitHub CI — analysis & ideas
+# Test tracking — ports, suggestions, improvements, flaky tests
+
+The single place for anything about the test suite: what still needs porting, where coverage is missing, tests worth improving, and the flaky-test investigation history.
+
+**This file was `FLAKY_TESTS_ANALYSIS.md` until 2026-08-28**, when the test-suggestions tracker was folded into it. Several archived docs under `~development-history/` still cite the old name — they mean this file. The flaky history is preserved verbatim in Part 2 below; nothing was summarized away.
+
+## How this file is maintained
+
+- If Claude notices missing coverage or a test worth improving while doing something else, it gets **noted here rather than acted on**. Scott decides what gets done and when.
+- If Claude adds or changes a test, Claude updates the matching entry here in the same change.
+- If Scott adds a test, Scott says so and Claude updates the entry.
+- Coverage reports to check against: `core/build/reports/jacoco/test/html/index.html` and the matching `jetstream` / `service` paths. They reflect the last local run, so re-run before trusting a number.
+- **Do not run the full suite to populate this file.** Ask first; Scott runs it, often on Windows, and a concurrent WSL run collides on the `.gradle` locks.
+
+## Rule: no test should leave localhost — with one deliberate exception
+
+Established 2026-08-28. A test should not open a connection to anything outside this machine; it makes the suite depend on someone else's uptime and fails on an offline or firewalled box.
+
+**The rule is about connections, not name resolution.** Testing ip resolution requires a real DNS, so a test that only *resolves* an external name is fine. These stay as they are: `NatsProvidersAndImplementationsTests` lines 27/28/31/32/35/36 (`validateNatsInetAddress("synadia.io")` / `("synadia.com")`), `ServerPoolTests:23` (`HOST_THAT_CAN_BE_RESOLVED_TO_ONE_IP = "demo.nats.io"`, resolved but never connected to), and `ConnectTests:329` / `MaxReconnectResolvedIpsTest:71,103` which use names that deliberately cannot resolve (`.invalid` is RFC 2606 reserved; `.notnats` is not a real TLD).
+
+**The one exception, kept on purpose: `ConnectTests.testConnectWithHappyEyeballsShortCircuitCoverage` connects to `demo.nats.io`.** Scott's call, 2026-08-28 — it is worth having one connect test that actually goes out over the wire. It was briefly changed to a local `NatsTestServer` on `nats://127.0.0.1:<port>` and then put back. If it flaps, **suspect demo.nats.io before suspecting the client** — demo has been reported flaky recently, and that is the likely cause of the local failures seen on 2026-08-28. Do not "fix" this one by making it local.
+
+## Tests still to port — the `tdb/` directory
+
+`tdb/` is untracked and holds V2 tests not yet ported to V3. Scott is porting these by hand deliberately, to build familiarity with the API and to drive the coverage numbers — so **do not offer to bulk-port them.**
+
+| File | @Test count | Lines | Notes |
+|---|---|---|---|
+| `impl/JetStreamPullTests.java` | 36 | 1479 | largest JetStream gap; pull subscribe has no V3 coverage yet |
+| `impl/KeyValueTests.java` | 31 | 2081 | KV; gated behind the KV/OS split being deferred until the JetStream API settles |
+| `impl/JetStreamOldSubscribeTests.java` | 15 | 911 | "Old" subscribe API — check what still applies before porting |
+| `impl/ObjectStoreTests.java` | 10 | 721 | OS; same gating as KV |
+| `impl/JetStreamMirrorAndSourcesTests.java` | 6 | 310 | |
+| `impl/JetStreamPushAsyncTests.java` | 6 | 422 | overlaps the async half of `JetStreamSubscribeTests` |
+| `os/ObjectStoreApiTests.java` | 5 | 409 | already uses `dataAsString` |
+| `os/KeyValueConfigurationTests.java` | 2 | 106 | |
+| `impl/JetStreamPushQueueTests.java` | 1 | 130 | the only queue-group push coverage anywhere — see the deliver-group gap below |
+
+## Coverage gaps worth a test
+
+### Push subscribe: deliver group / queue is untested
+`JetStream._createJsSubscription` passes `cc.getDeliverGroup()` as the queue name into both the sync and async subscribe paths, and `deliverGroup` appears in no test under `jetstream/src/test/.../client/impl` — so that argument is null in every push test in the repo. `tdb/.../JetStreamPushQueueTests.java` is the unported test that would cover it.
+
+### `HappyEyeballsConnector` — only the short circuit is covered
+Per the jacoco report, lines 58-104 are entirely uncovered: the staggered-delay task construction, `executor.invokeAny`, the winner/loser socket handling in `closeAllExcept`, and the `No responsive IP found` throw. Covering it needs a hostname resolving to 2+ addresses that are all local. Possible approach: `NatsInetAddress` goes through a pluggable `PROVIDER`, so a test provider could return two loopback addresses (`127.0.0.1` and `127.0.0.2`, both local) for a fake name — unverified, and worth checking whether the provider is swappable from a test.
+
+### `pushSubscribe(String subject)` with no matching stream
+`JsSubNoMatchingStreamForSubject` is never thrown in any test.
+
+### Null-argument validation on the push subscribe overloads
+Every `MessageHandler` / `SubscribeBehavior` overload calls `Validator.required(...)` and the javadoc promises `IllegalArgumentException`; nothing asserts it.
+
+### `SubscribeBehavior.messageAlarmTime`
+Never set in any test under `client/impl`.
+
+### `JetStreamSubscribeConfig` — pull
+`testJetStreamSubscribeConfigCoverage` covers push, ordered, and the with/without name prefix cases. Pull is deliberately left for Scott.
+
+## Test improvements
+
+### `ConnectTests.testConnectWithHappyEyeballsShortCircuitCoverage` — worth improving, but keep it on demo
+Added 2026-08-28. The test stays pointed at `demo.nats.io` on purpose (see the rules above), so these are improvements *within* that constraint, not attempts to make it local.
+
+- **It does not actually assert the short circuit was taken.** The only assertion is `assertConnected(nc)`. If `demo.nats.io` ever returned two or more addresses, the test would silently stop covering `ips.length == 1` and start covering the racing path instead, and still pass. Nothing anywhere would catch that. Some assertion that pins which branch ran would make the test's name true.
+- **Its premise is an assumption about someone else's DNS.** `ServerPoolTests:23` documents `demo.nats.io` as "the host that can be resolved to one ip". That is outside our control and can change without warning. At minimum the assumption deserves an explicit check with a clear failure message, so a second A record on demo reads as "the premise changed", not as a mysterious connect failure.
+- **Demo being down should probably skip, not fail.** A JUnit `Assumptions.assumeTrue(...)` on reachability would keep the real-over-the-wire coverage when demo is up and stop demo's downtime reddening a build that says nothing about the client. Needs a decision — a skipped test is also a test that stops telling you anything.
+- **The multi-ip racing path has no test at all.** See the `HappyEyeballsConnector` entry under coverage gaps; that one can and should be local.
+
+---
+
+# Part 2 — Flaky tests: investigation history
+
+Everything below is the original `FLAKY_TESTS_ANALYSIS.md`, unchanged apart from its title line. It is a running log of observation passes, so read the dates; later passes correct earlier ones.
 
 Context: passes locally on Windows (individually and full-suite), flaps on the GitHub (Linux) runners — some attempts of the same test fail (x2/x4) then pass, one fails all 5 (x5). GH runners are slower, share CPU, and have smaller/oddly-tuned socket buffers vs a dev box, so anything that races the clock or floods a socket surfaces there. Below is the concrete mechanism for each, why it shows up on CI and not Windows, and ideas. None of these point to a wrong assertion that should be "fixed" by weakening it — they're timing/resource races; the fixes are about making the test tolerant of a slow box (and one looks like a genuine behavior issue worth a closer look).
 
@@ -559,3 +631,19 @@ The assertion is a timing **lower** bound: cases 1C, 1D and 2C ask for more mess
 Also failed once in the same clean-worktree run, unrelated and not investigated: `TLSConnectTests.testReconnectFailsAfterCertExpires()`.
 
 **Later the same day it spread, and the machine state is what moves it.** Six more runs, alternating a working tree against a clean `b4e15f4a` worktree, at a point where the whole module ran in ~2.5 minutes instead of ~6 - so more forks live at once. Both trees failed, and the failing test moved every run: `testFetchDurable`, `testFetchEphemeral`, `testFetchOrdered`, `testOverflowFetch`, and `JetStreamPushTests.testDeliveryPolicy`, which is outside the `_testFetch` family. Sometimes the retry cleared it and the build passed; sometimes all five attempts failed and it did not. The same tree gave a fully green 937 earlier in the day. Treat a `SimplificationTests` or `JetStreamPushTests` timing failure as a machine-load reading until it reproduces on an idle box, and confirm any suspect change against a clean worktree run taken back to back with it - a single green or red run on one tree proves nothing here.
+
+## New candidate, seen 2026-08-28: `ConnectTests.testConnectWithHappyEyeballsShortCircuitCoverage` — demo.nats.io, and it stays that way
+
+Local WSL, `:core:test`. The class ran 30 tests with 2 failures; this one flapped 2 of its 3 retry attempts (failed 2.120s, passed 2.476s, failed 2.011s), so the retry plugin cleared the build.
+
+```
+java.io.IOException: Unable to connect to NATS servers: [nats://demo.nats.io:4222]
+    at io.synadia.client.impl.NatsConnection.connectImpl(NatsConnection.java:295)
+    at io.synadia.client.ConnectTests.testConnectWithHappyEyeballsShortCircuitCoverage(ConnectTests.java:576)
+```
+
+**Different root cause from everything else on this page — do not file it with the load/timing group.** `ConnectTests.java:573` builds `Options.builder().server("demo.nats.io").hostnameResolveMode(HostnameResolveMode.HappyEyeballs)`, so it is the one test in the repo that opens a connection to a third-party server over the public internet. (`ServerPoolTests:23` names the same host but only resolves it.) The likely cause here is simply that **demo.nats.io has been reported flaky recently** — suspect the server, not the client, when this one goes red.
+
+**This is intentional and is not to be "fixed".** Scott's call, 2026-08-28: it is worth having one connect test that actually goes out over the wire. It was briefly pointed at a local `NatsTestServer` and then put back. See the localhost rule in Part 1 above for the exception and the reasoning.
+
+Separately, and unrelated to the flake: per the jacoco report, `HappyEyeballsConnector` lines 58-104 — the whole multi-ip racing path — are uncovered. Only the `ips.length == 1` short circuit is exercised. Tracked under coverage gaps in Part 1.
