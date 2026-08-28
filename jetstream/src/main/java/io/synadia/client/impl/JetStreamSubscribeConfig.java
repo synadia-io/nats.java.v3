@@ -40,13 +40,12 @@ public class JetStreamSubscribeConfig extends SubscribeBehavior {
                              @Nullable AbstractOrderedConsumerCreator<?> orderedCreator,
                              @NonNull Supplier<NatsDispatcher> internalDispatcherSupplier)
     {
+        super(subscribeBehavior);
+
         this.orderedCreator = orderedCreator;
         this.consumerInfo = consumerInfo;
         this.consumerConf = consumerInfo.getConsumerConfiguration();
-        if (subscribeBehavior != null) {
-            subscribeBehavior(subscribeBehavior);
-        }
-        this.isPull = !consumerInfo.isPushBound();
+        this.isPull = consumerInfo.getConsumerConfiguration().getDeliverSubject() == null;
         if (orderedCreator != null) {
             this.isOrdered = true;
             this.orderedNamePrefix = orderedCreator.getNamePrefix();

@@ -2348,7 +2348,7 @@ public class ApiFieldsTest {
         assertEquals(789L, sb.getPendingByteLimit());
 
         // Copy via subscribeBehavior
-        SubscribeBehavior copy = new SubscribeBehavior().subscribeBehavior(sb);
+        SubscribeBehavior copy = new SubscribeBehavior(sb);
         assertEquals(sb, copy);
         assertEquals(123L, copy.getMessageAlarmTime());
         assertEquals(456L, copy.getPendingMessageLimit());

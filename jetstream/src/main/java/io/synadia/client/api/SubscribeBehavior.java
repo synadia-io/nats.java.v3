@@ -29,6 +29,20 @@ public class SubscribeBehavior {
     public SubscribeBehavior() {}
 
     /**
+     * Construct a SubscribeBehavior with a copy of all behaviors from an existing SubscribeBehavior
+     * @param subscribeBehavior the object to copy
+     */
+    protected SubscribeBehavior(@Nullable SubscribeBehavior subscribeBehavior) {
+        if (subscribeBehavior != null) {
+            dispatcher = subscribeBehavior.dispatcher;
+            handler = subscribeBehavior.handler;
+            messageAlarmTime = subscribeBehavior.messageAlarmTime;
+            pendingMessageLimit = subscribeBehavior.pendingMessageLimit;
+            pendingByteLimit = subscribeBehavior.pendingByteLimit;
+        }
+    }
+
+    /**
      * The user's dispatcher
      * @return the dispatcher
      */
@@ -71,20 +85,6 @@ public class SubscribeBehavior {
      */
     public long getPendingByteLimit() {
         return pendingByteLimit;
-    }
-
-    /**
-     * Copy all behaviors from an existing SubscribeBehavior
-     * @param subscribeBehavior the object to copy
-     * @return this instance for chaining.
-     */
-    public SubscribeBehavior subscribeBehavior(SubscribeBehavior subscribeBehavior) {
-        dispatcher = subscribeBehavior.dispatcher;
-        handler = subscribeBehavior.handler;
-        messageAlarmTime = subscribeBehavior.messageAlarmTime;
-        pendingMessageLimit = subscribeBehavior.pendingMessageLimit;
-        pendingByteLimit = subscribeBehavior.pendingByteLimit;
-        return this;
     }
 
     /**
