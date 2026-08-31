@@ -75,6 +75,10 @@ The single source of truth for the things currently in progress — so any sessi
   * options are in §5; nothing decided or started
 * V2_V3_TEST_METHOD_AUDIT.md
   * v2 `@Test` method names absent from v3, grouped by v2 file. 107 staged in `tdb/`, 80 came from the extracted json/nkey library, 174 in neither - of those 119 were replaced by a renamed v3 test, 35 no longer apply, **20 are real gaps**. Companion to TEST_TRACKING.md
+* CLIENT_ERROR_AUDIT.md
+  * `ClientError` is defined in core and used only by jetstream (3 JS + 9 OS constants, 21 throw sites); core has 132 ad-hoc unchecked throws and uses the construct nowhere
+  * two findings: ~14 core lifecycle conditions are worth codifying (not `Validator`, not the protocol internals), and ~7 of the 9 ObjectStore errors are operational outcomes thrown as `IllegalArgumentException` - the mirror of the `IOException` lie in EXCEPTIONS_AUDIT
+  * the move is free of signature churn: every affected method already declares `throws JetStreamException`. Recommends keeping the id catalog and letting subclasses mint the checked type (Option A). Nothing decided
 ## Plans / Audits TBD
 
 1. ObjectStore line 107 / ObjectStore nullability

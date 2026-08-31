@@ -5,6 +5,7 @@ import io.synadia.client.api.ServerInfo;
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.SimulateSocketDataPortException;
 import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.SSLUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -570,7 +571,9 @@ public class ConnectTests {
 
     @Test
     void testConnectWithHappyEyeballsShortCircuitCoverage() throws Exception {
-        Options options = Options.builder().server("demo.nats.io")
+        Options options = Options.builder()
+            .server("tls://demo.nats.io")
+            .sslContext(SSLUtils.createTrustAllTlsContext())
             .hostnameResolveMode(HostnameResolveMode.HappyEyeballs)
             .build();
         try (NatsConnection nc = Nats.connect(options)) {

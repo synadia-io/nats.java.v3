@@ -113,7 +113,7 @@ The `default` is not optional and not a wart: `JetStreamException` is deliberate
 
 - **[Options constants — user-facing changes](MIGRATION_GUIDE_OPTIONS.md)** — the `Options` class was split into `OptionsConstants` and `OptionsProperties`. Constants renamed to camelCase. May be folded into this guide later.
 
-- **[NKeys — user guide and migration](MIGRATION_GUIDE_NKEY.md)** — `io.nats.client.NKey` is gone. NKeys now live in their own library, [`nkeys.java`](https://github.com/nats-io/nkeys.java), as `io.nats.nkey.NKey`, and the API is provider-based: every static factory becomes an instance method on an `NKeyProvider` you obtain from `NKeyProvider.getProvider()`, so the Ed25519 implementation (stock BouncyCastle, the LTS build, or the FIPS build) is yours to pick.
+- **[NKeys — user guide and migration](MIGRATION_GUIDE_NKEY.md)** — `io.nats.client.NKey` is gone. NKeys now live in their own library, [`nkeys.java`](https://github.com/nats-io/nkeys.java), as `io.nats.nkey.NKey`, and the API is provider-based: every static factory becomes an instance method on an `NKeyProvider` you obtain from `NKeyProvider.getProvider()`, so the Ed25519 implementation is yours to pick — one of the three shipped providers (stock BouncyCastle, the LTS build, or the FIPS build), or your own subclass if you cannot depend on BouncyCastle at all.
 
   | v2 | v3 |
   |---|---|

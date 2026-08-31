@@ -6,7 +6,7 @@ Every `@Test` / `@ParameterizedTest` / `@RepeatedTest` method name in v2 (`/mnt/
 - 🗃️ Source
   - 🚨 To be done
     - 🏁 Done or replaced
-      - 🔧Item that replaced test 
+      - 🔧 Item that replaced test 
 - ❌ N/A, Deprecated or removed
 - 📚 N/A, Extracted to dependency project
 
@@ -15,10 +15,14 @@ Every `@Test` / `@ParameterizedTest` / `@RepeatedTest` method name in v2 (`/mnt/
 These v2 method names are absent from v3's test sources but present in `tdb/`.
 
 - 🗃️ JetStreamGeneralTests.java
-    - 🚨 testJetStreamSubscribe
+    - 🏁 testJetStreamSubscribe
+        - 🔧 JetStreamSubscribeTests.testJetStreamPushSubscribeBasics
+        - 🔧 JetStreamSubscribeTests.testJetStreamPullSubscribeBasics
     - 🏁testJetStreamSubscribeLenientSubject 
-      - 🔧SubscribeTests.testSubjectValidationTypeStrict
-    - 🚨 testJetStreamSubscribeErrors
+      - 🔧 SubscribeTests.testSubjectValidationTypeStrict
+    - 🏁 testJetStreamSubscribeErrors
+      - 🔧 ConsumerConfigurationTests.testPushEphemeralConsumerCreator
+      - 🔧 JetStreamGeneralTests.testJetStreamSubscribeErrors
     - 🚨 testFilterSubjectEphemeral
     - 🚨 testBindPush
     - 🚨 testBindPull
