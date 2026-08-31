@@ -569,12 +569,14 @@ public class Headers {
 		if (len <= HVCRLF_BYTES + 2){
 			return "";// empty map
 		}
-		for (int i = 0; i < len; i++) {
-			switch (b[i]) {
-				case CR: b[i] = ';'; break;
-				case LF: b[i] = ' '; break;
+		// b is the cached serialized array, so copy the data range before replacing CR/LF in it
+		byte[] data = Arrays.copyOfRange(b, HVCRLF_BYTES, len - 3);
+		for (int i = 0; i < data.length; i++) {
+			switch (data[i]) {
+				case CR: data[i] = ';'; break;
+				case LF: data[i] = ' '; break;
 			}
 		}
-		return new String(b, HVCRLF_BYTES, len - HVCRLF_BYTES - 3, StandardCharsets.ISO_8859_1);// b has only US_ASCII, ISO_8859_1 is 3x faster
+		return new String(data, StandardCharsets.ISO_8859_1);// data has only US_ASCII, ISO_8859_1 is 3x faster
 	}
 }

@@ -443,6 +443,42 @@ public class DispatcherTests extends TestBase {
     }
 
     @Test
+    public void testThrowOnWrongSubscription() throws Exception {
+        runInShared(nc -> {
+            Dispatcher d = nc.createDispatcher(msg -> {});
+            Dispatcher other = nc.createDispatcher(msg -> {});
+
+            // a subscription made on the connection is not managed by any dispatcher
+            NatsSubscription connSub = nc.subscribe(random());
+            IllegalArgumentException iae =
+                assertThrows(IllegalArgumentException.class, () -> d.unsubscribe(connSub));
+            assertTrue(iae.getMessage().contains("Subscription is not managed by this Dispatcher"));
+            assertThrows(IllegalArgumentException.class, () -> d.unsubscribe(connSub, 1));
+
+            // another dispatcher's subscription, default handler and non-default handler
+            NatsSubscription otherDefault = other.subscribe(random());
+            NatsSubscription otherNonDefault = other.subscribe(random(), msg -> {});
+            assertThrows(IllegalArgumentException.class, () -> d.unsubscribe(otherDefault));
+            assertThrows(IllegalArgumentException.class, () -> d.unsubscribe(otherNonDefault));
+
+            // the owner is unaffected by the rejected calls
+            assertTrue(otherDefault.isActive());
+            assertTrue(otherNonDefault.isActive());
+            other.unsubscribe(otherNonDefault);
+
+            connSub.unsubscribe();
+            nc.closeDispatcher(other);
+
+            // once the dispatcher is closed the closed check comes first
+            NatsSubscription own = d.subscribe(random(), msg -> {});
+            nc.closeDispatcher(d);
+            IllegalStateException ise =
+                assertThrows(IllegalStateException.class, () -> d.unsubscribe(own));
+            assertTrue(ise.getMessage().contains("Dispatcher is closed"));
+        });
+    }
+
+    @Test
     public void testReSubscribeReplacesTheSid() throws Exception {
         runInShared(nc -> {
             Dispatcher d = nc.createDispatcher(null);

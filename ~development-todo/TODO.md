@@ -73,6 +73,8 @@ The single source of truth for the things currently in progress — so any sessi
   * core finding: **`throws IOException` on the JetStream surface is a lie** - measured, exactly one is vestigial (§3, §3a)
   * second finding: interruption is handled two different ways, and `JetStreamImpl:183`/`:192` cannot be fixed in isolation (§4, §4a, §4b)
   * options are in §5; nothing decided or started
+* V2_V3_TEST_METHOD_AUDIT.md
+  * v2 `@Test` method names absent from v3, grouped by v2 file. 107 staged in `tdb/`, 80 came from the extracted json/nkey library, 174 in neither - of those 119 were replaced by a renamed v3 test, 35 no longer apply, **20 are real gaps**. Companion to TEST_TRACKING.md
 ## Plans / Audits TBD
 
 1. ObjectStore line 107 / ObjectStore nullability

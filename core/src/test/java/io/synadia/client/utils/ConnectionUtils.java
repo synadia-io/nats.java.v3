@@ -11,6 +11,7 @@ import java.io.IOException;
 
 import static io.synadia.client.utils.OptionsUtils.options;
 import static io.synadia.client.utils.ThreadUtils.sleep;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 public abstract class ConnectionUtils {
@@ -152,6 +153,11 @@ public abstract class ConnectionUtils {
 
     public static void assertCanConnect(Options options) {
         closeAndConfirm(managedConnect(options));
+    }
+
+    public static void assertNotConnected(NatsConnection conn) {
+        assertNotSame(ConnectionStatus.CONNECTED, conn.getStatus(),
+            () -> "Failed not expecting Connection Status " + ConnectionStatus.CONNECTED.name());
     }
 
     private static String expectingMessage(NatsConnection conn, ConnectionStatus expecting) {

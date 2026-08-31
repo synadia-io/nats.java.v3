@@ -11,7 +11,7 @@ import static io.synadia.client.utils.ConnectionUtils.standardConnect;
 import static io.synadia.client.utils.TestBase.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SubscriberTests {
+public class SubscribeTests {
 
     @Test
     public void testCreateInbox() throws Exception {
@@ -361,6 +361,117 @@ public class SubscriberTests {
             }).start();
 
             assertThrows(IllegalStateException.class, () -> sub.nextMessage(5000L));
+        });
+    }
+
+    @Test
+    public void testSubjectValidationTypeNone() throws Exception {
+        OptionsBuilder optionsBuilder = new OptionsBuilder().subjectValidationType(SubjectValidationType.None);
+        runInSharedOwnNc(optionsBuilder, nc -> {
+            nc.subscribe(STAR_SEGMENT);
+            nc.subscribe(GT_NOT_LAST_SEGMENT);
+            nc.subscribe(GT_LAST_SEGMENT);
+            nc.subscribe(STARTS_WITH_DOT);
+            nc.subscribe(ENDS_WITH_DOT);
+            nc.subscribe(ENDS_WITH_DOT_SPACE);
+            nc.subscribe(ENDS_WITH_CR);
+            nc.subscribe(ENDS_WITH_LF);
+            nc.subscribe(ENDS_WITH_TAB);
+            nc.subscribe(STAR_NOT_SEGMENT);
+            nc.subscribe(GT_NOT_SEGMENT);
+            nc.subscribe(EMPTY_SEGMENT);
+            nc.subscribe(PLAIN);
+            nc.subscribe(HAS_SPACE);
+            nc.subscribe(STARTS_SPACE);
+            nc.subscribe(ENDS_SPACE);
+            nc.subscribe(HAS_PRINTABLE);
+            nc.subscribe(HAS_DOT);
+            nc.subscribe(HAS_DASH);
+            nc.subscribe(HAS_UNDER);
+            nc.subscribe(HAS_DOLLAR);
+            nc.subscribe(HAS_CR);
+            nc.subscribe(HAS_LF);
+            nc.subscribe(HAS_TAB);
+            nc.subscribe(HAS_LOW);
+            nc.subscribe(HAS_127);
+            nc.subscribe(HAS_FWD_SLASH);
+            nc.subscribe(HAS_BACK_SLASH);
+            nc.subscribe(HAS_EQUALS);
+            nc.subscribe(HAS_TIC);
+        });
+    }
+
+    @Test
+    public void testSubjectValidationTypeLenient() throws Exception {
+        OptionsBuilder optionsBuilder = new OptionsBuilder().subjectValidationType(SubjectValidationType.Lenient);
+        runInSharedOwnNc(optionsBuilder, nc -> {
+            nc.subscribe(STAR_SEGMENT);
+            nc.subscribe(GT_NOT_LAST_SEGMENT);
+            nc.subscribe(GT_LAST_SEGMENT);
+            nc.subscribe(STARTS_WITH_DOT);
+            nc.subscribe(ENDS_WITH_DOT);
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_DOT_SPACE));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_CR));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_LF));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_TAB));
+            nc.subscribe(STAR_NOT_SEGMENT);
+            nc.subscribe(GT_NOT_SEGMENT);
+            nc.subscribe(EMPTY_SEGMENT);
+            nc.subscribe(PLAIN);
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_SPACE));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(STARTS_SPACE));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_SPACE));
+            nc.subscribe(HAS_PRINTABLE);
+            nc.subscribe(HAS_DOT);
+            nc.subscribe(HAS_DASH);
+            nc.subscribe(HAS_UNDER);
+            nc.subscribe(HAS_DOLLAR);
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_CR));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_LF));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_TAB));
+            nc.subscribe(HAS_LOW);
+            nc.subscribe(HAS_127);
+            nc.subscribe(HAS_FWD_SLASH);
+            nc.subscribe(HAS_BACK_SLASH);
+            nc.subscribe(HAS_EQUALS);
+            nc.subscribe(HAS_TIC);
+        });
+    }
+
+    @Test
+    public void testSubjectValidationTypeStrict() throws Exception {
+        OptionsBuilder optionsBuilder = new OptionsBuilder().subjectValidationType(SubjectValidationType.Strict);
+        runInSharedOwnNc(optionsBuilder, nc -> {
+            nc.subscribe(STAR_SEGMENT);
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(GT_NOT_LAST_SEGMENT));
+            nc.subscribe(GT_LAST_SEGMENT);
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(STARTS_WITH_DOT));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_DOT));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_DOT_SPACE));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_CR));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_LF));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_WITH_TAB));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(STAR_NOT_SEGMENT));
+            assertThrows(IllegalArgumentException.class, () ->nc.subscribe(GT_NOT_SEGMENT));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(EMPTY_SEGMENT));
+            nc.subscribe(PLAIN);
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_SPACE));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(STARTS_SPACE));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(ENDS_SPACE));
+            nc.subscribe(HAS_PRINTABLE);
+            nc.subscribe(HAS_DOT);
+            nc.subscribe(HAS_DASH);
+            nc.subscribe(HAS_UNDER);
+            nc.subscribe(HAS_DOLLAR);
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_CR));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_LF));
+            assertThrows(IllegalArgumentException.class, () -> nc.subscribe(HAS_TAB));
+            nc.subscribe(HAS_LOW);
+            nc.subscribe(HAS_127);
+            nc.subscribe(HAS_FWD_SLASH);
+            nc.subscribe(HAS_BACK_SLASH);
+            nc.subscribe(HAS_EQUALS);
+            nc.subscribe(HAS_TIC);
         });
     }
 }

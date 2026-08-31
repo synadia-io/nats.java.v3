@@ -1,0 +1,574 @@
+# V2 vs V3 test method audit
+
+Every `@Test` / `@ParameterizedTest` / `@RepeatedTest` method name in v2 (`/mnt/c/nats/nats.java/src/test`, 976 methods across 84 files) checked against v3 (`core` + `jetstream` + `service` `src/test`, 938 methods) and against `tdb/` (112 methods across 9 files). A name counts as present if it appears anywhere in the target tree, since v3 reorganized tests across files. Grouped by the v2 file the method lives in.
+
+## Legend
+- 🗃️ Source
+  - 🚨 To be done
+    - 🏁 Done or replaced
+      - 🔧Item that replaced test 
+- ❌ N/A, Deprecated or removed
+- 📚 N/A, Extracted to dependency project
+
+## In `tdb/` — not yet in v3, but the port is staged (107 methods, 8 files)
+
+These v2 method names are absent from v3's test sources but present in `tdb/`.
+
+- 🗃️ JetStreamGeneralTests.java
+    - 🚨 testJetStreamSubscribe
+    - 🏁testJetStreamSubscribeLenientSubject 
+      - 🔧SubscribeTests.testSubjectValidationTypeStrict
+    - 🚨 testJetStreamSubscribeErrors
+    - 🚨 testFilterSubjectEphemeral
+    - 🚨 testBindPush
+    - 🚨 testBindPull
+    - 🚨 testBindErrors
+    - 🚨 testFilterMismatchErrors
+    - 🚨 testBindDurableDeliverSubject
+    - 🚨 testConsumerIsNotModified
+    - 🚨 testSubscribeDurableConsumerMustMatch
+    - 🚨 testGetConsumerInfoFromSubscription
+    - 🚨 testNatsConnectionTimeCheckLogic
+    - 🚨 testMoreCreateSubscriptionErrors
+- 🗃️ JetStreamMirrorAndSourcesTests.java
+    - 🚨 testMirrorBasics
+    - 🚨 testMirrorReading
+    - 🚨 testMirrorExceptions
+    - 🚨 testSourceBasics
+    - 🚨 testSourceAndTransformsRoundTrips
+- 🗃️ JetStreamPullTests.java
+    - 🚨 testFetch
+    - 🚨 testIterate
+    - 🚨 testBasic
+    - 🚨 testNoWait
+    - 🚨 testPullExpires
+    - 🚨 testAckNak
+    - 🚨 testAckTerm
+    - 🚨 testAckReplySyncCoverage
+    - 🚨 testAckWaitTimeout
+    - 🚨 testDurable
+    - 🚨 testNamed
+    - 🚨 testPullRequestOptionsBuilder
+    - 🚨 testConsumerDeletedSyncSub
+    - 🚨 testConsumerDeletedAsyncSub
+    - 🚨 testExceedsMaxRequestBytesNthMessageSyncSub
+    - 🚨 testReader
+    - 🚨 testOverflow
+    - 🚨 testPrioritized
+    - 🚨 testPinnedClient
+    - 🚨 testExceedsMaxWaitingSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceededMaxWaitingSync
+    - 🚨 testExceedsMaxWaitingAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceededMaxWaitingAsync
+    - 🚨 testExceedsMaxRequestBatchSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBatchSync
+    - 🚨 testExceedsMaxRequestBatchAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBatchAsync
+    - 🚨 testMessageSizeExceedsMaxBytesSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testMessageSizeExceedsMaxBytesSync
+    - 🚨 testMessageSizeExceedsMaxBytesAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testMessageSizeExceedsMaxBytesAsync
+    - 🚨 testExceedsMaxRequestExpiresSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestExpiresSync
+    - 🚨 testExceedsMaxRequestExpiresAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestExpiresAsync
+    - 🚨 testConsumerIsPushBasedSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testConsumerIsPushBasedSync
+    - 🚨 testConsumerIsPushBasedAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testConsumerIsPushBasedAsync
+    - 🚨 testBadRequestSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testBadRequestSync
+    - 🚨 testBadRequestAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testBadRequestAsync
+    - 🚨 testNotFoundSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testNotFoundSync
+    - 🚨 testNotFoundAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testNotFoundAsync
+    - 🚨 testExceedsMaxRequestBytes1stMessageSyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBytes1stMessageSync
+    - 🚨 testExceedsMaxRequestBytes1stMessageAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBytes1stMessageAsync
+    - 🚨 testExceedsMaxRequestBytesExactBytes
+      - 🔧 renamed in tdb: JetStreamPullTests.testDoesNotExceedMaxRequestBytesExactBytes
+- 🗃️ JetStreamPushAsyncTests.java
+    - 🚨 testHandlerSub
+    - 🚨 testHandlerAutoAck
+    - 🚨 testCantNextMessageOnAsyncPushSub
+    - 🚨 testPushAsyncFlowControl
+    - 🚨 testMemoryStorageServerBugPR2719
+    - 🚨 testDontAutoAckSituations
+      - 🔧 renamed in tdb: JetStreamPushAsyncTests.testDoNotAutoAckSituations
+- 🗃️ JetStreamPushQueueTests.java
+    - 🚨 testQueueSubWorkflow
+- 🗃️ KeyValueTests.java
+    - 🚨 testWorkflow
+    - 🚨 testGetRevision
+    - 🚨 testKeys
+    - 🚨 testMaxHistoryPerKey
+    - 🚨 testCreateUpdate
+    - 🚨 testHistoryDeletePurge
+    - 🚨 testAtomicDeleteAtomicPurge
+    - 🚨 testPurgeDeletes
+    - 🚨 testCreateAndUpdate
+    - 🚨 testManageGetBucketNamesStatuses
+    - 🚨 testWatch
+    - 🚨 testWithAccount
+    - 🚨 testCoverBucketAndKey
+    - 🚨 testCoverPrefix
+    - 🚨 testKeyValueEntryEqualsImpl
+    - 🚨 testKeyValueOptionsBuilderCoverage
+    - 🚨 testKeyValuePurgeOptionsBuilderCoverage
+    - 🚨 testCreateDiscardPolicy
+    - 🚨 testEntryCoercion
+    - 🚨 testKeyResultConstruction
+    - 🚨 testMirrorSourceBuilderPrefixConversion
+    - 🚨 testKeyValueMirrorCrossDomains
+    - 🚨 testKeyValueTransform
+    - 🚨 testSubjectFiltersAgainst209OptOut
+    - 🚨 testTtlAndDuplicateWindowRoundTrip
+    - 🚨 testConsumeKeys
+    - 🚨 testLimitMarkerCoverage
+    - 🚨 testLimitMarkerBehavior
+    - 🚨 testJustLimitMarkerCreatePurge
+    - 🚨 testJustTtlForDeletePurge
+    - 🚨 testKeyValueOperation
+- 🗃️ ObjectStoreApiTests.java
+    - 🚨 testConfigurationConstruction
+    - 🚨 testObjectInfoConstruction
+    - 🚨 testObjectInfoCoverage
+    - 🚨 testObjectMetaMetaCoverage
+- 🗃️ ObjectStoreTests.java
+    - 🚨 testWorkflow
+    - 🚨 testManageGetBucketNamesStatuses
+    - 🚨 testObjectStoreOptionsBuilderCoverage
+    - 🚨 testObjectLinks
+    - 🚨 testList
+    - 🚨 testSeal
+    - 🚨 testCompression
+    - 🚨 testOverwrite
+    - 🚨 testWatch
+    - 🚨 testObjectStoreDomains
+
+## Not in v3 and not in `tdb/` (174 methods, 37 files)
+
+These v2 method names appear nowhere in v3. 20 are still to be done, 119 were replaced by a differently named v3 test, 35 no longer apply.
+
+- ❌ AdvancedRequestBehaviorTests.java — the `advancedRequestBehavior()` opt-in and its carrier `Message` are discarded by design in v3 — the redesign is `REQUEST_BEHAVIOR_IMPROVEMENT.md`, which supersedes jnats PR #1582
+    - ❌ testNoRespondersReasonWhenFlagOn
+    - ❌ testLegacyIOExceptionWhenFlagOff
+    - ❌ testTimeoutReasonWhenFlagOn
+    - ❌ testCoreRequestReturnsCarrierWhenFlagOn
+    - ❌ testCoreRequestNullContractPreservedWhenFlagOff
+    - ❌ testConnectionClosingReasonWhenFlagOn
+- 🗃️ ApiResponseTests.java
+    - 🏁 testNotError
+      - 🔧 ApiResponseTests.testNotErrorAndType
+- 🗃️ AuthTests.java
+    - 🏁 testBadUserBadPass
+      - 🔧 AuthTests.testUserPass
+    - 🏁 testMissingUserPass
+      - 🔧 AuthTests.testUserPass
+    - 🏁 testBadToken
+      - 🔧 AuthTests.testToken
+    - 🏁 testMissingToken
+      - 🔧 AuthTests.testToken
+    - 🏁 testStaticNKeyAuth
+      - 🔧 AuthTests.testStaticJWTAuth
+    - 🏁 testBadAuthHandler
+- ❌ ByteArrayBuilderTests.java
+    - ❌ copyToPrimitiveBuilder
+    - ❌ constructorCoverageByteArrayPrimitiveBuilder
+    - ❌ miscCoverageByteArrayPrimitiveBuilder
+- 🗃️ ConnectTests.java
+    - ❌ testDefaultConnection
+    - 🏁 testConnection
+      - 🔧 ConnectTests.testConnectVariants
+    - 🏁 testConnectionWithOptions
+      - 🔧 ConnectTests.testConnectVariants
+    - 🏁 testConnectWithCommas
+      - 🔧 ConnectTests.testConnectVariants
+    - 🏁 testConnectRandomize
+      - 🔧 ConnectTests.testConnectVariants
+    - 🏁 testConnectNoRandomize
+      - 🔧 ConnectTests.testConnectVariants
+    - 🏁 testThrowOnAsyncWithoutListener
+      - 🔧 ConnectTests.testAsyncConnectionFutureWithoutListener — v3 inverts the rule, no listener is legal
+    - ❌ testTimeCheckCoverage — `TimeTraceLogger` / `traceConnection()` do not exist in v3
+    - ❌ testReconnectLogging — `TimeTraceLogger` / `traceConnection()` do not exist in v3
+- 🗃️ ConnectionListenerStaleStateTests.java
+    - 🚨 testConnectEventDetailsStayCorrectWhenTheCallbackIsProcessedLate
+    - 🚨 testEventDerivedStateSettlesToTheTruthAfterRapidReconnects
+- 🗃️ ConnectionListenerTests.java
+    - 🏁 testCloseCount
+      - 🔧 ConnectionListenerTests.testCloseEvent
+- ❌ ConsumerConfigurationComparerTests.java — `NatsJetStream.ConsumerConfigurationComparer` has no v3 counterpart — create-or-update is a server action on `ConsumerCreateRequest`, not a client-side field diff
+    - ❌ testChangeFieldsIdentified
+- 🗃️ ConsumerConfigurationTests.java
+    - 🏁 testParsingAndSetters
+      - 🔧 ConsumerConfigurationTests.testConsumerConfiguration
+    - 🏁 testUtilityMethods
+      - 🔧 JetStreamApiUtilsTests.normalizeLong_withMin / normalizeInt_withMin / normalizeULong_singleArg / normalizeDuration_durationOverload / normalizeDuration_millisOverload (`getOrUnset` / `GetOrDefault` went away with the API)
+    - ❌ testDowngradeFromLongToInt — v3 keeps maxDeliver / maxAckPending / maxPullWaiting / maxBatch as `long`; there is no long→int downgrade to test
+    - 🏁 testFlowControlIdleHeartbeatFromJson
+      - 🔧 ConsumerConfigurationTests.testConsumerConfiguration (via verifyAbstractEphemeralFields)
+- 🗃️ DispatcherTests.java
+    - 🏁 testDispatcherMultipleSubscriptionsBySubject
+      - 🔧 DispatcherTests.testProperlyUnsubscribeBySubject
+    - 🏁 testCantUnsubSubFromDispatcher
+      - 🔧 DispatcherTests.testV3AllowsUnsubSubFromDispatcher — v3 inverts the rule
+    - 🏁 testCantAutoUnsubSubFromDispatcher
+      - 🔧 DispatcherTests.testV3AllowsAutoUnsubSubFromDispatcher — v3 inverts the rule
+    - 🏁 testThrowOnNullSubject
+      - 🔧 DispatcherTests.testThrowOnBadInput
+    - 🏁 testThrowOnEmptySubject
+      - 🔧 DispatcherTests.testThrowOnBadInput
+    - 🏁 testThrowOnEmptyQueue
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnNullSubjectWithQueue
+      - 🔧 DispatcherTests.testThrowOnBadInput
+    - 🏁 testThrowOnEmptySubjectWithQueue
+      - 🔧 DispatcherTests.testThrowOnBadInput
+    - 🏁 throwsOnCreateIfClosed
+      - 🔧 DispatcherTests.throwsOnCreateIfConnectionClosed
+    - 🏁 throwsOnSubscribeIfClosed
+      - 🔧 DispatcherTests.throwsOnCreateIfConnectionClosed
+    - 🏁 testThrowOnSubscribeWhenClosed
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnUnsubscribeWhenClosed
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnDoubleClose
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnConnClosed
+      - 🔧 DispatcherTests.throwsOnCreateIfConnectionClosed
+    - 🏁 testThrowOnEmptySubjectWithMessageHandler
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnNullHandler
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnNullHandlerWithQueue
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnEmptyQueueWithMessageHandler
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnNullSubjectWithQueueWithMessageHandler
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnEmptySubjectWithQueueWithMessageHandler
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnEmptySubjectInUnsub
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnUnsubWhenClosed
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testThrowOnWrongSubscription
+      - 🔧 DispatcherTests.testThrowOnWrongSubscription — written 2026-08-31; v3 throws `IllegalArgumentException` where v2 threw `IllegalStateException`
+- 🗃️ ErrorListenerTests.java
+    - 🏁 testLastError
+      - 🔧 ErrorListenerTests.testLastError_ClearError_AuthViolation
+    - 🏁 testClearLastError
+      - 🔧 ErrorListenerTests.testLastError_ClearError_AuthViolation
+    - 🏁 testErrorOnNoAuth
+      - 🔧 ErrorListenerTests.testLastError_ClearError_AuthViolation
+- 🗃️ HeadersTests.java
+    - 🏁 testToStringDoesNotCorruptSerializedCache
+      - 🔧 HeadersTests.testToStringDoesNotCorruptSerializedCache — ported 2026-08-31; it caught the real bug it was written for, `Headers.toString()` was still mutating the cached `serialized` array
+- 🗃️ JetStreamConsumerTests.java
+    - 🏁 testOrderedConsumerAsync
+      - 🔧 JetStreamConsumerTests.testOrderedConsumerAsyncNoName
+- 🗃️ JetStreamGeneralTests.java
+    - 🏁 testJetStreamContextCreate
+      - 🔧 JetStreamGeneralTests.testJetStreamGeneral
+    - 🏁 testJetEnabledGoodAccount
+      - 🔧 JetStreamManagementWithConfTests.testGoodAuthAccount
+    - 🏁 testJetStreamPublishDefaultOptions
+      - 🔧 JetStreamGeneralTests.testJetStreamGeneral
+    - 🏁 testConnectionClosing
+      - 🔧 JetStreamGeneralTests.testCoverageIncludingExceptions
+    - 🏁 testCreateWithOptionsForCoverage
+      - 🔧 JetStreamGeneralTests.testCoverageIncludingExceptions
+    - ❌ testGetJetStreamValidatedConnectionCoverage — `getJetStreamValidatedConnection` does not exist in v3
+    - 🏁 testNatsJetStreamUtil
+      - 🔧 JetStreamApiUtilsTests.generateConsumerName_noArg / generateConsumerName_withPrefix
+- 🗃️ JetStreamManagementTests.java
+    - 🏁 testAddStreamInvalids
+      - 🔧 JetStreamManagementTests.testStreamExceptions
+    - 🏁 testAddDeleteConsumer
+      - 🔧 JetStreamManagementTests.testAddDeleteConsumerPart1 / testAddDeleteConsumerPart2
+    - 🏁 testAuthCreateUpdateStream
+      - 🔧 JetStreamManagementWithConfTests.testGoodAuthAccount
+    - ❌ testMessageGetRequestObjectDeprecatedMethods — the deprecated `MessageGetRequest` methods are gone; the current API is covered by JetStreamManagementTests.testMessageGetRequestObject
+    - 🚨 testDirectMessageRepublishedSubject
+    - 🏁 testNoRespondersWhenConsumerDeleted
+      - 🔧 JetStreamManagementTests.testNoRespondersWhenConsumerDeleted1026
+- ❌ JetStreamPubTests.java
+    - ❌ testPublishNoAck — `JetStreamOptions.publishNoAck` does not exist in v3
+- 🗃️ JetStreamPushTests.java
+    - 🚨 testCantPullOnPushSub
+- 🗃️ MessageManagerTests.java
+    - 🚨 testPushBeforeQueueProcessorAndManage
+    - 🚨 testPullBeforeQueueProcessorAndManage
+    - 🚨 testPushManagerHeartbeats
+    - 🚨 testPullManagerHeartbeats
+    - 🚨 test_push_fc
+    - 🚨 test_push_xfc
+    - 🚨 test_received_time
+    - 🚨 test_hb_yes_settings
+    - 🚨 test_hb_no_settings
+    - 🚨 testMessageManagerInterfaceDefaultImplCoverage
+- 🗃️ NatsMessageTests.java
+    - 🏁 testBigProtocolLineWithoutBody
+      - 🔧 NatsMessageTests.testBigProtocolLine
+    - 🏁 testBigProtocolLineWithBody
+      - 🔧 NatsMessageTests.testBigProtocolLine
+    - ❌ constructorWithMessage — v3 `NatsMessage` has no copy constructor
+- 🗃️ OptionsTests.java
+    - ❌ testOldStyle — `oldRequestStyle` does not exist in v3
+    - ❌ testAdvancedRequestBehavior — `advancedRequestBehavior` does not exist in v3 — see AdvancedRequestBehaviorTests above
+    - 🏁 testDefaultDataPort
+      - 🔧 OptionsTests.testDataPort
+    - 🏁 testPropertyDataPortType
+      - 🔧 OptionsTests.testDataPort
+    - 🏁 testReaderExecutorService
+      - 🔧 OptionsTests.testReaderWriterExecutorPrecedence
+    - 🏁 testWriterExecutorService
+      - 🔧 OptionsTests.testReaderWriterExecutorPrecedence
+    - ❌ coverageForDeprecated — v3 has no deprecated `token(String)` / `userInfo(String,String)`; both are `char[]` only
+- 🗃️ ParseTests.java
+    - 🏁 testLongProtocolOpThrows
+      - 🔧 ParseTests.testBadGather
+    - 🏁 testMissingLineFeed
+      - 🔧 ParseTests.testBadGather
+    - 🏁 testMissingSubject
+      - 🔧 ParseTests.testBadParse
+    - 🏁 testMissingSID
+      - 🔧 ParseTests.testBadParse
+    - 🏁 testMissingLength
+      - 🔧 ParseTests.testBadParse
+    - 🏁 testBadLength
+      - 🔧 ParseTests.testBadParse
+    - 🏁 testMessageLineTooLong
+      - 🔧 ParseTests.testProtocolLineTooLong / testTooShortMaxControlLineToConnect
+- 🗃️ PingTests.java
+    - 🚨 testPingFailsWhenClosed
+    - 🚨 testMessagesDelayPings
+- 🗃️ PublishTests.java
+    - 🏁 throwsIfClosedOnPublish
+      - 🔧 PublishTests.throwsIfClosed
+    - 🏁 throwsIfClosedOnFlush
+      - 🔧 PublishTests.throwsIfClosed
+    - 🏁 testThrowsIfheadersNotSupported
+      - 🔧 PublishTests.testThrowsIfHeadersNotSupported — capitalization only
+- 🗃️ ReconnectTests.java
+    - 🏁 testReconnectToSecondServer
+      - 🔧 ReconnectTests.testReconnectToSecondServerInBootstrap / testReconnectToSecondServerFromInfo
+    - 🏁 testReconnectNoIPTLSConnection
+      - 🔧 ReconnectTests.testTlsNoIpConnection
+    - 🏁 testURISchemeNoIPTLSConnection
+      - 🔧 ReconnectTests.testTlsNoIpConnection
+    - 🏁 testURISchemeNoIPOpenTLSConnection
+      - 🔧 ReconnectTests.testTlsNoIpConnection
+- 🗃️ RequestTests.java (io.nats.client)
+    - 🏁 testRequestNoResponder
+      - 🔧 RequestTests.testNoResponders
+- 🗃️ RequestTests.java (io.nats.client.impl)
+    - ❌ testRequireCleanupOnTimeoutNoNoResponders — `noNoResponders()` does not exist in v3
+    - ❌ testRequireCleanupOnTimeoutCleanCompletable — `noNoResponders()` does not exist in v3
+    - 🏁 testRequireCleanupOnCancelFromNoResponders
+      - 🔧 RequestTests.testRequireCleanupOnCancel
+    - 🏁 testRequireCleanupWithTimeoutNoResponders
+      - 🔧 RequestTests.testRequireCleanupOnCancel
+    - ❌ testRequireCleanupWithTimeoutNoNoResponders — `noNoResponders()` does not exist in v3
+    - ❌ testOldStyleRequest — `oldRequestStyle` does not exist in v3
+    - 🏁 testThrowsEmptySubject
+      - 🔧 RequestTests.testRequestErrors
+    - 🏁 testCancelledFutureMustNotErrorOnCleanResponses
+      - 🔧 RequestTests.testCanceledFutureMustNotErrorOnCleanResponses — spelling only
+- 🗃️ ResourceUtilsTests.java
+    - 🏁 testResourceStillLoads
+      - 🔧 ResourceUtilsTests.testPresentResourceStillReads
+- 🗃️ ResponseTests.java
+    - 🏁 testPauseResponse
+      - 🔧 JsonParsingTests.testConsumerPauseResponse
+    - 🏁 testPauseResumeResponse
+      - 🔧 JsonParsingTests.testConsumerPauseResponse + EqualityAndHashCodeCoverageTest.testConsumerPauseResponse_equalsAndHashCode
+- 🗃️ ServiceTests.java
+    - 🏁 testResponsesFromMultipleInstances
+      - 🔧 ServiceTests.testResponsesFromAllInstances
+- 🗃️ SimplificationTests.java
+    - 🏁 testStreamContext
+      - 🔧 SimplificationTests.testStreamContextBasics
+    - 🏁 testOrderedConsumerCoverage
+      - 🔧 SimplificationTests.testOrderedConsumerBuilder
+    - 🏁 testFetchConsumeOptionsBuilder
+      - 🔧 SimplificationTests.testConsumeOptionsBuilder + ApiJavaSerializationTests.testFetchConsumeOptions
+    - 🏁 testOrderedConsumeConstruction
+      - 🔧 SimplificationTests.testOrderedConsumerBuilder
+- 🗃️ StreamConfigurationTests.java
+    - 🏁 testMissingJsonFields
+      - 🔧 StreamCreatorConfigurationTests.testSerializationDeserializationDefaults + StreamInfoJsonTests.testStreamInfoLazyFieldsAndMinimal
+    - ❌ testInvalidNameInJson — v3 `StreamConfiguration` reads the name lazily off the json and does not validate on parse
+    - 🏁 testSourceBase
+      - 🔧 EqualityAndHashCodeCoverageTest.testMirror_equalsContract / testSource_equalsContract + ApiCreatorsToDtoRoundTripTests.mirrorRoundTrip / sourceRoundTrip
+    - 🏁 equalsContract
+      - 🔧 EqualityAndHashCodeCoverageTest.testMirror_equalsContract / testSource_equalsContract
+- 🗃️ StreamInfoTests.java
+    - 🏁 testStreamInfoOptionsCoverage
+      - 🔧 ApiFieldsTest.testStreamInfoOptions + EqualityAndHashCodeCoverageTest.testStreamInfoOptions_equalsAndHashCode
+    - 🏁 testSubjectGetList
+      - 🔧 JsonParsingTests.testStreamState + EqualityAndHashCodeCoverageTest.testSubject_equalsContract
+- 🗃️ SubscribeOptionsTests.java — `PushSubscribeOptions` / `PullSubscribeOptions` do not exist in v3 — a consumer creator *is* the configuration, and the subscribe wiring moved to `JetStreamSubscribeConfig` + `SubscribeBehavior`
+    - 🏁 testPushAffirmative
+      - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
+    - ❌ testDurableValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists
+    - ❌ testDeliverGroupValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists (deliverGroup itself survives on `ConsumerCreator` and is untested — the deliver-group gap in TEST_TRACKING.md)
+    - ❌ testDeliverSubjectValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists (see JetStreamManagementTests.testPushCreatorAutomaticallyAddsDeliverSubject)
+    - 🏁 testPullAffirmative
+      - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
+    - 🏁 testPushFieldValidation
+      - 🔧 JsValidatorTests.testValidateDurable + ConsumerConfigurationTests.testPushConsumerCreator
+    - 🏁 testPullFieldValidation
+      - 🔧 JsValidatorTests.testValidateDurable + ConsumerConfigurationTests.testPullConsumerCreator
+    - 🏁 testCreationErrors
+      - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
+    - 🏁 testBindCreationErrors
+      - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
+    - 🏁 testOrderedCreation
+      - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage + ConsumerConfigurationTests.testPullOrderedConsumerCreator / testPushOrderedConsumerCreator
+- 🗃️ SubscriberTests.java
+    - 🏁 testThrowOnNullSubject
+      - 🔧 SubscribeTests.testSubscribesThatException
+    - 🏁 testThrowOnEmptySubject
+      - 🔧 SubscribeTests.testSubscribesThatException
+    - 🏁 testThrowOnNullQueue
+      - 🔧 SubscribeTests.testSubscribesThatException
+    - 🏁 testThrowOnEmptyQueue
+      - 🔧 SubscribeTests.testSubscribesThatException
+    - 🏁 testThrowOnNullSubjectWithQueue
+      - 🔧 SubscribeTests.testSubscribesThatException
+    - 🏁 testThrowOnEmptySubjectWithQueue
+      - 🔧 SubscribeTests.testSubscribesThatException
+    - 🏁 throwsOnSubscribeIfClosed
+      - 🔧 SubscribeTests.testSubscribesThatExceptionAfterClose
+    - 🏁 throwsOnUnsubscribeIfClosed
+      - 🔧 SubscribeTests.testSubscribesThatExceptionAfterClose
+    - 🏁 throwsOnAutoUnsubscribeIfClosed
+      - 🔧 SubscribeTests.testSubscribesThatExceptionAfterClose
+    - 🏁 testInvalidSubjectsAndQueueNames
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+    - 🏁 testDispatcherDefaultSubscribeWhenNoDefaultHandler
+      - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
+- 🗃️ TLSConnectTests.java
+    - 🏁 testSimpleUrlTLSConnection
+      - 🔧 TLSConnectTests.testSimpleTLSConnection / testMultipleUrlTLSConnectionSetContext
+- 🗃️ ValidatorTests.java
+    - ❌ testValidateMaxConsumers — validator removed in v3
+    - ❌ testValidateMaxMessages — validator removed in v3
+    - ❌ testValidateMaxMessagesPerSubject — validator removed in v3
+    - 🚨 testValidateMaxHistory — `JsValidator.validateMaxHistory` still exists and is untested
+    - ❌ testValidateMaxBytes — validator removed in v3
+    - 🚨 testValidateMaxBucketBytes — `JsValidator.validateMaxBucketBytes` still exists and is untested
+    - ❌ testValidateMaxMessageSize — validator removed in v3
+    - ❌ testValidateMaxValueBytes — validator removed in v3
+    - 🏁 testValidateNumberOfReplicas
+      - 🔧 ApiFieldsTest.testPullConsumerCreator (numReplicas 1..5)
+    - ❌ testValidateMaxLength — validator removed in v3
+- 🗃️ WebsocketConnectTests.java
+    - 🏁 testRequestReply
+      - 🔧 WebsocketConnectTests.testWs
+    - 🏁 testTLSRequestReply
+      - 🔧 WebsocketConnectTests.testWss / testWssVerify
+    - 🏁 testSimpleWSSIPConnection
+      - 🔧 WebsocketConnectTests.testWss / testWssVerify
+    - 🏁 testURIWSSHostConnection
+      - 🔧 WebsocketConnectTests.testWss / testWssVerify
+    - 🏁 testURIWSSIPConnection
+      - 🔧 WebsocketConnectTests.testWss / testWssVerify
+    - 🏁 testURISchemeWSSConnection
+      - 🔧 WebsocketConnectTests.testWss / testWssVerify
+    - 🏁 testURISchemeWSSConnectionEnsureTlsFirstHasNoEffect
+      - 🔧 WebsocketConnectTests.testWssTlsFirstIgnored / testWssVerifyTlsFirstIgnored
+
+## N/A Part of external library depenency
+
+- 📚️ DateTimeUtilsTests.java
+    - 📚 testParseDateTimeNanos
+    - 📚 testParseDateTime
+    - 📚 testToRfc3339
+    - 📚 testFromNow
+    - 📚 testEquals
+- 📚️ EncodingTests.java
+    - 📚 testJsonEncodeDecode
+    - 📚 testBase64BasicEncoding
+    - 📚 testBase64UrlEncoding
+- 📚️ JsonParsingTests.java
+    - 📚️ testStringParsing
+    - 📚️ testJsonValuePrimitives
+    - 📚️ testArray
+    - 📚️ testListReading
+    - 📚️ testGetIntLong
+    - 📚️ testConstantsAreReadOnly
+    - 📚️ testNullJsonValue
+    - 📚️ testGetMapped
+    - 📚️ testParsingCoverage
+    - 📚️ testNumberParsing
+    - 📚️ testValueUtilsInstanceDuration
+    - 📚️ testValueUtilsInstanceList
+    - 📚️ testValueUtilsInstanceMap
+    - 📚️ testValueUtilsMapBuilder
+    - 📚️ testValueUtilsInstanceArray
+    - 📚️ testValueUtilsArrayBuilder
+    - 📚️ testReadStringStringMap
+    - 📚️ testJsonParseExceptionCoverage
+- 📚️ JsonUtilsTests.java
+    - 📚️ testRegex
+    - 📚️ testParseStringArray
+    - 📚️ testGetJSONObject
+    - 📚️ testGetObjectArray
+    - 📚️ testBeginEnd
+    - 📚️ testAddFields
+    - 📚️ testLists
+    - 📚️ testParseDateTime
+    - 📚️ testInteger
+    - 📚️ testLong
+    - 📚️ testBoolean
+    - 📚️ testSimpleMessageBody
+    - 📚️ testMiscCoverage
+    - 📚️ testReadStringMayHaveQuotes
+    - 📚️ testMapEquals
+- 📚 JwtUtilsTests.java
+    - 📚️ issueUserJWTSuccessMinimal
+    - 📚️ issueUserJWTSuccessMinimalCoverageNonAudienceApi
+    - 📚️ issueUserJWTSuccessAllArgs
+    - 📚️ issueUserJWTSuccessCustom
+    - 📚️ issueUserJWTSuccessCustomLimits
+    - 📚️ issueUserJWTBadSigningKey
+    - 📚️ issueUserJWTBadAccountId
+    - 📚️ issueUserJWTBadPublicUserKey
+    - 📚️ testUserClaimJson
+    - 📚️ testMiscCoverage
+- 📚 NKeyTests.java
+    - 📚️ testCRC16
+    - 📚️ testBase32
+    - 📚️ testEncodeDecodeSeed
+    - 📚️ testEncodeDecode
+    - 📚️ testDecodeWrongType
+    - 📚️ testEncodeSeedSize
+    - 📚️ testDecodeSize
+    - 📚️ testBadCRC
+    - 📚️ testAccount
+    - 📚️ testUser
+    - 📚️ testCluster
+    - 📚️ testOperator
+    - 📚️ testServer
+    - 📚️ testPublicOnly
+    - 📚️ testPublicOnlyCantSign
+    - 📚️ testPublicOnlyCantProvideSeed
+    - 📚️ testPublicOnlyCantProvidePrivate
+    - 📚️ testPublicFromSeedShouldFail
+    - 📚️ testSeedFromPublicShouldFail
+    - 📚️ testFromSeed
+    - 📚️ testFromBadSeed
+    - 📚️ testFromBadPublicKey
+    - 📚️ testBigSignVerify
+    - 📚️ testInterop
+    - 📚️ testTypeEnum
+    - 📚️ testRemovePaddingAndClear
+    - 📚️ testEquals
+    - 📚️ testPublicKeyFromSeed
+    - 📚️ testFromPublicKey

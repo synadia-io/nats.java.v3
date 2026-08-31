@@ -4,6 +4,11 @@
 
 This is the top-level migration guide for moving code from the v2 client (`nats.java`) to v3 (`nats.java.v3`). The v3 client is reorganized into separate projects: **core**, **jetstream**, **kv**, **os**, and **service**. Migration topics are grouped by project.
 
+Two topics are large enough to have their own documents, both linked again from the section they belong to:
+
+- **[MIGRATION_GUIDE_OPTIONS.md](MIGRATION_GUIDE_OPTIONS.md)** — the `Options` constants and property keys.
+- **[MIGRATION_GUIDE_NKEY.md](MIGRATION_GUIDE_NKEY.md)** — NKeys, which left the client for their own library and now require you to choose and configure an `NKeyProvider`.
+
 ---
 
 ## Exceptions — read this first
@@ -107,6 +112,17 @@ The `default` is not optional and not a wart: `JetStreamException` is deliberate
 ## Core
 
 - **[Options constants — user-facing changes](MIGRATION_GUIDE_OPTIONS.md)** — the `Options` class was split into `OptionsConstants` and `OptionsProperties`. Constants renamed to camelCase. May be folded into this guide later.
+
+- **[NKeys — user guide and migration](MIGRATION_GUIDE_NKEY.md)** — `io.nats.client.NKey` is gone. NKeys now live in their own library, [`nkeys.java`](https://github.com/nats-io/nkeys.java), as `io.nats.nkey.NKey`, and the API is provider-based: every static factory becomes an instance method on an `NKeyProvider` you obtain from `NKeyProvider.getProvider()`, so the Ed25519 implementation (stock BouncyCastle, the LTS build, or the FIPS build) is yours to pick.
+
+  | v2 | v3 |
+  |---|---|
+  | `NKey.createUser(random)` | `NKeyProvider.getProvider().createUser()` |
+  | `NKey.fromSeed(seed)` | `NKeyProvider.getProvider().fromSeed(seed)` |
+  | `NKey.Type` | `NKeyType` |
+  | `NKey.isValidPublicUserKey(k)` | `NKeyUtils.isValidPublicUserKey(k)` *(throws now — it no longer returns `false`)* |
+
+  **`jnats3-core` does not bring a provider implementation and there is no default.** If you use nkey or creds-file authentication — including through `Nats.credentials(...)` / `Nats.staticCredentials(...)`, whose signatures did not change — you must add a provider artifact **and** name it via the `NKEY_PROVIDER_CLASS` environment variable or the `nkey.provider.class` system property. Neither step is something the compiler can remind you about: the code builds and then throws on the first signature. The guide covers the setup, the full API mapping, the behavior traps, and Claude Code prompts for both halves of the job.
 
 - **`Connection` interface is gone — use `NatsConnection` directly.**
   The v2 `io.nats.client.Connection` interface is removed. There is now exactly one connection type, `io.synadia.client.impl.NatsConnection`. It is created from the `NatsImpl` class (or, more commonly, via the `Nats.connect(...)` static factory which now returns `NatsConnection` instead of `Connection`).

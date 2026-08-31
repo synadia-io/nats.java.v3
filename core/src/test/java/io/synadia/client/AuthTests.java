@@ -395,7 +395,7 @@ public class AuthTests extends TestBase {
         }
     }
 
-    String createNKeyConfigFile(char[] nkey) throws Exception {
+    String createNKeyConfigFile(char[] nkey) throws IOException {
         File tmp = Files.createTempFile("nats_java_test", ".conf").toFile();
         BufferedWriter writer = new BufferedWriter(new FileWriter(tmp));
 
@@ -414,7 +414,6 @@ public class AuthTests extends TestBase {
         writer.newLine();
 
         writer.close();
-
         return tmp.getAbsolutePath();
     }
 
@@ -423,7 +422,6 @@ public class AuthTests extends TestBase {
         NKey theKey = NKeyProvider.getProvider().createUser();
         assertNotNull(theKey);
         String configFilePath = createNKeyConfigFile(theKey.getPublicKey());
-
         NatsServerRunner.Builder b = NatsServerRunner.builder().configFilePath(configFilePath);
         try (NatsTestServer ts = new NatsTestServer(b)) {
 
@@ -518,6 +516,23 @@ public class AuthTests extends TestBase {
             Options options = optionsBuilder(ts).maxReconnects(0)
                 .authHandler(Nats.staticCredentials(jwt.toCharArray(), nkey.toCharArray())).build();
             assertCanConnect(options);
+        });
+    }
+
+    @Test
+    public void testBadAuthHandler() {
+        assertThrows(IOException.class, () -> {
+            NKey theKey = NKeyProvider.getProvider().createUser();
+            assertNotNull(theKey);
+            String configFilePath = createNKeyConfigFile(theKey.getPublicKey());
+            NatsServerRunner.Builder b = NatsServerRunner.builder().configFilePath(configFilePath);
+            try (NatsTestServer ts = new NatsTestServer(b)) {
+                Options options = new OptionsBuilder().server(ts.getServerUri()).maxReconnects(0)
+                    .authHandler(new AuthHandlerForTesting(null)). // No nkey
+                        build();
+                NatsConnection nc = Nats.connect(options);
+                assertNotConnected(nc);
+            }
         });
     }
 
