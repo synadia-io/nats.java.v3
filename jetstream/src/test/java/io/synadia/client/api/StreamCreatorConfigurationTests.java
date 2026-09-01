@@ -294,6 +294,51 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").duplicateWindow(Duration.ofNanos(-1)));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").duplicateWindow(-1));
         assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").subjectDeleteMarkerTtl(1));
+        // the Duration overload of subjectDeleteMarkerTtl has the same 1 second floor
+        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").subjectDeleteMarkerTtl(Duration.ofMillis(1)));
+        assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").subjectDeleteMarkerTtl(Duration.ofMillis(999)));
+        // exactly one second is fine on both
+        assertEquals(Duration.ofSeconds(1), new StreamCreator("x").subjectDeleteMarkerTtl(1000).getSubjectDeleteMarkerTtl());
+        assertEquals(Duration.ofSeconds(1), new StreamCreator("x").subjectDeleteMarkerTtl(Duration.ofSeconds(1)).getSubjectDeleteMarkerTtl());
+
+        // stream subjects go through the strict subject rules, on both overloads.
+        // null and empty are skipped rather than validated, so they are not in this list.
+        for (String bad : new String[]{HAS_SPACE, HAS_CR, HAS_LF, HAS_TAB, STARTS_SPACE, ENDS_SPACE,
+                                       STARTS_WITH_DOT, EMPTY_SEGMENT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT,
+                                       GT_NOT_LAST_SEGMENT, ENDS_WITH_DOT}) {
+            assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").subjects(bad));
+            assertThrows(IllegalArgumentException.class, () -> new StreamCreator("x").subjects(List.of(bad)));
+        }
+
+        // MirrorCreator / SourceCreator validate the stream name on both constructors
+        for (String bad : new String[]{null, "", HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_FWD_SLASH, HAS_BACK_SLASH}) {
+            assertThrows(IllegalArgumentException.class, () -> new MirrorCreator(bad));
+            assertThrows(IllegalArgumentException.class, () -> new SourceCreator(bad));
+            assertThrows(IllegalArgumentException.class, () -> new MirrorCreator(bad, new MirrorCreator("ok")));
+            assertThrows(IllegalArgumentException.class, () -> new SourceCreator(bad, new SourceCreator("ok")));
+        }
+
+        // ExternalCreator requires the api on both constructors and the setter
+        assertThrows(IllegalArgumentException.class, () -> new ExternalCreator((String)null));
+        assertThrows(IllegalArgumentException.class, () -> new ExternalCreator(""));
+        assertThrows(IllegalArgumentException.class, () -> new ExternalCreator((String)null, "deliver"));
+        assertThrows(IllegalArgumentException.class, () -> new ExternalCreator("", "deliver"));
+        assertThrows(IllegalArgumentException.class, () -> new ExternalCreator("api").api(null));
+        assertThrows(IllegalArgumentException.class, () -> new ExternalCreator("api").api(""));
+
+        // RepublishCreator requires source and destination on both constructors
+        assertThrows(IllegalArgumentException.class, () -> new RepublishCreator(null, "dest.>"));
+        assertThrows(IllegalArgumentException.class, () -> new RepublishCreator("", "dest.>"));
+        assertThrows(IllegalArgumentException.class, () -> new RepublishCreator("src.>", null));
+        assertThrows(IllegalArgumentException.class, () -> new RepublishCreator("src.>", ""));
+        assertThrows(IllegalArgumentException.class, () -> new RepublishCreator(null, "dest.>", true));
+        assertThrows(IllegalArgumentException.class, () -> new RepublishCreator("src.>", null, true));
+
+        // SubjectTransformCreator requires source and destination
+        assertThrows(IllegalArgumentException.class, () -> new SubjectTransformCreator(null, "dest.>"));
+        assertThrows(IllegalArgumentException.class, () -> new SubjectTransformCreator("", "dest.>"));
+        assertThrows(IllegalArgumentException.class, () -> new SubjectTransformCreator("src.>", null));
+        assertThrows(IllegalArgumentException.class, () -> new SubjectTransformCreator("src.>", ""));
     }
 
     @Test

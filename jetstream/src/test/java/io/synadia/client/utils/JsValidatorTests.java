@@ -140,20 +140,22 @@ public class JsValidatorTests extends ValidatorTests {
 
     @Test
     public void testValidateMustMatchIfBothSupplied() {
-        JetStreamClientError err = new JetStreamClientError("TEST", 999999, "desc");
-        assertNull(validateMustMatchIfBothSupplied(null, null, err));
-        assertEquals("y", validateMustMatchIfBothSupplied(null, "y", err));
-        assertEquals("y", validateMustMatchIfBothSupplied("", "y", err));
-        assertEquals("x", validateMustMatchIfBothSupplied("x", null, err));
-        assertEquals("x", validateMustMatchIfBothSupplied("x", " ", err));
-        assertEquals("x", validateMustMatchIfBothSupplied("x", "x", err));
-        assertThrows(IllegalArgumentException.class, () -> validateMustMatchIfBothSupplied("x", "y", err));
+        assertNull(validateMustMatchIfBothSupplied(null, null, "One", "Two"));
+        assertEquals("y", validateMustMatchIfBothSupplied(null, "y", "One", "Two"));
+        assertEquals("y", validateMustMatchIfBothSupplied("", "y", "One", "Two"));
+        assertEquals("x", validateMustMatchIfBothSupplied("x", null, "One", "Two"));
+        assertEquals("x", validateMustMatchIfBothSupplied("x", " ", "One", "Two"));
+        assertEquals("x", validateMustMatchIfBothSupplied("x", "x", "One", "Two"));
+        // both values are individually valid, so a conflict is state, not a bad argument
+        IllegalStateException ise = assertThrows(IllegalStateException.class,
+            () -> validateMustMatchIfBothSupplied("x", "y", "One", "Two"));
+        assertEquals("One must match Two if both are supplied.", ise.getMessage());
     }
 
     @Test
-    public void testNatsJetStreamClientError() {
+    public void testClientError() {
         // coverage
-        JetStreamClientError err = new JetStreamClientError("TEST", 999999, "desc");
+        ClientError err = new ClientError("TEST", 999999, "desc", ClientError.KIND_ILLEGAL_ARGUMENT);
         assertEquals("[TEST-999999] desc", err.message());
     }
 

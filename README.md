@@ -4,6 +4,12 @@
 
 # WORK IN PROGRESS
 
+### Server Compatibility
+
+**This client requires nats-server 2.10 or later. 2.14 or later is preferred.**
+
+v2 of the client carried runtime checks and opt-outs for server features introduced in 2.9 and earlier. v3 drops them: the 2.10 floor is assumed, not tested for, so pointing v3 at an older server is unsupported and will fail in ways the client does not attempt to diagnose. Features added after 2.10 are still detected at runtime from the server's `INFO` — those degrade gracefully rather than requiring the newer server.
+
 ### Properties
 
 The property loader accepts each key with or without the `io.nats.client.` prefix; both forms resolve to the same property.

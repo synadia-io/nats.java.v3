@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ConsumerConfigurationTests extends TestBase {
 
-    static final String STREAM = "test-stream";
     static final String DELIVER_SUBJECT = "deliver-subject";
 
     static final ZonedDateTime TEST_START_TIME = DateTimeUtils.parseDateTime("2020-11-05T19:33:21.163377000Z");
@@ -387,6 +386,100 @@ public class ConsumerConfigurationTests extends TestBase {
         assertSame(cc, result);
     }
 
+    @Test
+    public void testConsumerCreatorErrors() throws Exception {
+        // both values are individually valid, it is the creator's existing state that rejects the call
+        IllegalStateException mismatch = assertThrows(IllegalStateException.class,
+            () -> new PushConsumerCreator()
+                .durable("name")
+                .name("different")
+        );
+        assertEquals("Name must match Durable if both are supplied.", mismatch.getMessage());
+
+        // and the same the other way round, which exercises the _durable path instead of _name
+        mismatch = assertThrows(IllegalStateException.class,
+            () -> new PushConsumerCreator()
+                .name("name")
+                .durable("different")
+        );
+        assertEquals("Name must match Durable if both are supplied.", mismatch.getMessage());
+
+        // and the same the other way round, which exercises the _durable path instead of _name
+        mismatch = assertThrows(IllegalStateException.class,
+            () -> new PullConsumerCreator()
+                .durable("name")
+                .name("different")
+        );
+        assertEquals("Name must match Durable if both are supplied.", mismatch.getMessage());
+
+        // and the same the other way round, which exercises the _durable path instead of _name
+        mismatch = assertThrows(IllegalStateException.class,
+            () -> new PullConsumerCreator()
+                .name("name")
+                .durable("different")
+        );
+        assertEquals("Name must match Durable if both are supplied.", mismatch.getMessage());
+
+        // durable and name reject anything validatePrintableExceptWildDotGtSlashes rejects
+        for (String bad : new String[]{HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_FWD_SLASH, HAS_BACK_SLASH, HAS_LOW, HAS_127}) {
+            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().durable(bad));
+            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().durable(bad));
+            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().name(bad));
+            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().name(bad));
+        }
+
+        // filter subjects go through the full strict subject rules, on both the varargs and the list
+        // overload. HAS_DOT is deliberately absent - "has.dot" is a perfectly valid two segment subject.
+        // null and empty are skipped rather than validated, so they are not here either.
+        for (String bad : new String[]{HAS_SPACE, HAS_CR, HAS_LF, HAS_TAB, STARTS_SPACE, ENDS_SPACE,
+                                       STARTS_WITH_DOT, EMPTY_SEGMENT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT,
+                                       GT_NOT_LAST_SEGMENT, "ends.with.dot."}) {
+            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().subjects(bad));
+            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().subjects(List.of(bad)));
+            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().subjects(bad));
+            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().subjects(List.of(bad)));
+        }
+
+        // flow control requires an idle heartbeat. a null or non-positive one leaves it unset, which is the error.
+        String fcMessage = "Idle Heartbeat must set with flow control and must be at least "
+            + ConsumerCreator.MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.";
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().flowControl((Duration)null));
+        assertEquals(fcMessage, iae.getMessage());
+        iae = assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().flowControl(Duration.ZERO));
+        assertEquals(fcMessage, iae.getMessage());
+        iae = assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().flowControl(0L));
+        assertEquals(fcMessage, iae.getMessage());
+        iae = assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().flowControl(-1L));
+        assertEquals(fcMessage, iae.getMessage());
+
+        // a positive-but-too-small heartbeat fails earlier, in _idleHeartbeat, with the other message
+        String hbMessage = "Idle Heartbeat must be greater than or equal to "
+            + ConsumerCreator.MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.";
+        iae = assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().flowControl(ConsumerCreator.MIN_IDLE_HEARTBEAT_MILLIS - 1));
+        assertEquals(hbMessage, iae.getMessage());
+
+        // backoff rejects a negative on both overloads, in any position
+        iae = assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().backoff(Duration.ofMillis(-1)));
+        assertEquals("Backoff must be 0 or greater.", iae.getMessage());
+        assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().backoff(Duration.ofSeconds(1), Duration.ofMillis(-1)));
+        iae = assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().backoff(-1L));
+        assertEquals("Backoff must be 0 or greater.", iae.getMessage());
+        assertThrows(IllegalArgumentException.class,
+            () -> new PullConsumerCreator().backoff(1000L, -1L));
+
+        // zero is allowed on both
+        assertEquals(List.of(Duration.ZERO), new PullConsumerCreator().backoff(Duration.ZERO).getBackoff());
+        assertEquals(List.of(Duration.ZERO), new PullConsumerCreator().backoff(0L).getBackoff());
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // Pull Ephemeral Consumer Creator
     // ----------------------------------------------------------------------------------------------------
@@ -456,6 +549,16 @@ public class ConsumerConfigurationTests extends TestBase {
         assertEquals("my-group", cc.getDeliverGroup());
 
         assertNull(cc.getDurable());
+
+        for (String bad : BAD_SUBJECTS_OR_QUEUES) {
+            if (bad == null || bad.isEmpty()) {
+                PushConsumerCreator creator = new PushConsumerCreator().deliverGroup(bad);
+                assertNull(creator.getDeliverGroup());
+            }
+            else {
+                assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().deliverGroup(bad));
+            }
+        }
     }
 
     // ----------------------------------------------------------------------------------------------------

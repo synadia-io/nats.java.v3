@@ -15,8 +15,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.synadia.client.os.ObjectStoreUtil.*;
-import static io.synadia.client.utils.JetStreamClientError.*;
 import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
+import static io.synadia.client.utils.ObjectStoreClientError.*;
 import static io.synadia.client.utils.Validator.validateNotNull;
 
 /**
@@ -411,7 +411,7 @@ public class ObjectStore extends AbstractBucketFeature {
         validateNotNull(toInfo.getObjectName(), "Link-To ObjectMeta");
 
         if (toInfo.isDeleted()) {
-            throw OsObjectIsDeleted.instance();
+            throw OsCantLinkToDeletedObject.instance();
         }
 
         if (toInfo.isLink()) {

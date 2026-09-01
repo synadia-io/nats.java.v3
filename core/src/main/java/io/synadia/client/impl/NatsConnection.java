@@ -1714,7 +1714,7 @@ public class NatsConnection implements AutoCloseable {
 
     /**
      * Convenience method to create a dispatcher with no default handler. Only used
-     * with JetStream push subscriptions that require specific handlers per subscription.
+     * with JetStream subscriptions that require specific handlers per subscription.
      *
      * @return a new Dispatcher
      */

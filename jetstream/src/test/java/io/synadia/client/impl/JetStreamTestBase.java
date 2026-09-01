@@ -3,12 +3,10 @@ package io.synadia.client.impl;
 import io.nats.NatsServerRunner;
 import io.synadia.client.*;
 import io.synadia.client.api.*;
-import io.synadia.client.utils.JetStreamClientError;
 import io.synadia.client.utils.TestBase;
 import io.synadia.client.utils.VersionUtils.VersionCheck;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import org.junit.jupiter.api.function.Executable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -21,10 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static io.synadia.client.utils.ConnectionUtils.managedConnect;
-import static io.synadia.client.utils.JetStreamClientError.KIND_ILLEGAL_ARGUMENT;
-import static io.synadia.client.utils.JetStreamClientError.KIND_ILLEGAL_STATE;
 import static io.synadia.client.utils.OptionsUtils.options;
-import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static io.synadia.client.utils.VersionUtils.VERSION_SERVER_INFO;
 import static io.synadia.client.utils.VersionUtils.initVersionServerInfo;
@@ -328,20 +323,6 @@ public class JetStreamTestBase extends TestBase {
             latch.await(1, TimeUnit.SECONDS);
         }
         assertEquals(0, latch.getCount());
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // Subscription or test macros
-    // ----------------------------------------------------------------------------------------------------
-    public void assertClientError(JetStreamClientError error, Executable executable) {
-        Exception e = assertThrows(Exception.class, executable);
-        assertTrue(e.getMessage().contains(error.id()));
-        if (error.getKind() == KIND_ILLEGAL_ARGUMENT) {
-            assertInstanceOf(IllegalArgumentException.class, e);
-        }
-        else if (error.getKind() == KIND_ILLEGAL_STATE) {
-            assertInstanceOf(IllegalStateException.class, e);
-        }
     }
 
     // ----------------------------------------------------------------------------------------------------

@@ -92,3 +92,9 @@ Note option 2 interacts with the **KV/OS split** (they become separate projects)
 - [ ] **O3 — Decide the split-package strategy** (§4). Gate: if option 2, it should land in V3 before release, since it is a breaking rename.
 - [ ] **O4 — Add a module-path smoke test** so this can't regress silently. A trivial consumer with a `module-info.java` requiring both jars fails today; it should be the thing that proves O3 worked.
 - [ ] **O5 — Decide whether V3 ships real `module-info.java`** or stays on `Automatic-Module-Name` (§4 option 4). Depends on O3.
+
+### `ClientError` is already O3-ready (2026-09-01)
+
+`io.synadia.client.utils.ClientError` lives in core; `JetStreamClientError` and `ObjectStoreClientError` are constant holders in jetstream that declare `public static final ClientError` entries. They construct `ClientError` directly, so they only compile today because that package is split across the two jars.
+
+Its constructor was made **`public`** for exactly this reason: when O3 gives core and jetstream distinct internal packages, the holders keep working with no change. `protected` would not have sufficed — the holders are not subclasses of `ClientError`, so `protected` degrades to package-private for them. The class and constructor javadoc now say the type is internal and its API is not guaranteed, which is what carries the intent that users not declare their own entries. See `CLIENT_ERROR_AUDIT.md` §7.

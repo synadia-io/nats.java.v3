@@ -24,16 +24,22 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
       - 🔧 ConsumerConfigurationTests.testPushEphemeralConsumerCreator
       - 🔧 JetStreamGeneralTests.testJetStreamSubscribeErrors
     - 🚨 testFilterSubjectEphemeral
-    - 🚨 testBindPush
-    - 🚨 testBindPull
-    - 🚨 testBindErrors
+    - ❌ testBindPush
+    - ❌ testBindPull
+    - ❌ testBindErrors
     - 🚨 testFilterMismatchErrors
-    - 🚨 testBindDurableDeliverSubject
+    - ❌ testBindDurableDeliverSubject
     - 🚨 testConsumerIsNotModified
     - 🚨 testSubscribeDurableConsumerMustMatch
-    - 🚨 testGetConsumerInfoFromSubscription
-    - 🚨 testNatsConnectionTimeCheckLogic
-    - 🚨 testMoreCreateSubscriptionErrors
+    - 🏁 testGetConsumerInfoFromSubscription
+        - 🔧 JetStreamSubscribeTests.testJetStreamPushSubscribeBasics
+        - 🔧 JetStreamSubscribeTests.testJetStreamPullSubscribeBasics
+    - ❌ testNatsConnectionTimeCheckLogic
+    - 🏁 testMoreCreateSubscriptionErrors
+      - ❌ Mostly not applicable — most of it asserts `JsSub*`/`JsSo*` ids that died with `PushSubscribeOptions`/`PullSubscribeOptions` (pull-cant-have-deliver-group/subject, push-cant-have-max-pull-waiting/batch/bytes, already-bound, queue/deliver-group mismatch, existing-consumer-not-queue)
+      - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeErrors — the surviving `JsSubNoMatchingStreamForSubject` half, push and pull
+      - 🔧 ConsumerConfigurationTests.testConsumerCreatorErrors — the name/durable conflict, plus the creator validation the v2 test reached only through subscribe: durable/name characters, filter subjects, flow-control heartbeat, backoff
+      - 🔧 StreamCreatorConfigurationTests.testConstructionInvalidsCoverage — the stream-side equivalents
 - 🗃️ JetStreamMirrorAndSourcesTests.java
     - 🚨 testMirrorBasics
     - 🚨 testMirrorReading

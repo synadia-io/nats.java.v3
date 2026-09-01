@@ -107,26 +107,16 @@ public abstract class JsValidator extends Validator {
     }
 
     /**
-     * Assert a value was not supplied, raising the given error when it was.
-     * @param s the value to validate
-     * @param err the error to raise
-     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
-     */
-    public static void validateNotSupplied(String s, JetStreamClientError err) {
-        if (!nullOrEmpty(s)) {
-            throw err.instance();
-        }
-    }
-
-    /**
      * Require two values to match when both are supplied, returning whichever was given.
+     * Both values being individually valid, a conflict is the object's state, not a bad argument.
      * @param s1 the first value
      * @param s2 the second value
-     * @param err the error to raise when they conflict
+     * @param label1 the label for the first value, used in the message
+     * @param label2 the label for the second value, used in the message
      * @return the supplied value, or null if neither was supplied
-     * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
+     * @throws IllegalStateException if both are supplied and they do not match
      */
-    public static String validateMustMatchIfBothSupplied(String s1, String s2, JetStreamClientError err) {
+    public static String validateMustMatchIfBothSupplied(String s1, String s2, String label1, String label2) {
         // s1   | s2   || result
         // ---- | ---- || --------------
         // null | null || valid, null s2
@@ -145,7 +135,7 @@ public abstract class JsValidator extends Validator {
             return s1;
         }
 
-        throw err.instance();
+        throw new IllegalStateException(label1 + " must match " + label2 + " if both are supplied.");
     }
 
     /**

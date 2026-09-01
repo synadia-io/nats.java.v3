@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
 
+import static io.synadia.client.utils.JetStreamClientError.JsSubDispatcherNoHandlerCantReceiveMessages;
+
 /**
  * The resolved settings for one JetStream subscription, worked out once when the subscription is created
  * by combining the consumer the subscription is bound to with the caller's subscribe behavior.
@@ -62,7 +64,7 @@ public class JetStreamSubscribeConfig extends SubscribeBehavior {
         boolean internalDispatcher = false;
         if (handler == null) {
             if (dispatcher != null) {
-                throw new IllegalArgumentException("Dispatcher without a handler cannot receive messages");
+                throw JsSubDispatcherNoHandlerCantReceiveMessages.instance();
             }
         }
         else if (dispatcher == null) {

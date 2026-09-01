@@ -11,6 +11,21 @@ Two topics are large enough to have their own documents, both linked again from 
 
 ---
 
+## Server version — read this before anything else
+
+**v3 requires nats-server 2.10 or later, and 2.14 or later is preferred.** v2 supported older servers and carried the machinery to prove it: runtime version gates, client-side errors for "this server is too old for that", and opt-outs to force the legacy path. v3 assumes the 2.10 floor instead of testing for it, so that machinery is gone:
+
+| v2 | v3 |
+|---|---|
+| `JsConsumerCreate290NotAvailable` (`CON-90301`) | (deleted — the 2.9.0 consumer-create API is always present at the 2.10 floor) |
+| `JsMultipleFilterSubjects210NotAvailable` (`CON-90303`) | (deleted — multiple filter subjects are always available at the 2.10 floor) |
+
+Nothing replaces them, because at 2.10+ neither condition can occur. **If you point v3 at a pre-2.10 server it is unsupported**, and the failure will not be diagnosed for you — you will get whatever the server returns for an API it does not have, not a clear "server too old" error. Check your servers before migrating.
+
+This applies only to the floor. Features introduced *after* 2.10 are still detected at runtime from the server's `INFO` and degrade gracefully — for example the 2.11 direct batch get.
+
+---
+
 ## Exceptions — read this first
 
 > **Work in progress.** This section tracks the v3 exception rework as it lands. Re-read it when you take a new v3 build. It has two parts: the **reclassifications** (usage errors that were `IOException` are now unchecked — first), and the **`JetStreamException` consolidation** (the `IOException` + `JetStreamApiException` pair on the JetStream surface collapses to one base type — second).
@@ -246,6 +261,30 @@ JetStreamManagement jsm     = new JetStreamManagement(nc, jsOptions);
 ```
 
 (Both classes live in `io.synadia.client.impl`. Static `instance(...)` factories also exist on `JetStream` if you prefer that style.)
+
+### `JetStream.createDispatcher()` — the one you want for JetStream
+
+New in v3, and there purely to remove a choice that was easy to get wrong. `NatsConnection` has had two `createDispatcher` overloads since v2 — one that takes a default `MessageHandler` and one that takes nothing — and for JetStream the no-argument one is almost always the right call, because a JetStream subscription carries its own handler per subscription rather than leaning on the dispatcher's default. Having it on `JetStream` makes that obvious at the call site:
+
+```java
+// v2, and still valid in v3 - but you have to know which overload JetStream wants
+Dispatcher d = nc.createDispatcher();
+
+// v3, says what it is for
+NatsDispatcher d = js.createDispatcher();
+```
+
+It is a convenience, not a new capability — the body is `conn.createDispatcher(null)` — so nothing breaks if you keep calling the connection. Supply the handler on the `SubscribeBehavior` alongside the dispatcher:
+
+```java
+NatsDispatcher d = js.createDispatcher();
+SubscribeBehavior behavior = new SubscribeBehavior()
+    .dispatcher(d)
+    .handler(msg -> handle(msg));
+js.pushSubscribe(stream, new PushConsumerCreator(), behavior);
+```
+
+A dispatcher with no handler on either side cannot deliver anything, so that combination is rejected up front with an `IllegalStateException` — `[SUB-90023] Dispatcher without a handler cannot receive messages.` If you pass a dispatcher to `SubscribeBehavior`, pass a handler too.
 
 ### Simplified consumer renames
 

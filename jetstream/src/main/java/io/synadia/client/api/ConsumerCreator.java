@@ -12,7 +12,6 @@ import java.util.*;
 import static io.nats.json.JsonWriteUtils.*;
 import static io.synadia.client.utils.ApiConstants.*;
 import static io.synadia.client.utils.JetStreamApiUtils.*;
-import static io.synadia.client.utils.JetStreamClientError.JsConsumerNameDurableMismatch;
 import static io.synadia.client.utils.JsValidator.*;
 
 /**
@@ -620,21 +619,23 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     /**
      * Sets the durable name.
      * @param durable the durable name
-     * @throws IllegalArgumentException if the durable is not printable or contains '*', '.', '&gt;', '\' or '/', or does not match a previously set name
+     * @throws IllegalArgumentException if the durable is not printable or contains '*', '.', '&gt;', '\' or '/'
+     * @throws IllegalStateException if a name was already set and does not match
      */
     protected void _durable(@Nullable String durable) {
-        this.durable = validateDurable(emptyAsNull(durable), false);
-        validateMustMatchIfBothSupplied(name, durable, JsConsumerNameDurableMismatch);
+        this.durable = validateDurable(durable, false);
+        validateMustMatchIfBothSupplied(name, durable, "Name", "Durable");
     }
 
     /**
      * Sets the consumer name.
      * @param name the consumer name
-     * @throws IllegalArgumentException if the name is not printable or contains '*', '.', '&gt;', '\' or '/', or does not match a previously set durable
+     * @throws IllegalArgumentException if the name is not printable or contains '*', '.', '&gt;', '\' or '/'
+     * @throws IllegalStateException if a durable was already set and does not match
      */
     protected void _name(@Nullable String name) {
-        this.name = validateConsumerName(emptyAsNull(name), false);
-        validateMustMatchIfBothSupplied(name, durable, JsConsumerNameDurableMismatch);
+        this.name = validateConsumerName(name, false);
+        validateMustMatchIfBothSupplied(name, durable, "Name", "Durable");
     }
 
     protected void _deliverSubject(@Nullable String subject) {
@@ -642,7 +643,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     protected void _deliverGroup(@Nullable String group) {
-        this.deliverGroup = emptyAsNull(group);
+        this.deliverGroup = validateSubjectTermStrict(group, "DeliverGroup", false);
     }
 
     protected void _ackPolicy(@Nullable AckPolicy policy) {
@@ -702,7 +703,8 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      */
     protected void _flowControl(@Nullable Duration idleHeartbeat) {
         _idleHeartbeat(idleHeartbeat);
-        if (idleHeartbeat == null) {
+        // the field, not the parameter, which _idleHeartbeat clears for a non-positive value
+        if (this.idleHeartbeat == null) {
             throw new IllegalArgumentException("Idle Heartbeat must set with flow control and must be at least " + MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.");
         }
         this.flowControl = true;
@@ -716,7 +718,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     protected void _flowControl(long idleHeartbeatMillis) {
         _idleHeartbeat(idleHeartbeatMillis);
         if (idleHeartbeat == null) {
-            throw new IllegalArgumentException("Idle Heartbeat must set with flow control and must be at least " + MIN_IDLE_HEARTBEAT + " milliseconds.");
+            throw new IllegalArgumentException("Idle Heartbeat must set with flow control and must be at least " + MIN_IDLE_HEARTBEAT_MILLIS + " milliseconds.");
         }
         this.flowControl = true;
     }

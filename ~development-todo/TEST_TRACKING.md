@@ -44,14 +44,57 @@ Established 2026-08-28. A test should not open a connection to anything outside 
 ### `HappyEyeballsConnector` — only the short circuit is covered
 Per the jacoco report, lines 58-104 are entirely uncovered: the staggered-delay task construction, `executor.invokeAny`, the winner/loser socket handling in `closeAllExcept`, and the `No responsive IP found` throw. Covering it needs a hostname resolving to 2+ addresses that are all local. Possible approach: `NatsInetAddress` goes through a pluggable `PROVIDER`, so a test provider could return two loopback addresses (`127.0.0.1` and `127.0.0.2`, both local) for a fake name — unverified, and worth checking whether the provider is swappable from a test.
 
-### `pushSubscribe(String subject)` with no matching stream
-`JsSubNoMatchingStreamForSubject` is never thrown in any test.
+### ~~`pushSubscribe(String subject)` with no matching stream~~ — CLOSED
+`JsSubNoMatchingStreamForSubject` is now asserted for both push and pull in `JetStreamSubscribeTests:117,121`.
 
 ### Null-argument validation on the push subscribe overloads
 Every `MessageHandler` / `SubscribeBehavior` overload calls `Validator.required(...)` and the javadoc promises `IllegalArgumentException`; nothing asserts it.
 
 ### `SubscribeBehavior.messageAlarmTime`
 Never set in any test under `client/impl`.
+
+### ~~Creator-hierarchy validation~~ — CLOSED 2026-08-31
+
+Audited 2026-08-31, then filled. All validation in the creator hierarchy lives in seven classes; the other ten (`PullConsumerCreator`, `PushConsumerCreator`, both ordered creators, both abstract bases, `ConsumerLimitsCreator`, `PlacementCreator`, `MirrorCreator`, `SourceCreator`) validate nothing of their own.
+
+Twenty distinct conditions. Nine had no negative test and two were partial; all are covered now, in `ConsumerConfigurationTests.testConsumerCreatorErrors` (consumer side) and `StreamCreatorConfigurationTests.testConstructionInvalidsCoverage` (stream side and the satellite creators): consumer `subjects()`/`filterSubjects()`, `_durable` and `_name` bad characters, `flowControl` idle heartbeat on both overloads, `backoff` negative on both overloads, stream `subjects()`, `subjectDeleteMarkerTtl`'s `Duration` overload, `ExternalCreator`'s two constructors, `RepublishCreator`, `SubjectTransformCreator`, and `StreamSourceCreator` via `MirrorCreator`/`SourceCreator` on both constructors.
+
+**Two real bugs fell out of writing them, both in `ConsumerCreator._flowControl`:**
+
+- **`flowControl(Duration)` checked the parameter instead of the field.** `_idleHeartbeat` clears the field to null for a non-positive value, but the guard read the *parameter*, which is non-null for `Duration.ZERO` or a negative. So `flowControl(Duration.ZERO)` set `flowControl = true` with no heartbeat — exactly the state the guard exists to prevent — and threw only for a literal `null`. The millis overload was correct by accident: it has no parameter of that name, so `idleHeartbeat` there already meant the field.
+- **The millis overload's message interpolated `MIN_IDLE_HEARTBEAT` (a `Duration`) rather than `MIN_IDLE_HEARTBEAT_MILLIS`**, so it read "must be at least PT0.1S milliseconds."
+
+Two notes worth keeping:
+
+- **`validateSubjectTermStrict` validates a whole subject, not a single term.** `HAS_DOT` ("has.dot") is a valid two-segment subject and does *not* throw; the name misleads. The subject cases that do throw are whitespace, a leading dot, an empty segment, a trailing dot, and misplaced wildcards. `null` and `""` never reach the validator at all — `replaceAllStrings` skips empty entries before calling it.
+- **The consumer/stream replica asymmetry is real and is covered on both sides.** `ConsumerCreator` reads `numReplicas < 1 ? UNSET : validateNumberOfReplicas(numReplicas)`, so `numReplicas(0)` silently means "unset"; `StreamCreator.replicas` calls the validator directly, so `replicas(0)` throws. Easy to "fix" wrongly later if the asymmetry is not noticed.
+
+Still open, deliberately: the four commented-out test methods in `StreamCreatorConfigurationTests` — `testPlacement` (`:582`), `testRepublish` (`:646`), `testSubjectTransform` (`:663`), `testConsumerLimits` (`:676`). The *validation* they contained is now covered by the additions above; what is still uncovered is their round-trip and getter/setter content.
+
+### ObjectStore `ClientError` conditions — none are covered, and they wait on the `tdb/` port
+
+Recorded 2026-08-31, **not to be acted on yet**: `ObjectStoreTests` and `ObjectStoreApiTests` are still in `tdb/`, and KV/OS are gated behind the split being deferred until the JetStream API settles. This is the checklist for when that port happens.
+
+All ten `ObjectStoreClientError` constants are thrown from `ObjectStore.java` and **none is asserted anywhere in `jetstream/src/test`**. The `tdb/` copies cover six of them, so four have no test even waiting to be ported:
+
+| Constant | Kind | Throw sites | `tdb/` coverage |
+|---|---|---|---|
+| `OsObjectNotFound` | STATE | `:217` get, `:345` updateMeta, `:382` delete | `ObjectStoreTests` ×6 |
+| `OsObjectIsDeleted` | STATE | `:348` updateMeta | `ObjectStoreTests` ×2 — **one of those two is the `addLink` case and must become `OsCantLinkToDeletedObject`** |
+| `OsObjectAlreadyExists` | STATE | `:354` updateMeta, `:423` addLink, `:446` addBucketLink | `ObjectStoreTests` ×3 |
+| `OsCantLinkToLink` | ARGUMENT | `:418` addLink | `ObjectStoreTests` ×2 |
+| `OsGetLinkToBucket` | STATE | `:223` get | `ObjectStoreTests` ×1 |
+| `OsLinkNotAllowOnPut` | ARGUMENT | `:95` put | `ObjectStoreTests` ×1 |
+| `OsGetDigestMismatch` | STATE | `:295` get | **none** |
+| `OsGetChunksMismatch` | STATE | `:267`, `:292` get | **none** |
+| `OsGetSizeMismatch` | STATE | `:293` get | **none** |
+| `OsCantLinkToDeletedObject` | ARGUMENT | `:414` addLink | **none** (constant is new, 2026-08-31) |
+
+Three things to carry into that port:
+
+- **The digest/chunks/size trio has never been tested, in v2 either.** They need a corrupted or truncated download — a stored object whose chunks, size or digest disagree with its `ObjectInfo` — which means writing chunk messages directly rather than going through `put`. That is why they have no v2 test to port, and it is the single biggest gap in the OS error surface.
+- **`tdb/io/synadia/client/impl/ObjectStoreTests.java:371` is now wrong.** It asserts `OsObjectIsDeleted` for the `addLink` case; that split off into `OsCantLinkToDeletedObject` on 2026-08-31. Line 126 (`updateMeta`) is still correct.
+- **Every kind changed on 2026-08-31** except the three ARGUMENT ones, so any ported assertion that expects `IllegalArgumentException` for `OsObjectNotFound`, `OsObjectIsDeleted`, `OsObjectAlreadyExists`, `OsGetLinkToBucket` or the mismatch trio needs `IllegalStateException` instead. See `CLIENT_ERROR_AUDIT.md` §3e.
 
 ### `JetStreamSubscribeConfig` — pull
 `testJetStreamSubscribeConfigCoverage` covers push, ordered, and the with/without name prefix cases. Pull is deliberately left for Scott.
@@ -307,6 +350,16 @@ Across roughly six full `:core:test :jetstream:test` runs, each of these failed 
 ### The `_testFetch` mechanism — identified 2026-08-13, not fixed
 
 `SimplificationTests.testFetchDurable` and `.testFetchOrdered` (and `.testFetchEphemeral`, not yet on this list) all run the same `_testFetch` helper. The flake is **`assertTrue(elapsed < 100)`** — a 100 ms wall-clock budget, at `SimplificationTests.java:286` for cases 1A/1B/2B and again at `:296` for case 2A.
+
+**MECHANISM CORRECTED 2026-09-01: it is the filesystem, and the "clean worktree passes" control was confounded.** The working tree lives on `/mnt/c` — a **9p** mount (the Windows drive through WSL). A `git worktree` made under `/tmp` is on native **ext4**. A 100 ms wall-clock budget does not survive that difference, so every "reverted source still fails here but the worktree passes" observation below was measuring the mount, not the tree. Controlled run, source held at `HEAD`, only the mount varied:
+
+| tree | source | filesystem | result |
+|---|---|---|---|
+| worktree under `/tmp` | `HEAD` | ext4 | **PASSED** |
+| worktree under `/mnt/c` | `HEAD` | 9p | **FAILED 5/5** |
+| the working tree | HEAD + the whole `ClientError` change set | 9p | **FAILED 5/5** |
+
+Same source, different mount, opposite result; same mount, different source, identical result. **So: put the control worktree on the same filesystem as the tree you are testing, or the comparison is worthless.** `/mnt/c/nats/temp/` works. This does not contradict the load sensitivity below — 9p is a large standing handicap that load then tips over. It is not deterministic: the same working tree on the same 9p mount failed `testFetchDurable` 5/5 twice, then passed it outright on a full-module run ~20 minutes later (that run was green overall, with `JetStreamPushTests.testAcks` flaking once and clearing on retry). So on 9p, expect *some* member of the timing family to tip on any given run.
 
 **It is load, not code.** Found while verifying the `z-claude-done/ISSUE_1596_REVIEW.md` work, where it failed 5/5 in a full run and looked exactly like a regression. It is not: with the source reverted byte-identical to `HEAD`, this working tree still failed **3/3** while a `git worktree` at the same commit passed **3/3** concurrently on the same machine. Cleaning the build directories changed nothing. On a later run `testFetchDurable` passed and its sibling `testOverflowFetch` flaked instead and passed on retry — that wandering between tests of the same class is the signature.
 

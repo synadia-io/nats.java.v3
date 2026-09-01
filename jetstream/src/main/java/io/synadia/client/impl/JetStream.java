@@ -78,6 +78,16 @@ public class JetStream extends JetStreamImpl {
         return jsm;
     }
 
+    /**
+     * Convenience method to create a dispatcher with no default handler, which
+     * is the type that JetStream subscriptions expect.
+     *
+     * @return a new Dispatcher
+     */
+    public NatsDispatcher createDispatcher() {
+        return conn.createDispatcher(null);
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // Publish
     // ----------------------------------------------------------------------------------------------------
