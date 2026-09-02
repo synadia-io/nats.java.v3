@@ -699,4 +699,21 @@ java.io.IOException: Unable to connect to NATS servers: [nats://demo.nats.io:422
 
 **This is intentional and is not to be "fixed".** Scott's call, 2026-08-28: it is worth having one connect test that actually goes out over the wire. It was briefly pointed at a local `NatsTestServer` and then put back. See the localhost rule in Part 1 above for the exception and the reasoning.
 
+**Recurred on CI, 2026-08-31** — Windows run [33420052954](https://github.com/synadia-io/nats.java.v3/actions/runs/33420052954), `:core:test`, 569 tests / 5 failed: this test alone, failing all 5 attempts and taking the build down. `Build Main` for the same commit failed too, so it was not a Windows-specific effect. Consistent with demo.nats.io being unreachable at the time rather than anything in the client — which is exactly the reading this section calls for, now with a data point behind it.
+
 Separately, and unrelated to the flake: per the jacoco report, `HappyEyeballsConnector` lines 58-104 — the whole multi-ip racing path — are uncovered. Only the `ips.length == 1` short circuit is exercised. Tracked under coverage gaps in Part 1.
+
+## New candidate, seen 2026-09-01: `ServiceTests.testQueueGroup` / `testResponsesFromAllInstances` — Windows CI, publish beats the service SUB
+
+Windows CI run [33555128704](https://github.com/synadia-io/nats.java.v3/actions/runs/33555128704) on `f2057f8f`, `:service:test`, 20 tests / 6 failed. **`Build Main` for the same commit passed** (run `33555128747`), and the commit touched nothing in the service module. First entry on this page whose axis is *Windows*-CI-only — everything above flaps on the Linux runners and passes on Windows, so do not reach for the Linux-runner explanations here.
+
+- `testResponsesFromAllInstances` (`ServiceTests.java:632`) — failed once, passed on retry
+- `testQueueGroup` (`ServiceTests.java:563`, `assertTrue(latch.await(2, TimeUnit.SECONDS))`) — failed **all 5 attempts**, exhausting `maxFailures = 4` (`build.gradle:125`) and failing the build
+
+**Mechanism: the test publishes before the server has processed the services' SUBs.** `ServiceTests.java:530-531` starts both services and then immediately publishes from a *different* connection (`:558-561`). `Service.startService()` (`Service.java:191`) → `EndpointContext.start()` (`EndpointContext.java:59`) only calls `dispatcher.subscribe(...)`, which queues the SUB on the service connections — nothing flushes. `isStarted()` (`Service.java:363`) is no help: it checks a future that `startService` completes synchronously at `:203`, so it says nothing about the server having seen the subscription. On a loaded Windows runner the PUBs beat the SUBs, the messages are dropped with no responders, and a 2-second `latch.await` cannot recover a message that was never delivered.
+
+Why only one of the two recovers: `testResponsesFromAllInstances` has the identical race but a 10-second `Discovery` window, so it usually rides it out. `testQueueGroup`'s 2-second latch does not — and the retry plugin reruns in fresh workers, so each retry replays the same cold-start race rather than benefiting from the previous attempt's still-live services. That is why it went 5-for-5 instead of flapping.
+
+**Idea, not applied.** Flush before publishing. `ServiceTests extends TestBase` and `TestBase.flushConnection` (`TestBase.java:523`) already exists but is used nowhere in `ServiceTests`: `flushConnection(serviceNc1)` / `flushConnection(serviceNc2)` after the two `startService()` calls, and `flushConnection(clientNc)` after `d.subscribe(replyTo)` — in both tests, since both share the race.
+
+Noticed in passing: `EchoHandler.onMessage` (`ServiceTests.java:394`) increments `counter` once directly and once again inside the default single-arg constructor's `responder` lambda (`:383`), so it double-counts. Nothing reads `counter` today, so it broke nothing — but it is a landmine for the first test that does assert on it.

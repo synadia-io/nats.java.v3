@@ -786,7 +786,7 @@ public class JetStream extends JetStreamImpl {
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PushConsumerCreator creator = new PushConsumerCreator().subjects(subject);
+        PushConsumerCreator creator = new PushConsumerCreator().filterSubjects(subject);
         return pushSubscribe(stream, creator, subscribeBehavior);
     }
 
@@ -1021,7 +1021,7 @@ public class JetStream extends JetStreamImpl {
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PullConsumerCreator creator = new PullConsumerCreator().subjects(subject);
+        PullConsumerCreator creator = new PullConsumerCreator().filterSubjects(subject);
         return pullSubscribe(stream, creator, subscribeBehavior);
     }
 
@@ -1143,7 +1143,7 @@ public class JetStream extends JetStreamImpl {
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public ConsumerContext createConsumer(String stream, String subject) throws JetStreamException, InterruptedException {
-        return createConsumer(stream, new PullConsumerCreator().subjects(subject));
+        return createConsumer(stream, new PullConsumerCreator().filterSubjects(subject));
     }
 
     /**

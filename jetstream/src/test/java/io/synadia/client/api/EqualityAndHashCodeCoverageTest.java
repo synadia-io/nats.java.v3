@@ -497,9 +497,9 @@ public class EqualityAndHashCodeCoverageTest {
         assertEqualsContract(d, e, f);
 
         // Same stream, different filter subject and max batch
-        PullConsumerCreator g = new PullConsumerCreator().subjects("x.>").maxBatch(10L);
-        PullConsumerCreator h = new PullConsumerCreator().subjects("x.>").maxBatch(10L);
-        PullConsumerCreator i = new PullConsumerCreator().subjects("y.>").maxBatch(10L);
+        PullConsumerCreator g = new PullConsumerCreator().filterSubjects("x.>").maxBatch(10L);
+        PullConsumerCreator h = new PullConsumerCreator().filterSubjects("x.>").maxBatch(10L);
+        PullConsumerCreator i = new PullConsumerCreator().filterSubjects("y.>").maxBatch(10L);
         assertEqualsContract(g, h, i);
 
         // Same stream, different boolean (headersOnly)

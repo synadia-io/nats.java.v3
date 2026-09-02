@@ -488,7 +488,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @return this instance for chaining.
      * @throws IllegalArgumentException if any filter subject is not a valid subject
      */
-    public T subjects(String... subjects) {
+    public T filterSubjects(String... subjects) {
         replaceAllStrings(this.filterSubjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
         //noinspection unchecked
         return (T)this;
@@ -501,7 +501,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
      * @return this instance for chaining.
      * @throws IllegalArgumentException if any filter subject is not a valid subject
      */
-    public T subjects(@Nullable List<String> subjects) {
+    public T filterSubjects(@Nullable List<String> subjects) {
         replaceAllStrings(this.filterSubjects, subjects, s -> validateSubjectTermStrict(s, "Subject"));
         //noinspection unchecked
         return (T)this;

@@ -115,14 +115,14 @@ public abstract class AbstractBucketFeature {
             PushOrderedConsumerCreator creator = new PushOrderedConsumerCreator()
                 .deliverPolicy(deliverPolicy)
                 .headersOnly(headersOnly)
-                .subjects(subjects);
+                .filterSubjects(subjects);
             sub = js.pushSubscribe(streamName, creator);
         }
         else {
             PushConsumerCreator creator = new PushConsumerCreator()
                 .deliverPolicy(deliverPolicy)
                 .headersOnly(headersOnly)
-                .subjects(subjects);
+                .filterSubjects(subjects);
             sub = js.pushSubscribe(streamName, creator);
         }
 

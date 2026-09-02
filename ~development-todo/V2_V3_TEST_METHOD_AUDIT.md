@@ -5,9 +5,10 @@ Every `@Test` / `@ParameterizedTest` / `@RepeatedTest` method name in v2 (`/mnt/
 ## Legend
 - 🗃️ Source
   - 🚨 To be done
-    - 🏁 Done or replaced
-      - 🔧 Item that replaced test 
-- ❌ N/A, Deprecated or removed
+    - ☑️ Done or replaced
+      - 🔧 Item that replaced test
+      - ✏️ Note
+- ✔️ N/A, Deprecated or removed
 - 📚 N/A, Extracted to dependency project
 
 ## In `tdb/` — not yet in v3, but the port is staged (107 methods, 8 files)
@@ -15,28 +16,37 @@ Every `@Test` / `@ParameterizedTest` / `@RepeatedTest` method name in v2 (`/mnt/
 These v2 method names are absent from v3's test sources but present in `tdb/`.
 
 - 🗃️ JetStreamGeneralTests.java
-    - 🏁 testJetStreamSubscribe
-        - 🔧 JetStreamSubscribeTests.testJetStreamPushSubscribeBasics
-        - 🔧 JetStreamSubscribeTests.testJetStreamPullSubscribeBasics
-    - 🏁testJetStreamSubscribeLenientSubject 
+    - ☑️ testJetStreamSubscribe
+      - 🔧 JetStreamSubscribeTests.testJetStreamPushSubscribeBasics
+      - 🔧 JetStreamSubscribeTests.testJetStreamPullSubscribeBasics
+    - ☑️testJetStreamSubscribeLenientSubject 
       - 🔧 SubscribeTests.testSubjectValidationTypeStrict
-    - 🏁 testJetStreamSubscribeErrors
+    - ☑️ testJetStreamSubscribeErrors
       - 🔧 ConsumerConfigurationTests.testPushEphemeralConsumerCreator
       - 🔧 JetStreamGeneralTests.testJetStreamSubscribeErrors
-    - 🚨 testFilterSubjectEphemeral
-    - ❌ testBindPush
-    - ❌ testBindPull
-    - ❌ testBindErrors
-    - 🚨 testFilterMismatchErrors
-    - ❌ testBindDurableDeliverSubject
-    - 🚨 testConsumerIsNotModified
-    - 🚨 testSubscribeDurableConsumerMustMatch
-    - 🏁 testGetConsumerInfoFromSubscription
-        - 🔧 JetStreamSubscribeTests.testJetStreamPushSubscribeBasics
-        - 🔧 JetStreamSubscribeTests.testJetStreamPullSubscribeBasics
-    - ❌ testNatsConnectionTimeCheckLogic
-    - 🏁 testMoreCreateSubscriptionErrors
-      - ❌ Mostly not applicable — most of it asserts `JsSub*`/`JsSo*` ids that died with `PushSubscribeOptions`/`PullSubscribeOptions` (pull-cant-have-deliver-group/subject, push-cant-have-max-pull-waiting/batch/bytes, already-bound, queue/deliver-group mismatch, existing-consumer-not-queue)
+    - ☑️ testFilterSubjectEphemeral
+    - ✔️ testBindPush
+      - ✏️ no counterpart in V3
+    - ✔️ testBindPull
+      - ✏️ no counterpart in V3
+    - ✔️ testBindErrors
+      - ✏️ no counterpart in V3
+    - ✔️ testFilterMismatchErrors
+      - ✏️ mismatch does not exist because the way consumers are created, and subscriptions are made, i.e. subscribeSubject does not exist anymore
+    - ✔️ testBindDurableDeliverSubject
+      - ✏️ no counterpart in V3
+    - ✔️ testConsumerIsNotModified
+      - ✏️ guards a false positive in the V2 "existing consumer cannot be modified" check: `js.subscribe` against a bind compared your `ConsumerConfiguration` to the server's and threw `JsSubExistingConsumerCannotBeModified` when an unset field failed to round trip. Added by `04eab7f77 "issue 502 (#556)"` (2021-11-02), the commit that replaced `userIsModifiedVsServer` with `ConsumerConfiguration.wouldBeChangeTo`. It asserts nothing - each block is addOrUpdateConsumer then subscribe-with-bind and `// should not throw an error` **is** the assertion - and the blocks are grouped by field type (the issue-105 config, numerics, maxPullWaiting, DateTime, boolean/duration, enums) because each type had its own round-trip hazard
+      - ✏️ none of that machinery exists in V3: no bind, no client-side comparer (see `ConsumerConfigurationComparerTests.testChangeFieldsIdentified`, also ✔️), and create-or-update is a server action on `ConsumerCreateRequest`. The one surviving concern - creator fields round tripping without spurious differences - is covered structurally by `ConsumerConfigurationTests.testConsumerConfiguration` and `ApiCreatorsToDtoRoundTripTests`, with no live bind needed
+    - ✔️ testSubscribeDurableConsumerMustMatch
+      - ✏️ no counterpart in V3
+    - ☑️ testGetConsumerInfoFromSubscription
+      - 🔧 JetStreamSubscribeTests.testJetStreamPushSubscribeBasics
+      - 🔧 JetStreamSubscribeTests.testJetStreamPullSubscribeBasics
+    - ✔️ testNatsConnectionTimeCheckLogic
+      - ✏️ no counterpart in V3
+    - ☑️ testMoreCreateSubscriptionErrors
+      - ✔️ Mostly not applicable — most of it asserts `JsSub*`/`JsSo*` ids that died with `PushSubscribeOptions`/`PullSubscribeOptions` (pull-cant-have-deliver-group/subject, push-cant-have-max-pull-waiting/batch/bytes, already-bound, queue/deliver-group mismatch, existing-consumer-not-queue)
       - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeErrors — the surviving `JsSubNoMatchingStreamForSubject` half, push and pull
       - 🔧 ConsumerConfigurationTests.testConsumerCreatorErrors — the name/durable conflict, plus the creator validation the v2 test reached only through subscribe: durable/name characters, filter subjects, flow-control heartbeat, backoff
       - 🔧 StreamCreatorConfigurationTests.testConstructionInvalidsCoverage — the stream-side equivalents
@@ -47,18 +57,21 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
     - 🚨 testSourceBasics
     - 🚨 testSourceAndTransformsRoundTrips
 - 🗃️ JetStreamPullTests.java
-    - 🚨 testFetch
-    - 🚨 testIterate
-    - 🚨 testBasic
-    - 🚨 testNoWait
-    - 🚨 testPullExpires
-    - 🚨 testAckNak
-    - 🚨 testAckTerm
-    - 🚨 testAckReplySyncCoverage
-    - 🚨 testAckWaitTimeout
-    - 🚨 testDurable
-    - 🚨 testNamed
-    - 🚨 testPullRequestOptionsBuilder
+    - ☑️ testFetch
+    - ☑️ testIterate
+    - ☑️ testBasic
+    - ☑️ testNoWait
+    - ☑️ testPullExpires
+    - ☑️ testAckNak
+    - ☑️ testAckTerm
+    - ☑️ testAckReplySyncCoverage
+    - ☑️ testAckWaitTimeout
+    - ✔️ testDurable
+      - ✏️ testing bind, no counterpart in V3
+    - ✔️ testNamed
+      - ✏️ testing bind, no counterpart in V3
+    - ✔️ testPullRequestOptionsBuilder
+      - ✏️ no counterpart in V3
     - 🚨 testConsumerDeletedSyncSub
     - 🚨 testConsumerDeletedAsyncSub
     - 🚨 testExceedsMaxRequestBytesNthMessageSyncSub
@@ -163,151 +176,151 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
 
 These v2 method names appear nowhere in v3. 20 are still to be done, 119 were replaced by a differently named v3 test, 35 no longer apply.
 
-- ❌ AdvancedRequestBehaviorTests.java — the `advancedRequestBehavior()` opt-in and its carrier `Message` are discarded by design in v3 — the redesign is `REQUEST_BEHAVIOR_IMPROVEMENT.md`, which supersedes jnats PR #1582
-    - ❌ testNoRespondersReasonWhenFlagOn
-    - ❌ testLegacyIOExceptionWhenFlagOff
-    - ❌ testTimeoutReasonWhenFlagOn
-    - ❌ testCoreRequestReturnsCarrierWhenFlagOn
-    - ❌ testCoreRequestNullContractPreservedWhenFlagOff
-    - ❌ testConnectionClosingReasonWhenFlagOn
+- ✔️ AdvancedRequestBehaviorTests.java — the `advancedRequestBehavior()` opt-in and its carrier `Message` are discarded by design in v3 — the redesign is `REQUEST_BEHAVIOR_IMPROVEMENT.md`, which supersedes jnats PR #1582
+    - ✔️ testNoRespondersReasonWhenFlagOn
+    - ✔️ testLegacyIOExceptionWhenFlagOff
+    - ✔️ testTimeoutReasonWhenFlagOn
+    - ✔️ testCoreRequestReturnsCarrierWhenFlagOn
+    - ✔️ testCoreRequestNullContractPreservedWhenFlagOff
+    - ✔️ testConnectionClosingReasonWhenFlagOn
 - 🗃️ ApiResponseTests.java
-    - 🏁 testNotError
+    - ☑️ testNotError
       - 🔧 ApiResponseTests.testNotErrorAndType
 - 🗃️ AuthTests.java
-    - 🏁 testBadUserBadPass
+    - ☑️ testBadUserBadPass
       - 🔧 AuthTests.testUserPass
-    - 🏁 testMissingUserPass
+    - ☑️ testMissingUserPass
       - 🔧 AuthTests.testUserPass
-    - 🏁 testBadToken
+    - ☑️ testBadToken
       - 🔧 AuthTests.testToken
-    - 🏁 testMissingToken
+    - ☑️ testMissingToken
       - 🔧 AuthTests.testToken
-    - 🏁 testStaticNKeyAuth
+    - ☑️ testStaticNKeyAuth
       - 🔧 AuthTests.testStaticJWTAuth
-    - 🏁 testBadAuthHandler
-- ❌ ByteArrayBuilderTests.java
-    - ❌ copyToPrimitiveBuilder
-    - ❌ constructorCoverageByteArrayPrimitiveBuilder
-    - ❌ miscCoverageByteArrayPrimitiveBuilder
+    - ☑️ testBadAuthHandler
+- ✔️ ByteArrayBuilderTests.java
+    - ✔️ copyToPrimitiveBuilder
+    - ✔️ constructorCoverageByteArrayPrimitiveBuilder
+    - ✔️ miscCoverageByteArrayPrimitiveBuilder
 - 🗃️ ConnectTests.java
-    - ❌ testDefaultConnection
-    - 🏁 testConnection
+    - ✔️ testDefaultConnection
+    - ☑️ testConnection
       - 🔧 ConnectTests.testConnectVariants
-    - 🏁 testConnectionWithOptions
+    - ☑️ testConnectionWithOptions
       - 🔧 ConnectTests.testConnectVariants
-    - 🏁 testConnectWithCommas
+    - ☑️ testConnectWithCommas
       - 🔧 ConnectTests.testConnectVariants
-    - 🏁 testConnectRandomize
+    - ☑️ testConnectRandomize
       - 🔧 ConnectTests.testConnectVariants
-    - 🏁 testConnectNoRandomize
+    - ☑️ testConnectNoRandomize
       - 🔧 ConnectTests.testConnectVariants
-    - 🏁 testThrowOnAsyncWithoutListener
+    - ☑️ testThrowOnAsyncWithoutListener
       - 🔧 ConnectTests.testAsyncConnectionFutureWithoutListener — v3 inverts the rule, no listener is legal
-    - ❌ testTimeCheckCoverage — `TimeTraceLogger` / `traceConnection()` do not exist in v3
-    - ❌ testReconnectLogging — `TimeTraceLogger` / `traceConnection()` do not exist in v3
+    - ✔️ testTimeCheckCoverage — `TimeTraceLogger` / `traceConnection()` do not exist in v3
+    - ✔️ testReconnectLogging — `TimeTraceLogger` / `traceConnection()` do not exist in v3
 - 🗃️ ConnectionListenerStaleStateTests.java
     - 🚨 testConnectEventDetailsStayCorrectWhenTheCallbackIsProcessedLate
     - 🚨 testEventDerivedStateSettlesToTheTruthAfterRapidReconnects
 - 🗃️ ConnectionListenerTests.java
-    - 🏁 testCloseCount
+    - ☑️ testCloseCount
       - 🔧 ConnectionListenerTests.testCloseEvent
-- ❌ ConsumerConfigurationComparerTests.java — `NatsJetStream.ConsumerConfigurationComparer` has no v3 counterpart — create-or-update is a server action on `ConsumerCreateRequest`, not a client-side field diff
-    - ❌ testChangeFieldsIdentified
+- ✔️ ConsumerConfigurationComparerTests.java — `NatsJetStream.ConsumerConfigurationComparer` has no v3 counterpart — create-or-update is a server action on `ConsumerCreateRequest`, not a client-side field diff
+    - ✔️ testChangeFieldsIdentified
 - 🗃️ ConsumerConfigurationTests.java
-    - 🏁 testParsingAndSetters
+    - ☑️ testParsingAndSetters
       - 🔧 ConsumerConfigurationTests.testConsumerConfiguration
-    - 🏁 testUtilityMethods
+    - ☑️ testUtilityMethods
       - 🔧 JetStreamApiUtilsTests.normalizeLong_withMin / normalizeInt_withMin / normalizeULong_singleArg / normalizeDuration_durationOverload / normalizeDuration_millisOverload (`getOrUnset` / `GetOrDefault` went away with the API)
-    - ❌ testDowngradeFromLongToInt — v3 keeps maxDeliver / maxAckPending / maxPullWaiting / maxBatch as `long`; there is no long→int downgrade to test
-    - 🏁 testFlowControlIdleHeartbeatFromJson
+    - ✔️ testDowngradeFromLongToInt — v3 keeps maxDeliver / maxAckPending / maxPullWaiting / maxBatch as `long`; there is no long→int downgrade to test
+    - ☑️ testFlowControlIdleHeartbeatFromJson
       - 🔧 ConsumerConfigurationTests.testConsumerConfiguration (via verifyAbstractEphemeralFields)
 - 🗃️ DispatcherTests.java
-    - 🏁 testDispatcherMultipleSubscriptionsBySubject
+    - ☑️ testDispatcherMultipleSubscriptionsBySubject
       - 🔧 DispatcherTests.testProperlyUnsubscribeBySubject
-    - 🏁 testCantUnsubSubFromDispatcher
+    - ☑️ testCantUnsubSubFromDispatcher
       - 🔧 DispatcherTests.testV3AllowsUnsubSubFromDispatcher — v3 inverts the rule
-    - 🏁 testCantAutoUnsubSubFromDispatcher
+    - ☑️ testCantAutoUnsubSubFromDispatcher
       - 🔧 DispatcherTests.testV3AllowsAutoUnsubSubFromDispatcher — v3 inverts the rule
-    - 🏁 testThrowOnNullSubject
+    - ☑️ testThrowOnNullSubject
       - 🔧 DispatcherTests.testThrowOnBadInput
-    - 🏁 testThrowOnEmptySubject
+    - ☑️ testThrowOnEmptySubject
       - 🔧 DispatcherTests.testThrowOnBadInput
-    - 🏁 testThrowOnEmptyQueue
+    - ☑️ testThrowOnEmptyQueue
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnNullSubjectWithQueue
+    - ☑️ testThrowOnNullSubjectWithQueue
       - 🔧 DispatcherTests.testThrowOnBadInput
-    - 🏁 testThrowOnEmptySubjectWithQueue
+    - ☑️ testThrowOnEmptySubjectWithQueue
       - 🔧 DispatcherTests.testThrowOnBadInput
-    - 🏁 throwsOnCreateIfClosed
+    - ☑️ throwsOnCreateIfClosed
       - 🔧 DispatcherTests.throwsOnCreateIfConnectionClosed
-    - 🏁 throwsOnSubscribeIfClosed
+    - ☑️ throwsOnSubscribeIfClosed
       - 🔧 DispatcherTests.throwsOnCreateIfConnectionClosed
-    - 🏁 testThrowOnSubscribeWhenClosed
+    - ☑️ testThrowOnSubscribeWhenClosed
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnUnsubscribeWhenClosed
+    - ☑️ testThrowOnUnsubscribeWhenClosed
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnDoubleClose
+    - ☑️ testThrowOnDoubleClose
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnConnClosed
+    - ☑️ testThrowOnConnClosed
       - 🔧 DispatcherTests.throwsOnCreateIfConnectionClosed
-    - 🏁 testThrowOnEmptySubjectWithMessageHandler
+    - ☑️ testThrowOnEmptySubjectWithMessageHandler
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnNullHandler
+    - ☑️ testThrowOnNullHandler
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnNullHandlerWithQueue
+    - ☑️ testThrowOnNullHandlerWithQueue
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnEmptyQueueWithMessageHandler
+    - ☑️ testThrowOnEmptyQueueWithMessageHandler
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnNullSubjectWithQueueWithMessageHandler
+    - ☑️ testThrowOnNullSubjectWithQueueWithMessageHandler
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnEmptySubjectWithQueueWithMessageHandler
+    - ☑️ testThrowOnEmptySubjectWithQueueWithMessageHandler
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnEmptySubjectInUnsub
+    - ☑️ testThrowOnEmptySubjectInUnsub
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnUnsubWhenClosed
+    - ☑️ testThrowOnUnsubWhenClosed
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testThrowOnWrongSubscription
+    - ☑️ testThrowOnWrongSubscription
       - 🔧 DispatcherTests.testThrowOnWrongSubscription — written 2026-08-31; v3 throws `IllegalArgumentException` where v2 threw `IllegalStateException`
 - 🗃️ ErrorListenerTests.java
-    - 🏁 testLastError
+    - ☑️ testLastError
       - 🔧 ErrorListenerTests.testLastError_ClearError_AuthViolation
-    - 🏁 testClearLastError
+    - ☑️ testClearLastError
       - 🔧 ErrorListenerTests.testLastError_ClearError_AuthViolation
-    - 🏁 testErrorOnNoAuth
+    - ☑️ testErrorOnNoAuth
       - 🔧 ErrorListenerTests.testLastError_ClearError_AuthViolation
 - 🗃️ HeadersTests.java
-    - 🏁 testToStringDoesNotCorruptSerializedCache
+    - ☑️ testToStringDoesNotCorruptSerializedCache
       - 🔧 HeadersTests.testToStringDoesNotCorruptSerializedCache — ported 2026-08-31; it caught the real bug it was written for, `Headers.toString()` was still mutating the cached `serialized` array
 - 🗃️ JetStreamConsumerTests.java
-    - 🏁 testOrderedConsumerAsync
+    - ☑️ testOrderedConsumerAsync
       - 🔧 JetStreamConsumerTests.testOrderedConsumerAsyncNoName
 - 🗃️ JetStreamGeneralTests.java
-    - 🏁 testJetStreamContextCreate
+    - ☑️ testJetStreamContextCreate
       - 🔧 JetStreamGeneralTests.testJetStreamGeneral
-    - 🏁 testJetEnabledGoodAccount
+    - ☑️ testJetEnabledGoodAccount
       - 🔧 JetStreamManagementWithConfTests.testGoodAuthAccount
-    - 🏁 testJetStreamPublishDefaultOptions
+    - ☑️ testJetStreamPublishDefaultOptions
       - 🔧 JetStreamGeneralTests.testJetStreamGeneral
-    - 🏁 testConnectionClosing
+    - ☑️ testConnectionClosing
       - 🔧 JetStreamGeneralTests.testCoverageIncludingExceptions
-    - 🏁 testCreateWithOptionsForCoverage
+    - ☑️ testCreateWithOptionsForCoverage
       - 🔧 JetStreamGeneralTests.testCoverageIncludingExceptions
-    - ❌ testGetJetStreamValidatedConnectionCoverage — `getJetStreamValidatedConnection` does not exist in v3
-    - 🏁 testNatsJetStreamUtil
+    - ✔️ testGetJetStreamValidatedConnectionCoverage — `getJetStreamValidatedConnection` does not exist in v3
+    - ☑️ testNatsJetStreamUtil
       - 🔧 JetStreamApiUtilsTests.generateConsumerName_noArg / generateConsumerName_withPrefix
 - 🗃️ JetStreamManagementTests.java
-    - 🏁 testAddStreamInvalids
+    - ☑️ testAddStreamInvalids
       - 🔧 JetStreamManagementTests.testStreamExceptions
-    - 🏁 testAddDeleteConsumer
+    - ☑️ testAddDeleteConsumer
       - 🔧 JetStreamManagementTests.testAddDeleteConsumerPart1 / testAddDeleteConsumerPart2
-    - 🏁 testAuthCreateUpdateStream
+    - ☑️ testAuthCreateUpdateStream
       - 🔧 JetStreamManagementWithConfTests.testGoodAuthAccount
-    - ❌ testMessageGetRequestObjectDeprecatedMethods — the deprecated `MessageGetRequest` methods are gone; the current API is covered by JetStreamManagementTests.testMessageGetRequestObject
+    - ✔️ testMessageGetRequestObjectDeprecatedMethods — the deprecated `MessageGetRequest` methods are gone; the current API is covered by JetStreamManagementTests.testMessageGetRequestObject
     - 🚨 testDirectMessageRepublishedSubject
-    - 🏁 testNoRespondersWhenConsumerDeleted
+    - ☑️ testNoRespondersWhenConsumerDeleted
       - 🔧 JetStreamManagementTests.testNoRespondersWhenConsumerDeleted1026
-- ❌ JetStreamPubTests.java
-    - ❌ testPublishNoAck — `JetStreamOptions.publishNoAck` does not exist in v3
+- ✔️ JetStreamPubTests.java
+    - ✔️ testPublishNoAck — `JetStreamOptions.publishNoAck` does not exist in v3
 - 🗃️ JetStreamPushTests.java
     - 🚨 testCantPullOnPushSub
 - 🗃️ MessageManagerTests.java
@@ -322,176 +335,176 @@ These v2 method names appear nowhere in v3. 20 are still to be done, 119 were re
     - 🚨 test_hb_no_settings
     - 🚨 testMessageManagerInterfaceDefaultImplCoverage
 - 🗃️ NatsMessageTests.java
-    - 🏁 testBigProtocolLineWithoutBody
+    - ☑️ testBigProtocolLineWithoutBody
       - 🔧 NatsMessageTests.testBigProtocolLine
-    - 🏁 testBigProtocolLineWithBody
+    - ☑️ testBigProtocolLineWithBody
       - 🔧 NatsMessageTests.testBigProtocolLine
-    - ❌ constructorWithMessage — v3 `NatsMessage` has no copy constructor
+    - ✔️ constructorWithMessage — v3 `NatsMessage` has no copy constructor
 - 🗃️ OptionsTests.java
-    - ❌ testOldStyle — `oldRequestStyle` does not exist in v3
-    - ❌ testAdvancedRequestBehavior — `advancedRequestBehavior` does not exist in v3 — see AdvancedRequestBehaviorTests above
-    - 🏁 testDefaultDataPort
+    - ✔️ testOldStyle — `oldRequestStyle` does not exist in v3
+    - ✔️ testAdvancedRequestBehavior — `advancedRequestBehavior` does not exist in v3 — see AdvancedRequestBehaviorTests above
+    - ☑️ testDefaultDataPort
       - 🔧 OptionsTests.testDataPort
-    - 🏁 testPropertyDataPortType
+    - ☑️ testPropertyDataPortType
       - 🔧 OptionsTests.testDataPort
-    - 🏁 testReaderExecutorService
+    - ☑️ testReaderExecutorService
       - 🔧 OptionsTests.testReaderWriterExecutorPrecedence
-    - 🏁 testWriterExecutorService
+    - ☑️ testWriterExecutorService
       - 🔧 OptionsTests.testReaderWriterExecutorPrecedence
-    - ❌ coverageForDeprecated — v3 has no deprecated `token(String)` / `userInfo(String,String)`; both are `char[]` only
+    - ✔️ coverageForDeprecated — v3 has no deprecated `token(String)` / `userInfo(String,String)`; both are `char[]` only
 - 🗃️ ParseTests.java
-    - 🏁 testLongProtocolOpThrows
+    - ☑️ testLongProtocolOpThrows
       - 🔧 ParseTests.testBadGather
-    - 🏁 testMissingLineFeed
+    - ☑️ testMissingLineFeed
       - 🔧 ParseTests.testBadGather
-    - 🏁 testMissingSubject
+    - ☑️ testMissingSubject
       - 🔧 ParseTests.testBadParse
-    - 🏁 testMissingSID
+    - ☑️ testMissingSID
       - 🔧 ParseTests.testBadParse
-    - 🏁 testMissingLength
+    - ☑️ testMissingLength
       - 🔧 ParseTests.testBadParse
-    - 🏁 testBadLength
+    - ☑️ testBadLength
       - 🔧 ParseTests.testBadParse
-    - 🏁 testMessageLineTooLong
+    - ☑️ testMessageLineTooLong
       - 🔧 ParseTests.testProtocolLineTooLong / testTooShortMaxControlLineToConnect
 - 🗃️ PingTests.java
     - 🚨 testPingFailsWhenClosed
     - 🚨 testMessagesDelayPings
 - 🗃️ PublishTests.java
-    - 🏁 throwsIfClosedOnPublish
+    - ☑️ throwsIfClosedOnPublish
       - 🔧 PublishTests.throwsIfClosed
-    - 🏁 throwsIfClosedOnFlush
+    - ☑️ throwsIfClosedOnFlush
       - 🔧 PublishTests.throwsIfClosed
-    - 🏁 testThrowsIfheadersNotSupported
+    - ☑️ testThrowsIfheadersNotSupported
       - 🔧 PublishTests.testThrowsIfHeadersNotSupported — capitalization only
 - 🗃️ ReconnectTests.java
-    - 🏁 testReconnectToSecondServer
+    - ☑️ testReconnectToSecondServer
       - 🔧 ReconnectTests.testReconnectToSecondServerInBootstrap / testReconnectToSecondServerFromInfo
-    - 🏁 testReconnectNoIPTLSConnection
+    - ☑️ testReconnectNoIPTLSConnection
       - 🔧 ReconnectTests.testTlsNoIpConnection
-    - 🏁 testURISchemeNoIPTLSConnection
+    - ☑️ testURISchemeNoIPTLSConnection
       - 🔧 ReconnectTests.testTlsNoIpConnection
-    - 🏁 testURISchemeNoIPOpenTLSConnection
+    - ☑️ testURISchemeNoIPOpenTLSConnection
       - 🔧 ReconnectTests.testTlsNoIpConnection
 - 🗃️ RequestTests.java (io.nats.client)
-    - 🏁 testRequestNoResponder
+    - ☑️ testRequestNoResponder
       - 🔧 RequestTests.testNoResponders
 - 🗃️ RequestTests.java (io.nats.client.impl)
-    - ❌ testRequireCleanupOnTimeoutNoNoResponders — `noNoResponders()` does not exist in v3
-    - ❌ testRequireCleanupOnTimeoutCleanCompletable — `noNoResponders()` does not exist in v3
-    - 🏁 testRequireCleanupOnCancelFromNoResponders
+    - ✔️ testRequireCleanupOnTimeoutNoNoResponders — `noNoResponders()` does not exist in v3
+    - ✔️ testRequireCleanupOnTimeoutCleanCompletable — `noNoResponders()` does not exist in v3
+    - ☑️ testRequireCleanupOnCancelFromNoResponders
       - 🔧 RequestTests.testRequireCleanupOnCancel
-    - 🏁 testRequireCleanupWithTimeoutNoResponders
+    - ☑️ testRequireCleanupWithTimeoutNoResponders
       - 🔧 RequestTests.testRequireCleanupOnCancel
-    - ❌ testRequireCleanupWithTimeoutNoNoResponders — `noNoResponders()` does not exist in v3
-    - ❌ testOldStyleRequest — `oldRequestStyle` does not exist in v3
-    - 🏁 testThrowsEmptySubject
+    - ✔️ testRequireCleanupWithTimeoutNoNoResponders — `noNoResponders()` does not exist in v3
+    - ✔️ testOldStyleRequest — `oldRequestStyle` does not exist in v3
+    - ☑️ testThrowsEmptySubject
       - 🔧 RequestTests.testRequestErrors
-    - 🏁 testCancelledFutureMustNotErrorOnCleanResponses
+    - ☑️ testCancelledFutureMustNotErrorOnCleanResponses
       - 🔧 RequestTests.testCanceledFutureMustNotErrorOnCleanResponses — spelling only
 - 🗃️ ResourceUtilsTests.java
-    - 🏁 testResourceStillLoads
+    - ☑️ testResourceStillLoads
       - 🔧 ResourceUtilsTests.testPresentResourceStillReads
 - 🗃️ ResponseTests.java
-    - 🏁 testPauseResponse
+    - ☑️ testPauseResponse
       - 🔧 JsonParsingTests.testConsumerPauseResponse
-    - 🏁 testPauseResumeResponse
+    - ☑️ testPauseResumeResponse
       - 🔧 JsonParsingTests.testConsumerPauseResponse + EqualityAndHashCodeCoverageTest.testConsumerPauseResponse_equalsAndHashCode
 - 🗃️ ServiceTests.java
-    - 🏁 testResponsesFromMultipleInstances
+    - ☑️ testResponsesFromMultipleInstances
       - 🔧 ServiceTests.testResponsesFromAllInstances
 - 🗃️ SimplificationTests.java
-    - 🏁 testStreamContext
+    - ☑️ testStreamContext
       - 🔧 SimplificationTests.testStreamContextBasics
-    - 🏁 testOrderedConsumerCoverage
+    - ☑️ testOrderedConsumerCoverage
       - 🔧 SimplificationTests.testOrderedConsumerBuilder
-    - 🏁 testFetchConsumeOptionsBuilder
+    - ☑️ testFetchConsumeOptionsBuilder
       - 🔧 SimplificationTests.testConsumeOptionsBuilder + ApiJavaSerializationTests.testFetchConsumeOptions
-    - 🏁 testOrderedConsumeConstruction
+    - ☑️ testOrderedConsumeConstruction
       - 🔧 SimplificationTests.testOrderedConsumerBuilder
 - 🗃️ StreamConfigurationTests.java
-    - 🏁 testMissingJsonFields
+    - ☑️ testMissingJsonFields
       - 🔧 StreamCreatorConfigurationTests.testSerializationDeserializationDefaults + StreamInfoJsonTests.testStreamInfoLazyFieldsAndMinimal
-    - ❌ testInvalidNameInJson — v3 `StreamConfiguration` reads the name lazily off the json and does not validate on parse
-    - 🏁 testSourceBase
+    - ✔️ testInvalidNameInJson — v3 `StreamConfiguration` reads the name lazily off the json and does not validate on parse
+    - ☑️ testSourceBase
       - 🔧 EqualityAndHashCodeCoverageTest.testMirror_equalsContract / testSource_equalsContract + ApiCreatorsToDtoRoundTripTests.mirrorRoundTrip / sourceRoundTrip
-    - 🏁 equalsContract
+    - ☑️ equalsContract
       - 🔧 EqualityAndHashCodeCoverageTest.testMirror_equalsContract / testSource_equalsContract
 - 🗃️ StreamInfoTests.java
-    - 🏁 testStreamInfoOptionsCoverage
+    - ☑️ testStreamInfoOptionsCoverage
       - 🔧 ApiFieldsTest.testStreamInfoOptions + EqualityAndHashCodeCoverageTest.testStreamInfoOptions_equalsAndHashCode
-    - 🏁 testSubjectGetList
+    - ☑️ testSubjectGetList
       - 🔧 JsonParsingTests.testStreamState + EqualityAndHashCodeCoverageTest.testSubject_equalsContract
 - 🗃️ SubscribeOptionsTests.java — `PushSubscribeOptions` / `PullSubscribeOptions` do not exist in v3 — a consumer creator *is* the configuration, and the subscribe wiring moved to `JetStreamSubscribeConfig` + `SubscribeBehavior`
-    - 🏁 testPushAffirmative
+    - ☑️ testPushAffirmative
       - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
-    - ❌ testDurableValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists
-    - ❌ testDeliverGroupValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists (deliverGroup itself survives on `ConsumerCreator` and is untested — the deliver-group gap in TEST_TRACKING.md)
-    - ❌ testDeliverSubjectValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists (see JetStreamManagementTests.testPushCreatorAutomaticallyAddsDeliverSubject)
-    - 🏁 testPullAffirmative
+    - ✔️ testDurableValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists
+    - ✔️ testDeliverGroupValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists (deliverGroup itself survives on `ConsumerCreator` and is untested — the deliver-group gap in TEST_TRACKING.md)
+    - ✔️ testDeliverSubjectValidation — tests the SubscribeOptions/ConsumerConfiguration merge, which no longer exists (see JetStreamManagementTests.testPushCreatorAutomaticallyAddsDeliverSubject)
+    - ☑️ testPullAffirmative
       - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
-    - 🏁 testPushFieldValidation
+    - ☑️ testPushFieldValidation
       - 🔧 JsValidatorTests.testValidateDurable + ConsumerConfigurationTests.testPushConsumerCreator
-    - 🏁 testPullFieldValidation
+    - ☑️ testPullFieldValidation
       - 🔧 JsValidatorTests.testValidateDurable + ConsumerConfigurationTests.testPullConsumerCreator
-    - 🏁 testCreationErrors
+    - ☑️ testCreationErrors
       - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
-    - 🏁 testBindCreationErrors
+    - ☑️ testBindCreationErrors
       - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage
-    - 🏁 testOrderedCreation
+    - ☑️ testOrderedCreation
       - 🔧 JetStreamSubscribeTests.testJetStreamSubscribeConfigCoverage + ConsumerConfigurationTests.testPullOrderedConsumerCreator / testPushOrderedConsumerCreator
 - 🗃️ SubscriberTests.java
-    - 🏁 testThrowOnNullSubject
+    - ☑️ testThrowOnNullSubject
       - 🔧 SubscribeTests.testSubscribesThatException
-    - 🏁 testThrowOnEmptySubject
+    - ☑️ testThrowOnEmptySubject
       - 🔧 SubscribeTests.testSubscribesThatException
-    - 🏁 testThrowOnNullQueue
+    - ☑️ testThrowOnNullQueue
       - 🔧 SubscribeTests.testSubscribesThatException
-    - 🏁 testThrowOnEmptyQueue
+    - ☑️ testThrowOnEmptyQueue
       - 🔧 SubscribeTests.testSubscribesThatException
-    - 🏁 testThrowOnNullSubjectWithQueue
+    - ☑️ testThrowOnNullSubjectWithQueue
       - 🔧 SubscribeTests.testSubscribesThatException
-    - 🏁 testThrowOnEmptySubjectWithQueue
+    - ☑️ testThrowOnEmptySubjectWithQueue
       - 🔧 SubscribeTests.testSubscribesThatException
-    - 🏁 throwsOnSubscribeIfClosed
+    - ☑️ throwsOnSubscribeIfClosed
       - 🔧 SubscribeTests.testSubscribesThatExceptionAfterClose
-    - 🏁 throwsOnUnsubscribeIfClosed
+    - ☑️ throwsOnUnsubscribeIfClosed
       - 🔧 SubscribeTests.testSubscribesThatExceptionAfterClose
-    - 🏁 throwsOnAutoUnsubscribeIfClosed
+    - ☑️ throwsOnAutoUnsubscribeIfClosed
       - 🔧 SubscribeTests.testSubscribesThatExceptionAfterClose
-    - 🏁 testInvalidSubjectsAndQueueNames
+    - ☑️ testInvalidSubjectsAndQueueNames
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
-    - 🏁 testDispatcherDefaultSubscribeWhenNoDefaultHandler
+    - ☑️ testDispatcherDefaultSubscribeWhenNoDefaultHandler
       - 🔧 DispatcherTests.testDispatcherSubscribingExceptions
 - 🗃️ TLSConnectTests.java
-    - 🏁 testSimpleUrlTLSConnection
+    - ☑️ testSimpleUrlTLSConnection
       - 🔧 TLSConnectTests.testSimpleTLSConnection / testMultipleUrlTLSConnectionSetContext
 - 🗃️ ValidatorTests.java
-    - ❌ testValidateMaxConsumers — validator removed in v3
-    - ❌ testValidateMaxMessages — validator removed in v3
-    - ❌ testValidateMaxMessagesPerSubject — validator removed in v3
+    - ✔️ testValidateMaxConsumers — validator removed in v3
+    - ✔️ testValidateMaxMessages — validator removed in v3
+    - ✔️ testValidateMaxMessagesPerSubject — validator removed in v3
     - 🚨 testValidateMaxHistory — `JsValidator.validateMaxHistory` still exists and is untested
-    - ❌ testValidateMaxBytes — validator removed in v3
+    - ✔️ testValidateMaxBytes — validator removed in v3
     - 🚨 testValidateMaxBucketBytes — `JsValidator.validateMaxBucketBytes` still exists and is untested
-    - ❌ testValidateMaxMessageSize — validator removed in v3
-    - ❌ testValidateMaxValueBytes — validator removed in v3
-    - 🏁 testValidateNumberOfReplicas
+    - ✔️ testValidateMaxMessageSize — validator removed in v3
+    - ✔️ testValidateMaxValueBytes — validator removed in v3
+    - ☑️ testValidateNumberOfReplicas
       - 🔧 ApiFieldsTest.testPullConsumerCreator (numReplicas 1..5)
-    - ❌ testValidateMaxLength — validator removed in v3
+    - ✔️ testValidateMaxLength — validator removed in v3
 - 🗃️ WebsocketConnectTests.java
-    - 🏁 testRequestReply
+    - ☑️ testRequestReply
       - 🔧 WebsocketConnectTests.testWs
-    - 🏁 testTLSRequestReply
+    - ☑️ testTLSRequestReply
       - 🔧 WebsocketConnectTests.testWss / testWssVerify
-    - 🏁 testSimpleWSSIPConnection
+    - ☑️ testSimpleWSSIPConnection
       - 🔧 WebsocketConnectTests.testWss / testWssVerify
-    - 🏁 testURIWSSHostConnection
+    - ☑️ testURIWSSHostConnection
       - 🔧 WebsocketConnectTests.testWss / testWssVerify
-    - 🏁 testURIWSSIPConnection
+    - ☑️ testURIWSSIPConnection
       - 🔧 WebsocketConnectTests.testWss / testWssVerify
-    - 🏁 testURISchemeWSSConnection
+    - ☑️ testURISchemeWSSConnection
       - 🔧 WebsocketConnectTests.testWss / testWssVerify
-    - 🏁 testURISchemeWSSConnectionEnsureTlsFirstHasNoEffect
+    - ☑️ testURISchemeWSSConnectionEnsureTlsFirstHasNoEffect
       - 🔧 WebsocketConnectTests.testWssTlsFirstIgnored / testWssVerifyTlsFirstIgnored
 
 ## N/A Part of external library depenency

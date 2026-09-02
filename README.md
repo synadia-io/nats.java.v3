@@ -10,6 +10,36 @@
 
 v2 of the client carried runtime checks and opt-outs for server features introduced in 2.9 and earlier. v3 drops them: the 2.10 floor is assumed, not tested for, so pointing v3 at an older server is unsupported and will fail in ways the client does not attempt to diagnose. Features added after 2.10 are still detected at runtime from the server's `INFO` — those degrade gracefully rather than requiring the newer server.
 
+### Push Consumers and the Deliver Subject
+
+> **DRAFT** — not yet reviewed.
+
+A consumer is a push consumer because it has a deliver subject: that is the field the server uses to decide. In v2 there was a single `ConsumerConfiguration` for both kinds, so supplying a deliver subject was how you *made* a consumer push, and you always had to provide one.
+
+v3 has a creator per consumer type, so the type carries that instead:
+
+| | |
+|---|---|
+| `PushConsumerCreator` | push |
+| `PushOrderedConsumerCreator` | push, ordered |
+| `PullConsumerCreator` | pull |
+| `PullOrderedConsumerCreator` | pull, ordered |
+
+Because the type already says push, **the deliver subject is optional**. Set it when you need a specific subject; otherwise leave it alone and the client generates an inbox for you when the consumer is created:
+
+```java
+// the client supplies the deliver subject
+ConsumerInfo ci = jsm.createConsumer(stream, new PushConsumerCreator().durable("my-durable"));
+
+// or name it yourself when it matters
+ConsumerInfo ci = jsm.createConsumer(stream,
+    new PushConsumerCreator().durable("my-durable").deliverSubject("my.deliver.subject"));
+```
+
+Only the two push creators take part — they implement `PushDeliverSubjectInterface`, and consumer creation fills in the subject only when you left it unset.
+
+**Use a fresh creator per consumer.** The generated subject is written back onto the creator, so passing the same `PushConsumerCreator` to two `createConsumer` calls gives both consumers the *same* deliver subject, and they will receive each other's messages.
+
 ### Properties
 
 The property loader accepts each key with or without the `io.nats.client.` prefix; both forms resolve to the same property.

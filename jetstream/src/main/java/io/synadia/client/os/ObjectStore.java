@@ -255,7 +255,7 @@ public class ObjectStore extends AbstractBucketFeature {
         }
         else {
             PushOrderedConsumerCreator creator = new PushOrderedConsumerCreator()
-                .subjects(rawChunkSubject(oi.getNuid()));
+                .filterSubjects(rawChunkSubject(oi.getNuid()));
 
             JetStreamPushSubscription sub = js.pushSubscribe(streamName, creator);
 

@@ -231,7 +231,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         OptionsBuilder builder = new OptionsBuilder().errorListener(listener);
         runInShared(builder, (nc, ctx) -> {
             SimulatorState state = setupPushFactory(ctx.js);
-            PushConsumerCreator creator = new PushConsumerCreator().subjects(ctx.subject()).idleHeartbeat(100);
+            PushConsumerCreator creator = new PushConsumerCreator().filterSubjects(ctx.subject()).idleHeartbeat(100);
             JetStreamPushSubscription pushSub = ctx.js.pushSubscribe(ctx.stream, creator);
             validate(pushSub, listener, state);
 
@@ -241,24 +241,24 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
 
             state = setupPushOrderedFactory(ctx.js);
             PushOrderedConsumerCreator ordered =
-                new PushOrderedConsumerCreator().subjects(ctx.subject()).idleHeartbeat(100);
+                new PushOrderedConsumerCreator().filterSubjects(ctx.subject()).idleHeartbeat(100);
             pushSub = ctx.js.pushSubscribe(ctx.stream, ordered);
             validate(pushSub, listener, state);
 
             state = setupPushOrderedFactory(ctx.js);
             ordered =
-                new PushOrderedConsumerCreator().subjects(ctx.subject()).idleHeartbeat(100);
+                new PushOrderedConsumerCreator().filterSubjects(ctx.subject()).idleHeartbeat(100);
             pushSub = ctx.js.pushSubscribe(ctx.stream, ordered, m -> {});
             validate(pushSub, listener, state);
 
             state = setupPullFactory(ctx.js);
-            PullConsumerCreator pull = new PullConsumerCreator().subjects(ctx.subject());
+            PullConsumerCreator pull = new PullConsumerCreator().filterSubjects(ctx.subject());
             JetStreamPullSubscription pullSub = ctx.js.pullSubscribe(ctx.stream, pull);
             pullSub.pull(PullRequestOptions.builder(1).idleHeartbeat(100).expiresIn(2000).build());
             validate(pullSub, listener, state);
 
             state = setupPullOrderedFactory(ctx.js);
-            PullOrderedConsumerCreator pullOrdered = new PullOrderedConsumerCreator().subjects(ctx.subject());
+            PullOrderedConsumerCreator pullOrdered = new PullOrderedConsumerCreator().filterSubjects(ctx.subject());
             pullSub = ctx.js.pullSubscribe(ctx.stream, pullOrdered);
             pullSub.pull(PullRequestOptions.builder(1).idleHeartbeat(100).expiresIn(2000).build());
             validate(pullSub, listener, state);
@@ -322,26 +322,26 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
             jsPublish(ctx.js, ctx.subject(1), 5);
 
             // push ephemeral
-            PushConsumerCreator pushCreator = new PushConsumerCreator().subjects(ctx.subject(0), ctx.subject(1));
+            PushConsumerCreator pushCreator = new PushConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1));
             JetStreamPushSubscription pushSub = ctx.js.pushSubscribe(ctx.stream, pushCreator);
             validateMultipleSubjectFilterSub(pushSub, ctx.subject(0));
 
             // pull ephemeral
-            PullConsumerCreator pullCreator = new PullConsumerCreator().subjects(ctx.subject(0), ctx.subject(1));
+            PullConsumerCreator pullCreator = new PullConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1));
             JetStreamPullSubscription pullSub = ctx.js.pullSubscribe(ctx.stream, pullCreator);
             pullSub.pullExpiresIn(15, 1000);
             validateMultipleSubjectFilterSub(pullSub, ctx.subject(0));
 
             // push named
             String name = random();
-            pushCreator = new PushConsumerCreator().subjects(ctx.subject(0), ctx.subject(1)).name(name).deliverSubject(random());
+            pushCreator = new PushConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1)).name(name).deliverSubject(random());
             pushSub = ctx.js.pushSubscribe(ctx.stream, pushCreator);
             assertEquals(name, pushSub.getConsumerInfo().getName());
             validateMultipleSubjectFilterSub(pushSub, ctx.subject(0));
 
             // pull named
             name = random();
-            pullCreator = new PullConsumerCreator().subjects(ctx.subject(0), ctx.subject(1)).name(name);
+            pullCreator = new PullConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1)).name(name);
             pullSub = ctx.js.pullSubscribe(ctx.stream, pullCreator);
             assertEquals(name, pullSub.getConsumerInfo().getName());
             pullSub.pullExpiresIn(15, 1000);
@@ -376,7 +376,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
             StreamContext streamContext = ctx.js.getStreamContext(ctx.stream);
 
             // Setting maxBatch=1, so we shouldn't allow fetching more messages at once.
-            PullConsumerCreator pullCreator = new PullConsumerCreator().subjects(ctx.subject()).maxBatch(1);
+            PullConsumerCreator pullCreator = new PullConsumerCreator().filterSubjects(ctx.subject()).maxBatch(1);
             ConsumerContext consumerContext = streamContext.createOrUpdateConsumer(pullCreator);
 
             int count = 0;

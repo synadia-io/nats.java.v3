@@ -328,7 +328,7 @@ public class JetStreamTestBase extends TestBase {
     // ----------------------------------------------------------------------------------------------------
     // JetStream JetStream JetStream JetStream JetStream JetStream JetStream JetStream JetStream JetStream
     // ----------------------------------------------------------------------------------------------------
-    public static void createMemoryStream(JetStreamManagement jsm, String streamName, String... subjects) throws JetStreamException, InterruptedException {
+    public static StreamInfo createMemoryStream(JetStreamManagement jsm, String streamName, String... subjects) throws JetStreamException, InterruptedException {
         if (streamName == null) {
             streamName = random();
         }
@@ -341,7 +341,7 @@ public class JetStreamTestBase extends TestBase {
             .storageType(StorageType.Memory)
             .subjects(subjects);
 
-        jsm.addStream(sc);
+        return jsm.addStream(sc);
     }
 
     // ----------------------------------------------------------------------------------------------------

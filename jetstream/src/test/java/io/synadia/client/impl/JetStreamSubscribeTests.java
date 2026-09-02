@@ -7,6 +7,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -528,6 +529,81 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             name = ci.getName();
         }
         assertConsumer(ctx, false, name, durable, sub.getConsumerInfo());
+    }
+
+    @Test
+    public void testFilterSubject() throws Exception {
+        runInShared((nc, ctx) -> {
+            String subject = random();
+            String subjectWild = subject + ".*";
+            String subjectA = subject + ".A";
+            String subjectB = subject + ".B";
+            ctx.createOrReplaceStream(subjectWild);
+
+            jsPublish(ctx.js, subjectA, 1);
+            jsPublish(ctx.js, subjectB, 1);
+            jsPublish(ctx.js, subjectA, 1);
+            jsPublish(ctx.js, subjectB, 1);
+
+            // subscribe to the wildcard
+            PushConsumerCreator creator = new PushConsumerCreator()
+                .filterSubjects(subjectWild)
+                .ackPolicy(AckPolicy.None);
+            JetStreamSubscription sub = ctx.js.pushSubscribe(ctx.stream, creator);
+
+            Message m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectA, m.getSubject());
+            assertEquals(1, m.metaData().streamSequence());
+            m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectB, m.getSubject());
+            assertEquals(2, m.metaData().streamSequence());
+            m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectA, m.getSubject());
+            assertEquals(3, m.metaData().streamSequence());
+            m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectB, m.getSubject());
+            assertEquals(4, m.metaData().streamSequence());
+            m = sub.nextMessage(100); // push, all the messages have already come across the wire
+            assertNull(m);
+
+            // subscribe to A
+            creator = new PushConsumerCreator()
+                .filterSubjects(subjectA)
+                .ackPolicy(AckPolicy.None);
+            sub = ctx.js.pushSubscribe(ctx.stream, creator);
+
+            m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectA, m.getSubject());
+            assertEquals(1, m.metaData().streamSequence());
+            m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectA, m.getSubject());
+            assertEquals(3, m.metaData().streamSequence());
+            m = sub.nextMessage(100); // push, all the messages have already come across the wire
+            assertNull(m);
+
+            // subscribe to B
+            creator = new PushConsumerCreator()
+                .filterSubjects(subjectB)
+                .ackPolicy(AckPolicy.None);
+            sub = ctx.js.pushSubscribe(ctx.stream, creator);
+
+            m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectB, m.getSubject());
+            assertEquals(2, m.metaData().streamSequence());
+            m = sub.nextMessage(1000);
+            assertNotNull(m);
+            assertEquals(subjectB, m.getSubject());
+            assertEquals(4, m.metaData().streamSequence());
+            m = sub.nextMessage(100); // push, all the messages have already come across the wire
+            assertNull(m);
+        });
     }
 
     // ----------------------------------------------------------------------------------------------------

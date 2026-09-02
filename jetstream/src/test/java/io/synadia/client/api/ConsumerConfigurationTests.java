@@ -41,10 +41,10 @@ public class ConsumerConfigurationTests extends TestBase {
         creator.headersOnly(true);
         creator.metadata(Map.of("meta-test-key", "meta-test-value"));
         if (multipleFilterSubjects) {
-            creator.subjects("sub.a", "sub.b");
+            creator.filterSubjects("sub.a", "sub.b");
         }
         else {
-            creator.subjects("sub.single");
+            creator.filterSubjects("sub.single");
         }
     }
 
@@ -434,10 +434,10 @@ public class ConsumerConfigurationTests extends TestBase {
         for (String bad : new String[]{HAS_SPACE, HAS_CR, HAS_LF, HAS_TAB, STARTS_SPACE, ENDS_SPACE,
                                        STARTS_WITH_DOT, EMPTY_SEGMENT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT,
                                        GT_NOT_LAST_SEGMENT, "ends.with.dot."}) {
-            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().subjects(bad));
-            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().subjects(List.of(bad)));
-            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().subjects(bad));
-            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().subjects(List.of(bad)));
+            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().filterSubjects(bad));
+            assertThrows(IllegalArgumentException.class, () -> new PullConsumerCreator().filterSubjects(List.of(bad)));
+            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().filterSubjects(bad));
+            assertThrows(IllegalArgumentException.class, () -> new PushConsumerCreator().filterSubjects(List.of(bad)));
         }
 
         // flow control requires an idle heartbeat. a null or non-positive one leaves it unset, which is the error.

@@ -5,11 +5,9 @@ import io.nats.json.LazyJsonParser;
 import io.nats.json.LazyJsonValue;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.OptionsConstants;
-import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.NatsMessage;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -406,7 +404,7 @@ public class ApiFieldsTest {
             .numReplicas(3)
             .pauseUntil(ZDT_A)
             .memStorage(true)
-            .subjects("the.subject")
+            .filterSubjects("the.subject")
             .priorityGroups("pg-1", "pg-2")
             .priorityPolicy(PriorityPolicy.PinnedClient)
             .priorityTimeout(Duration.ofSeconds(20))
@@ -453,7 +451,7 @@ public class ApiFieldsTest {
 
         // ---- multiple filter subjects ----
         PullConsumerCreator multi = new PullConsumerCreator()
-            .subjects("a.>", "b.>", "c.>");
+            .filterSubjects("a.>", "b.>", "c.>");
         assertTrue(multi.hasMultipleFilterSubjects());
         ConsumerConfiguration multiCc = new ConsumerConfiguration(lj(multi.toJson()));
         assertNull(multiCc.getFilterSubject());
@@ -480,7 +478,7 @@ public class ApiFieldsTest {
             .priorityTimeout(Duration.ofSeconds(2))
             .sampleFrequency("50")
             .pauseUntil(ZDT_A)
-            .subjects("f.>")
+            .filterSubjects("f.>")
             .priorityGroups("g1", "g2")
             .deliverPolicy(DeliverPolicy.New)
             .ackPolicy(AckPolicy.None)
@@ -510,19 +508,19 @@ public class ApiFieldsTest {
         // ---- filterSubject(empty) clears (filterSubjects list becomes empty) ----
         // Setup chain set filterSubject("f.>"); verify empty resets it.
         assertEquals("f.>", c.getFilterSubject());
-        c.subjects("");
+        c.filterSubjects("");
         assertNull(c.getFilterSubject());
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.subjects("a.>").subjects("");
+        c.filterSubjects("a.>").filterSubjects("");
         assertTrue(c.getFilterSubjects().isEmpty());
 
         // ---- filterSubjects array/list null -> clears ----
-        c.subjects("a.>", "b.>");
+        c.filterSubjects("a.>", "b.>");
         assertEquals(2, c.getFilterSubjects().size());
-        assertThrows(NullPointerException.class, () -> c.subjects((String[]) null));
+        assertThrows(NullPointerException.class, () -> c.filterSubjects((String[]) null));
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.subjects("a.>", "b.>");
-        c.subjects((List<String>) null);
+        c.filterSubjects("a.>", "b.>");
+        c.filterSubjects((List<String>) null);
         assertTrue(c.getFilterSubjects().isEmpty());
 
         // ---- priorityGroups null -> clears ----
@@ -1299,16 +1297,16 @@ public class ApiFieldsTest {
         PullConsumerCreator c = new PullConsumerCreator();
         assertNotNull(c.getFilterSubjects());
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.subjects("a.>", "b.>");
+        c.filterSubjects("a.>", "b.>");
         assertEquals(2, c.getFilterSubjects().size());
-        c.subjects(new ArrayList<>());
+        c.filterSubjects(new ArrayList<>());
         assertTrue(c.getFilterSubjects().isEmpty());
-        c.subjects("a.>", "b.>");
-        c.subjects();
+        c.filterSubjects("a.>", "b.>");
+        c.filterSubjects();
         assertTrue(c.getFilterSubjects().isEmpty());
         // List form is @Nullable
-        c.subjects("a.>", "b.>");
-        c.subjects((List<String>) null);
+        c.filterSubjects("a.>", "b.>");
+        c.filterSubjects((List<String>) null);
         assertTrue(c.getFilterSubjects().isEmpty());
 
         // ---- backoff (both Duration... and long... varargs overloads exist; no-arg
