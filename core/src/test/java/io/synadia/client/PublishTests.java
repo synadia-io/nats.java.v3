@@ -7,7 +7,6 @@ import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
@@ -34,8 +33,9 @@ public class PublishTests extends TestBase {
             // flush after close always times out
             assertThrows(TimeoutException.class, () -> nc.flush(0));
 
-            // a normal api call after close
-            assertThrows(IOException.class, nc::RTT);
+            // a normal api call after close. Same guard as publish above: operating on a closed
+            // connection is a usage error, not an I/O failure.
+            assertThrows(IllegalStateException.class, nc::RTT);
         });
     }
 
