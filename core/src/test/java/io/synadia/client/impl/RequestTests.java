@@ -609,6 +609,27 @@ public class RequestTests extends TestBase {
 
     @Test
     public void testRtt() throws Exception {
-        runInShared(nc -> assertTrue(nc.RTT().toMillis() < 50));
+        OptionsBuilder builder = Options.builder().connectionTimeout(5000);
+        runInSharedOwnNc(builder, nc -> {
+            // The upper bounds are sanity rails, not performance assertions. A fixed wall-clock
+            // budget is the most common flake in this suite, so they are deliberately loose.
+            // The > 0 checks are the meaningful ones: a real elapsed measurement in nanos,
+            // which a regression back to millis would fail on a localhost round trip.
+            long rtt = nc.RTT();
+            assertTrue(rtt > 0);
+            assertTrue(rtt < 1_000_000_000); // nanos, so one second
+
+            rtt = nc.RTT(5000);
+            assertTrue(rtt > 0);
+            assertTrue(rtt < 1_000_000_000);
+
+            rtt = nc.RTT(0); // a timeout less than 1 falls back to the connection timeout
+            assertTrue(rtt > 0);
+            assertTrue(rtt < 1_000_000_000);
+
+            nc.close();
+            assertThrows(IllegalStateException.class, nc::RTT);
+            assertThrows(IllegalStateException.class, () -> nc.RTT(1000));
+        });
     }
 }

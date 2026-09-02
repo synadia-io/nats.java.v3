@@ -138,7 +138,7 @@ The **get-timeout is classified** (maintainer decision): if the blocking `get(ti
 | `requestInternal` (blocking) | `NatsConnection.request(...)` `:1355` | becomes `MessageResult` |
 | `requestFutureInternal` | the innermost `requestAsync(...)` that builds the future (`:1471-1508`) | extract as `requestFuture(...)` returning `NatsRequestCompletableFuture` |
 | `responseRequired` | `JetStreamImpl.responseRequired` `:209` (callers `:192,:201`) | delete; use `getMessageOrThrow()` |
-| `ackSync` | core `JetStreamMessage.ackSync` `:30` (+ `Message` iface `:116`, `NatsMessage` `:282`) | `throws IOException` |
+| `ackSync` | core `JetStreamMessage.ackSync` `:37` (+ `Message` iface `:116`, `NatsMessage` `:282`) | `throws IOException`. Takes `long timeoutMillis`, not `Duration` — see Step 8 |
 | service `Discovery` | `service/.../Discovery.java:174` | `messageOrNull()` |
 | `emptyAsNull` | `utils.Validator.emptyAsNull:358` | last-error hygiene |
 
@@ -200,6 +200,31 @@ private static @Nullable Throwable unwrap(@Nullable Throwable ex) {     // handl
 }
 ```
 
+**Gap found 2026-09-02 — as drafted, `NO_RESPONDERS` is unreachable on the default path.** The only arm that produces it requires `cause instanceof CancellationException` *and* `getCancelAction() == CANCEL`, but `CANCEL` is the one action the library never selects: `REPORT` is the default on every public overload (`NatsConnection.java:1418, 1436, 1457, 1521, 1536, 1551, 1567, 1586, 1604`) and on `JetStreamImpl:201`. Trace a 503 through `deliverReply` (`:1685`) per action:
+
+| cancelAction | 503 becomes | classified as | correct? |
+|---|---|---|---|
+| `REPORT` (default everywhere) | `completeExceptionally(StatusException)` → `ExecutionException` cause | falls past every arm to the final `else` → **`TIMEOUT`** | no |
+| `COMPLETE` (`JetStreamImpl:205`, `JetStream:480`) | `complete(msg)` with the 503 status message | `msg != null` → **`MessageResult.Reply`**, and `getMessageOrThrow()` hands a status message back as a reply | no |
+| `CANCEL` (never selected internally) | `cancel(true)` → `CancellationException` | `NO_RESPONDERS` | yes |
+
+Fix: add a `StatusException` arm keyed on code 503 **ahead of** the `CancellationException` arm, and check for a 503 status message on the `Reply` path so `COMPLETE` cannot pass one off as a response. Once that is in, `NO_RESPONDERS` no longer depends on `CancelAction` at all — **which feeds the `CANCEL_ACTION_REVISIT.md` decision**: that doc's lean is "keep `CANCEL`, though the library never selects it", and this fix strengthens the *remove* case. Leave it unfixed and any internal caller needing `NO_RESPONDERS` has to pass `CANCEL`, making it the first production consumer of the value that doc calls unused. **Decide the two together.** (That doc also cites `deliverReply` at `:1528`; it is at `:1685` now.)
+
+### First internal consumer: a real `Service.isStarted`
+
+Designed 2026-09-02, and the reason the gap above was found. `Service.isStarted(long, TimeUnit)` (`Service.java:373`) claims to report readiness but only waits on a future that `startService` completes synchronously four lines after creating it (`:195`, `:203`) — so it always returns true immediately and proves nothing about the server. The replacement does a round trip to the service's own `$SRV.PING.<name>.<id>` (that endpoint is already registered, `Service.java:146`), which doubles as a marker in the connection's byte stream: the SUBs were queued first, the server processes one connection in order, so a response proves every subscription is registered *and* that the dispatcher is delivering.
+
+That check is precisely the caller this plan is for — it has to tell "not yet, keep waiting" from "never, stop":
+
+| result | readiness check does |
+|---|---|
+| `Reply` | started → true |
+| `NO_RESPONDERS` / `TIMEOUT` | not ready yet → retry to the deadline |
+| `CONNECTION_CLOSING` | false now; retrying is pointless |
+| `SERVER_ERROR` | surface it — a permissions denial on `$SRV.>` currently looks identical to a slow start and burns the whole timeout before returning a bare `false` |
+
+Without the classification it has to treat every failure as "retry", which is the same dead end as `ackSync`.
+
 6c. **Public async** — all `requestAsync(...)` overloads change to `CompletableFuture<MessageResult>`; the 6-arg one adapts the future:
 ```java
 public CompletableFuture<MessageResult> requestAsync(String subject, Headers headers, byte[] data,
@@ -242,12 +267,34 @@ return conn.request(subject, headers, data, timeout, cancelAction).getMessageOrT
 **Delete `responseRequired`** (`:209`) — dead. Methods already declare `throws IOException`; `getMessageOrThrow()` throws `RequestFailureException` (an `IOException`), so callers are unchanged in signature, richer in detail. The async publish path (`publishAsyncInternal`) now does `requestAsync(...).thenApply(MessageResult::getMessageOrThrow).thenCompose(...)` — so **async JetStream publish also surfaces `RequestFailureException`** (the future completes exceptionally), closing the sync/async asymmetry upstream left open.
 
 ### Step 8 — `ackSync` → `throws IOException` (the todo)
-- `Message.java:116`: `void ackSync(Duration timeout) throws IOException, InterruptedException;` (drop now-unthrown `TimeoutException` — Open #2).
-- `JetStreamMessage.java:30`:
+
+**Signatures below were refreshed 2026-09-02** — they were written against the `Duration` API and the client moved to straight millis in `9a04792e`. Current: `void ackSync(long timeoutMillis) throws TimeoutException, InterruptedException`.
+
+**Why this one matters more than its size suggests — it is the worked example of the anti-pattern.** Today `JetStreamMessage.ackSync` (`:37-45`) is:
+
+```java
+public void ackSync(long timeoutMillis) throws InterruptedException, TimeoutException {
+    if (ackHasntBeenTermed()) {
+        NatsConnection nc = getJetStreamValidatedConnection();
+        if (nc.request(replyTo, AckAck.bytes, timeoutMillis) == null) {
+            throw new TimeoutException("Ack response timed out.");
+        }
+        lastAck = AckAck;
+    }
+}
+```
+
+A null response is converted straight into `TimeoutException("Ack response timed out.")`, so no responders, a connection closing underneath the call, a 503 and a genuine timeout all surface as the same message, naming only the last of the four. **This is exactly what a user writing their own request code is forced to do**, because `request(...)` returning `@Nullable Message` gives them nothing else to branch on — which is the argument for this whole plan, in eight lines of our own code. Found 2026-09-02 while writing an `ackSync` test.
+
+- `Message.java:116`: `void ackSync(long timeoutMillis) throws IOException, InterruptedException;` (drop now-unthrown `TimeoutException` — Open #2).
+- `JetStreamMessage.java:37`:
   ```java
-  public void ackSync(Duration d) throws IOException, InterruptedException {
-      ... // replyTo
-      nc.request(replyTo, AckAck.bytes, d).getMessageOrThrow();   // throws RequestFailureException on no-response
+  public void ackSync(long timeoutMillis) throws IOException, InterruptedException {
+      if (ackHasntBeenTermed()) {
+          NatsConnection nc = getJetStreamValidatedConnection();
+          nc.request(replyTo, AckAck.bytes, timeoutMillis).getMessageOrThrow();   // classified, not "timed out"
+          lastAck = AckAck;
+      }
   }
   ```
 - `NatsMessage.java:282`: widen its `ackSync` `throws` to match the interface.

@@ -5,6 +5,7 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.NUID;
 import io.synadia.client.impl.NatsConnection;
 
+import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -357,28 +358,41 @@ public class Service {
     }
 
     /**
-     * Get whether the service has full started
-     * @return true if started
+     * Get whether {@link #startService()} has been called on this service.
+     * <p>This is a local check only. It does not confirm that the server has registered the
+     * service's subscriptions, so a service can report started here and still not answer a
+     * request. Use {@link #isStarted(long)} when readiness is what you actually need.
+     * @return true if the service has been started locally
      */
     public boolean isStarted() {
         return startedFuture.isDone();
     }
 
     /**
-     * Get
-     * @param timeout the maximum time to wait
-     * @param unit the time unit of the timeout argument
-     * @return true if started by the timeout
+     * Get whether the service is started and the server has registered its subscriptions.
+     * <p>Confirmed with a round trip on the service's connection. The server reads one
+     * connection's stream in order, so a completed round trip proves it has already processed
+     * every subscription {@link #startService()} queued before it.
+     * <p>Only subscriptions on the service's own connection are confirmed. An endpoint given its
+     * own {@link ServiceEndpoint.Builder#dispatcher(Dispatcher) dispatcher} built from a
+     * different connection is not covered by this check.
+     * @param timeoutMillis the maximum time to wait for the round trip, in milliseconds;
+     *                      less than 1 uses the connection timeout
+     * @return true if started and confirmed by the server within the timeout
      */
-    public boolean isStarted(long timeout, TimeUnit unit) {
+    public boolean isStarted(long timeoutMillis) {
+        if (!startedFuture.isDone()) {
+            return false;
+        }
         try {
-            return startedFuture.get(timeout, unit);
+            conn.RTT(timeoutMillis);
+            return true;
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return false;
         }
-        catch (ExecutionException | TimeoutException e) {
+        catch (IllegalStateException | IOException | TimeoutException e) {
             return false;
         }
     }

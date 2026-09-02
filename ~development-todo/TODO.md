@@ -24,9 +24,15 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
-(nothing in progress)
+- **Request behavior improvement** - **In progress**, `REQUEST_BEHAVIOR_IMPROVEMENT.md`. Sequence is RTT -> `Service.isStarted` -> the general rework; **the first two are done and committed**, next is Steps 1-4 (the four types).
+  - Two findings from the RTT spike to carry into the classifier: entry-state errors (not connected, max pings out) stay **out** of it as `IllegalStateException`, and do **not** classify on exception type alone - `CancellationException` means different things depending on the `CancelAction`.
+  - Still open in the plan: the classifier gap making `NO_RESPONDERS` unreachable on the default `REPORT` path, which is coupled to the `CANCEL_ACTION_REVISIT.md` decision. Migration-guide entries go in **as each change lands**, not batched.
 
 ## Recently Closed
+
+- **`RTT` + a real `Service.isStarted`** - first two steps of the request-behavior work. `NatsConnection.RTT()` returns nanos, gained `RTT(long timeoutMillis)`, and split one `IOException` into `IllegalStateException` / `TimeoutException` / `IOException` / `InterruptedException`. **Three of those were bugs**: the pong future leaked on timeout (a dead future then ate the next PONG a live `flush()` was owed), the `maxPingsOut` guard was bypassed, and a `CancellationException` escaped a method declared `throws IOException` when the connection dropped. `Service.isStarted(long, TimeUnit)` -> `isStarted(long timeoutMillis)`, now confirming via RTT instead of reading a future `startService` completes synchronously. `testQueueGroup` gated on real readiness and made retry-safe (it never stopped its services, and its subjects are fixed). Migration guide updated for both. Name kept as `RTT` deliberately.
+
+- **`subjects` -> `filterSubjects` + deliver-subject readme** - `bfe8f237`, not built locally. `ConsumerCreator.subjects(...)` renamed on both overloads with call sites updated across jetstream main and tests; README gains a draft push-consumer/deliver-subject section; `JetStreamPullTests` port in progress (v2 `ConsumerConfiguration`/`PullSubscribeOptions`/`Duration` -> `PullConsumerCreator`/millis). Also removed an unused `import io.synadia.client.utils.Debug` from `JetStreamSubscribeTests` - `Debug*.java` is gitignored, so that file would not compile from a fresh clone.
 
 - **ClientError split + creator validation tests** - `f2057f8f`, `:jetstream:test` green. `ClientError` moved to core and is no longer subclassed; `JetStreamClientError` / `ObjectStoreClientError` are constant holders, its constructor `public` for a future JPMS package split with an "internal use, API not guaranteed" javadoc note. All 12 constants reviewed argument-vs-state (**9 STATE / 3 ARGUMENT**), `OsObjectIsDeleted` split, `JsConsumerNameDurableMismatch` removed for a label-parameterized `IllegalStateException` in `JsValidator`. Every creator-hierarchy validation gained a negative test, which found two real bugs in `ConsumerCreator._flowControl`. Written up in `~development-history/CLIENT_ERROR_AUDIT.md`.
 
@@ -60,7 +66,9 @@ The single source of truth for the things currently in progress — so any sessi
 * INTERFACES_REPORT.md
     * Dispatcher unsubscribe - Every Subscription is a NatsSubscription. Review this when looking at INTERFACE
 * REQUEST_BEHAVIOR_IMPROVEMENT.md
-  * ??? Status
+  * **now the Current Implementation item** - `MessageResult` (`Reply` | `RequestFailure`) replacing `@Nullable Message`, `RequestFailureException extends IOException` at throwing boundaries, five classified reasons
+  * 2026-09-02: `ackSync` written up as the worked example (a null response becomes `TimeoutException("Ack response timed out.")`, hiding no-responders / connection-closing / 503); Step 8 signatures refreshed off `Duration` to millis
+  * 2026-09-02: **classifier gap** - `NO_RESPONDERS` needs `CancelAction.CANCEL`, which the library never selects, so a 503 under the default `REPORT` classifies as `TIMEOUT` and under `COMPLETE` comes back as a `Reply` carrying a status message. Fix feeds the CANCEL_ACTION_REVISIT decision - decide the two together
 * VIRTUAL_THREAD_DISPATCHER_EXAMPLE.md
 * CANCEL_ACTION_REVISIT.md
 * PLAN_MESSAGE_NEXT_LINKED_LIST_FIX.md

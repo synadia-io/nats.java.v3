@@ -1944,34 +1944,64 @@ public class NatsConnection implements AutoCloseable {
     }
 
     /**
-     * Calculates the round trip time between this client and the server.
-     * @return the RTT as a duration
-     * @throws IOException various IO exception such as timeout or interruption
+     * Calculates the round trip time between this client and the server,
+     * waiting up to the connection timeout for the response.
+     * @return the round trip time in nanoseconds
+     * @throws IllegalStateException if the connection is not connected, or the max outgoing ping count would be exceeded
+     * @throws IOException if the connection is closed while waiting for the response
+     * @throws TimeoutException if the server does not respond in time
+     * @throws InterruptedException if the thread is interrupted
      */
-    @NonNull
-    public Duration RTT() throws IOException {
+    public long RTT() throws IOException, TimeoutException, InterruptedException {
+        return RTT(options.getConnectionTimeout());
+    }
+
+    /**
+     * Calculates the round trip time between this client and the server.
+     * <p>A completed round trip also confirms the server has processed everything this
+     * connection sent before it, since the server reads one connection's stream in order.
+     * @param timeoutMillis the maximum time to wait, in milliseconds; less than 1 uses the connection timeout
+     * @return the round trip time in nanoseconds. Note the wait is bounded in millis but the
+     *         measurement is returned in nanos, since a round trip is routinely sub-millisecond
+     * @throws IllegalStateException if the connection is not connected, or the max outgoing ping count would be exceeded
+     * @throws IOException if the connection is closed while waiting for the response
+     * @throws TimeoutException if the server does not respond in time
+     * @throws InterruptedException if the thread is interrupted
+     */
+    public long RTT(long timeoutMillis) throws IOException, TimeoutException, InterruptedException {
         if (!isConnected()) {
-            throw new IOException("Must be connected to do RTT.");
+            throw new IllegalStateException("Must be connected to do RTT.");
         }
 
-        long timeout = options.getConnectionTimeout();
+        int max = options.getMaxPingsOut();
+        if (max > 0 && pongQueue.size() + 1 > max) {
+            throw new IllegalStateException("Max outgoing Ping count exceeded.");
+        }
+
+        long timeout = timeoutMillis < 1 ? options.getConnectionTimeout() : timeoutMillis;
         CompletableFuture<Boolean> pongFuture = new CompletableFuture<>();
         pongQueue.add(pongFuture);
+        boolean ponged = false;
         try {
-            long time = NatsSystemClock.nanoTime();
-            writer.queue(new ProtocolMessage(PING_PROTO));
+            long startNanos = NatsSystemClock.nanoTime();
+            queueOutgoing(new ProtocolMessage(PING_PROTO));
             pongFuture.get(timeout, TimeUnit.MILLISECONDS);
-            return Duration.ofNanos(NatsSystemClock.nanoTime() - time);
+            ponged = true;
+            return NatsSystemClock.nanoTime() - startNanos;
+        }
+        catch (CancellationException e) {
+            // cleanUpPongQueue cancels every waiter when the connection drops
+            throw new IOException("Connection closed while waiting for RTT.", e);
         }
         catch (ExecutionException e) {
             throw new IOException(e.getCause());
         }
-        catch (TimeoutException e) {
-            throw new IOException(e);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException(e);
+        finally {
+            // a future left in the queue would be completed by the next PONG,
+            // consuming the one a live waiter (a flush) is owed
+            if (!ponged) {
+                pongQueue.remove(pongFuture);
+            }
         }
     }
 

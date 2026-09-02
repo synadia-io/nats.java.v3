@@ -29,6 +29,7 @@ import static io.nats.json.JsonWriteUtils.toKey;
 import static io.synadia.client.impl.NatsPackageScopeWorkarounds.getDispatchers;
 import static io.synadia.client.utils.NatsConstants.DOT;
 import static io.synadia.client.utils.OptionsUtils.options;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static io.synadia.service.Service.SRV_PING;
 import static io.synadia.service.ServiceMessage.NATS_SERVICE_ERROR;
@@ -463,6 +464,40 @@ public class ServiceTests extends TestBase {
     }
 
     @Test
+    public void testIsStartedConfirmsWithTheServer() throws Exception {
+        runInSharedNamed(SERVICE_TESTS_SHARED_NAME, ts -> {
+            NatsConnection anchorNc = SharedServer.sharedConnectionForServer(ts);
+            NatsConnection ownNc = SharedServer.connectionForSameServer(anchorNc, optionsBuilder());
+
+            ServiceEndpoint se = ServiceEndpoint.builder()
+                .endpoint(Endpoint.builder().name("isstarted").subject(random()).build())
+                .handler(new EchoHandler(ownNc))
+                .build();
+
+            Service service = new ServiceBuilder()
+                .name("IsStarted" + random())
+                .version("1.0.0")
+                .connection(ownNc)
+                .addServiceEndpoint(se)
+                .build();
+
+            assertFalse(service.isStarted());
+            assertFalse(service.isStarted(1000));
+
+            service.startService();
+            assertTrue(service.isStarted());
+            assertTrue(service.isStarted(1000));
+
+            // The local flag stays set once startService has been called, so this is the assertion
+            // that separates a real readiness check from the old one: with the connection gone there
+            // is no way to confirm with the server, and the old isStarted(timeout) still said true.
+            ownNc.close();
+            assertTrue(service.isStarted());
+            assertFalse(service.isStarted(1000));
+        });
+    }
+
+    @Test
     public void testQueueGroup() throws Exception {
         String serviceName1 = "Service1" + random();
         String serviceName2 = "Service2" + random();
@@ -530,6 +565,13 @@ public class ServiceTests extends TestBase {
             service1.startService();
             service2.startService();
 
+            // Gate on the server actually having the endpoint subscriptions. startService only
+            // queues the SUBs on the service connections; without this the publishes below can
+            // reach the server first and be dropped with no responders, which is what failed on
+            // the Windows runner 2026-09-01.
+            assertTrue(service1.isStarted(1000));
+            assertTrue(service2.isStarted(1000));
+
             String replyTo = "qreplyto";
             AtomicInteger y1Count = new AtomicInteger();
             AtomicInteger y2Count = new AtomicInteger();
@@ -560,9 +602,18 @@ public class ServiceTests extends TestBase {
             clientNc.publish(noQueueSubject, replyTo, "n1".getBytes());
             clientNc.publish(noQueueSubject, replyTo, "n2".getBytes());
 
-            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            // Loose on purpose. The latch releases as soon as the six replies land, so a wider
+            // window costs nothing when passing and stops a loaded box from failing the test.
+            assertTrue(latch.await(10, TimeUnit.SECONDS));
             assertEquals(2, y1Count.get() + y2Count.get());
             assertEquals(4, n1Count.get() + n2Count.get());
+
+            // These services and the dispatcher live on connections shared with the rest of the
+            // class, and the subjects here are fixed. Left running, a retry of this test would
+            // find the previous attempt's responders still subscribed and double the counts.
+            service1.stop();
+            service2.stop();
+            clientNc.closeDispatcher(d);
         });
     }
 
@@ -611,8 +662,8 @@ public class ServiceTests extends TestBase {
             service1.startService();
             service2.startService();
 
-            assertTrue(service1.isStarted(1, TimeUnit.SECONDS));
-            assertTrue(service2.isStarted(1, TimeUnit.SECONDS));
+            assertTrue(service1.isStarted(1000));
+            assertTrue(service2.isStarted(1000));
 
             // give 10 seconds for responses, b/c sometimes on GH this takes more than the default 5 seconds.
             // limit to 2 results so we don't wait the entire time when we do get results

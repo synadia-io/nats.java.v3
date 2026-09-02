@@ -234,6 +234,27 @@ The `default` is not optional and not a wart: `JetStreamException` is deliberate
   |---|---|
   | `internalStart(id, false)` | `startImpl(id, false)` |
 
+- **`Connection.RTT()` returns `long` nanoseconds, gained a timeout overload, and no longer reports every failure as `IOException`.** The name is unchanged.
+
+  | v2 | v3 |
+  |---|---|
+  | `Duration RTT() throws IOException` | `long RTT() throws IOException, TimeoutException, InterruptedException` |
+  | (none) | `long RTT(long timeoutMillis) throws IOException, TimeoutException, InterruptedException` |
+
+  **The return is nanoseconds, and nothing at the call site says so** — `Duration` was self-describing, a bare `long` is not. This is the trap: `if (nc.RTT().toMillis() < 50)` becomes `if (nc.RTT() < 50)`, which compiles and means *50 nanoseconds*. Convert at the call site (`nc.RTT() / 1_000_000` for millis) or compare against a nanosecond literal. The new overload's `timeoutMillis` parameter is **milliseconds**, matching every other timeout in v3 — the wait is bounded in millis, the measurement is returned in nanos, because a round trip is routinely sub-millisecond.
+
+  Four failures used to arrive as one `IOException` naming only the last of them. They are now distinct, and this is the safe kind of break — the return type changed, so the compiler stops at every call site rather than letting a behavior change through silently:
+
+  | condition | v2 | v3 |
+  |---|---|---|
+  | not connected | `IOException` | `IllegalStateException` (a usage error — see **Exceptions** above) |
+  | max outgoing pings exceeded | (not checked — v2 bypassed the guard) | `IllegalStateException` |
+  | server did not respond in time | `IOException` wrapping `TimeoutException` | `TimeoutException` |
+  | connection closed mid-call | `CancellationException` **escaped uncaught** | `IOException` |
+  | thread interrupted | `IOException` (interrupt flag set, but uncatchable as an interrupt) | `InterruptedException` |
+
+  Three of those were bugs, not just poor typing: v2 left its pong future in the queue on timeout (so the next PONG completed a dead future and a live `flush()` lost its turn), skipped the `maxPingsOut` bound entirely, and let a `CancellationException` escape a method declared `throws IOException` whenever the connection dropped mid-call.
+
 ---
 
 ## JetStream
@@ -334,3 +355,22 @@ See **[os/README.md](os/README.md)** for the project overview.
 ## Service
 
 See **[service/README.md](service/README.md)** for the project overview.
+
+- **`Service.isStarted(long, TimeUnit)` is now `isStarted(long timeoutMillis)`, and it actually checks.**
+
+  | v2 | v3 |
+  |---|---|
+  | `boolean isStarted(long timeout, TimeUnit unit)` | `boolean isStarted(long timeoutMillis)` |
+
+  **This is a behavior change, not just a signature change, and it is the one worth reading.** In v2 the method waited on a future that `startService()` completes synchronously before it returns — so it answered "has `startService()` been called", always immediately, and always `true` afterwards. It said nothing about whether the server had registered the service's subscriptions, which is what callers actually wanted to know. Code that started a service and then published to it could still lose the race, and did so most visibly on loaded machines.
+
+  v3 confirms with a round trip on the service's connection. The server reads one connection's stream in order, so a completed round trip proves it has already processed every subscription `startService()` queued before it. A `false` return now means something: not started, or not confirmable within the timeout.
+
+  ```java
+  service.startService();
+  if (!service.isStarted(1000)) {
+      // the server has not registered the endpoints - do not publish yet
+  }
+  ```
+
+  Two limits to know. Only subscriptions on the **service's own connection** are confirmed — an endpoint given its own `Dispatcher` built from a different connection is not covered. And the no-argument `isStarted()` is unchanged: it remains the cheap local "has `startService()` been called" check, so do not reach for it when you mean readiness.
