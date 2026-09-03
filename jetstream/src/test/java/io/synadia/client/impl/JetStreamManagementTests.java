@@ -911,7 +911,8 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
     @Test
     public void testGetConsumers() throws Exception {
-        runInShared((nc, ctx) -> {
+        runInSharedCustomContext((nc, ctx) -> {
+            ctx.addStream(new StreamCreator(ctx.stream).maxConsumers(10000));
             addConsumers(ctx.jsm, ctx.stream, 600); // getConsumers pages at 256
 
             List<ConsumerInfo> list = ctx.jsm.getConsumers(ctx.stream);
