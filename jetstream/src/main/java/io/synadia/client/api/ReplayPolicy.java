@@ -32,8 +32,8 @@ public enum ReplayPolicy {
      */
     public static ReplayPolicy get(@Nullable String value, ReplayPolicy dflt) {
         if (value != null) {
-            if (Instant.policy.equalsIgnoreCase(value)) { return Instant; }
-            if (Original.policy.equalsIgnoreCase(value)) { return Original; }
+            if (Instant.policy.equals(value)) { return Instant; }
+            if (Original.policy.equals(value)) { return Original; }
         }
         return dflt;
     }

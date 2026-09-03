@@ -40,8 +40,8 @@ public enum PersistMode {
      */
     public static PersistMode get(@Nullable String value, PersistMode dflt) {
         if (value != null) {
-            if (Default.mode.equalsIgnoreCase(value)) { return Default; }
-            if (Async.mode.equalsIgnoreCase(value)) { return Async; }
+            if (Default.mode.equals(value)) { return Default; }
+            if (Async.mode.equals(value)) { return Async; }
         }
         return dflt;
     }

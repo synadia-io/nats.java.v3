@@ -19,7 +19,13 @@ public enum AckPolicy {
     /**
      * Each message must be acknowledged individually. Message can be acked out of sequence and create gaps of unacknowledged messages in the consumer.
      */
-    Explicit("explicit");
+    Explicit("explicit"),
+    /**
+     * Used by server-managed durable sourcing/mirroring consumers (ADR-60).
+     * Behaves like [`AckPolicy::All`] but acknowledgements are driven by
+     * flow-control responses from the receiving server.
+     */
+    FlowControl("flow_control");
 
     private final String policy;
 
@@ -44,9 +50,10 @@ public enum AckPolicy {
      */
     public static AckPolicy get(@Nullable String value, AckPolicy dflt) {
         if (value != null) {
-            if (None.policy.equalsIgnoreCase(value)) { return None; }
-            if (All.policy.equalsIgnoreCase(value)) { return All; }
-            if (Explicit.policy.equalsIgnoreCase(value)) { return Explicit; }
+            if (None.policy.equals(value)) { return None; }
+            if (All.policy.equals(value)) { return All; }
+            if (Explicit.policy.equals(value)) { return Explicit; }
+            if (FlowControl.policy.equals(value)) { return FlowControl; }
         }
         return dflt;
     }

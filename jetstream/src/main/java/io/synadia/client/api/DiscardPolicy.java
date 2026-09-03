@@ -32,8 +32,8 @@ public enum DiscardPolicy {
      */
     public static DiscardPolicy get(@Nullable String value, DiscardPolicy dflt) {
         if (value != null) {
-            if (New.policy.equalsIgnoreCase(value)) { return New; }
-            if (Old.policy.equalsIgnoreCase(value)) { return Old; }
+            if (New.policy.equals(value)) { return New; }
+            if (Old.policy.equals(value)) { return Old; }
         }
         return dflt;
     }

@@ -37,10 +37,10 @@ public enum CompressionOption {
      */
     public static CompressionOption get(@Nullable String value, CompressionOption dflt) {
         if (value != null) {
-            if (None.policy.equalsIgnoreCase(value)) {
+            if (None.policy.equals(value)) {
                 return None;
             }
-            if (S2.policy.equalsIgnoreCase(value)) {
+            if (S2.policy.equals(value)) {
                 return S2;
             }
         }

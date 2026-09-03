@@ -34,13 +34,13 @@ public enum RetentionPolicy {
      */
     public static RetentionPolicy get(@Nullable String value, RetentionPolicy dflt) {
         if (value != null) {
-            if (Limits.policy.equalsIgnoreCase(value)) {
+            if (Limits.policy.equals(value)) {
                 return Limits;
             }
-            if (Interest.policy.equalsIgnoreCase(value)) {
+            if (Interest.policy.equals(value)) {
                 return Interest;
             }
-            if (WorkQueue.policy.equalsIgnoreCase(value)) {
+            if (WorkQueue.policy.equals(value)) {
                 return WorkQueue;
             }
         }

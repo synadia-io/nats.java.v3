@@ -53,10 +53,10 @@ public enum PriorityPolicy {
      */
     public static PriorityPolicy get(@Nullable String value, PriorityPolicy dflt) {
         if (value != null) {
-            if (None.policy.equalsIgnoreCase(value)) { return None; }
-            if (Overflow.policy.equalsIgnoreCase(value)) { return Overflow; }
-            if (Prioritized.policy.equalsIgnoreCase(value)) { return Prioritized; }
-            if (PinnedClient.policy.equalsIgnoreCase(value)) { return PinnedClient; }
+            if (None.policy.equals(value)) { return None; }
+            if (Overflow.policy.equals(value)) { return Overflow; }
+            if (Prioritized.policy.equals(value)) { return Prioritized; }
+            if (PinnedClient.policy.equals(value)) { return PinnedClient; }
         }
         return dflt;
     }

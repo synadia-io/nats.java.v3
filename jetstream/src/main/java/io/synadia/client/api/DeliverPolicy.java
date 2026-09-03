@@ -45,12 +45,12 @@ public enum DeliverPolicy {
      */
     public static DeliverPolicy get(@Nullable String value, DeliverPolicy dflt) {
         if (value != null) {
-            if (All.policy.equalsIgnoreCase(value)) { return All; }
-            if (Last.policy.equalsIgnoreCase(value)) { return Last; }
-            if (New.policy.equalsIgnoreCase(value)) { return New; }
-            if (ByStartSequence.policy.equalsIgnoreCase(value)) { return ByStartSequence; }
-            if (ByStartTime.policy.equalsIgnoreCase(value)) { return ByStartTime; }
-            if (LastPerSubject.policy.equalsIgnoreCase(value)) { return LastPerSubject; }
+            if (All.policy.equals(value)) { return All; }
+            if (Last.policy.equals(value)) { return Last; }
+            if (New.policy.equals(value)) { return New; }
+            if (ByStartSequence.policy.equals(value)) { return ByStartSequence; }
+            if (ByStartTime.policy.equals(value)) { return ByStartTime; }
+            if (LastPerSubject.policy.equals(value)) { return LastPerSubject; }
         }
         return dflt;
     }

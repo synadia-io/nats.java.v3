@@ -32,8 +32,8 @@ public enum StorageType {
      */
     public static StorageType get(@Nullable String value, StorageType dflt) {
         if (value != null) {
-            if (File.policy.equalsIgnoreCase(value)) { return File; }
-            if (Memory.policy.equalsIgnoreCase(value)) { return Memory; }
+            if (File.policy.equals(value)) { return File; }
+            if (Memory.policy.equals(value)) { return Memory; }
         }
         return dflt;
     }

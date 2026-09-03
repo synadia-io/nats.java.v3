@@ -232,7 +232,7 @@ WSL still has no `nclean` equivalent of its own.
 - The same omission applies to every other -1 default on `StreamCreator` — `maxMessages`, `maxMessagesPerSubject`, `maxBytes`, `maxMessageSize` (`:92-95`), all serialized with plain `addField`. Latent exposure to the same class of break if the server ever changes one of those defaults.
 - **Checked 2026-09-02: no other tracked flaky test has this cause.** `JSLimitOpts` on nats-server head has exactly one entry under `// Max asset limits` — `DefaultMaxConsumers`. There is no default max-*streams* limit, so the sibling bulk test `testGetStreamInfoOrNamesPaginationFilter` (1400 streams) is not exposed to this, and its recorded failure is a timeout, which fits. Every other entry on this page fails as a timeout, a client-side state exception, or an external-host reachability problem — none as a server API error code. **A `JetStreamApiException` with an error code is the server saying no; it is never a flake.**
 - **Forward risk:** that `// Max asset limits` section holds one field today and reads like a placeholder for more. If a `DefaultMaxStreams` lands, `testGetStreamInfoOrNamesPaginationFilter` breaks exactly the way `testGetConsumers` just did, for the same reason — a four-figure asset count on a shared account.
-- **CLOSED 2026-09-03. The server team agreed it is a breaking change and are keeping it, so the 1000-consumer default is permanent.** Scott fixed the test by moving it to `runInSharedCustomContext` and creating the stream with an explicit `new StreamCreator(ctx.stream).maxConsumers(10000)`. That works because the server's override guard is `maxc <= 0` — a **positive** stream-level value is honoured, only unset and `-1` are overridden. Written up in `~development-history/NATS_SERVER_MAX_CONSUMERS_REGRESSION.md`.
+- **CLOSED 2026-09-03. The server team agreed it is a breaking change and are keeping it, so the 1000-consumer default is permanent.** Scott fixed the test by moving it to `runInSharedCustomContext` and creating the stream with an explicit `new StreamCreator(ctx.stream).maxConsumers(10000)`. That works because the server's override guard is `maxc <= 0` — a **positive** stream-level value is honoured, only unset and `-1` are overridden. Written up in `~development-history/NATS_SERVER_MAX_CONSUMERS_REGRESSION.md`. **CI green on `886876fe`**, and verified locally against nats-server v2.15.0-dev (which has the limit) after upgrading the WSL server to head.
 - Carry forward: **any v3 test or example that wants more than 1000 consumers on a stream must now say so explicitly.** `-1` will not do it — there is no longer a stream-level way to express "unlimited", only server config (`jetstream { limits { default_max_consumers: -1 } }`).
 
 ## Summary of ideas (cheapest → most involved)
@@ -730,3 +730,22 @@ Correcting an earlier note here: `discoverMany` publishes its request **once** (
 **Idea, not applied.** Flush before publishing. `ServiceTests extends TestBase` and `TestBase.flushConnection` (`TestBase.java:523`) already exists but is used nowhere in `ServiceTests`: `flushConnection(serviceNc1)` / `flushConnection(serviceNc2)` after the two `startService()` calls, and `flushConnection(clientNc)` after `d.subscribe(replyTo)` — in both tests, since both share the race.
 
 Noticed in passing: `EchoHandler.onMessage` (`ServiceTests.java:394`) increments `counter` once directly and once again inside the default single-arg constructor's `responder` lambda (`:383`), so it double-counts. Nothing reads `counter` today, so it broke nothing — but it is a landmine for the first test that does assert on it.
+
+## New candidate, seen 2026-09-03: `AuthTests.testEncodedPassword` — the auth failure sometimes arrives as a generic connect failure
+
+Scott's full Windows suite, which **passed overall** — this flapped 2 of its retry attempts, so the retry plugin cleared it. Report: `core/build/reports/tests/test/classes/io.synadia.client.AuthTests.html`.
+
+```
+org.opentest4j.AssertionFailedError: Unexpected exception type thrown,
+    expected: <io.synadia.client.AuthenticationException> but was: <java.io.IOException>
+    at io.synadia.client.AuthTests.lambda$testEncodedPassword$4(AuthTests.java:105)
+Caused by: java.io.IOException: Unable to connect to NATS servers: [nats://uspace+space:pspace+space@127.0.0.1:4262]
+    at io.synadia.client.impl.NatsConnection.connectImpl(NatsConnection.java:295)
+    at io.synadia.client.AuthTests.assertEncoded(AuthTests.java:112)
+```
+
+**What the assertion is for.** `AuthTests.java:105` is the last line of the test and the only negative case in it: `assertThrows(AuthenticationException.class, () -> assertEncoded("space+space", port))`. Every line above it asserts that a percent-encoded user/pass round-trips and authenticates; this one asserts that a **literal `+` is a plus, not a space**, so the credentials must be rejected. The connection does fail every time — what varies is *which* exception comes out.
+
+**Scott's read, 2026-09-03: a timing issue or something in the exception handling.** Not diagnosed further. The observable is that the specific `AuthenticationException` is only surfaced sometimes, and otherwise the attempt ends in the generic `"Unable to connect to NATS servers"` `IOException` from `connectImpl` (`NatsConnection.java:295`) — the same shape of problem as [[REQUEST_BEHAVIOR_IMPROVEMENT]] is fixing elsewhere: a specific, known cause collapsing into a generic `IOException` that tells the caller nothing. Worth checking whether this one is a *client* defect rather than a test defect before changing the assertion — a connect that knows it was rejected for auth and reports "unable to connect" is losing information a user would want too.
+
+**Do not "fix" this by widening the assertion to accept either exception** until that question is answered. A negative test that passes for the wrong reason proves nothing — the same trap this page already records for the four wss cases that passed all through the broken period.

@@ -1590,4 +1590,139 @@ public class ApiFieldsTest {
         assertEquals(456L, copy.getPendingMessageLimit());
         assertEquals(789L, copy.getPendingByteLimit());
     }
+
+    @Test
+    public void testAckPolicyCoverage() {
+        assertEquals("none", AckPolicy.None.toString());
+        assertEquals("all", AckPolicy.All.toString());
+        assertEquals("explicit", AckPolicy.Explicit.toString());
+        assertEquals("flow_control", AckPolicy.FlowControl.toString());
+
+        assertEquals(AckPolicy.None, AckPolicy.get("none", AckPolicy.All));
+        assertEquals(AckPolicy.All, AckPolicy.get("all", AckPolicy.None));
+        assertEquals(AckPolicy.Explicit, AckPolicy.get("explicit", AckPolicy.None));
+        assertEquals(AckPolicy.FlowControl, AckPolicy.get("flow_control", AckPolicy.None));
+
+        // null and unknown both fall back to the default
+        assertEquals(AckPolicy.None, AckPolicy.get(null, AckPolicy.None));
+        assertEquals(AckPolicy.None, AckPolicy.get("no-match", AckPolicy.None));
+    }
+
+    @Test
+    public void testCompressionOptionCoverage() {
+        assertEquals("none", CompressionOption.None.toString());
+        assertEquals("s2", CompressionOption.S2.toString());
+
+        assertEquals(CompressionOption.None, CompressionOption.get("none", CompressionOption.S2));
+        assertEquals(CompressionOption.S2, CompressionOption.get("s2", CompressionOption.None));
+
+        // null and unknown both fall back to the default
+        assertEquals(CompressionOption.None, CompressionOption.get(null, CompressionOption.None));
+        assertEquals(CompressionOption.None, CompressionOption.get("no-match", CompressionOption.None));
+    }
+
+    @Test
+    public void testDeliverPolicyCoverage() {
+        assertEquals("all", DeliverPolicy.All.toString());
+        assertEquals("last", DeliverPolicy.Last.toString());
+        assertEquals("new", DeliverPolicy.New.toString());
+        assertEquals("by_start_sequence", DeliverPolicy.ByStartSequence.toString());
+        assertEquals("by_start_time", DeliverPolicy.ByStartTime.toString());
+        assertEquals("last_per_subject", DeliverPolicy.LastPerSubject.toString());
+
+        assertEquals(DeliverPolicy.All, DeliverPolicy.get("all", DeliverPolicy.Last));
+        assertEquals(DeliverPolicy.Last, DeliverPolicy.get("last", DeliverPolicy.All));
+        assertEquals(DeliverPolicy.New, DeliverPolicy.get("new", DeliverPolicy.All));
+        assertEquals(DeliverPolicy.ByStartSequence, DeliverPolicy.get("by_start_sequence", DeliverPolicy.All));
+        assertEquals(DeliverPolicy.ByStartTime, DeliverPolicy.get("by_start_time", DeliverPolicy.All));
+        assertEquals(DeliverPolicy.LastPerSubject, DeliverPolicy.get("last_per_subject", DeliverPolicy.All));
+
+        // null and unknown both fall back to the default
+        assertEquals(DeliverPolicy.All, DeliverPolicy.get(null, DeliverPolicy.All));
+        assertEquals(DeliverPolicy.All, DeliverPolicy.get("no-match", DeliverPolicy.All));
+    }
+
+    @Test
+    public void testDiscardPolicyCoverage() {
+        assertEquals("new", DiscardPolicy.New.toString());
+        assertEquals("old", DiscardPolicy.Old.toString());
+
+        assertEquals(DiscardPolicy.New, DiscardPolicy.get("new", DiscardPolicy.Old));
+        assertEquals(DiscardPolicy.Old, DiscardPolicy.get("old", DiscardPolicy.New));
+
+        // null and unknown both fall back to the default
+        assertEquals(DiscardPolicy.New, DiscardPolicy.get(null, DiscardPolicy.New));
+        assertEquals(DiscardPolicy.New, DiscardPolicy.get("no-match", DiscardPolicy.New));
+    }
+
+    @Test
+    public void testPersistModeCoverage() {
+        assertEquals("default", PersistMode.Default.toString());
+        assertEquals("async", PersistMode.Async.toString());
+
+        assertEquals(PersistMode.Default, PersistMode.get("default", PersistMode.Async));
+        assertEquals(PersistMode.Async, PersistMode.get("async", PersistMode.Default));
+
+        // null and unknown both fall back to the default
+        assertEquals(PersistMode.Default, PersistMode.get(null, PersistMode.Default));
+        assertEquals(PersistMode.Default, PersistMode.get("no-match", PersistMode.Default));
+    }
+
+    @Test
+    public void testPriorityPolicyCoverage() {
+        assertEquals("none", PriorityPolicy.None.toString());
+        assertEquals("overflow", PriorityPolicy.Overflow.toString());
+        assertEquals("prioritized", PriorityPolicy.Prioritized.toString());
+        assertEquals("pinned_client", PriorityPolicy.PinnedClient.toString());
+
+        assertEquals(PriorityPolicy.None, PriorityPolicy.get("none", PriorityPolicy.Overflow));
+        assertEquals(PriorityPolicy.Overflow, PriorityPolicy.get("overflow", PriorityPolicy.None));
+        assertEquals(PriorityPolicy.Prioritized, PriorityPolicy.get("prioritized", PriorityPolicy.None));
+        assertEquals(PriorityPolicy.PinnedClient, PriorityPolicy.get("pinned_client", PriorityPolicy.None));
+
+        // null and unknown both fall back to the default
+        assertEquals(PriorityPolicy.None, PriorityPolicy.get(null, PriorityPolicy.None));
+        assertEquals(PriorityPolicy.None, PriorityPolicy.get("no-match", PriorityPolicy.None));
+    }
+
+    @Test
+    public void testReplayPolicyCoverage() {
+        assertEquals("instant", ReplayPolicy.Instant.toString());
+        assertEquals("original", ReplayPolicy.Original.toString());
+
+        assertEquals(ReplayPolicy.Instant, ReplayPolicy.get("instant", ReplayPolicy.Original));
+        assertEquals(ReplayPolicy.Original, ReplayPolicy.get("original", ReplayPolicy.Instant));
+
+        // null and unknown both fall back to the default
+        assertEquals(ReplayPolicy.Instant, ReplayPolicy.get(null, ReplayPolicy.Instant));
+        assertEquals(ReplayPolicy.Instant, ReplayPolicy.get("no-match", ReplayPolicy.Instant));
+    }
+
+    @Test
+    public void testRetentionPolicyCoverage() {
+        assertEquals("limits", RetentionPolicy.Limits.toString());
+        assertEquals("interest", RetentionPolicy.Interest.toString());
+        assertEquals("workqueue", RetentionPolicy.WorkQueue.toString());
+
+        assertEquals(RetentionPolicy.Limits, RetentionPolicy.get("limits", RetentionPolicy.Interest));
+        assertEquals(RetentionPolicy.Interest, RetentionPolicy.get("interest", RetentionPolicy.Limits));
+        assertEquals(RetentionPolicy.WorkQueue, RetentionPolicy.get("workqueue", RetentionPolicy.Limits));
+
+        // null and unknown both fall back to the default
+        assertEquals(RetentionPolicy.Limits, RetentionPolicy.get(null, RetentionPolicy.Limits));
+        assertEquals(RetentionPolicy.Limits, RetentionPolicy.get("no-match", RetentionPolicy.Limits));
+    }
+
+    @Test
+    public void testStorageTypeCoverage() {
+        assertEquals("file", StorageType.File.toString());
+        assertEquals("memory", StorageType.Memory.toString());
+
+        assertEquals(StorageType.File, StorageType.get("file", StorageType.Memory));
+        assertEquals(StorageType.Memory, StorageType.get("memory", StorageType.File));
+
+        // null and unknown both fall back to the default
+        assertEquals(StorageType.File, StorageType.get(null, StorageType.File));
+        assertEquals(StorageType.File, StorageType.get("no-match", StorageType.File));
+    }
 }
