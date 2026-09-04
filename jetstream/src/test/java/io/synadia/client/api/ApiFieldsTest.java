@@ -1,8 +1,6 @@
 package io.synadia.client.api;
 
 import io.nats.json.DateTimeUtils;
-import io.nats.json.LazyJsonParser;
-import io.nats.json.LazyJsonValue;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.OptionsConstants;
 import io.synadia.client.impl.NatsMessage;
@@ -13,7 +11,8 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
-import static io.synadia.client.utils.ResourceUtils.dataAsString;
+import static io.synadia.client.impl.JetStreamTestBase.jsonToLazyJsonValue;
+import static io.synadia.client.impl.JetStreamTestBase.readJsonToLazyJsonValue;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -34,16 +33,6 @@ public class ApiFieldsTest {
     // ----------------------------------------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------------------------------------
-
-    /** Parse JSON without throwing checked exceptions. */
-    private static LazyJsonValue lj(String json) {
-        return LazyJsonParser.parseUnchecked(json);
-    }
-
-    /** Parse one of the shared json files from src/test/resources/data. */
-    private static LazyJsonValue ljData(String fileName) {
-        return lj(dataAsString(fileName));
-    }
 
     /** Build a NatsMessage from JSON for ApiResponse Message-based constructors. */
     private static NatsMessage msg(String json) {
@@ -71,22 +60,22 @@ public class ApiFieldsTest {
         assertEquals(Duration.ofSeconds(45), creator.getInactiveThreshold());
         assertEquals(7777L, creator.getMaxAckPending());
 
-        ConsumerLimits limits = new ConsumerLimits(lj(creator.toJson()));
+        ConsumerLimits limits = new ConsumerLimits(jsonToLazyJsonValue(creator.toJson()));
         assertEquals(Duration.ofSeconds(45), limits.getInactiveThreshold());
         assertEquals(7777, limits.getMaxAckPending());
 
         // ---- millis form ----
         ConsumerLimitsCreator c2 = new ConsumerLimitsCreator().inactiveThreshold(12000L);
-        ConsumerLimits l2 = new ConsumerLimits(lj(c2.toJson()));
+        ConsumerLimits l2 = new ConsumerLimits(jsonToLazyJsonValue(c2.toJson()));
         assertEquals(Duration.ofMillis(12000), l2.getInactiveThreshold());
 
         // ---- from-counterpart constructor ----
-        ConsumerLimits original = new ConsumerLimits(ljData("ConsumerLimits.json"));
+        ConsumerLimits original = new ConsumerLimits(readJsonToLazyJsonValue("ConsumerLimits.json"));
         ConsumerLimitsCreator fromCounterpart = new ConsumerLimitsCreator(original);
         assertEquals(Duration.ofNanos(61000000000L), fromCounterpart.getInactiveThreshold());
         assertEquals(62L, fromCounterpart.getMaxAckPending());
 
-        ConsumerLimits round = new ConsumerLimits(lj(fromCounterpart.toJson()));
+        ConsumerLimits round = new ConsumerLimits(jsonToLazyJsonValue(fromCounterpart.toJson()));
         assertEquals(original.getInactiveThreshold(), round.getInactiveThreshold());
         assertEquals(original.getMaxAckPending(), round.getMaxAckPending());
 
@@ -143,23 +132,23 @@ public class ApiFieldsTest {
         assertEquals("api-prefix", creator.getApi());
         assertEquals("deliver-subject", creator.getDeliver());
 
-        External external = new External(lj(creator.toJson()));
+        External external = new External(jsonToLazyJsonValue(creator.toJson()));
         assertEquals("api-prefix", external.getApi());
         assertEquals("deliver-subject", external.getDeliver());
 
         // ---- two-arg constructor ----
         ExternalCreator twoArg = new ExternalCreator("api2", "deliver2");
-        External ext2 = new External(lj(twoArg.toJson()));
+        External ext2 = new External(jsonToLazyJsonValue(twoArg.toJson()));
         assertEquals("api2", ext2.getApi());
         assertEquals("deliver2", ext2.getDeliver());
 
         // ---- from-counterpart constructor ----
-        External original = new External(ljData("External.json"));
+        External original = new External(readJsonToLazyJsonValue("External.json"));
         ExternalCreator fromCounterpart = new ExternalCreator(original);
         assertEquals("ext-api", fromCounterpart.getApi());
         assertEquals("ext-deliver", fromCounterpart.getDeliver());
 
-        External round = new External(lj(fromCounterpart.toJson()));
+        External round = new External(jsonToLazyJsonValue(fromCounterpart.toJson()));
         assertEquals(original.getApi(), round.getApi());
         assertEquals(original.getDeliver(), round.getDeliver());
 
@@ -173,7 +162,7 @@ public class ApiFieldsTest {
         assertNull(c.getDeliver());
 
         // ---- default string coverage ----
-        External e = new External(ljData("Empty.json"));
+        External e = new External(readJsonToLazyJsonValue("Empty.json"));
         assertEquals("", e.getApi());
     }
 
@@ -194,7 +183,7 @@ public class ApiFieldsTest {
             .startTime(ZDT_A)
             .filterSubject("filter.>")
             .externalCreator(new ExternalCreator("apiX", "dlvX"))
-            .subjectTransforms(
+            .subjectTransformCreators(
                 new SubjectTransformCreator("m_src0", "m_dst0"),
                 new SubjectTransformCreator("m_src1", "m_dst1"));
 
@@ -205,13 +194,13 @@ public class ApiFieldsTest {
         assertNotNull(creator.getExternalCreator());
         assertEquals(2, creator.getSubjectTransformCreators().size());
 
-        Mirror mirror = new Mirror(lj(creator.toJson()));
+        Mirror mirror = new Mirror(jsonToLazyJsonValue(creator.toJson()));
         assertEquals("mirror-stream", mirror.getStreamName());
         assertEquals(99, mirror.getStartSequence());
         assertEquals(ZDT_A, mirror.getStartTime());
         assertEquals("filter.>", mirror.getFilterSubject());
 
-        Mirror empty = new Mirror(ljData("Empty.json"));
+        Mirror empty = new Mirror(readJsonToLazyJsonValue("Empty.json"));
         assertEquals("", empty.getStreamName());
 
         External ext = mirror.getExternal();
@@ -227,7 +216,7 @@ public class ApiFieldsTest {
         assertEquals("m_dst1", transforms.get(1).getDestination());
 
         // ---- from-counterpart constructor ----
-        Mirror original = new Mirror(ljData("Mirror.json"));
+        Mirror original = new Mirror(readJsonToLazyJsonValue("Mirror.json"));
         MirrorCreator fromCounterpart = new MirrorCreator(original);
         assertEquals("mirror-name", fromCounterpart.getStreamName());
         assertEquals(91L, fromCounterpart.getStartSequence());
@@ -258,7 +247,7 @@ public class ApiFieldsTest {
             .startTime(ZDT_A)
             .filterSubject("f.>")
             .externalCreator(new ExternalCreator("a", "d"))
-            .subjectTransforms(new SubjectTransformCreator("s", "t"));
+            .subjectTransformCreators(new SubjectTransformCreator("s", "t"));
         assertEquals(ZDT_A, c.getStartTime());
         assertEquals("f.>", c.getFilterSubject());
         assertNotNull(c.getExternalCreator());
@@ -271,12 +260,12 @@ public class ApiFieldsTest {
         c.externalCreator(null);
         assertNull(c.getExternalCreator());
         // subjectTransforms varargs null is an error
-        assertThrows(NullPointerException.class, () -> c.subjectTransforms((SubjectTransformCreator[]) null));
+        assertThrows(NullPointerException.class, () -> c.subjectTransformCreators((SubjectTransformCreator[]) null));
         assertTrue(c.getSubjectTransformCreators().isEmpty());
         // re-set then clear via list null
-        c.subjectTransforms(new SubjectTransformCreator("s", "t"));
+        c.subjectTransformCreators(new SubjectTransformCreator("s", "t"));
         assertEquals(1, c.getSubjectTransformCreators().size());
-        c.subjectTransforms((List<SubjectTransformCreator>) null);
+        c.subjectTransformCreators((List<SubjectTransformCreator>) null);
         assertTrue(c.getSubjectTransformCreators().isEmpty());
     }
 
@@ -295,7 +284,7 @@ public class ApiFieldsTest {
         assertEquals("east-1", creator.getCluster());
         assertEquals(3, creator.getTags().size());
 
-        Placement placement = new Placement(lj(creator.toJson()));
+        Placement placement = new Placement(jsonToLazyJsonValue(creator.toJson()));
         assertEquals("east-1", placement.getCluster());
         List<String> tags = placement.getTags();
         assertNotNull(tags);
@@ -307,21 +296,21 @@ public class ApiFieldsTest {
 
         // ---- alternate constructor: cluster + List ----
         PlacementCreator c2 = new PlacementCreator("west-2", Arrays.asList("t1", "t2"));
-        Placement p2 = new Placement(lj(c2.toJson()));
+        Placement p2 = new Placement(jsonToLazyJsonValue(c2.toJson()));
         assertEquals("west-2", p2.getCluster());
         assertEquals(2, p2.getTags().size());
 
         // ---- tags(List) setter form ----
         PlacementCreator c3 = new PlacementCreator().cluster("c").tags(Arrays.asList("x", "y"));
-        Placement p3 = new Placement(lj(c3.toJson()));
+        Placement p3 = new Placement(jsonToLazyJsonValue(c3.toJson()));
         assertEquals(2, p3.getTags().size());
 
         // ---- from-counterpart constructor ----
-        Placement original = new Placement(ljData("Placement.json"));
+        Placement original = new Placement(readJsonToLazyJsonValue("Placement.json"));
         PlacementCreator fromCounterpart = new PlacementCreator(original);
         assertEquals("placement-cluster", fromCounterpart.getCluster());
         assertEquals(3, fromCounterpart.getTags().size());
-        Placement round = new Placement(lj(fromCounterpart.toJson()));
+        Placement round = new Placement(jsonToLazyJsonValue(fromCounterpart.toJson()));
         assertEquals(original.getCluster(), round.getCluster());
         assertEquals(original.getTags(), round.getTags());
 
@@ -417,7 +406,7 @@ public class ApiFieldsTest {
         assertEquals(Duration.ofSeconds(15), creator.getIdleHeartbeat());
         assertEquals(3, creator.getBackoff().size());
 
-        ConsumerConfiguration cc = new ConsumerConfiguration(lj(creator.toJson()));
+        ConsumerConfiguration cc = new ConsumerConfiguration(jsonToLazyJsonValue(creator.toJson()));
 
         assertEquals("desc-1", cc.getDescription());
         assertEquals("dur-1", cc.getDurable());
@@ -453,7 +442,7 @@ public class ApiFieldsTest {
         PullConsumerCreator multi = new PullConsumerCreator()
             .filterSubjects("a.>", "b.>", "c.>");
         assertTrue(multi.hasMultipleFilterSubjects());
-        ConsumerConfiguration multiCc = new ConsumerConfiguration(lj(multi.toJson()));
+        ConsumerConfiguration multiCc = new ConsumerConfiguration(jsonToLazyJsonValue(multi.toJson()));
         assertNull(multiCc.getFilterSubject());
         assertTrue(multiCc.hasMultipleFilterSubjects());
         List<String> filterSubjects = multiCc.getFilterSubjects();
@@ -807,7 +796,7 @@ public class ApiFieldsTest {
         assertEquals("push-dur", creator.getName());
         assertTrue(creator.isFlowControl());
 
-        ConsumerConfiguration cc = new ConsumerConfiguration(lj(creator.toJson()));
+        ConsumerConfiguration cc = new ConsumerConfiguration(jsonToLazyJsonValue(creator.toJson()));
 
         assertEquals("push-dur", cc.getDurable());
         assertEquals("deliver.here", cc.getDeliverSubject());
@@ -869,19 +858,19 @@ public class ApiFieldsTest {
         assertEquals("dest.>", creator.getDestination());
         assertTrue(creator.isHeadersOnly());
 
-        Republish republish = new Republish(lj(creator.toJson()));
+        Republish republish = new Republish(jsonToLazyJsonValue(creator.toJson()));
         assertEquals("src.>", republish.getSource());
         assertEquals("dest.>", republish.getDestination());
         assertTrue(republish.isHeadersOnly());
 
-        Republish empty = new Republish(ljData("Empty.json"));
+        Republish empty = new Republish(readJsonToLazyJsonValue("Empty.json"));
         assertEquals("", empty.getSource());
         assertEquals("", empty.getDestination());
 
         // ---- 2-arg constructor (headersOnly defaults to false) ----
         RepublishCreator creator2 = new RepublishCreator("s.>", "d.>");
         assertFalse(creator2.isHeadersOnly());
-        Republish republish2 = new Republish(lj(creator2.toJson()));
+        Republish republish2 = new Republish(jsonToLazyJsonValue(creator2.toJson()));
         assertEquals("s.>", republish2.getSource());
         assertEquals("d.>", republish2.getDestination());
         assertFalse(republish2.isHeadersOnly());
@@ -891,13 +880,13 @@ public class ApiFieldsTest {
         assertFalse(creator3.isHeadersOnly());
 
         // ---- from-counterpart constructor ----
-        Republish original = new Republish(ljData("Republish.json"));
+        Republish original = new Republish(readJsonToLazyJsonValue("Republish.json"));
         RepublishCreator fromCounterpart = new RepublishCreator(original);
         assertEquals("rep.src.>", fromCounterpart.getSource());
         assertEquals("rep.dest.>", fromCounterpart.getDestination());
         assertTrue(fromCounterpart.isHeadersOnly());
 
-        Republish round = new Republish(lj(fromCounterpart.toJson()));
+        Republish round = new Republish(jsonToLazyJsonValue(fromCounterpart.toJson()));
         assertEquals(original.getSource(), round.getSource());
         assertEquals(original.getDestination(), round.getDestination());
         assertEquals(original.isHeadersOnly(), round.isHeadersOnly());
@@ -922,7 +911,7 @@ public class ApiFieldsTest {
             .startTime(ZDT_B)
             .filterSubject("src.filter")
             .externalCreator(new ExternalCreator("apiY", "dlvY"))
-            .subjectTransforms(Collections.singletonList(
+            .subjectTransformCreators(Collections.singletonList(
                 new SubjectTransformCreator("s_src", "s_dst")));
 
         assertEquals("source-stream", creator.getStreamName());
@@ -930,7 +919,7 @@ public class ApiFieldsTest {
         assertEquals(ZDT_B, creator.getStartTime());
         assertEquals("src.filter", creator.getFilterSubject());
 
-        Source source = new Source(lj(creator.toJson()));
+        Source source = new Source(jsonToLazyJsonValue(creator.toJson()));
         assertEquals("source-stream", source.getStreamName());
         assertEquals(123, source.getStartSequence());
         assertEquals(ZDT_B, source.getStartTime());
@@ -947,7 +936,7 @@ public class ApiFieldsTest {
         assertEquals("s_dst", transforms.get(0).getDestination());
 
         // ---- from-counterpart constructor ----
-        Source original = new Source(ljData("Source.json"));
+        Source original = new Source(readJsonToLazyJsonValue("Source.json"));
         SourceCreator fromCounterpart = new SourceCreator(original);
         assertEquals("source-name", fromCounterpart.getStreamName());
         assertEquals(141L, fromCounterpart.getStartSequence());
@@ -966,7 +955,7 @@ public class ApiFieldsTest {
             .startTime(ZDT_B)
             .filterSubject("y.>")
             .externalCreator(new ExternalCreator("a", "d"))
-            .subjectTransforms(new SubjectTransformCreator("s", "t"));
+            .subjectTransformCreators(new SubjectTransformCreator("s", "t"));
         assertEquals(ZDT_B, c.getStartTime());
         assertEquals("y.>", c.getFilterSubject());
         assertNotNull(c.getExternalCreator());
@@ -978,7 +967,7 @@ public class ApiFieldsTest {
         assertNull(c.getFilterSubject());
         c.externalCreator(null);
         assertNull(c.getExternalCreator());
-        assertThrows(NullPointerException.class, () -> c.subjectTransforms((SubjectTransformCreator[]) null));
+        assertThrows(NullPointerException.class, () -> c.subjectTransformCreators((SubjectTransformCreator[]) null));
         assertTrue(c.getSubjectTransformCreators().isEmpty());
     }
 
@@ -992,7 +981,7 @@ public class ApiFieldsTest {
         StreamCreator sc = new StreamCreator("smoke-stream")
             .subjects("a.>", "b.>")
             .description("smoke");
-        StreamConfiguration cfg = new StreamConfiguration(lj(sc.toJson()));
+        StreamConfiguration cfg = new StreamConfiguration(jsonToLazyJsonValue(sc.toJson()));
         assertEquals("smoke-stream", cfg.getName());
         assertEquals("smoke", cfg.getDescription());
         assertEquals(2, cfg.getSubjects().size());
@@ -1042,7 +1031,7 @@ public class ApiFieldsTest {
         assertFalse(dflt.getAllowAtomicPublish());
         assertFalse(dflt.getAllowBatched());
 
-        StreamConfiguration dfltCfg = new StreamConfiguration(lj(dflt.toJson()));
+        StreamConfiguration dfltCfg = new StreamConfiguration(jsonToLazyJsonValue(dflt.toJson()));
         assertEquals(StreamCreator.DEFAULT_RETENTION_POLICY, dfltCfg.getRetentionPolicy());
         assertEquals(StreamCreator.DEFAULT_COMPRESSION_OPTION, dfltCfg.getCompressionOption());
         assertEquals(StreamCreator.DEFAULT_STORAGE_TYPE, dfltCfg.getStorageType());
@@ -1173,9 +1162,9 @@ public class ApiFieldsTest {
 
         // sources(Source...) and sources(Collection<Source>) both end up in the
         // sourceCreators list (Source is converted via SourceCreator::new).
-        s.sources(new Source(ljData("SourceMinimal.json")), new Source(ljData("Source.json")));
+        s.sources(new Source(readJsonToLazyJsonValue("SourceMinimal.json")), new Source(readJsonToLazyJsonValue("Source.json")));
         assertEquals(2, s.getSourceCreators().size());
-        s.sources(List.of(new Source(ljData("SourceMinimal.json"))));
+        s.sources(List.of(new Source(readJsonToLazyJsonValue("SourceMinimal.json"))));
         assertEquals(1, s.getSourceCreators().size());
 
         // sourceCreators(SourceCreator...)
@@ -1207,21 +1196,21 @@ public class ApiFieldsTest {
         assertEquals("a.>", creator.getSource());
         assertEquals("b.>", creator.getDestination());
 
-        SubjectTransform st = new SubjectTransform(lj(creator.toJson()));
+        SubjectTransform st = new SubjectTransform(jsonToLazyJsonValue(creator.toJson()));
         assertEquals("a.>", st.getSource());
         assertEquals("b.>", st.getDestination());
 
         // ---- from-counterpart constructor ----
-        SubjectTransform original = new SubjectTransform(ljData("SubjectTransform.json"));
+        SubjectTransform original = new SubjectTransform(readJsonToLazyJsonValue("SubjectTransform.json"));
         SubjectTransformCreator fromCounterpart = new SubjectTransformCreator(original);
         assertEquals("st.src.>", fromCounterpart.getSource());
         assertEquals("st.dest.>", fromCounterpart.getDestination());
 
-        SubjectTransform round = new SubjectTransform(lj(fromCounterpart.toJson()));
+        SubjectTransform round = new SubjectTransform(jsonToLazyJsonValue(fromCounterpart.toJson()));
         assertEquals(original.getSource(), round.getSource());
         assertEquals(original.getDestination(), round.getDestination());
 
-        SubjectTransform empty = new SubjectTransform(ljData("Empty.json"));
+        SubjectTransform empty = new SubjectTransform(readJsonToLazyJsonValue("Empty.json"));
         assertEquals("", empty.getSource());
         assertEquals("", empty.getDestination());
     }
@@ -1266,11 +1255,11 @@ public class ApiFieldsTest {
         c.sourceCreators((Collection<SourceCreator>) null);
         assertTrue(c.getSourceCreators().isEmpty());
         // sources(Source...) and sources(Collection<Source>) also populate sourceCreators
-        c.sources(new Source(ljData("SourceMinimal.json")));
+        c.sources(new Source(readJsonToLazyJsonValue("SourceMinimal.json")));
         assertEquals(1, c.getSourceCreators().size());
         c.sources(new ArrayList<>());
         assertTrue(c.getSourceCreators().isEmpty());
-        c.sources(new Source(ljData("SourceMinimal.json")));
+        c.sources(new Source(readJsonToLazyJsonValue("SourceMinimal.json")));
         c.sources();
         assertTrue(c.getSourceCreators().isEmpty());
 
@@ -1383,31 +1372,31 @@ public class ApiFieldsTest {
         MirrorCreator m = new MirrorCreator("m");
         assertNotNull(m.getSubjectTransformCreators());
         assertTrue(m.getSubjectTransformCreators().isEmpty());
-        m.subjectTransforms(new SubjectTransformCreator("a", "b"), new SubjectTransformCreator("c", "d"));
+        m.subjectTransformCreators(new SubjectTransformCreator("a", "b"), new SubjectTransformCreator("c", "d"));
         assertEquals(2, m.getSubjectTransformCreators().size());
-        m.subjectTransforms(new ArrayList<>());
+        m.subjectTransformCreators(new ArrayList<>());
         assertTrue(m.getSubjectTransformCreators().isEmpty());
-        m.subjectTransforms(new SubjectTransformCreator("a", "b"));
-        m.subjectTransforms();
+        m.subjectTransformCreators(new SubjectTransformCreator("a", "b"));
+        m.subjectTransformCreators();
         assertTrue(m.getSubjectTransformCreators().isEmpty());
         // List form is @Nullable
-        m.subjectTransforms(new SubjectTransformCreator("a", "b"));
-        m.subjectTransforms((List<SubjectTransformCreator>) null);
+        m.subjectTransformCreators(new SubjectTransformCreator("a", "b"));
+        m.subjectTransformCreators((List<SubjectTransformCreator>) null);
         assertTrue(m.getSubjectTransformCreators().isEmpty());
 
         // ---- SourceCreator.subjectTransformCreators ----
         SourceCreator s = new SourceCreator("s");
         assertNotNull(s.getSubjectTransformCreators());
         assertTrue(s.getSubjectTransformCreators().isEmpty());
-        s.subjectTransforms(new SubjectTransformCreator("a", "b"), new SubjectTransformCreator("c", "d"));
+        s.subjectTransformCreators(new SubjectTransformCreator("a", "b"), new SubjectTransformCreator("c", "d"));
         assertEquals(2, s.getSubjectTransformCreators().size());
-        s.subjectTransforms(new ArrayList<>());
+        s.subjectTransformCreators(new ArrayList<>());
         assertTrue(s.getSubjectTransformCreators().isEmpty());
-        s.subjectTransforms(new SubjectTransformCreator("a", "b"));
-        s.subjectTransforms();
+        s.subjectTransformCreators(new SubjectTransformCreator("a", "b"));
+        s.subjectTransformCreators();
         assertTrue(s.getSubjectTransformCreators().isEmpty());
-        s.subjectTransforms(new SubjectTransformCreator("a", "b"));
-        s.subjectTransforms((List<SubjectTransformCreator>) null);
+        s.subjectTransformCreators(new SubjectTransformCreator("a", "b"));
+        s.subjectTransformCreators((List<SubjectTransformCreator>) null);
         assertTrue(s.getSubjectTransformCreators().isEmpty());
     }
 

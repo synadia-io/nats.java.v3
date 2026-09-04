@@ -72,7 +72,7 @@ public class ApiCreatorsToDtoRoundTripTests extends TestBase {
             .startSequence(100)
             .filterSubject("mirror.filter.>")
             .externalCreator(new ExternalCreator("$JS.API.>", "deliver.>"))
-            .subjectTransforms(
+            .subjectTransformCreators(
                 new SubjectTransformCreator("from.>", "to.>"));
         Mirror dto = new Mirror(LazyJsonParser.parseUnchecked(c1.toJson()));
         MirrorCreator c2 = new MirrorCreator(dto);
@@ -114,7 +114,7 @@ public class ApiCreatorsToDtoRoundTripTests extends TestBase {
             .startSequence(200)
             .filterSubject("source.filter.>")
             .externalCreator(new ExternalCreator("$JS.API.>", null))
-            .subjectTransforms(
+            .subjectTransformCreators(
                 new SubjectTransformCreator("a.>", "b.>"),
                 new SubjectTransformCreator("c.>", "d.>"));
         Source dto = new Source(LazyJsonParser.parseUnchecked(c1.toJson()));

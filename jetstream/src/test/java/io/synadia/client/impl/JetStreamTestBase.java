@@ -1,6 +1,8 @@
 package io.synadia.client.impl;
 
 import io.nats.NatsServerRunner;
+import io.nats.json.LazyJsonParser;
+import io.nats.json.LazyJsonValue;
 import io.synadia.client.*;
 import io.synadia.client.api.*;
 import io.synadia.client.utils.TestBase;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 
 import static io.synadia.client.utils.ConnectionUtils.managedConnect;
 import static io.synadia.client.utils.OptionsUtils.options;
+import static io.synadia.client.utils.ResourceUtils.dataAsString;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static io.synadia.client.utils.VersionUtils.VERSION_SERVER_INFO;
 import static io.synadia.client.utils.VersionUtils.initVersionServerInfo;
@@ -28,6 +31,20 @@ import static org.junit.jupiter.api.Assertions.*;
 public class JetStreamTestBase extends TestBase {
 
     public static final long DEFAULT_TIMEOUT_MS = 1000;
+
+    // ----------------------------------------------------------------------------------------------------
+    // LazyJsonValue Helpers
+    // ----------------------------------------------------------------------------------------------------
+
+    /** Parse JSON without throwing checked exceptions. */
+    public static LazyJsonValue jsonToLazyJsonValue(String json) {
+        return LazyJsonParser.parseUnchecked(json);
+    }
+
+    /** Parse one of the shared json files from src/test/resources/data. */
+    public static LazyJsonValue readJsonToLazyJsonValue(String fileName) {
+        return jsonToLazyJsonValue(dataAsString(fileName));
+    }
 
     // ----------------------------------------------------------------------------------------------------
     // Publish / Read

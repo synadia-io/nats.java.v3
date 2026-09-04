@@ -5,6 +5,7 @@ import io.synadia.client.api.StorageType;
 import io.synadia.client.api.StreamCreator;
 import io.synadia.client.api.StreamInfo;
 import io.synadia.client.utils.TestBase;
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,15 +64,15 @@ public class JetStreamTestingContext implements AutoCloseable {
     }
 
     public void createOrReplaceStream() throws JetStreamException, InterruptedException {
-        createOrReplaceStream(scBuilder(subject(0)));
+        createOrReplaceStream(streamCreator().subjects(subject(0)));
     }
 
     public void createOrReplaceStream(int subjectCount) throws JetStreamException, InterruptedException {
-        createOrReplaceStream(scBuilder(getSubjects(subjectCount)));
+        createOrReplaceStream(streamCreator().subjects(getSubjects(subjectCount)));
     }
 
     public void createOrReplaceStream(String... subjects) throws JetStreamException, InterruptedException {
-        createOrReplaceStream(scBuilder(subjects));
+        createOrReplaceStream(streamCreator().subjects(subjects));
     }
 
     public StreamInfo createOrReplaceStream(StreamCreator sc) throws JetStreamException, InterruptedException {
@@ -90,7 +91,7 @@ public class JetStreamTestingContext implements AutoCloseable {
         return si;
     }
 
-    public StreamCreator scBuilder(int subjectCount) {
+    public StreamCreator streamCreator(int subjectCount) {
         StreamCreator sc = new StreamCreator(stream)
             .storageType(StorageType.Memory);
         if (subjectCount > 0) {
@@ -99,13 +100,13 @@ public class JetStreamTestingContext implements AutoCloseable {
         return sc;
     }
 
-    public StreamCreator scBuilder(String... subjects) {
-        if (subjects.length == 0) {
-            subjects = new String[]{subject(0)};
-        }
-        return new StreamCreator(stream)
-            .storageType(StorageType.Memory)
-            .subjects(subjects);
+    public StreamCreator streamCreator() {
+        return streamCreatorNoSubjects(stream).subjects(subject(0));
+    }
+
+    public StreamCreator streamCreatorNoSubjects(@NonNull String streamName) {
+        return new StreamCreator(streamName)
+            .storageType(StorageType.Memory);
     }
 
     public boolean deleteStream() throws JetStreamException, InterruptedException {

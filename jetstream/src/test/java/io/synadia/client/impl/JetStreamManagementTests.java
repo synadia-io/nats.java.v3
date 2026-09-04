@@ -33,7 +33,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             String subject0 = ctx.subject(0);
             String subject1 = ctx.subject(1);
 
-            StreamInfo si = ctx.createOrReplaceStream(ctx.scBuilder(2));
+            StreamInfo si = ctx.createOrReplaceStream(ctx.streamCreator(2));
 
             assertNotNull(si.getStreamState().toString()); // coverage
             assertTrue(now <= si.getCreateTime().toEpochSecond());
@@ -75,7 +75,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     @Test
     public void testStreamCreate210() throws Exception {
         runInSharedCustomContext(VersionUtils::atLeast2_10, (nc, ctx) -> {
-            StreamInfo si = ctx.createOrReplaceStream(ctx.scBuilder(1)
+            StreamInfo si = ctx.createOrReplaceStream(ctx.streamCreator(1)
                 .firstSequence(42));
             assertNotNull(si.getTimestamp());
             assertEquals(42, si.getConfiguration().getFirstSequence());
@@ -88,7 +88,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     public void testStreamMetadata() throws Exception {
         runInSharedCustomContext((nc, ctx) -> {
             Map<String, String> metaData = new HashMap<>(); metaData.put(META_KEY, META_VALUE);
-            StreamInfo si = ctx.createOrReplaceStream(ctx.scBuilder(1).metadata(metaData));
+            StreamInfo si = ctx.createOrReplaceStream(ctx.streamCreator(1).metadata(metaData));
             assertNotNull(si.getConfiguration());
             assertMetaData(si.getConfiguration().getMetadata());
         });
@@ -98,7 +98,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
     public void testStreamCreateWithNoSubject() throws Exception {
         long now = ZonedDateTime.now().toEpochSecond();
         runInSharedCustomContext((nc, ctx) -> {
-            StreamInfo si = ctx.addStream(ctx.scBuilder().subjects());
+            StreamInfo si = ctx.addStream(ctx.streamCreator().subjects());
             assertTrue(now <= si.getCreateTime().toEpochSecond());
 
             StreamConfiguration sc = si.getConfiguration();
@@ -159,7 +159,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             assertEquals(Duration.ofMinutes(2), sc.getDuplicateWindow());
             assertNull(sc.getTemplateOwner());
 
-            StreamInfo si = ctx.jsm.updateStream(ctx.scBuilder(3)
+            StreamInfo si = ctx.jsm.updateStream(ctx.streamCreator(3)
                 .maxMessages(42)
                 .maxBytes(43)
                 .maxMessageSize(44)
@@ -211,7 +211,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             // stream isn't even created yet
             assertStatus(10059, assertThrows(JetStreamApiException.class, () -> ctx.jsm.getMessage(ctx.stream, 1)));
 
-            StreamCreator sc = ctx.scBuilder(1)
+            StreamCreator sc = ctx.streamCreator(1)
                 .description(random());
             ctx.createOrReplaceStream(sc);
 
@@ -247,7 +247,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             //noinspection DataFlowIssue updateStream is specified non null
             assertThrows(IllegalArgumentException.class, () -> ctx.jsm.updateStream(null));
 
-            StreamCreator sc = ctx.scBuilder(2);
+            StreamCreator sc = ctx.streamCreator(2);
             // cannot update non-existent stream
             assertThrows(JetStreamApiException.class, () -> ctx.jsm.updateStream(sc));
 
@@ -255,18 +255,18 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             ctx.createOrReplaceStream(sc);
 
             // cannot change storage type
-            StreamCreator scMemToFile = ctx.scBuilder(2)
+            StreamCreator scMemToFile = ctx.streamCreator(2)
                 .storageType(StorageType.File);
             assertThrows(JetStreamApiException.class, () -> ctx.jsm.updateStream(scMemToFile));
 
             if (nc.getServerInfo().isOlderThanVersion("2.14")) {
                 // cannot change MaxConsumers
-                StreamCreator scMaxCon = ctx.scBuilder(2)
+                StreamCreator scMaxCon = ctx.streamCreator(2)
                     .maxConsumers(2);
                 assertThrows(JetStreamApiException.class, () -> ctx.jsm.updateStream(scMaxCon));
             }
 
-            StreamCreator scReten = ctx.scBuilder(2)
+            StreamCreator scReten = ctx.streamCreator(2)
                 .retentionPolicy(RetentionPolicy.Interest);
             if (nc.getServerInfo().isOlderThanVersion("2.10")) {
                 // cannot change RetentionPolicy
@@ -1009,16 +1009,6 @@ public class JetStreamManagementTests extends JetStreamTestBase {
 
             assertThrows(JetStreamApiException.class, () -> ctx.js.publish(ctx.subject(), "data2".getBytes()));
         });
-    }
-
-    @Test
-    public void testStorageTypeCoverage() {
-        assertEquals(StorageType.File, StorageType.get("file", StorageType.File));
-        assertEquals(StorageType.File, StorageType.get("FILE", StorageType.File));
-        assertEquals(StorageType.Memory, StorageType.get("memory", StorageType.File));
-        assertEquals(StorageType.Memory, StorageType.get("MEMORY", StorageType.File));
-        assertEquals(StorageType.File, StorageType.get("nope", StorageType.File));
-        assertEquals(StorageType.Memory, StorageType.get("nope", StorageType.Memory));
     }
 
     @Test

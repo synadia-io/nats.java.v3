@@ -43,7 +43,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
     public void testRoundTrip() throws Exception {
         runInSharedCustomContext((nc, ctx) -> {
             StreamCreator sc = getTestStreamCreator(ctx.stream)
-                .mirror(null)
+                .mirrorCreator(null)
                 .sources()
                 .replicas(1)
                 .templateOwner(null)
@@ -90,7 +90,7 @@ public class StreamCreatorConfigurationTests extends JetStreamTestBase {
             .republish(null)
             .subjectTransform(null)
             .consumerLimits(null)
-            .mirror(null)
+            .mirrorCreator(null)
             .subjectDeleteMarkerTtl(null)
             .persistMode(null);
         validateDefaultNullsAndEmpty(testSc);

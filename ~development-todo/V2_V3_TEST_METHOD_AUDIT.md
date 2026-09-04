@@ -51,11 +51,12 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
       - 🔧 ConsumerConfigurationTests.testConsumerCreatorErrors — the name/durable conflict, plus the creator validation the v2 test reached only through subscribe: durable/name characters, filter subjects, flow-control heartbeat, backoff
       - 🔧 StreamCreatorConfigurationTests.testConstructionInvalidsCoverage — the stream-side equivalents
 - 🗃️ JetStreamMirrorAndSourcesTests.java
-    - 🚨 testMirrorBasics
-    - 🚨 testMirrorReading
-    - 🚨 testMirrorExceptions
-    - 🚨 testSourceBasics
-    - 🚨 testSourceAndTransformsRoundTrips
+    - ☑️️ testMirrorBasics
+    - ☑️️ testMirrorReading
+    - ☑️️ testMirrorExceptions
+    - ☑️️ testSourceBasics
+    - ☑️️ testSourceAndTransformsRoundTrips
+    - ☑️️ testMirror
 - 🗃️ JetStreamPullTests.java
     - ☑️ testFetch
     - ☑️ testIterate

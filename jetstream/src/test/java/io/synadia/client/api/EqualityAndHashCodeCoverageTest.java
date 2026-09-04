@@ -402,13 +402,13 @@ public class EqualityAndHashCodeCoverageTest {
             .startTime(t)
             .filterSubject("x.>")
             .externalCreator(new ExternalCreator("api", "deliver"))
-            .subjectTransforms(new SubjectTransformCreator("a", "b"));
+            .subjectTransformCreators(new SubjectTransformCreator("a", "b"));
         MirrorCreator e = new MirrorCreator("S1")
             .startSequence(7)
             .startTime(t)
             .filterSubject("x.>")
             .externalCreator(new ExternalCreator("api", "deliver"))
-            .subjectTransforms(new SubjectTransformCreator("a", "b"));
+            .subjectTransformCreators(new SubjectTransformCreator("a", "b"));
         MirrorCreator f = new MirrorCreator("S1").startSequence(8);
         assertEqualsContract(d, e, f);
     }

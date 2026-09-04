@@ -31,10 +31,10 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
 
     /**
      * Construct a StreamSourceCreator
-     * @param streamName the stream name
+     * @param sourceStreamName the source stream name
      */
-    public StreamSourceCreator(String streamName) {
-        this.streamName = validateStreamName(streamName, true);
+    public StreamSourceCreator(String sourceStreamName) {
+        this.streamName = validateStreamName(sourceStreamName, true);
     }
 
     /**
@@ -136,7 +136,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param subjectTransformCreators the array of SubjectTransformCreator
      * @return this instance for chaining
      */
-    public T subjectTransforms(SubjectTransformCreator... subjectTransformCreators) {
+    public T subjectTransformCreators(SubjectTransformCreator... subjectTransformCreators) {
         replaceAll(this.subjectTransformCreators, subjectTransformCreators);
         return (T) this;
     }
@@ -146,7 +146,7 @@ abstract class StreamSourceCreator<T extends StreamSourceCreator<T>> implements 
      * @param subjectTransformCreators the list of SubjectTransformCreator
      * @return this instance for chaining
      */
-    public T subjectTransforms(@Nullable List<SubjectTransformCreator> subjectTransformCreators) {
+    public T subjectTransformCreators(@Nullable List<SubjectTransformCreator> subjectTransformCreators) {
         replaceAll(this.subjectTransformCreators, subjectTransformCreators);
         return (T) this;
     }

@@ -883,16 +883,6 @@ public class StreamCreator implements JsonSerializable {
     }
 
     /**
-     * Sets the mirror creator object via a mirror object
-     * @param mirror the mirror object
-     * @return this instance for chaining
-     */
-    public StreamCreator mirror(@Nullable Mirror mirror) {
-        this.mirrorCreator = mirror == null ? null : new MirrorCreator(mirror);
-        return this;
-    }
-
-    /**
      * Sets the mirror object
      * @param mirrorCreator the mirror object creator
      * @return this instance for chaining

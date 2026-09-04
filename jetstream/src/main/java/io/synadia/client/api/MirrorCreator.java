@@ -10,10 +10,10 @@ public class MirrorCreator extends StreamSourceCreator<MirrorCreator> {
 
     /**
      * Construct a MirrorCreator
-     * @param name the stream name
+     * @param sourceStreamName the source stream name
      */
-    public MirrorCreator(String name) {
-        super(name);
+    public MirrorCreator(String sourceStreamName) {
+        super(sourceStreamName);
     }
 
     /**

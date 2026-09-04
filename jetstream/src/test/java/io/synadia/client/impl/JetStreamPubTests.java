@@ -423,7 +423,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
     public void testMaxPayloadJs() throws Exception {
         runInSharedCustomContext(optionsBuilder().noReconnect(), (nc, ctx) -> {
             long expectedSeq = 0;
-            StreamCreator builder = ctx.scBuilder().maxMessageSize(1000);
+            StreamCreator builder = ctx.streamCreator().maxMessageSize(1000);
             ctx.createOrReplaceStream(builder);
             String subject0 = ctx.subject(0);
 
@@ -461,7 +461,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
     @Test
     public void testPublishWithTTL() throws Exception {
         runInShared((nc, ctx) -> {
-            StreamCreator builder = ctx.scBuilder().allowMessageTtl();
+            StreamCreator builder = ctx.streamCreator().allowMessageTtl();
             ctx.createOrReplaceStream(builder);
 
             String stream = ctx.stream;
@@ -497,7 +497,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
     @Test
     public void testMsgDeleteMarkerMaxAge() throws Exception {
         runInSharedCustomContext((nc, ctx) -> {
-            StreamCreator sc = ctx.scBuilder(1)
+            StreamCreator sc = ctx.streamCreator(1)
                 .allowMessageTtl()
                 .subjectDeleteMarkerTtl(Duration.ofSeconds(50))
                 .maxAge(1000);
