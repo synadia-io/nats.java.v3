@@ -149,6 +149,43 @@ public interface JetStreamConstants extends NatsConstants {
     /** Publish header marking the last message of a batch, telling the server to commit it. {@value} */
     String NATS_BATCH_COMMIT_HDR    = "Nats-Batch-Commit";
 
+    /** Value for {@link #NATS_BATCH_COMMIT_HDR} committing the batch and storing the final message. {@value} */
+    String NATS_BATCH_COMMIT_STORE = "1";
+    /** Value for {@link #NATS_BATCH_COMMIT_HDR} committing the batch without storing the final message, server 2.14 and later. {@value} */
+    String NATS_BATCH_COMMIT_EOB = "eob";
+
+    /**
+     * Last token of the reply subject that carries a fast ingest batch's control state,
+     * {@code <prefix>.<batch-id>.<initial-flow>.<gap-mode>.<batch-sequence>.<operation>.$FI}.
+     * The server parses that subject right to left, so the prefix may itself contain dots. {@value}
+     */
+    String FAST_BATCH_SUFFIX   = "$FI";
+    /** Gap mode in a fast ingest reply subject telling the server to report lost messages and carry on. {@value} */
+    String FAST_BATCH_GAP_OK   = "ok";
+    /** Gap mode in a fast ingest reply subject telling the server to abandon the batch on the first lost message. {@value} */
+    String FAST_BATCH_GAP_FAIL = "fail";
+
+    /** Fast ingest subject token starting a batch, always with batch sequence 1. {@value} */
+    String FAST_BATCH_OP_START      = "0";
+    /** Fast ingest subject token appending to an already started batch. {@value} */
+    String FAST_BATCH_OP_APPEND     = "1";
+    /** Fast ingest subject token committing the batch and storing the final message. {@value} */
+    String FAST_BATCH_OP_COMMIT     = "2";
+    /** Fast ingest subject token committing the batch without storing the final message. {@value} */
+    String FAST_BATCH_OP_COMMIT_EOB = "3";
+    /** Fast ingest subject token keeping the batch alive and asking the server to resend its flow control state. {@value} */
+    String FAST_BATCH_OP_PING       = "4";
+
+    /**
+     * Value of the {@code type} field marking a fast ingest flow control acknowledgement.
+     * A publish ack carries no {@code type} field, which is what tells the two apart. {@value}
+     */
+    String FAST_BATCH_TYPE_ACK = "ack";
+    /** Value of the {@code type} field marking a fast ingest report of lost messages. {@value} */
+    String FAST_BATCH_TYPE_GAP = "gap";
+    /** Value of the {@code type} field marking a fast ingest report of a failed per message check. {@value} */
+    String FAST_BATCH_TYPE_ERR = "err";
+
     /** Header carrying the id identifying the client currently pinned to a consumer's priority group. {@value} */
     String NATS_PIN_ID_HDR = "Nats-Pin-Id";
 
@@ -160,4 +197,34 @@ public interface JetStreamConstants extends NatsConstants {
     int JS_WRONG_LAST_SEQUENCE = 10071;
     /** Server error code reported when the server cannot yet resolve the sequence and the request may be retried. {@value} */
     int JS_SEQUENCE_TEMPORARILY_UNKNOWN = 10164;
+
+    /** Server error code reported when the stream does not have atomic batch publish enabled. {@value} */
+    int JS_ATOMIC_PUBLISH_DISABLED             = 10174;
+    /** Server error code reported when an atomic batch message has no batch sequence header. {@value} */
+    int JS_ATOMIC_PUBLISH_MISSING_SEQ          = 10175;
+    /** Server error code reported when an atomic batch was abandoned before it could be committed. {@value} */
+    int JS_ATOMIC_PUBLISH_INCOMPLETE_BATCH     = 10176;
+    /** Server error code reported when an atomic batch message used a header the feature does not support. {@value} */
+    int JS_ATOMIC_PUBLISH_UNSUPPORTED_HEADER   = 10177;
+    /** Server error code reported when an atomic batch id is missing or longer than 64 characters. {@value} */
+    int JS_ATOMIC_PUBLISH_INVALID_BATCH_ID     = 10179;
+    /** Server error code reported when an atomic batch holds more messages than the server allows. {@value} */
+    int JS_ATOMIC_PUBLISH_TOO_LARGE_BATCH      = 10199;
+    /** Server error code reported when the batch commit header value is neither {@value #NATS_BATCH_COMMIT_STORE} nor {@value #NATS_BATCH_COMMIT_EOB}. {@value} */
+    int JS_ATOMIC_PUBLISH_INVALID_BATCH_COMMIT = 10200;
+    /** Server error code reported when an atomic batch contains two messages with the same message id. {@value} */
+    int JS_ATOMIC_PUBLISH_DUPLICATE_MESSAGE    = 10201;
+    /** Server error code reported when the stream or server already has as many atomic batches in flight as it allows. {@value} */
+    int JS_ATOMIC_PUBLISH_TOO_MANY_INFLIGHT    = 10210;
+
+    /** Server error code reported when the stream does not have fast ingest batch publish enabled. {@value} */
+    int JS_BATCH_PUBLISH_DISABLED              = 10205;
+    /** Server error code reported when a fast ingest reply subject does not match the expected pattern. {@value} */
+    int JS_BATCH_PUBLISH_INVALID_PATTERN       = 10206;
+    /** Server error code reported when a fast ingest batch id is missing or longer than 64 characters. {@value} */
+    int JS_BATCH_PUBLISH_INVALID_BATCH_ID      = 10207;
+    /** Server error code reported when a fast ingest message names a batch the server does not know. {@value} */
+    int JS_BATCH_PUBLISH_UNKNOWN_BATCH_ID      = 10208;
+    /** Server error code reported when the stream or server already has as many fast ingest batches in flight as it allows. {@value} */
+    int JS_BATCH_PUBLISH_TOO_MANY_INFLIGHT     = 10211;
 }
