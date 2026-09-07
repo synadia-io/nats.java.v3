@@ -149,7 +149,11 @@ public interface JetStreamConstants extends NatsConstants {
     /** Publish header marking the last message of a batch, telling the server to commit it. {@value} */
     String NATS_BATCH_COMMIT_HDR    = "Nats-Batch-Commit";
 
-    /** Value for {@link #NATS_BATCH_COMMIT_HDR} committing the batch and storing the final message. {@value} */
+    /**
+     * Value for {@link #NATS_BATCH_COMMIT_HDR} committing the batch and storing the final message.
+     * Presence of the header marks the commit message and the value selects the mode. This is the
+     * original 2.12 value, a boolean true, from before {@link #NATS_BATCH_COMMIT_EOB} existed. {@value}
+     */
     String NATS_BATCH_COMMIT_STORE = "1";
     /** Value for {@link #NATS_BATCH_COMMIT_HDR} committing the batch without storing the final message, server 2.14 and later. {@value} */
     String NATS_BATCH_COMMIT_EOB = "eob";
@@ -208,6 +212,8 @@ public interface JetStreamConstants extends NatsConstants {
     int JS_ATOMIC_PUBLISH_UNSUPPORTED_HEADER   = 10177;
     /** Server error code reported when an atomic batch id is missing or longer than 64 characters. {@value} */
     int JS_ATOMIC_PUBLISH_INVALID_BATCH_ID     = 10179;
+    /** Server error code reported when a stream config tries to enable atomic batch publish on a mirror. {@value} */
+    int JS_MIRROR_WITH_ATOMIC_PUBLISH          = 10198;
     /** Server error code reported when an atomic batch holds more messages than the server allows. {@value} */
     int JS_ATOMIC_PUBLISH_TOO_LARGE_BATCH      = 10199;
     /** Server error code reported when the batch commit header value is neither {@value #NATS_BATCH_COMMIT_STORE} nor {@value #NATS_BATCH_COMMIT_EOB}. {@value} */
@@ -225,6 +231,8 @@ public interface JetStreamConstants extends NatsConstants {
     int JS_BATCH_PUBLISH_INVALID_BATCH_ID      = 10207;
     /** Server error code reported when a fast ingest message names a batch the server does not know. {@value} */
     int JS_BATCH_PUBLISH_UNKNOWN_BATCH_ID      = 10208;
+    /** Server error code reported when a stream config tries to enable fast ingest batch publish on a mirror. {@value} */
+    int JS_MIRROR_WITH_BATCH_PUBLISH           = 10209;
     /** Server error code reported when the stream or server already has as many fast ingest batches in flight as it allows. {@value} */
     int JS_BATCH_PUBLISH_TOO_MANY_INFLIGHT     = 10211;
 }
