@@ -491,6 +491,8 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     public T filterSubject(@Nullable String subject) {
         if (subject == null) {
             this.filterSubjects.clear();
+            //noinspection unchecked
+            return (T)this;
         }
         return filterSubjects(subject);
     }
