@@ -5,7 +5,6 @@ import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
 import io.synadia.client.utils.Listener;
 import io.synadia.client.utils.VersionUtils;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
@@ -30,20 +29,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Isolated
 public class JetStreamPullTests extends JetStreamTestBase {
-
-    static final int TYPE_ERROR = 1;
-    static final int TYPE_WARNING = 2;
-    static final int TYPE_NONE = 0;
-
-    static NatsConnection conflictNc;
-    static Listener conflictListener;
-
-    @AfterAll
-    public static void afterAll() {
-        if (conflictNc != null) {
-            conflictNc.close();
-        }
-    }
 
     @Test
     public void testFetch() throws Exception {

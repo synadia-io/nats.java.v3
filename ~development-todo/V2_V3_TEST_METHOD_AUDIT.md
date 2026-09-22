@@ -73,48 +73,51 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
       - ✏️ testing bind, no counterpart in V3
     - ✔️ testPullRequestOptionsBuilder
       - ✏️ no counterpart in V3
-    - 🚨 testConsumerDeletedSyncSub
-    - 🚨 testConsumerDeletedAsyncSub
-    - 🚨 testExceedsMaxRequestBytesNthMessageSyncSub
     - ☑️ testReader
     - ☑️ testOverflow
     - ☑️ testPrioritized
     - ☑️ testPinnedClient
-    - 🚨 testExceedsMaxWaitingSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceededMaxWaitingSync
-    - 🚨 testExceedsMaxWaitingAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceededMaxWaitingAsync
-    - 🚨 testExceedsMaxRequestBatchSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBatchSync
-    - 🚨 testExceedsMaxRequestBatchAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBatchAsync
-    - 🚨 testMessageSizeExceedsMaxBytesSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testMessageSizeExceedsMaxBytesSync
-    - 🚨 testMessageSizeExceedsMaxBytesAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testMessageSizeExceedsMaxBytesAsync
-    - 🚨 testExceedsMaxRequestExpiresSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestExpiresSync
-    - 🚨 testExceedsMaxRequestExpiresAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestExpiresAsync
-    - 🚨 testConsumerIsPushBasedSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testConsumerIsPushBasedSync
-    - 🚨 testConsumerIsPushBasedAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testConsumerIsPushBasedAsync
-    - 🚨 testBadRequestSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testBadRequestSync
-    - 🚨 testBadRequestAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testBadRequestAsync
-    - 🚨 testNotFoundSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testNotFoundSync
-    - 🚨 testNotFoundAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testNotFoundAsync
-    - 🚨 testExceedsMaxRequestBytes1stMessageSyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBytes1stMessageSync
-    - 🚨 testExceedsMaxRequestBytes1stMessageAsyncSub
-      - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBytes1stMessageAsync
     - ☑️ testExceedsMaxRequestBytesExactBytes
       - 🔧 renamed JetStreamPullTests.testDoesNotExceedMaxRequestBytesExactBytes
       - ✏️ similiar test but not exactly the same
+    - ✔️ testExceedsMaxRequestBytesNthMessageSyncSub
+      - ✏️ covered in testExceedsMaxRequestBytesExactBytes
+    - ☑️ testExceedsMaxWaitingSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceededMaxWaitingSync
+    - ☑️ testExceedsMaxWaitingAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceededMaxWaitingAsync
+    - ☑️ testExceedsMaxRequestBatchSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceedsMaxRequestBatchSync
+    - ☑️ testExceedsMaxRequestBatchAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceedsMaxRequestBatchAsync
+    - ☑️ testMessageSizeExceedsMaxBytesSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testMessageSizeExceedsMaxBytesSync
+    - ☑️ testMessageSizeExceedsMaxBytesAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testMessageSizeExceedsMaxBytesAsync
+    - ☑️ testExceedsMaxRequestExpiresSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceedsMaxRequestExpiresSync
+    - ☑️ testExceedsMaxRequestExpiresAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceedsMaxRequestExpiresAsync
+    - ☑️ testConsumerIsPushBasedSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testConsumerIsPushBasedSync
+    - ☑️ testConsumerIsPushBasedAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testConsumerIsPushBasedAsync
+    - ☑️ testConsumerDeletedSyncSub
+      - 🔧 moved to: JetStreamPullConflictTests
+    - ☑️ testConsumerDeletedAsyncSub
+      - 🔧 moved to: JetStreamPullConflictTests
+    - ☑️ testBadRequestSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testBadRequestSync
+    - ☑️ testBadRequestAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testBadRequestAsync
+    - ☑️ testNotFoundSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testNotFoundSync
+    - ☑️ testNotFoundAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testNotFoundAsync
+    - ☑️ testExceedsMaxRequestBytes1stMessageSyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceedsMaxRequestBytes1stMessageSync
+    - ☑️ testExceedsMaxRequestBytes1stMessageAsyncSub
+      - 🔧 renamed in tdb: JetStreamPullConflictTests.testExceedsMaxRequestBytes1stMessageAsync
 - 🗃️ JetStreamPushAsyncTests.java
     - ☑️ testHandlerSub
     - ✔️ testHandlerAutoAck
