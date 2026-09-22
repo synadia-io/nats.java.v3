@@ -1630,7 +1630,7 @@ public class SimplificationTests extends JetStreamTestBase {
         jsm.addStream(sc);
 
         for (int x = 0; x < 2000; x++) {
-            js.publish(subject);
+            js.publish(subject, (String)null);
         }
 
         ConsumeOptions consumeOptions = ConsumeOptions.builder()

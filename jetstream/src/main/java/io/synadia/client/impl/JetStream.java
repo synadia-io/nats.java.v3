@@ -93,19 +93,7 @@ public class JetStream extends JetStreamImpl {
     // ----------------------------------------------------------------------------------------------------
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
-     * @throws JetStreamException covers communication and server-side JetStream errors
-     * @throws InterruptedException if interrupted while waiting for the server
-     * @param subject the subject to send the message to
-     * @return an acknowledgement carrying the stream name and the sequence the message was stored at
-     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
-     */
-    public PublishAck publish(String subject) throws JetStreamException, InterruptedException {
-        return _publishSync(subject, null, null, null, null);
-    }
-
-    /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -118,7 +106,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -131,7 +119,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -144,7 +132,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -158,7 +146,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -172,7 +160,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -186,7 +174,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -200,7 +188,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -215,7 +203,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to a stream and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
@@ -230,7 +218,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Publish a message.
+     * Sends a message to the specified subject and wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the message is null
@@ -244,7 +232,7 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Publish a message.
+     * Sends a messageand wait for the server to acknowledge it. The subject must be covered by a stream or the publish fails.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException if the message is null
@@ -259,180 +247,120 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to the specified subject but does not wait for a response from
-     * JetStream. The default publish options will be used.
-     * The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * CompletableFuture&lt;PublishAck&gt; future =
-     *     js.publishAsync("destination", "message".getBytes("UTF-8"),)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
+     * Sends a message to the specified subject but does not wait for a response from JetStream. 
+     * The default publish options will be used.
      * The future may be completed exceptionally with a JetStreamException covering
      * communication and server-side JetStream errors.
-     *
      * @param subject the subject to send the message to
      * @param body the message body
-     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
+     * @return The future, which completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body) {
         return _publishAsync(subject, null, body, null, null, true);
     }
 
     /**
-     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * Sends a message to the specified subject but does not wait for a response from JetStream. 
+     * The default publish options will be used.
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      * @param subject the subject to send the message to
      * @param body the message payload
      * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
-    public CompletableFuture<PublishAck> publishAsync(String subject, String body) {
+    public CompletableFuture<PublishAck> publishAsync(String subject, @Nullable String body) {
         return _publishAsync(subject, null, null, body, null, true);
     }
 
     /**
-     * Send a message to the specified subject but does not wait for a response from
-     * JetStream. The default publish options will be used.
-     * The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * Headers h = new Headers().put("foo", "bar");
-     * CompletableFuture&lt;PublishAck&gt; future =
-     *     js.publishAsync("destination", h, "message".getBytes("UTF-8"),)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
+     * Sends a message to the specified subject but does not wait for a response from JetStream. 
+     * The default publish options will be used.
      * The future may be completed exceptionally with a JetStreamException covering
      * communication and server-side JetStream errors.
-     *
      * @param subject the subject to send the message to
      * @param headers Optional headers to publish with the message.
      * @param body the message body
-     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
+     * @return The future, which completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body) {
         return _publishAsync(subject, headers, body, null, null, true);
     }
 
     /**
-     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * Sends a message to the specified subject but does not wait for a response from JetStream. 
+     * The default publish options will be used.
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      * @param subject the subject to send the message to
      * @param headers headers to send with the message
      * @param body the message payload
      * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
-    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body) {
+    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, @Nullable String body) {
         return _publishAsync(subject, headers, null, body, null, true);
     }
 
     /**
-     * Send a message to the specified subject but does not wait for a response from
-     * JetStream. The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * CompletableFuture&lt;PublishAck&gt; future =
-     *     js.publishAsync("destination", "message".getBytes("UTF-8"), publishOptions)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
+     * Sends a message to the specified subject but does not wait for a response from JetStream.
      * The future may be completed exceptionally with a JetStreamException covering
      * communication and server-side JetStream errors.
-     *
      * @param subject the subject to send the message to
      * @param body the message body
      * @param options publisher options
-     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
+     * @return The future, which completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
-    public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body, PublishOptions options) {
+    public CompletableFuture<PublishAck> publishAsync(String subject, byte @Nullable [] body, PublishOptions options) {
         return _publishAsync(subject, null, body, null, options, true);
     }
 
     /**
-     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * Sends a message to the specified subject but does not wait for a response from JetStream.
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      * @param subject the subject to send the message to
      * @param body the message payload
      * @param options publish options such as expected stream, sequence or message id
      * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
-    public CompletableFuture<PublishAck> publishAsync(String subject, String body, PublishOptions options) {
+    public CompletableFuture<PublishAck> publishAsync(String subject, @Nullable String body, PublishOptions options) {
         return _publishAsync(subject, null, null, body, options, true);
     }
 
     /**
-     * Send a message to the specified subject but does not wait for a response from
-     * JetStream. The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * Headers h = new Headers().put("foo", "bar");
-     * CompletableFuture&lt;PublishAck&gt; future =
-     *     js.publishAsync("destination", h, "message".getBytes("UTF-8"), publishOptions)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
+     * Sends a message to the specified subject but does not wait for a response from JetStream.
      * The future may be completed exceptionally with a JetStreamException covering
      * communication and server-side JetStream errors.
-     *
      * @param subject the subject to send the message to
      * @param headers Optional headers to publish with the message.
      * @param body the message body
      * @param options publisher options
-     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
+     * @return The future, which completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
-    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body, PublishOptions options) {
+    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte @Nullable [] body, PublishOptions options) {
         return _publishAsync(subject, headers, body, null, options, true);
     }
 
     /**
-     * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
+     * Sends a message to the specified subject but does not wait for a response from JetStream.
+     * The future may be completed exceptionally with a JetStreamException covering
+     * communication and server-side JetStream errors.
      * @param subject the subject to send the message to
      * @param headers headers to send with the message
      * @param body the message payload
      * @param options publish options such as expected stream, sequence or message id
      * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
-    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body, PublishOptions options) {
+    public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, @Nullable String body, PublishOptions options) {
         return _publishAsync(subject, headers, null, body, options, true);
     }
 
     /**
-     * Send a message to the specified subject but does not wait for a response from
-     * JetStream. The default publish options will be used.
-     * The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * CompletableFuture&lt;PublishAck&gt; future = js.publishAsync(message)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
+     * Sends a messagebut does not wait for a response from JetStream.
+     * The default publish options will be used.
      * The future may be completed exceptionally with a JetStreamException covering
      * communication and server-side JetStream errors.
-     *
-     * <p>The Message object allows you to set a replyTo, but in publish requests,
-     * the replyTo is reserved for internal use as the address for the
-     * server to respond to the client with the PublishAck.</p>
-     *
      * @param message the message to send
-     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
+     * @return The future, which completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      * @throws IllegalArgumentException if the message is null
      */
     public CompletableFuture<PublishAck> publishAsync(Message message) {
@@ -441,28 +369,12 @@ public class JetStream extends JetStreamImpl {
     }
 
     /**
-     * Send a message to the specified subject but does not wait for a response from
-     * JetStream. The expected usage with string content is something like:
-     *
-     * <pre>
-     * nc = Nats.connect()
-     * JetStream js = new JetStream(nc)
-     * CompletableFuture&lt;PublishAck&gt; future = js.publishAsync(message, publishOptions)
-     * </pre>
-     *
-     * where the sender creates a byte array immediately before calling publish.
-     * See {@link #publish(String, byte[]) publish()} for more details on
-     * publish during reconnect.
+     * Sends a message to the specified subject but does not wait for a response from JetStream.
      * The future may be completed exceptionally with a JetStreamException covering
      * communication and server-side JetStream errors.
-     *
-     * <p>The Message object allows you to set a replyTo, but in publish requests,
-     * the replyTo is reserved for internal use as the address for the
-     * server to respond to the client with the PublishAck.</p>
-     *
      * @param message the message to publish
      * @param options publisher options
-     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
+     * @return The future, which completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      * @throws IllegalArgumentException if the message is null
      */
     public CompletableFuture<PublishAck> publishAsync(Message message, PublishOptions options) {

@@ -34,12 +34,12 @@ public class JetStreamManagementWithConfTests extends JetStreamTestBase {
 
                 for (int x = 1; x <= rounds; x++) {
                     for (int y = 1; y <= size; y++) {
-                        js.publish("s." + x + "." + y);
+                        js.publish("s." + x + "." + y, (String)null);
                     }
                 }
 
                 for (int y = 1; y <= size; y++) {
-                    js.publish("t.7." + y);
+                    js.publish("t.7." + y, (String)null);
                 }
 
                 StreamInfo si = jsm.getStreamInfo(stream1);

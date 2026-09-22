@@ -1436,7 +1436,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             String consumer = ctx.consumerName();
 
             for (int i = 1; i <= 20; i++) {
-                ctx.js.publish(subject);
+                ctx.js.publish(subject, (String)null);
             }
 
             ConsumerInfo ci = ctx.jsm.createOrUpdateConsumer(ctx.stream,

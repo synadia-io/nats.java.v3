@@ -257,7 +257,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
                 sub.pullExpiresIn(1, 30000);
                 nc.flush(1000); // flush outgoing communication with/to the server
                 ctx.jsm.deleteConsumer(ctx.stream, dur);
-                ctx.js.publish(ctx.subject());
+                ctx.js.publish(ctx.subject(), (String)null);
                 return sub;
             });
     }
@@ -274,7 +274,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
                 sub.pullExpiresIn(1, 30000);
                 nc.flush(1000); // flush outgoing communication with/to the server
                 ctx.jsm.deleteConsumer(ctx.stream, dur);
-                ctx.js.publish(ctx.subject());
+                ctx.js.publish(ctx.subject(), (String)null);
                 return sub;
             }
         );

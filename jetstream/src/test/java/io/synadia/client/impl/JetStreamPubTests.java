@@ -83,7 +83,8 @@ public class JetStreamPubTests extends JetStreamTestBase {
             assertNextMessage(s, data(12), "bar12");
 
             // 503
-            assertThrows(JetStreamException.class, () -> ctx.js.publish(random(), (String)null));
+            JetStreamStatusException e = assertThrows(JetStreamStatusException.class, () -> ctx.js.publish(random(), (String)null));
+            assertTrue(e.isNoResponders());
         });
     }
 
@@ -155,17 +156,17 @@ public class JetStreamPubTests extends JetStreamTestBase {
                 }
             }
 
-            assertFutureIOException(ctx.js.publishAsync(random(), (String)null));
+            assertFutureJetStreamStatusException(ctx.js.publishAsync(random(), (String)null));
 
             msg = NatsMessage.builder().subject(random()).build();
-            assertFutureIOException(ctx.js.publishAsync(msg));
+            assertFutureJetStreamStatusException(ctx.js.publishAsync(msg));
 
             PublishOptions pox1 = PublishOptions.builder().build();
 
-            assertFutureIOException(ctx.js.publishAsync(random(), (String)null, pox1));
+            assertFutureJetStreamStatusException(ctx.js.publishAsync(random(), (byte[])null, pox1));
 
             msg = NatsMessage.builder().subject(random()).build();
-            assertFutureIOException(ctx.js.publishAsync(msg, pox1));
+            assertFutureJetStreamStatusException(ctx.js.publishAsync(msg, pox1));
 
             PublishOptions pox2 = PublishOptions.builder().expectedLastMsgId(random()).build();
 
@@ -208,10 +209,9 @@ public class JetStreamPubTests extends JetStreamTestBase {
         }
     }
 
-    private void assertFutureIOException(CompletableFuture<PublishAck> future) {
+    private void assertFutureJetStreamStatusException(CompletableFuture<PublishAck> future) {
         ExecutionException ee = assertThrows(ExecutionException.class, future::get);
-        assertInstanceOf(RuntimeException.class, ee.getCause());
-        assertInstanceOf(JetStreamException.class, ee.getCause().getCause());
+        assertInstanceOf(JetStreamStatusException.class, ee.getCause());
     }
 
     private void assertFutureJetStreamApiException(CompletableFuture<PublishAck> future) {
@@ -405,7 +405,8 @@ public class JetStreamPubTests extends JetStreamTestBase {
     public void testPublishMiscExceptions() throws Exception {
         runInShared((nc, ctx) -> {
             // invalid subject
-            assertThrows(JetStreamException.class, () -> ctx.js.publish(random(), dataBytes()));
+            JetStreamStatusException e = assertThrows(JetStreamStatusException.class, () -> ctx.js.publish(random(), dataBytes()));
+            assertTrue(e.isNoResponders());
         });
     }
 
