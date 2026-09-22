@@ -73,6 +73,8 @@ The single source of truth for the things currently in progress — so any sessi
 * CANCEL_ACTION_REVISIT.md
 * PLAN_MESSAGE_NEXT_LINKED_LIST_FIX.md
   * remove intrusive `NatsMessage.next`; `accumulate` fills a reusable `MessageBatch` instead of chaining
+  * **2026-09-07 added:** also serialize a user message at publish hand-off, so the caller cannot mutate it (headers especially) while it sits in the writer queue. Same change as the batch rework - it makes the queue hold three kinds (control markers, internal protocol messages, serialized user messages), which the batch type has to model
+  * markers become serialized bytes too - a pattern no legal outgoing message can start with, since every real one leads with a client op from `NatsConstants:73-98`. Kills the `msg == END_RECONNECT` identity check and keeps the queue homogeneous
 * PLAN_FLUENT_SUBSCRIBE_BUILDER.md
   * fluent JetStream subscribe/subscription builder — explored + reverted; recommends source-first builder over the reverted no-arg builder
 * OSGi_JPMS_TODO.md
@@ -96,10 +98,20 @@ The single source of truth for the things currently in progress — so any sessi
   * idea capture only - a **v2 facade over v3** as its own project (probably V2 Core Facade + V2 JetStream Facade) to give v2 developers a migration ramp; explicitly not seamless, and gated on the v3 API settling
   * doubles as the **collector for v3 removals** that the facade should be the home for - add a section per removal as it lands
   * first entry: **legacy advanced pull behaviors**. No copies kept; originals stay in nats.java 2.26.3, with the non-obvious semantics a rewrite would lose written down
+* NEXTMESSAGE_STATUS_EXCEPTION_ANALYSIS.md
+  * why `testOverflow` line 603 fails - `sub.nextMessage` leaks the package-private unchecked `JetStreamStatusInternalException`, which its own javadoc says is never exposed
+  * a checked exception cannot be added to `_nextUnmanaged`: `nextMessage` overrides core `Subscription`, and `iterate` throws from `Iterator.hasNext()`
+  * **implemented 2026-09-21 (§8)**: the subscription paths throw the core unchecked `StatusException`, `JetStreamStatusInternalException` deleted, no signature changed, `JetStreamException` stays checked
+
 ## Plans / Audits TBD
 
 1. ObjectStore line 107 / ObjectStore nullability
 
+2. **Reader hardening against malformed incoming headers.** Raised by a code review, which called it "a separate, optional item" - recording it 2026-09-07 so it is at least considered rather than forgotten. The threat model is narrow: a bad or malicious server, or a broken/corrupted connection, feeding the reader header bytes that do not parse the way the client assumes. Not urgent and not known to be exploitable - the question to answer is what the reader currently does on malformed header input and whether that is acceptable, before deciding whether anything needs changing.
+
+3. Create legacy project with items like:
+  * Legacy pull subscription fetch, iterator, reader
+  * Facade to more easily migrate from V2
 
 ## More
 

@@ -62,7 +62,7 @@ subprojects {
 
     // Shared test dependencies — every subproject uses these
     dependencies {
-        testImplementation 'io.nats:jnats-server-runner:4.0.1-SNAPSHOT'
+        testImplementation 'io.nats:jnats-server-runner:4.0.2'
         testImplementation 'nl.jqno.equalsverifier:equalsverifier:4.2.2'
         testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
         testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'

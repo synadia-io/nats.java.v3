@@ -2,6 +2,7 @@ package io.synadia.client.api;
 
 import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.JetStreamStatusException;
+import io.synadia.client.impl.StatusException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,11 +22,18 @@ public class JetStreamExceptionTests {
         assertTrue(Exception.class.isAssignableFrom(JetStreamException.class));
         assertFalse(RuntimeException.class.isAssignableFrom(JetStreamException.class));
 
-        // every user-facing subtype IS-A JetStreamException, so catch(JetStreamException) covers them
+        // every checked user-facing subtype IS-A JetStreamException, so catch(JetStreamException) covers them
         assertInstanceOf(JetStreamException.class, new JetStreamApiException(err(500, "boom")));
         assertInstanceOf(JetStreamException.class, new JetStreamTimeoutException("t"));
         assertInstanceOf(JetStreamException.class, new JetStreamProtocolException("p"));
-        assertInstanceOf(JetStreamException.class, new JetStreamStatusException("n", status(503, "No Responders"), null));
+
+        // the status exceptions are deliberately outside this hierarchy and unchecked, because the core
+        // Subscription.nextMessage declarations that the JetStream ones implement carry no checked exception.
+        // JetStream raises its own subtype of the core one, so catch(StatusException) covers both.
+        assertTrue(RuntimeException.class.isAssignableFrom(StatusException.class));
+        assertFalse(JetStreamException.class.isAssignableFrom(StatusException.class));
+        assertFalse(JetStreamException.class.isAssignableFrom(JetStreamStatusException.class));
+        assertInstanceOf(StatusException.class, new JetStreamStatusException("n", status(503, "No Responders"), null));
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -70,7 +78,6 @@ public class JetStreamExceptionTests {
     @Test
     public void testPatternSwitchDispatch() {
         assertEquals("api:500", classify(new JetStreamApiException(err(500, "boom"))));
-        assertEquals("status:503", classify(new JetStreamStatusException("n", status(503, "x"), null)));
         assertEquals("timeout", classify(new JetStreamTimeoutException("t")));
         assertEquals("protocol", classify(new JetStreamProtocolException("p")));
         assertEquals("base", classify(new JetStreamException("plain")));   // the default arm — non-sealed base
@@ -79,7 +86,6 @@ public class JetStreamExceptionTests {
     private static String classify(JetStreamException e) {
         return switch (e) {
             case JetStreamApiException api    -> "api:" + api.getErrorCode();
-            case JetStreamStatusException st  -> "status:" + st.getStatus().getCode();
             case JetStreamTimeoutException t  -> "timeout";
             case JetStreamProtocolException p -> "protocol";
             default                           -> "base";

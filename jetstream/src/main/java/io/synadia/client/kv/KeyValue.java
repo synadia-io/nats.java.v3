@@ -141,6 +141,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public long put(String key, byte[] value) throws JetStreamException, InterruptedException {
         return _write(key, value, null, null).getSequenceNumber();
@@ -154,6 +155,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public long put(String key, String value) throws JetStreamException, InterruptedException {
         return _write(key, value.getBytes(StandardCharsets.UTF_8), null, null).getSequenceNumber();
@@ -167,6 +169,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public long put(String key, Number value) throws JetStreamException, InterruptedException {
         return _write(key, value.toString().getBytes(StandardCharsets.ISO_8859_1), null, null).getSequenceNumber();
@@ -181,6 +184,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public long create(String key, byte[] value) throws JetStreamException, InterruptedException {
         return create(key, value, null);
@@ -196,6 +200,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public long create(String key, byte[] value, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
@@ -229,6 +234,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public long update(String key, byte[] value, long expectedRevision) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
@@ -248,6 +254,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public long update(String key, String value, long expectedRevision) throws JetStreamException, InterruptedException {
         return update(key, value.getBytes(StandardCharsets.UTF_8), expectedRevision);
@@ -258,6 +265,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public void delete(String key) throws JetStreamException, InterruptedException {
         _write(key, null, getDeleteHeaders(), null);
@@ -269,6 +277,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @param expectedRevision the expected last revision
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public void delete(String key, long expectedRevision) throws JetStreamException, InterruptedException {
         _write(key, null, getDeleteHeaders(), getPublishOptions(expectedRevision, null));
@@ -279,6 +288,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @param key the key
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public void purge(String key) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), null);
@@ -290,6 +300,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @param expectedRevision the expected last revision
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public void purge(String key, long expectedRevision) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), getPublishOptions(expectedRevision, null));
@@ -301,6 +312,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @param messageTtl the individual ttl for the key
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public void purge(String key, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), getPublishOptions(-1, messageTtl));
@@ -313,6 +325,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @param messageTtl the individual ttl for the key
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public void purge(String key, long expectedRevision, MessageTtl messageTtl) throws JetStreamException, InterruptedException {
         _write(key, null, getPurgeHeaders(), getPublishOptions(expectedRevision, messageTtl));
@@ -415,6 +428,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @return List of keys
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
+     * @throws JetStreamStatusException if the server sends an error status while reading the bucket
      */
     public List<String> keys() throws JetStreamException, InterruptedException {
         return _keys(Collections.singletonList(readSubject(GREATER_THAN)));
@@ -426,6 +440,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @return List of keys
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server sends an error status while reading the bucket
      */
     public List<String> keys(String filter) throws JetStreamException, InterruptedException {
         return _keys(Collections.singletonList(readSubject(filter)));
@@ -437,6 +452,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @return List of keys
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server sends an error status while reading the bucket
      */
     public List<String> keys(List<String> filters) throws JetStreamException, InterruptedException {
         List<String> readSubjectFilters = new ArrayList<>(filters.size());
@@ -522,6 +538,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @return List of KvEntry
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
+     * @throws JetStreamStatusException if the server sends an error status while reading the bucket
      */
     public List<KeyValueEntry> history(String key) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
@@ -535,6 +552,7 @@ public class KeyValue extends AbstractBucketFeature {
      * with using a default KeyValuePurgeOptions
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
+     * @throws JetStreamStatusException if the server sends an error status while reading the bucket
      */
     public void purgeDeletes() throws JetStreamException, InterruptedException {
         purgeDeletes(null);
@@ -545,6 +563,7 @@ public class KeyValue extends AbstractBucketFeature {
      * @param options the purge options
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
+     * @throws JetStreamStatusException if the server sends an error status while reading the bucket
      */
     public void purgeDeletes(KeyValuePurgeOptions options) throws JetStreamException, InterruptedException {
         long dmThresh = options == null

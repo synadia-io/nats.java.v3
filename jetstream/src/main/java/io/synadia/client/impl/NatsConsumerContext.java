@@ -13,6 +13,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import static io.synadia.client.impl.BaseConsumeOptions.DEFAULT_EXPIRES_IN_MILLIS;
 import static io.synadia.client.impl.BaseConsumeOptions.MIN_EXPIRES_MILLS;
 import static io.synadia.client.impl.ConsumeOptions.DEFAULT_CONSUME_OPTIONS;
+import static io.synadia.client.utils.JetStreamClientError.JsConsumerOrderedAlreadyReceiving;
+import static io.synadia.client.utils.JetStreamClientError.JsConsumerPinnedNotAllowed;
 import static io.synadia.client.utils.Validator.required;
 
 /**
@@ -131,14 +133,14 @@ public class NatsConsumerContext implements ConsumerContext, SimplifiedSubscript
     private void checkState() {
         NatsMessageConsumerBase lastCon = lastConsumer.get();
         if (lastCon != null && isOrdered && !lastCon.finished.get()) {
-            throw new IllegalStateException("The ordered consumer is already receiving messages. Ordered Consumer does not allow multiple instances at time.");
+            throw JsConsumerOrderedAlreadyReceiving.instance();
         }
     }
 
     private void checkNotPinned(String label) {
         ConsumerInfo ci = cachedConsumerInfo.get();
         if (ci != null && ci.getConsumerConfiguration().getPriorityPolicy() == PriorityPolicy.PinnedClient) {
-            throw new IllegalStateException("Pinned not allowed with " + label);
+            throw JsConsumerPinnedNotAllowed.instance(label);
         }
     }
 

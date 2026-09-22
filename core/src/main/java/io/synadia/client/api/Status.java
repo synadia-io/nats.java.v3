@@ -233,6 +233,14 @@ public class Status {
     }
 
     /**
+     * Whether this is a bad request response
+     * @return true if this is bad request response
+     */
+    public boolean isBadRequest() {
+        return code == BAD_REQUEST_CODE;
+    }
+
+    /**
      * Whether this is a flow control status, which a push consumer answers to keep the server sending.
      * @return true if this is flow control
      */

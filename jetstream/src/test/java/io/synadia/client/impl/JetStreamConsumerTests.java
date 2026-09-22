@@ -231,7 +231,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         OptionsBuilder builder = new OptionsBuilder().errorListener(listener);
         runInShared(builder, (nc, ctx) -> {
             SimulatorState state = setupPushFactory(ctx.js);
-            PushConsumerCreator creator = new PushConsumerCreator().filterSubjects(ctx.subject()).idleHeartbeat(100);
+            PushConsumerCreator creator = new PushConsumerCreator().filterSubject(ctx.subject()).idleHeartbeat(100);
             JetStreamPushSubscription pushSub = ctx.js.pushSubscribe(ctx.stream, creator);
             validate(pushSub, listener, state);
 
@@ -241,24 +241,24 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
 
             state = setupPushOrderedFactory(ctx.js);
             PushOrderedConsumerCreator ordered =
-                new PushOrderedConsumerCreator().filterSubjects(ctx.subject()).idleHeartbeat(100);
+                new PushOrderedConsumerCreator().filterSubject(ctx.subject()).idleHeartbeat(100);
             pushSub = ctx.js.pushSubscribe(ctx.stream, ordered);
             validate(pushSub, listener, state);
 
             state = setupPushOrderedFactory(ctx.js);
             ordered =
-                new PushOrderedConsumerCreator().filterSubjects(ctx.subject()).idleHeartbeat(100);
+                new PushOrderedConsumerCreator().filterSubject(ctx.subject()).idleHeartbeat(100);
             pushSub = ctx.js.pushSubscribe(ctx.stream, ordered, m -> {});
             validate(pushSub, listener, state);
 
             state = setupPullFactory(ctx.js);
-            PullConsumerCreator pull = new PullConsumerCreator().filterSubjects(ctx.subject());
+            PullConsumerCreator pull = new PullConsumerCreator().filterSubject(ctx.subject());
             JetStreamPullSubscription pullSub = ctx.js.pullSubscribe(ctx.stream, pull);
             pullSub.pull(PullRequestOptions.builder(1).idleHeartbeat(100).expiresIn(2000).build());
             validate(pullSub, listener, state);
 
             state = setupPullOrderedFactory(ctx.js);
-            PullOrderedConsumerCreator pullOrdered = new PullOrderedConsumerCreator().filterSubjects(ctx.subject());
+            PullOrderedConsumerCreator pullOrdered = new PullOrderedConsumerCreator().filterSubject(ctx.subject());
             pullSub = ctx.js.pullSubscribe(ctx.stream, pullOrdered);
             pullSub.pull(PullRequestOptions.builder(1).idleHeartbeat(100).expiresIn(2000).build());
             validate(pullSub, listener, state);

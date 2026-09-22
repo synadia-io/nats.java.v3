@@ -13,7 +13,6 @@ import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1513,7 +1512,7 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param subject the subject for the service that will handle the request
      * @param data the content of the message
-     * @return a Future for the response, which may be cancelled on error or timed out
+     * @return a Future for the response, which may be cancelled on error or timed out The future completes exceptionally with a StatusException when the reply is a 503 no responders status and the cancel action is REPORT, which is the default.
      * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
@@ -1528,7 +1527,7 @@ public class NatsConnection implements AutoCloseable {
      * @param subject the subject for the service that will handle the request
      * @param headers Optional headers to publish with the message.
      * @param data the content of the message
-     * @return a Future for the response, which may be cancelled on error or timed out
+     * @return a Future for the response, which may be cancelled on error or timed out The future completes exceptionally with a StatusException when the reply is a 503 no responders status and the cancel action is REPORT, which is the default.
      * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
@@ -1543,7 +1542,7 @@ public class NatsConnection implements AutoCloseable {
      * @param subject the subject for the service that will handle the request
      * @param data the content of the message
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
-     * @return a Future for the response, which may be cancelled on error or timed out
+     * @return a Future for the response, which may be cancelled on error or timed out The future completes exceptionally with a StatusException when the reply is a 503 no responders status and the cancel action is REPORT, which is the default.
      * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
@@ -1559,7 +1558,7 @@ public class NatsConnection implements AutoCloseable {
      * @param data the content of the message
      * @param headers Optional headers to publish with the message.
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
-     * @return a Future for the response, which may be cancelled on error or timed out
+     * @return a Future for the response, which may be cancelled on error or timed out The future completes exceptionally with a StatusException when the reply is a 503 no responders status and the cancel action is REPORT, which is the default.
      * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull
@@ -1577,7 +1576,7 @@ public class NatsConnection implements AutoCloseable {
      *
      * @param message the message
      * @param timeoutMillis the time in milliseconds to wait for a response; a value less than 1 uses the default
-     * @return a Future for the response, which may be cancelled on error or timed out
+     * @return a Future for the response, which may be cancelled on error or timed out The future completes exceptionally with a StatusException when the reply is a 503 no responders status and the cancel action is REPORT, which is the default.
      * @throws IllegalArgumentException if the message is null, or the subject is invalid
      */
     @NonNull
@@ -1595,7 +1594,7 @@ public class NatsConnection implements AutoCloseable {
      * server to respond to the client with the consumer's reply.</p>
      *
      * @param message the message
-     * @return a Future for the response, which may be cancelled on error or timed out
+     * @return a Future for the response, which may be cancelled on error or timed out The future completes exceptionally with a StatusException when the reply is a 503 no responders status and the cancel action is REPORT, which is the default.
      * @throws IllegalArgumentException if the message is null, or the subject is invalid
      */
     @NonNull
@@ -1615,7 +1614,7 @@ public class NatsConnection implements AutoCloseable {
      *                       less than 0 uses the request cleanup interval default
      * @param cancelAction what to do with the future if the request is cancelled (cancel, report, or complete)
      * @param flushImmediatelyAfterPublish whether to flush the outgoing buffer immediately after publishing the request
-     * @return a Future for the response, which may be cancelled on error or timed out
+     * @return a Future for the response, which may be cancelled on error or timed out The future completes exceptionally with a StatusException when the reply is a 503 no responders status and the cancel action is REPORT, which is the default.
      * @throws IllegalArgumentException if the subject is invalid
      */
     @NonNull

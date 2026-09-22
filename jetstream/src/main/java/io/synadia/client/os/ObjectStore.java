@@ -85,6 +85,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo put(ObjectMeta meta, InputStream inputStream) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         validateNotNull(meta, "ObjectMeta");
@@ -169,6 +170,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo put(String objectName, InputStream inputStream) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(objectName), inputStream);
@@ -183,6 +185,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo put(String objectName, byte[] input) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(objectName), new ByteArrayInputStream(input));
@@ -196,6 +199,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo put(File file) throws IOException, JetStreamException, NoSuchAlgorithmException, InterruptedException {
         return put(ObjectMeta.objectName(file.getName()), Files.newInputStream(file.toPath()));
@@ -210,6 +214,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
      * @throws NoSuchAlgorithmException if the Digest Algorithm is not known. Currently, the only supported algorithm is SHA-256
+     * @throws JetStreamStatusException if the server sends an error status while reading the object
      */
     public ObjectInfo get(String objectName, OutputStream out) throws IOException, JetStreamException, InterruptedException, NoSuchAlgorithmException {
         ObjectInfo oi = getInfo(objectName, false);
@@ -255,7 +260,7 @@ public class ObjectStore extends AbstractBucketFeature {
         }
         else {
             PushOrderedConsumerCreator creator = new PushOrderedConsumerCreator()
-                .filterSubjects(rawChunkSubject(oi.getNuid()));
+                .filterSubject(rawChunkSubject(oi.getNuid()));
 
             JetStreamPushSubscription sub = js.pushSubscribe(streamName, creator);
 
@@ -334,6 +339,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @return the ObjectInfo after update
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo updateMeta(String objectName, ObjectMeta meta) throws JetStreamException, InterruptedException {
         validateNotNull(objectName, "object name");
@@ -375,6 +381,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @return the ObjectInfo after delete or throw an exception if it does not exist.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo delete(String objectName) throws JetStreamException, InterruptedException {
         ObjectInfo info = getInfo(objectName, true);
@@ -404,6 +411,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @return the ObjectInfo for the link as saved or throws an exception
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo addLink(String objectName, ObjectInfo toInfo) throws JetStreamException, InterruptedException {
         validateNotNull(objectName, "object name");
@@ -436,6 +444,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @return the ObjectInfo for the link as saved or throws an exception
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public ObjectInfo addBucketLink(String objectName, ObjectStore toStore) throws JetStreamException, InterruptedException {
         validateNotNull(objectName, "object name");
@@ -469,6 +478,7 @@ public class ObjectStore extends AbstractBucketFeature {
      * @return the list of objects
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
+     * @throws JetStreamStatusException if the server sends an error status while reading the bucket
      */
     public List<ObjectInfo> getList() throws JetStreamException, InterruptedException {
         List<ObjectInfo> list = new ArrayList<>();

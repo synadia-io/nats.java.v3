@@ -110,7 +110,10 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @throws JetStreamStatusException if the server sends an error status for the read
+     */
     @Override
     public @Nullable Message nextMessage(long timeoutMillis) throws InterruptedException {
         if (timeoutMillis < 1) {
@@ -119,7 +122,10 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
         return _nextUnmanaged(timeoutMillis, TimeUnit.MILLISECONDS, null);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @throws JetStreamStatusException if the server sends an error status for the read
+     */
     @Override
     public @Nullable Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException {
         if (timeout < 1) {
@@ -128,13 +134,19 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
         return _nextUnmanaged(timeout, unit, null);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @throws JetStreamStatusException if the server sends an error status for the read
+     */
     @Override
     public @Nullable Message nextMessageNoWait() throws InterruptedException {
         return _nextUnmanagedNoWait(null);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @throws JetStreamStatusException if the server sends an error status for the read
+     */
     @Override
     public @Nullable Message nextMessageWaitForever() throws InterruptedException {
         return _nextUnmanagedWaitForever();
@@ -150,7 +162,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                     case MESSAGE:
                         return msg;
                     case STATUS_ERROR:
-                        throw new JetStreamStatusInternalException("Error during next message / wait forever", msg.getStatus(), this);
+                        throw new JetStreamStatusException(msg.getStatus(), this);
                 }
                 // Check again since waiting forever for any other state
             }
@@ -175,7 +187,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                 case STATUS_ERROR:
                     // if the status applies, throw exception, otherwise it's ignored, fall through
                     if (expectedPullSubject == null || expectedPullSubject.equals(msg.getSubject())) {
-                        throw new JetStreamStatusInternalException("Pull Subject Mismatch", msg.getStatus(), this);
+                        throw new JetStreamStatusException(msg.getStatus(), this);
                     }
                     break;
             }
@@ -207,7 +219,7 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
                 case STATUS_ERROR:
                     // if the status applies throw exception, otherwise it's ignored, fall through
                     if (expectedPullSubject == null || expectedPullSubject.equals(msg.getSubject())) {
-                        throw new JetStreamStatusInternalException("Pull Subject Mismatch", msg.getStatus(), this);
+                        throw new JetStreamStatusException(msg.getStatus(), this);
                     }
                     break;
             }

@@ -393,7 +393,7 @@ public class ApiFieldsTest {
             .numReplicas(3)
             .pauseUntil(ZDT_A)
             .memStorage(true)
-            .filterSubjects("the.subject")
+            .filterSubject("the.subject")
             .priorityGroups("pg-1", "pg-2")
             .priorityPolicy(PriorityPolicy.PinnedClient)
             .priorityTimeout(Duration.ofSeconds(20))
@@ -467,7 +467,7 @@ public class ApiFieldsTest {
             .priorityTimeout(Duration.ofSeconds(2))
             .sampleFrequency("50")
             .pauseUntil(ZDT_A)
-            .filterSubjects("f.>")
+            .filterSubject("f.>")
             .priorityGroups("g1", "g2")
             .deliverPolicy(DeliverPolicy.New)
             .ackPolicy(AckPolicy.None)
@@ -497,8 +497,10 @@ public class ApiFieldsTest {
         // ---- filterSubject(empty) clears (filterSubjects list becomes empty) ----
         // Setup chain set filterSubject("f.>"); verify empty resets it.
         assertEquals("f.>", c.getFilterSubject());
-        c.filterSubjects("");
+        c.filterSubject("");
         assertNull(c.getFilterSubject());
+        assertTrue(c.getFilterSubjects().isEmpty());
+        c.filterSubject("a.>").filterSubjects("");
         assertTrue(c.getFilterSubjects().isEmpty());
         c.filterSubjects("a.>").filterSubjects("");
         assertTrue(c.getFilterSubjects().isEmpty());
@@ -1291,6 +1293,8 @@ public class ApiFieldsTest {
         c.filterSubjects(new ArrayList<>());
         assertTrue(c.getFilterSubjects().isEmpty());
         c.filterSubjects("a.>", "b.>");
+        c.filterSubject(null);
+        assertTrue(c.getFilterSubjects().isEmpty());
         c.filterSubjects();
         assertTrue(c.getFilterSubjects().isEmpty());
         // List form is @Nullable

@@ -10,6 +10,34 @@ Smells this creates:
 - `toString`/`toDetailString` have to account for `next` (`nextToString()`), polluting debug output.
 - The reconnect control signal (`END_RECONNECT`) is smuggled into the same chain as real messages and pattern-matched *inside* the byte-copy loop (`NatsConnectionWriter.java:134`), relying on the `msg == END_RECONNECT` check firing before anyone calls `getProtocolBab()` on a marker. Fragile.
 
+## TODO added 2026-09-07 — serialize the message at publish hand-off
+
+Scott's ask, to be done **as part of this plan** because the two are the same change: once the queue stops holding a chain of live `NatsMessage` objects, it can hold serialized bytes instead.
+
+**What:** serialize a user message to its wire form the moment it is handed to the publish API, not when the writer drains it.
+
+**Why:** today the client holds the caller's `NatsMessage` — including its `Headers` — in the writer queue until the writer gets to it. Anything the caller still has a reference to, it can still mutate in that window, so what goes on the wire is not necessarily what was passed to `publish`. Serializing at hand-off makes the published message immutable from the caller's point of view by construction, rather than by asking callers not to touch it. Headers are the specific concern.
+
+**Consequence for the queue:** it stops being a queue of one thing. It has to carry at least three kinds:
+
+| kind | example | form on the queue |
+|---|---|---|
+| internal control messages | `MarkerMessage` (`END_RECONNECT`, `POISON_PILL`) | not serializable — stays an object, must remain identity-comparable |
+| internal protocol messages | `ProtocolMessage` (PING/PONG/SUB/UNSUB/CONNECT) | serializable at enqueue like user messages |
+| user messages | published `NatsMessage` | serialized at hand-off |
+
+So the batch type this plan introduces has to model that variety rather than assume a homogeneous `NatsMessage` list. That is the design decision to settle first — the marker case is the awkward one, since `sendMessageBatch` currently identifies `END_RECONNECT` by reference (`msg == END_RECONNECT`) and a serialized form has no identity to compare.
+
+**Marker representation — Scott's direction, 2026-09-07.** Make the markers serialized bytes too, so the queue really is homogeneous and nothing has to stay an object for identity's sake. Every real outgoing message begins with one of the client-sent ops in `NatsConstants` (`:73-98`) — `CONNECT`, `SUB`, `PUB`, `HPUB`, `UNSUB`, `PING`, `PONG` — and therefore has a minimum length and a known leading byte pattern. A marker can be a short byte sequence that no legal outgoing message can start with, so it is recognizable at the head of the batch by content rather than by reference.
+
+That removes the awkward case above: `sendMessageBatch` stops doing `msg == END_RECONNECT` and instead recognizes the marker pattern, and `MessageBatch` no longer needs to model "object or bytes". Worth confirming while implementing: the ops the *client* sends are the only ones that can appear on this queue (`MSG`/`HMSG`/`INFO`/`+OK`/`-ERR` are inbound), so the set of leading patterns a marker must avoid is small.
+
+**Open questions, none decided:**
+- Where the serialization happens: inside `publish` on the caller's thread (moves the cost to the caller, keeps the queue cheap) or at enqueue.
+- Which byte pattern each marker gets, and where those constants live (`NatsConstants` alongside the ops is the obvious home).
+- Whether the byte/count accounting in `accumulate` gets simpler (it would be counting real bytes rather than estimating from a message) or whether anything depends on the current estimate.
+- Whether anything currently reads a queued message's fields after enqueue and before write, which serializing would break.
+
 ## Current mechanism (for reference)
 
 - `WriterMessageQueue.accumulate(maxBytes, maxMessages, timeoutMillis)` — `WriterMessageQueue.java:103`:

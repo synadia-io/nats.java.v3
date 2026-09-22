@@ -26,6 +26,16 @@ public class StatusException extends IllegalStateException {
     }
 
     /**
+     * Construct StatusException for a status, with a message the subtype composed.
+     * @param message the exception message
+     * @param status the status
+     */
+    protected StatusException(String message, Status status) {
+        super(message);
+        this.status = status;
+    }
+
+    /**
      * Get the full status object
      *
      * @return the status

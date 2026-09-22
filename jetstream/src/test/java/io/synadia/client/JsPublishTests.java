@@ -16,6 +16,7 @@ import java.util.List;
 
 import static io.synadia.client.utils.ResourceUtils.dataAsLines;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class JsPublishTests extends JetStreamTestBase {
 
@@ -41,10 +42,12 @@ public class JsPublishTests extends JetStreamTestBase {
             for (String s : noSpacesUtfSubjects) {
                 String data = random() + " " + s;
                 js.publish(s, data);
-                PushConsumerCreator creator = new PushConsumerCreator().filterSubjects(s);
+                PushConsumerCreator creator = new PushConsumerCreator().filterSubject(s);
                 ConsumerInfo ci = jsm.createConsumer(streamName, creator);
                 JetStreamPushSubscription sub = js.pushSubscribe(ci);
                 Message m = sub.nextMessage(1000L);
+                assertNotNull(m);
+                assertNotNull(m.getData());
                 assertEquals(data, new String(m.getData(), StandardCharsets.UTF_8));
             }
         });

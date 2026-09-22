@@ -46,8 +46,10 @@ class NatsIterableMessageConsumer extends NatsMessageConsumer implements Iterabl
             }
             return msg;
         }
-        catch (JetStreamStatusInternalException e) {
-            throw new JetStreamStatusException(e);
+        catch (StatusException e) {
+            // a status is the caller's to see, and it is an IllegalStateException, so it has to be
+            // taken before the catch below, which is only about a consumer that was stopped
+            throw e;
         }
         catch (IllegalStateException i) {
             // this happens if the consumer is stopped, since it is

@@ -90,7 +90,6 @@ try {
 catch (JetStreamException e) {
     switch (e) {
         case JetStreamApiException api      -> report(api.getError());   // server returned an error
-        case JetStreamStatusException st    -> inspect(st.getStatus());  // unexpected status message
         case JetStreamTimeoutException t    -> retry();                  // no response in time
         case JetStreamProtocolException p   -> fail(p);                  // malformed reply
         default                             -> fail(e);                  // required — the base is not sealed
@@ -110,15 +109,25 @@ The `default` is not optional and not a wart: `JetStreamException` is deliberate
 |---|---|---|---|
 | `JetStreamException` | `io.synadia.client.api` | base — catch this | — |
 | `JetStreamApiException` | `io.synadia.client.impl` | the server returned an `Error` (JetStream API error) | `getError()` |
-| `JetStreamStatusException` | `io.synadia.client.impl` | an unexpected / unhandled status message | `getStatus()` |
 | `JetStreamTimeoutException` | `io.synadia.client.api` | no response within the request timeout | — |
 | `JetStreamProtocolException` | `io.synadia.client.api` | malformed response (the v2 "Invalid JetStream ack" cases) | — |
 
 `JetStreamApiException` is unchanged as the runtime type for server-side API errors — if your v2 code already did `catch (JetStreamApiException)`, it still catches exactly the same failures. It is now *also* a `JetStreamException`, so you can widen to the base and drop the separate `IOException` catch in the same edit. (The `.impl`-package subtypes are slated to move to `.api` in a later v3 build; catching the base `JetStreamException` — which is already in `.api` — insulates you from that move entirely.)
 
+**Status messages are a separate, unchecked family — not part of `JetStreamException`.**
+
+An unexpected status cannot be checked where it is raised: `JetStreamSubscription.nextMessage*` implements the core `Subscription` declarations, which carry no checked exception, and the legacy `iterate` raises from `Iterator.hasNext()`. So status errors are unchecked and sit in their own two-type hierarchy:
+
+| Type | Package | Means | Key accessor |
+|---|---|---|---|
+| `StatusException` | `io.synadia.client.impl` | a status message the client could not process — core raises it for a 503 on a plain `request` | `getStatus()` |
+| `JetStreamStatusException` | `io.synadia.client.impl` | the same, raised by JetStream, carrying the note and the subscription | `getStatus()`, `getNote()`, `getSubscription()` |
+
+`JetStreamStatusException extends StatusException`, so `catch (StatusException)` covers core and JetStream alike and `catch (JetStreamStatusException)` narrows to JetStream. Both are unchecked, so the compiler will not remind you — the javadoc `@throws` on every method that can raise one is the reminder.
+
 **Two rename notes, only relevant if you referenced these types by name:**
-- `JetStreamStatusCheckedException` is **gone.** The checked "unexpected status" error you would catch is now just `JetStreamStatusException`.
-- The v2 `JetStreamStatusException` was an *unchecked* internal signal; it is renamed `JetStreamStatusInternalException` and stays unchecked and internal. You should not be catching it — the name it vacated now belongs to the user-facing checked type above.
+- `JetStreamStatusCheckedException` is **gone**, with no checked replacement. If you caught it, catch `JetStreamStatusException` instead and note that nothing forces you to.
+- The v2 `JetStreamStatusException` was unchecked, and so is v3's. The name means the same thing it did in v2; what changed is its parent (`StatusException` rather than `IllegalStateException` directly) and that it now carries the subscription.
 
 **The one place `IOException` survives — and it is real.** `ObjectStore.put(...)` and `ObjectStore.get(...)` still declare `throws IOException` alongside `JetStreamException`, because they read and write *your* `InputStream` / `OutputStream`. That `IOException` means a stream failure on your side, not a NATS failure — keep the `catch (IOException)` there. It is the only spot on the JetStream surface where `IOException` is not a lie.
 

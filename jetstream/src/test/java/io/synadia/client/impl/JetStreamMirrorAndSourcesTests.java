@@ -108,7 +108,7 @@ public class JetStreamMirrorAndSourcesTests extends JetStreamTestBase {
 
             assertMirror(ctx.jsm, M1, S1, 30L, null);
 
-            PushConsumerCreator creator = new PushConsumerCreator().filterSubjects(U1);
+            PushConsumerCreator creator = new PushConsumerCreator().filterSubject(U1);
             JetStreamPushSubscription sub = ctx.js.pushSubscribe(S1, creator);
             List<Message> list = readMessagesAck(sub);
             assertEquals(10, list.size());
@@ -116,7 +116,7 @@ public class JetStreamMirrorAndSourcesTests extends JetStreamTestBase {
                 assertEquals(S1, m.metaData().getStream());
             }
 
-            creator = new PushConsumerCreator().filterSubjects(U2);
+            creator = new PushConsumerCreator().filterSubject(U2);
             sub = ctx.js.pushSubscribe(S1, creator);
             list = readMessagesAck(sub);
             assertEquals(20, list.size());
@@ -124,7 +124,7 @@ public class JetStreamMirrorAndSourcesTests extends JetStreamTestBase {
                 assertEquals(S1, m.metaData().getStream());
             }
 
-            creator = new PushConsumerCreator().filterSubjects(U1);
+            creator = new PushConsumerCreator().filterSubject(U1);
             sub = ctx.js.pushSubscribe(M1, creator);
             list = readMessagesAck(sub);
             assertEquals(10, list.size());
@@ -132,7 +132,7 @@ public class JetStreamMirrorAndSourcesTests extends JetStreamTestBase {
                 assertEquals(M1, m.metaData().getStream());
             }
 
-            creator = new PushConsumerCreator().filterSubjects(U2);
+            creator = new PushConsumerCreator().filterSubject(U2);
             sub = ctx.js.pushSubscribe(M1, creator);
             list = readMessagesAck(sub);
             assertEquals(20, list.size());

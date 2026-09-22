@@ -482,8 +482,22 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     /**
+     * Sets the filter subject.
+     * Replaces any other filter subjects. Null clears the filter subjects
+     * @param subject a filter subject
+     * @return this instance for chaining.
+     * @throws IllegalArgumentException if any filter subject is not a valid subject
+     */
+    public T filterSubject(@Nullable String subject) {
+        if (subject == null) {
+            this.filterSubjects.clear();
+        }
+        return filterSubjects(subject);
+    }
+
+    /**
      * Sets the filter subjects.
-     * Replaces any other filter subjects.
+     * Replaces any other filter subjects. All null subjects clear the filter subjects.
      * @param subjects one or more filter subjects
      * @return this instance for chaining.
      * @throws IllegalArgumentException if any filter subject is not a valid subject
@@ -496,7 +510,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
 
     /**
      * Sets the filter subjects.
-     * Replaces any other filter subjects.
+     * Replaces any other filter subjects. All null subjects clear the filter subjects.
      * @param subjects the list of filter subjects
      * @return this instance for chaining.
      * @throws IllegalArgumentException if any filter subject is not a valid subject

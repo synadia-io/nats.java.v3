@@ -76,10 +76,10 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
     - 🚨 testConsumerDeletedSyncSub
     - 🚨 testConsumerDeletedAsyncSub
     - 🚨 testExceedsMaxRequestBytesNthMessageSyncSub
-    - 🚨 testReader
-    - 🚨 testOverflow
-    - 🚨 testPrioritized
-    - 🚨 testPinnedClient
+    - ☑️ testReader
+    - ☑️ testOverflow
+    - ☑️ testPrioritized
+    - ☑️ testPinnedClient
     - 🚨 testExceedsMaxWaitingSyncSub
       - 🔧 renamed in tdb: JetStreamPullTests.testExceededMaxWaitingSync
     - 🚨 testExceedsMaxWaitingAsyncSub
@@ -112,18 +112,21 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
       - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBytes1stMessageSync
     - 🚨 testExceedsMaxRequestBytes1stMessageAsyncSub
       - 🔧 renamed in tdb: JetStreamPullTests.testExceedsMaxRequestBytes1stMessageAsync
-    - 🚨 testExceedsMaxRequestBytesExactBytes
-      - 🔧 renamed in tdb: JetStreamPullTests.testDoesNotExceedMaxRequestBytesExactBytes
+    - ☑️ testExceedsMaxRequestBytesExactBytes
+      - 🔧 renamed JetStreamPullTests.testDoesNotExceedMaxRequestBytesExactBytes
+      - ✏️ similiar test but not exactly the same
 - 🗃️ JetStreamPushAsyncTests.java
-    - 🚨 testHandlerSub
-    - 🚨 testHandlerAutoAck
-    - 🚨 testCantNextMessageOnAsyncPushSub
-    - 🚨 testPushAsyncFlowControl
-    - 🚨 testMemoryStorageServerBugPR2719
-    - 🚨 testDontAutoAckSituations
-      - 🔧 renamed in tdb: JetStreamPushAsyncTests.testDoNotAutoAckSituations
+    - ☑️ testHandlerSub
+    - ✔️ testHandlerAutoAck
+      - ✏️ auto ack not provided in V3
+    - ☑️ testCantNextMessageOnAsyncPushSub
+    - ☑️ testPushAsyncFlowControl
+    - ☑️ testMemoryStorageServerBugPR2719
+      - moved to kv area TestMemoryStorageServerBugPR2719.java
+    - ✔️ testDontAutoAckSituations
+      - ✏️ auto ack not provided in V3
 - 🗃️ JetStreamPushQueueTests.java
-    - 🚨 testQueueSubWorkflow
+    - ☑️ testQueueSubWorkflow
 - 🗃️ KeyValueTests.java
     - 🚨 testWorkflow
     - 🚨 testGetRevision

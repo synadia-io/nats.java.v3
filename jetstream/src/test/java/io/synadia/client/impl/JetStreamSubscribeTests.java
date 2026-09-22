@@ -7,7 +7,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -547,7 +546,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
 
             // subscribe to the wildcard
             PushConsumerCreator creator = new PushConsumerCreator()
-                .filterSubjects(subjectWild)
+                .filterSubject(subjectWild)
                 .ackPolicy(AckPolicy.None);
             JetStreamSubscription sub = ctx.js.pushSubscribe(ctx.stream, creator);
 
@@ -572,7 +571,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
 
             // subscribe to A
             creator = new PushConsumerCreator()
-                .filterSubjects(subjectA)
+                .filterSubject(subjectA)
                 .ackPolicy(AckPolicy.None);
             sub = ctx.js.pushSubscribe(ctx.stream, creator);
 
@@ -589,7 +588,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
 
             // subscribe to B
             creator = new PushConsumerCreator()
-                .filterSubjects(subjectB)
+                .filterSubject(subjectB)
                 .ackPolicy(AckPolicy.None);
             sub = ctx.js.pushSubscribe(ctx.stream, creator);
 

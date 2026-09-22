@@ -98,6 +98,7 @@ public class JetStream extends JetStreamImpl {
      * @throws InterruptedException if interrupted while waiting for the server
      * @param subject the subject to send the message to
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject) throws JetStreamException, InterruptedException {
         return _publishSync(subject, null, null, null, null);
@@ -110,6 +111,7 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to send the message to
      * @param data the message payload, may be null for an empty message
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, byte @Nullable[] data) throws JetStreamException, InterruptedException {
         return _publishSync(subject, null, data, null, null);
@@ -122,6 +124,7 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to send the message to
      * @param data the message payload, may be null for an empty message
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, @Nullable String data) throws JetStreamException, InterruptedException {
         return _publishSync(subject, null, null, data, null);
@@ -134,6 +137,7 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to send the message to
      * @param headers headers to send with the message
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, Headers headers) throws JetStreamException, InterruptedException {
         return _publishSync(subject, headers, null, null, null);
@@ -147,6 +151,7 @@ public class JetStream extends JetStreamImpl {
      * @param headers headers to send with the message
      * @param data the message payload, may be null for an empty message
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, Headers headers, byte @Nullable[] data) throws JetStreamException, InterruptedException {
         return _publishSync(subject, headers, data, null, null);
@@ -160,6 +165,7 @@ public class JetStream extends JetStreamImpl {
      * @param headers headers to send with the message
      * @param data the message payload, may be null for an empty message
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, Headers headers, @Nullable String data) throws JetStreamException, InterruptedException {
         return _publishSync(subject, headers, null, data, null);
@@ -173,6 +179,7 @@ public class JetStream extends JetStreamImpl {
      * @param data the message payload, may be null for an empty message
      * @param options publish options such as expected stream, sequence or message id
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, byte @Nullable [] data, PublishOptions options) throws JetStreamException, InterruptedException {
         return _publishSync(subject, null, data, null, options);
@@ -186,6 +193,7 @@ public class JetStream extends JetStreamImpl {
      * @param data the message payload, may be null for an empty message
      * @param options publish options such as expected stream, sequence or message id
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, @Nullable String data, PublishOptions options) throws JetStreamException, InterruptedException {
         return _publishSync(subject, null, null, data, options);
@@ -200,6 +208,7 @@ public class JetStream extends JetStreamImpl {
      * @param data the message payload, may be null for an empty message
      * @param options publish options such as expected stream, sequence or message id
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, Headers headers, byte[] data, PublishOptions options) throws JetStreamException, InterruptedException {
         return _publishSync(subject, headers, data, null, options);
@@ -214,6 +223,7 @@ public class JetStream extends JetStreamImpl {
      * @param data the message payload, may be null for an empty message
      * @param options publish options such as expected stream, sequence or message id
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(String subject, Headers headers, String data, PublishOptions options) throws JetStreamException, InterruptedException {
         return _publishSync(subject, headers, null, data, options);
@@ -226,6 +236,7 @@ public class JetStream extends JetStreamImpl {
      * @throws IllegalArgumentException if the message is null
      * @param message the message to send, carrying its own subject, headers and payload
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(Message message) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
@@ -240,6 +251,7 @@ public class JetStream extends JetStreamImpl {
      * @param message the message to send, carrying its own subject, headers and payload
      * @param options publish options such as expected stream, sequence or message id
      * @return an acknowledgement carrying the stream name and the sequence the message was stored at
+     * @throws JetStreamStatusException if the server replies with a status message instead of an ack
      */
     public PublishAck publish(Message message, PublishOptions options) throws JetStreamException, InterruptedException {
         validateNotNull(message, "Message");
@@ -266,7 +278,7 @@ public class JetStream extends JetStreamImpl {
      *
      * @param subject the subject to send the message to
      * @param body the message body
-     * @return The future
+     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body) {
         return _publishAsync(subject, null, body, null, null, true);
@@ -276,7 +288,7 @@ public class JetStream extends JetStreamImpl {
      * Send a message to a stream without waiting for the acknowledgement. The returned future completes with the ack, or completes exceptionally if the publish is rejected.
      * @param subject the subject to send the message to
      * @param body the message payload
-     * @return a future that completes with the acknowledgement
+     * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, String body) {
         return _publishAsync(subject, null, null, body, null, true);
@@ -304,7 +316,7 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to send the message to
      * @param headers Optional headers to publish with the message.
      * @param body the message body
-     * @return The future
+     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body) {
         return _publishAsync(subject, headers, body, null, null, true);
@@ -315,7 +327,7 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to send the message to
      * @param headers headers to send with the message
      * @param body the message payload
-     * @return a future that completes with the acknowledgement
+     * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body) {
         return _publishAsync(subject, headers, null, body, null, true);
@@ -341,7 +353,7 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to send the message to
      * @param body the message body
      * @param options publisher options
-     * @return The future
+     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, byte[] body, PublishOptions options) {
         return _publishAsync(subject, null, body, null, options, true);
@@ -352,7 +364,7 @@ public class JetStream extends JetStreamImpl {
      * @param subject the subject to send the message to
      * @param body the message payload
      * @param options publish options such as expected stream, sequence or message id
-     * @return a future that completes with the acknowledgement
+     * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, String body, PublishOptions options) {
         return _publishAsync(subject, null, null, body, options, true);
@@ -380,7 +392,7 @@ public class JetStream extends JetStreamImpl {
      * @param headers Optional headers to publish with the message.
      * @param body the message body
      * @param options publisher options
-     * @return The future
+     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, byte[] body, PublishOptions options) {
         return _publishAsync(subject, headers, body, null, options, true);
@@ -392,7 +404,7 @@ public class JetStream extends JetStreamImpl {
      * @param headers headers to send with the message
      * @param body the message payload
      * @param options publish options such as expected stream, sequence or message id
-     * @return a future that completes with the acknowledgement
+     * @return a future that completes with the acknowledgement The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      */
     public CompletableFuture<PublishAck> publishAsync(String subject, Headers headers, String body, PublishOptions options) {
         return _publishAsync(subject, headers, null, body, options, true);
@@ -420,7 +432,7 @@ public class JetStream extends JetStreamImpl {
      * server to respond to the client with the PublishAck.</p>
      *
      * @param message the message to send
-     * @return The future
+     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      * @throws IllegalArgumentException if the message is null
      */
     public CompletableFuture<PublishAck> publishAsync(Message message) {
@@ -450,7 +462,7 @@ public class JetStream extends JetStreamImpl {
      *
      * @param message the message to publish
      * @param options publisher options
-     * @return The future
+     * @return The future The future completes exceptionally with a JetStreamStatusException if the server replies with a status message instead of an ack.
      * @throws IllegalArgumentException if the message is null
      */
     public CompletableFuture<PublishAck> publishAsync(Message message, PublishOptions options) {
@@ -786,7 +798,7 @@ public class JetStream extends JetStreamImpl {
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PushConsumerCreator creator = new PushConsumerCreator().filterSubjects(subject);
+        PushConsumerCreator creator = new PushConsumerCreator().filterSubject(subject);
         return pushSubscribe(stream, creator, subscribeBehavior);
     }
 
@@ -1021,7 +1033,7 @@ public class JetStream extends JetStreamImpl {
         if (stream == null) {
             throw JsSubNoMatchingStreamForSubject.instance();
         }
-        PullConsumerCreator creator = new PullConsumerCreator().filterSubjects(subject);
+        PullConsumerCreator creator = new PullConsumerCreator().filterSubject(subject);
         return pullSubscribe(stream, creator, subscribeBehavior);
     }
 
@@ -1143,7 +1155,7 @@ public class JetStream extends JetStreamImpl {
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public ConsumerContext createConsumer(String stream, String subject) throws JetStreamException, InterruptedException {
-        return createConsumer(stream, new PullConsumerCreator().filterSubjects(subject));
+        return createConsumer(stream, new PullConsumerCreator().filterSubject(subject));
     }
 
     /**

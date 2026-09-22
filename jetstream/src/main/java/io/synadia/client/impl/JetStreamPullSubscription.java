@@ -114,6 +114,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
      *
      * @return the list of messages
      * @throws IllegalArgumentException if maxWaitMillis is not greater than zero
+     * @throws JetStreamStatusException if the server sends an error status for the fetch
      */
     public List<Message> fetch(int batchSize, long maxWaitMillis) {
         durationGtZeroRequired(maxWaitMillis, "Fetch");
@@ -154,7 +155,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
                     case MessageManager.ManageResult.STATUS_ERROR:
                         // if there is a match, the status applies otherwise it's ignored
                         if (pullSubject.equals(msg.getSubject())) {
-                            throw new JetStreamStatusInternalException("Error Fetching", msg.getStatus(), this);
+                            throw new JetStreamStatusException(msg.getStatus(), this);
                         }
                         break;
                 }
@@ -213,6 +214,7 @@ public class JetStreamPullSubscription extends JetStreamSubscription implements 
      *
      * @return the message iterator
      * @throws IllegalArgumentException if maxWaitMillis is not greater than zero
+     * @throws JetStreamStatusException from the returned iterator, if the server sends an error status for the read
      */
     public Iterator<Message> iterate(final int batchSize, long maxWaitMillis) {
         durationGtZeroRequired(maxWaitMillis, "Iterate");

@@ -16,6 +16,7 @@ public interface JetStreamReader {
      * @throws IllegalArgumentException if {@code timeoutMillis} is less than 1
      * @throws InterruptedException if one is thrown, in order to propagate it up
      * @throws IllegalStateException if the subscription belongs to a dispatcher, or is not active
+     * @throws JetStreamStatusException if the server sends an error status for the read
      */
     Message nextMessage(long timeoutMillis) throws InterruptedException;
 
@@ -27,6 +28,7 @@ public interface JetStreamReader {
      * @throws IllegalArgumentException if {@code timeout} is less than 1
      * @throws InterruptedException if one is thrown, in order to propagate it up
      * @throws IllegalStateException if the subscription belongs to a dispatcher, or is not active
+     * @throws JetStreamStatusException if the server sends an error status for the read
      */
     Message nextMessage(long timeout, TimeUnit unit) throws InterruptedException;
 
@@ -35,6 +37,7 @@ public interface JetStreamReader {
      * @return the next buffered message, or null if none is currently available
      * @throws InterruptedException if one is thrown
      * @throws IllegalStateException if the subscription belongs to a dispatcher, or is not active
+     * @throws JetStreamStatusException if the server sends an error status for the read
      */
     Message nextMessageNoWait() throws InterruptedException;
 
@@ -43,6 +46,7 @@ public interface JetStreamReader {
      * @return the next message, or null if the subscription became inactive
      * @throws InterruptedException if one is thrown, in order to propagate it up
      * @throws IllegalStateException if the subscription belongs to a dispatcher, or is not active
+     * @throws JetStreamStatusException if the server sends an error status for the read
      */
     Message nextMessageWaitForever() throws InterruptedException;
 

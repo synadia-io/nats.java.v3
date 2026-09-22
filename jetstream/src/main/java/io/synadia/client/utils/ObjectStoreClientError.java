@@ -6,7 +6,9 @@ import static io.synadia.client.utils.ClientError.KIND_ILLEGAL_STATE;
 /**
  * The client-side ObjectStore errors: each a stable id, a message, and the kind of unchecked exception it raises.
  * Each constant is a distinct error condition the client detects itself, before or instead of a server round
- * trip. Call {@link ClientError#instance()} to build the exception to throw.
+ * trip. Call {@link ClientError#instance(Object...)} to build the exception to throw.
+ *
+ * <p>Every constant here is listed in the Client Error Messages table in jetstream/README.md. A new one goes in both.
  */
 public abstract class ObjectStoreClientError {
     private ObjectStoreClientError() {} /* ensures cannot be constructed */
