@@ -1,0 +1,30 @@
+// ---------------------------------------------------------------------------
+// Subproject-specific identity — read by root build.gradle via afterEvaluate
+// ---------------------------------------------------------------------------
+ext {
+    jarVersion        = '3.0.0'
+    artifactNameExt   = 'jnats3-batch-publish'
+    moduleNameExt     = 'io.synadia.jnats3.batchpublish'
+    bundleNameExt     = 'io.synadia.jnats3.batchpublish'
+    pomDescriptionExt = 'Batch publish library for the NATS messaging system.'
+    projectUrlExt     = 'https://github.com/synadia-io/nats.java.v3'
+}
+
+// ---------------------------------------------------------------------------
+// Subproject-specific dependencies
+// ---------------------------------------------------------------------------
+dependencies {
+    api project(':jetstream')  // transitively pulls :core
+    testImplementation project(path: ':core', configuration: 'testOutput')
+    testImplementation project(path: ':jetstream', configuration: 'testOutput')
+}
+
+// ---------------------------------------------------------------------------
+// Subproject-specific javadoc config
+// ---------------------------------------------------------------------------
+javadoc {
+    options.memberLevel = JavadocMemberLevel.PUBLIC
+    source = sourceSets.main.allJava
+    title = "SYNADIA.IO Batch Publish API"
+    classpath = sourceSets.main.runtimeClasspath
+}

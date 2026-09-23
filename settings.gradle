@@ -17,6 +17,7 @@ rootProject.name = 'jnats3'
 
 include 'core'
 include 'jetstream'
+include 'batch-publish'
 // include 'kv'
 include 'service'
 include 'examples'
