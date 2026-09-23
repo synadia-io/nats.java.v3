@@ -51,7 +51,9 @@ public class NatsConnection implements AutoCloseable {
 
     protected CompletableFuture<DataPort> dataPortFuture;
     protected DataPort dataPort;
-    protected NatsUri currentServer;
+    // Volatile so that a caller reading getConnectedUrl() and getStatus() back to back cannot see
+    // the pair out of the order teardown writes them in.
+    protected volatile NatsUri currentServer;
     protected NatsUri lastServer;
     protected CompletableFuture<Boolean> reconnectWaiter;
     private volatile boolean lameDuckTriggered = false;

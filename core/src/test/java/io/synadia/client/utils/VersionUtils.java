@@ -55,4 +55,20 @@ public abstract class VersionUtils {
     public static boolean atLeast2_14(ServerInfo si) {
         return si.isSameOrNewerThanVersion("2.13.99");
     }
+
+    public static boolean atLeast2_15() {
+        return atLeast2_15(VERSION_SERVER_INFO);
+    }
+
+    public static boolean atLeast2_15(ServerInfo si) {
+        return si.isSameOrNewerThanVersion("2.14.99");
+    }
+
+    public static boolean atLeast2_16() {
+        return atLeast2_16(VERSION_SERVER_INFO);
+    }
+
+    public static boolean atLeast2_16(ServerInfo si) {
+        return si.isSameOrNewerThanVersion("2.15.99");
+    }
 }

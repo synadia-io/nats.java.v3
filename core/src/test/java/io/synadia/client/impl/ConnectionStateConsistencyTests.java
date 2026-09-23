@@ -60,8 +60,15 @@ public class ConnectionStateConsistencyTests extends TestBase {
             poller = new Thread(() -> {
                 while (run.get()) {
                     samples.incrementAndGet();
-                    ConnectionStatus status = conn.getStatus();
+                    // Read the url first, then the status. Teardown sets the status and then clears
+                    // the server, so a sampler that read the status first could read it before that
+                    // write and read the url after the clear, reporting the pair as inconsistent when
+                    // the connection was correct. Reading in this order, a null url means the clear
+                    // already happened, so the status read after it cannot still be CONNECTED - unless
+                    // the connection really did clear the server before updating the status, which is
+                    // the defect this test is for.
                     String url = conn.getConnectedUrl();
+                    ConnectionStatus status = conn.getStatus();
                     if (status == ConnectionStatus.CONNECTED && url == null) {
                         inconsistent.incrementAndGet();
                         firstExample.compareAndSet(null, "status=" + status + " getConnectedUrl()=null");
