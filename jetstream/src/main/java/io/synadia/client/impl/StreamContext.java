@@ -131,12 +131,12 @@ public interface StreamContext {
 
     /**
      * Create an ordered consumer context for the context's stream.
-     * @param config the configuration for the ordered consumer
+     * @param creator the creator for the ordered consumer
      * @return an OrderedConsumerContext object
      * @throws JetStreamException covers communication and server-side JetStream errors
      */
     @NonNull
-    OrderedConsumerContext createOrderedConsumer(@NonNull PullOrderedConsumerCreator config) throws JetStreamException;
+    OrderedConsumerContext createOrderedConsumer(@NonNull PullOrderedConsumerCreator creator) throws JetStreamException;
 
     /**
      * Management function to deletes a consumer.

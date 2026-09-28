@@ -154,7 +154,8 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
     - 🚨 testMirrorSourceBuilderPrefixConversion
     - 🚨 testKeyValueMirrorCrossDomains
     - 🚨 testKeyValueTransform
-    - 🚨 testSubjectFiltersAgainst209OptOut
+    - ✔️ testSubjectFiltersAgainst209OptOut
+      - ✏️ this version doesn't care about 209
     - 🚨 testTtlAndDuplicateWindowRoundTrip
     - 🚨 testConsumeKeys
     - 🚨 testLimitMarkerCoverage
@@ -514,7 +515,7 @@ These v2 method names appear nowhere in v3. 20 are still to be done, 119 were re
     - ☑️ testURISchemeWSSConnectionEnsureTlsFirstHasNoEffect
       - 🔧 WebsocketConnectTests.testWssTlsFirstIgnored / testWssVerifyTlsFirstIgnored
 
-## N/A Part of external library depenency
+## N/A Part of external library dependency
 
 - 📚️ DateTimeUtilsTests.java
     - 📚 testParseDateTimeNanos

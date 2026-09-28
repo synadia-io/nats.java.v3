@@ -9,12 +9,15 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class KeyValueConfigurationCreatorTests {
+public class KeyValueCreatorTests {
 
     @Test
     public void testKeyValueConfigurationCreatorCollectionInvariants() {
         // ---- metadata (not @Nullable on KV-level setter; don't pass null) ----
-        KeyValueConfigurationCreator c = new KeyValueConfigurationCreator("b");
+        KeyValueCreator c = new KeyValueCreator("b");
+        assertEquals("b", c.getBucketName());
+        assertEquals(1, c.getMaxHistoryPerKey());
+        assertEquals(1, c.getReplicas());
         assertNotNull(c.getMetadata());
         assertTrue(c.getMetadata().isEmpty());
         Map<String, String> m = new HashMap<>();
@@ -25,7 +28,7 @@ public class KeyValueConfigurationCreatorTests {
         assertTrue(c.getMetadata().isEmpty());
 
         // ---- sourceCreators (not @Nullable on KV-level setter; don't pass null) ----
-        c = new KeyValueConfigurationCreator("b");
+        c = new KeyValueCreator("b");
         assertNotNull(c.getSourceCreators());
         assertTrue(c.getSourceCreators().isEmpty());
         c.sourceCreators(new SourceCreator("a"), new SourceCreator("b"));

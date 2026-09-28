@@ -25,7 +25,7 @@ public class ObjectStoreWatchSubscription extends NatsWatchSubscription<ObjectIn
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public ObjectStoreWatchSubscription(ObjectStore os, ObjectStoreWatcher watcher, ObjectStoreWatchOption... watchOptions) throws JetStreamException, InterruptedException {
-        super(os.js);
+        super(os.js, null); // object store has its own options and no push or consume choice yet
 
         // figure out the result options
         boolean headersOnly = false;

@@ -4,30 +4,30 @@ import io.synadia.client.api.*;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import static io.synadia.client.kv.KeyValueUtils.toStreamName;
 import static io.synadia.client.utils.JsValidator.*;
 
 /**
- * KeyValueConfigurationCreator is used to create a Key Value bucket.
+ * KeyValueCreator is used to create a Key Value bucket.
  */
-public class KeyValueConfigurationCreator {
+public class KeyValueCreator {
 
     private final String bucketName;
     private final StreamCreator streamCreator;
-    private Duration ttl = Duration.ZERO;
-    private @Nullable MirrorCreator mirror;
-    private @Nullable Duration limitMarkerTtl;
-    private final List<SourceCreator> sourceCreators = new ArrayList<>();
 
     /**
      * Constructor accepting the key value bucket name.
      * @param bucketName name of the key value bucket.
      */
-    public KeyValueConfigurationCreator(String bucketName) {
+    public KeyValueCreator(String bucketName) {
         this.bucketName = validateBucketName(bucketName, true);
         streamCreator = new StreamCreator(toStreamName(this.bucketName));
+        maxHistoryPerKey(1);
+        replicas(1);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ public class KeyValueConfigurationCreator {
      * @param description description of the store.
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator description(String description) {
+    public KeyValueCreator description(String description) {
         streamCreator.description(description);
         return this;
     }
@@ -49,7 +49,7 @@ public class KeyValueConfigurationCreator {
      * @param maxBucketSize the maximum number of bytes
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator maxBucketSize(long maxBucketSize) {
+    public KeyValueCreator maxBucketSize(long maxBucketSize) {
         streamCreator.maxBytes(validateMaxBucketBytes(maxBucketSize));
         return this;
     }
@@ -59,9 +59,8 @@ public class KeyValueConfigurationCreator {
      * @param ttl the maximum age
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator ttl(Duration ttl) {
-        this.ttl = ttl == null ? Duration.ZERO : ttl;
-        streamCreator.maxAge(this.ttl);
+    public KeyValueCreator ttl(Duration ttl) {
+        streamCreator.maxAge(ttl == null ? Duration.ZERO : ttl);
         return this;
     }
 
@@ -70,9 +69,8 @@ public class KeyValueConfigurationCreator {
      * @param ttlMillis the maximum age
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator ttl(Long ttlMillis) {
-        this.ttl = ttlMillis == null || ttlMillis < 0 ? Duration.ZERO : Duration.ofMillis(ttlMillis);
-        streamCreator.maxAge(this.ttl);
+    public KeyValueCreator ttl(Long ttlMillis) {
+        streamCreator.maxAge(ttlMillis == null || ttlMillis < 0 ? Duration.ZERO : Duration.ofMillis(ttlMillis));
         return this;
     }
 
@@ -81,7 +79,7 @@ public class KeyValueConfigurationCreator {
      * @param storageType the storage type
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator storageType(StorageType storageType) {
+    public KeyValueCreator storageType(StorageType storageType) {
         streamCreator.storageType(storageType);
         return this;
     }
@@ -91,7 +89,7 @@ public class KeyValueConfigurationCreator {
      * @param replicas the number of replicas
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator replicas(int replicas) {
+    public KeyValueCreator replicas(int replicas) {
         streamCreator.replicas(replicas);
         return this;
     }
@@ -101,7 +99,7 @@ public class KeyValueConfigurationCreator {
      * @param placement the placement directive object
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator placement(PlacementCreator placement) {
+    public KeyValueCreator placement(PlacementCreator placement) {
         streamCreator.placementCreator(placement);
         return this;
     }
@@ -111,7 +109,7 @@ public class KeyValueConfigurationCreator {
      * @param compression whether to use compression
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator compression(boolean compression) {
+    public KeyValueCreator compression(boolean compression) {
         streamCreator.compressionOption(compression ? CompressionOption.S2 : CompressionOption.None);
         return this;
     }
@@ -121,7 +119,7 @@ public class KeyValueConfigurationCreator {
      * @param metadata the metadata map
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator metadata(Map<String, String> metadata) {
+    public KeyValueCreator metadata(Map<String, String> metadata) {
         streamCreator.metadata(metadata);
         return this;
     }
@@ -135,7 +133,7 @@ public class KeyValueConfigurationCreator {
      * @param maxHistoryPerKey the maximum history
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator maxHistoryPerKey(int maxHistoryPerKey) {
+    public KeyValueCreator maxHistoryPerKey(int maxHistoryPerKey) {
         streamCreator.maxMessagesPerSubject(validateMaxHistory(maxHistoryPerKey));
         return this;
     }
@@ -145,7 +143,7 @@ public class KeyValueConfigurationCreator {
      * @param maxValueSize the maximum size for a value
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator maximumValueSize(int maxValueSize) {
+    public KeyValueCreator maximumValueSize(int maxValueSize) {
         streamCreator.maxMessageSize(validateMaxValueSize(maxValueSize));
         return this;
     }
@@ -155,18 +153,18 @@ public class KeyValueConfigurationCreator {
      * @param republish the Republish object
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator republish(RepublishCreator republish) {
+    public KeyValueCreator republish(RepublishCreator republish) {
         streamCreator.republishCreator(republish);
         return this;
     }
 
     /**
      * Sets the mirror in the configuration.
-     * @param mirror the mirror
+     * @param mirrorCreator the mirror cretor
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator mirror(MirrorCreator mirror) {
-        this.mirror = mirror;
+    public KeyValueCreator mirror(MirrorCreator mirrorCreator) {
+        streamCreator.mirrorCreator(mirrorCreator);
         return this;
     }
 
@@ -175,8 +173,9 @@ public class KeyValueConfigurationCreator {
      * @param sourceCreators the sources
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator sourceCreators(SourceCreator... sourceCreators) {
-        return sourceCreators(Arrays.asList(sourceCreators));
+    public KeyValueCreator sourceCreators(SourceCreator... sourceCreators) {
+        streamCreator.sourceCreators(sourceCreators);
+        return this;
     }
 
     /**
@@ -184,38 +183,37 @@ public class KeyValueConfigurationCreator {
      * @param sourceCreators the sources
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator sourceCreators(Collection<SourceCreator> sourceCreators) {
-        this.sourceCreators.clear();
-        for (SourceCreator c : sourceCreators) {
-            if (!this.sourceCreators.contains(c)) {
-                this.sourceCreators.add(c);
-            }
-        }
+    public KeyValueCreator sourceCreators(Collection<SourceCreator> sourceCreators) {
+        streamCreator.sourceCreators(sourceCreators);
         return this;
     }
 
     /**
      * The limit marker TTL duration. Server accepts 1 second or more.
+     * Null or {@code <= 0 } resets the limit marker ttl to none
+     * {@code > 0 but < 1 second} is invalid
      * @param limitMarkerTtl the TTL duration
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator limitMarkerTtl(Duration limitMarkerTtl) {
-        this.limitMarkerTtl = validateDurationNotRequiredGtOrEqSeconds(1, limitMarkerTtl, null, "Limit Marker Ttl");
-        return this;
+    public KeyValueCreator limitMarkerTtl(Duration limitMarkerTtl) {
+        return limitMarkerTtl(limitMarkerTtl == null ? 0 : limitMarkerTtl.toMillis());
     }
 
     /**
      * The limit marker TTL duration in milliseconds. Server accepts 1 second or more.
+     * {@code <= 0 } resets the limit marker ttl to none
+     * {@code > 0 but < 1 second} is invalid
      * @param limitMarkerTtlMillis the TTL duration
      * @return this instance for chaining
      */
-    public KeyValueConfigurationCreator limitMarkerTtl(long limitMarkerTtlMillis) {
+    public KeyValueCreator limitMarkerTtl(long limitMarkerTtlMillis) {
         if (limitMarkerTtlMillis <= 0) {
-            this.limitMarkerTtl = null;
+            streamCreator.subjectDeleteMarkerTtl(null);
+            streamCreator.allowMessageTtl(false);
+            return this;
         }
-        else {
-            this.limitMarkerTtl = validateDurationGtOrEqSeconds(1, limitMarkerTtlMillis, "Limit Marker Ttl");
-        }
+        validateMillisGtOrEqSeconds(limitMarkerTtlMillis, 1, "Limit Marker Ttl");
+        streamCreator.subjectDeleteMarkerTtl(limitMarkerTtlMillis).allowMessageTtl();
         return this;
     }
 
@@ -245,7 +243,7 @@ public class KeyValueConfigurationCreator {
      * How long an entry is kept before the server removes it, applied as the stream's max age.
      * @return the maximum age
      */
-    public Duration getTtl() { return ttl; }
+    public Duration getTtl() { return streamCreator.getMaxAge(); }
 
     /**
      * Whether the bucket is stored on file or in memory.
@@ -299,19 +297,19 @@ public class KeyValueConfigurationCreator {
      * The bucket to mirror, or null when this is not a mirror.
      * @return the mirror
      */
-    public @Nullable MirrorCreator getMirror() { return mirror; }
+    public @Nullable MirrorCreator getMirrorCreator() { return streamCreator.getMirrorCreator(); }
 
     /**
      * The buckets to source entries from.
      * @return the sources
      */
-    public List<SourceCreator> getSourceCreators() { return sourceCreators; }
+    public List<SourceCreator> getSourceCreators() { return streamCreator.getSourceCreators(); }
 
     /**
      * How long a delete marker is kept after a limit removes an entry, or null when markers are not used.
      * @return the limit marker ttl
      */
-    public @Nullable Duration getLimitMarkerTtl() { return limitMarkerTtl; }
+    public @Nullable Duration getLimitMarkerTtl() { return streamCreator.getSubjectDeleteMarkerTtl(); }
 
     /**
      * A copy of the stream creator being built up, so callers cannot mutate this creator's state through it.
@@ -321,6 +319,6 @@ public class KeyValueConfigurationCreator {
 
     @Override
     public String toString() {
-        return "KeyValueConfigurationCreator " + streamCreator.toJson();
+        return "KeyValueCreator " + streamCreator.toJson();
     }
 }

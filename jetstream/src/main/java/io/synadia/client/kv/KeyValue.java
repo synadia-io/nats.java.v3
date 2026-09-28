@@ -543,7 +543,7 @@ public class KeyValue extends AbstractBucketFeature {
     public List<KeyValueEntry> history(String key) throws JetStreamException, InterruptedException {
         validateNonWildcardKvKeyRequired(key);
         List<KeyValueEntry> list = new ArrayList<>();
-        visitSubject(readSubject(key), DeliverPolicy.All, false, true, m -> list.add(new KeyValueEntry(m)));
+        visitSubject(readSubject(key), DeliverPolicy.All, false, false, m -> list.add(new KeyValueEntry(m)));
         return list;
     }
 
@@ -560,6 +560,7 @@ public class KeyValue extends AbstractBucketFeature {
 
     /**
      * Remove history from all keys that currently are deleted or purged, considering options.
+     * Options of no marker threshold is accomplished with an effect time of 30 minutes in the future.
      * @param options the purge options
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if the thread is interrupted
@@ -570,16 +571,10 @@ public class KeyValue extends AbstractBucketFeature {
             ? KeyValuePurgeOptions.DEFAULT_THRESHOLD_MILLIS
             : options.getDeleteMarkersThresholdMillis();
 
-        ZonedDateTime limit;
-        if (dmThresh < 0) {
-            limit = DateTimeUtils.fromNow(600000); // long enough in the future to clear all
-        }
-        else if (dmThresh == 0) {
-            limit = DateTimeUtils.fromNow(KeyValuePurgeOptions.DEFAULT_THRESHOLD_MILLIS);
-        }
-        else {
-            limit = DateTimeUtils.fromNow(-dmThresh);
-        }
+        // limit will be negative if
+        ZonedDateTime limit = dmThresh == KeyValuePurgeOptions.NO_THRESHOLD_MILLIS
+            ? DateTimeUtils.fromNow(KeyValuePurgeOptions.DEFAULT_THRESHOLD_MILLIS)
+            : DateTimeUtils.fromNow(-dmThresh);
 
         List<String> keep0List = new ArrayList<>();
         List<String> keep1List = new ArrayList<>();

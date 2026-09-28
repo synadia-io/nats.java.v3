@@ -107,6 +107,10 @@ The single source of truth for the things currently in progress — so any sessi
   * `batch-publish` module scaffolded 2026-09-23 - `settings.gradle` include plus a `build.gradle` with `jnats3-batch-publish` / `io.synadia.jnats3.batchpublish` identity, `api project(':jetstream')`, and the `:core` + `:jetstream` testOutput configurations. Builds, no sources yet
   * source is `/mnt/c/nats/orbit.java/batch-publish` (14 main classes, 6 test classes, 8 examples, Java 8 on jnats 2.26.3). The orbit session is writing the port brief; the port itself happens here
 
+* ACCOUNT_PUSH_PULL_EXPORTS.md
+  * cross account reading: push rides the `_INBOX.>` stream export, pull rides `$JS.API.>` which must be `response_type: Stream`. Measured both ways, tests in `ConsumeInAccountTests` with `account_push.conf` / `account_pull.conf`
+  * carries the CLI only reproduction for the server team (overlapping specific Stream export beside a broad Singleton one drops replies), and a separate client finding: `ConsumeOptions.batchSize(1)` stalls after one message, same account too
+
 ## Plans / Audits TBD
 
 1. ObjectStore line 107 / ObjectStore nullability
@@ -116,6 +120,8 @@ The single source of truth for the things currently in progress — so any sessi
 3. Create legacy project with items like:
   * Legacy pull subscription fetch, iterator, reader
   * Facade to more easily migrate from V2
+
+4. **Port V2 PR #1632: lock-free `outgoingPendingMessageCount` / `outgoingPendingBytes`.** Recorded 2026-09-25 from nats.java issue #1631 (a user traced publish tail latency to these getters). V3 has the identical code: the two getters at the end of `NatsConnection` take `closeSocketLock`, which `closeSocket` holds through `reconnectImpl()`, so a read parks for the entire reconnect; the two getters at the end of `NatsConnectionWriter` take `writerLock`, which `sendMessageBatch` holds through every socket write, so a read parks behind a stalled write for up to the socket write timeout. Neither lock buys anything: `length` and `sizeInBytes` are `AtomicLong` in `MessageQueueBase`, no mutator (`push`, `accumulate`, `filter`, `clear`) holds either lock, `writer` is assigned once in the constructor and never reassigned, and `normalOutgoing` is `private final`. The V2 lock was added in #1416 to cover a writer swap on reconnect that no longer exists in either codebase. Fix is the same as V2: drop both locks and both null checks so the getters return the atomic reads directly, and port the regression test `testOutgoingPendingGettersDoNotBlockOnCloseSocketLock` into `NatsConnectionImplTests` (it holds `closeSocketLock` on the test thread and reads both getters from another thread under a timeout; it fails with `TimeoutException` on the current code). `canQueueDuringReconnect` already reads `normalOutgoing.sizeInBytes()` lock-free on the publish path, so this matches existing practice.
 
 ## More
 

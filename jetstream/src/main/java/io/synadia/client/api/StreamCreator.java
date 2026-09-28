@@ -1039,8 +1039,7 @@ public class StreamCreator implements JsonSerializable {
      * @throws IllegalArgumentException if the TTL is set but less than 1 second
      */
     public StreamCreator subjectDeleteMarkerTtl(@Nullable Duration subjectDeleteMarkerTtl) {
-        this.subjectDeleteMarkerTtl = validateDurationNotRequiredGtOrEqSeconds(1, subjectDeleteMarkerTtl, null, "Subject Delete Marker Ttl");
-        return this;
+        return subjectDeleteMarkerTtl(subjectDeleteMarkerTtl == null ? 0 : subjectDeleteMarkerTtl.toMillis());
     }
 
     /**
@@ -1052,7 +1051,7 @@ public class StreamCreator implements JsonSerializable {
      */
     public StreamCreator subjectDeleteMarkerTtl(long subjectDeleteMarkerTtlMillis) {
         this.subjectDeleteMarkerTtl = subjectDeleteMarkerTtlMillis <= 0 ? null
-            : validateDurationGtOrEqSeconds(1, subjectDeleteMarkerTtlMillis, "Subject Delete Marker Ttl");
+            : validateMillisGtOrEqSeconds(subjectDeleteMarkerTtlMillis, 1, "Subject Delete Marker Ttl");
         return this;
     }
 

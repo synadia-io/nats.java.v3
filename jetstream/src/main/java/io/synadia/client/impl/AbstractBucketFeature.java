@@ -2,10 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
-import io.synadia.client.api.DeliverPolicy;
-import io.synadia.client.api.JetStreamException;
-import io.synadia.client.api.PushConsumerCreator;
-import io.synadia.client.api.PushOrderedConsumerCreator;
+import io.synadia.client.api.*;
 import io.synadia.client.utils.JsValidator;
 
 import java.util.Collections;
@@ -120,6 +117,7 @@ public abstract class AbstractBucketFeature {
         }
         else {
             PushConsumerCreator creator = new PushConsumerCreator()
+                .ackPolicy(AckPolicy.None)
                 .deliverPolicy(deliverPolicy)
                 .headersOnly(headersOnly)
                 .filterSubjects(subjects);

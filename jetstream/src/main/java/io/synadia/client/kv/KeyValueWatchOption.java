@@ -28,5 +28,20 @@ public enum KeyValueWatchOption {
      * Watch starting when there are new entries for keys.
      * Default is to start at the last per key.
      */
-    UPDATES_ONLY
+    UPDATES_ONLY,
+
+    /**
+     * Receive entries with a push consumer.
+     * Default is {@link #SIMPLIFIED_CONSUME}.
+     * <p>Reading a bucket in another account this way requires the account exporting the bucket
+     * to export the client inbox as a stream. See the account section of the readme.
+     */
+    PUSH_CONSUME,
+
+    /**
+     * Receive entries with the simplified consume, which reads with a pull consumer. This is the default.
+     * <p>Reading a bucket in another account this way requires the account exporting the bucket
+     * to export {@code $JS.API.>} with {@code response_type: Stream}. See the account section of the readme.
+     */
+    SIMPLIFIED_CONSUME
 }

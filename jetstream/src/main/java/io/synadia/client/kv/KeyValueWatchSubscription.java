@@ -40,7 +40,7 @@ public class KeyValueWatchSubscription extends NatsWatchSubscription<KeyValueEnt
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public KeyValueWatchSubscription(KeyValue kv, List<String> keyPatterns, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
-        super(kv.js);
+        super(kv.js, watchOptions);
         kvWatchInit(kv, keyPatterns, watcher, fromRevision, watchOptions);
     }
 
@@ -78,7 +78,7 @@ public class KeyValueWatchSubscription extends NatsWatchSubscription<KeyValueEnt
     }
 
     private static @NonNull WatchMessageHandler<KeyValueEntry> getHandler(KeyValueWatcher watcher, boolean includeDeletes) {
-        return new WatchMessageHandler<KeyValueEntry>(watcher) {
+        return new WatchMessageHandler<>(watcher) {
             @Override
             public void onMessage(Message m) throws InterruptedException {
                 KeyValueEntry kve = new KeyValueEntry(m);

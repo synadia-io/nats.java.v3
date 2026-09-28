@@ -278,30 +278,32 @@ public abstract class JsValidator extends Validator {
 
     /**
      * Validate an optional duration against a minimum in seconds.
-     * @param minSeconds the minimum in seconds
-     * @param d the duration, may be null
-     * @param ifNull returned when the duration is null
-     * @param label name used in the error message
+     *
+     * @param d              the duration, may be null
+     * @param minSeconds     the minimum in seconds
+     * @param dIfInputIsNull returned when the duration is null
+     * @param label          name used in the error message
      * @return the duration, or ifNull
      * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
      */
-    public static Duration validateDurationNotRequiredGtOrEqSeconds(long minSeconds, Duration d, Duration ifNull, String label) {
-        return d == null ? ifNull : validateDurationGtOrEqSeconds(minSeconds, d.toMillis(), label);
+    public static Duration validateDurationNotRequiredGtOrEqSeconds(Duration d, long minSeconds, Duration dIfInputIsNull, String label) {
+        return d == null ? dIfInputIsNull : validateMillisGtOrEqSeconds(d.toMillis(), minSeconds, label);
     }
 
     /**
      * Validate a duration in millis against a minimum in seconds.
-     * @param minSeconds the minimum in seconds
-     * @param millis the duration in milliseconds
-     * @param label name used in the error message
+     *
+     * @param inputMillis the duration in milliseconds
+     * @param minSeconds  the minimum in seconds
+     * @param label       name used in the error message
      * @return the duration
      * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
      */
-    public static Duration validateDurationGtOrEqSeconds(long minSeconds, long millis, String label) {
-        if (millis < (minSeconds * 1000)) {
+    public static Duration validateMillisGtOrEqSeconds(long inputMillis, long minSeconds, String label) {
+        if (inputMillis < (minSeconds * 1000)) {
             throw new IllegalArgumentException(label + " must be greater than or equal to " + minSeconds + " second(s).");
         }
-        return Duration.ofMillis(millis);
+        return Duration.ofMillis(inputMillis);
     }
 
     // limited-term = (A-Z, a-z, 0-9, dash 45, dot 46, fwd-slash 47, equals 61, underscore 95)+

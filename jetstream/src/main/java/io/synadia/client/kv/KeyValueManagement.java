@@ -6,6 +6,7 @@ import io.synadia.client.impl.NatsConnection;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,8 +62,8 @@ public class KeyValueManagement {
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueStatus create(KeyValueConfigurationCreator creator) throws JetStreamException, InterruptedException {
-        return new KeyValueStatus(jsm.addStream(setupStreamCreator(creator)));
+    public KeyValueStatus create(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+        return new KeyValueStatus(jsm.addStream(buildStreamCreator(creator)));
     }
 
     /**
@@ -73,17 +74,22 @@ public class KeyValueManagement {
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueStatus update(KeyValueConfigurationCreator creator) throws JetStreamException, InterruptedException {
-        return new KeyValueStatus(jsm.updateStream(setupStreamCreator(creator)));
+    public KeyValueStatus update(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+        return new KeyValueStatus(jsm.updateStream(buildStreamCreator(creator)));
     }
 
-    private static @NonNull StreamCreator setupStreamCreator(KeyValueConfigurationCreator creator) {
+    // package scope so can be tested
+    static @NonNull StreamCreator buildStreamCreator(KeyValueCreator creator) {
+        // these are done here, and not in the KeyValueCreator constructor on purpose
+        // because this ensures this is the last time the value is set
         StreamCreator sc = creator.getStreamCreatorCopy()
             .discardPolicy(DiscardPolicy.New)
             .allowRollup(true)
             .allowDirect(true)
             .denyDelete(true);
 
+        // The KeyValueCreator just takes raw bucket names, but mirrors and sources
+        // need to point at the actual stream name, which is what this section does
         MirrorCreator mc = sc.getMirrorCreator();
         if (mc != null) {
             // if they want a mirror...
@@ -113,11 +119,10 @@ public class KeyValueManagement {
             }
         }
 
-        if (creator.getLimitMarkerTtl() != null) {
-            sc.subjectDeleteMarkerTtl(creator.getLimitMarkerTtl()).allowMessageTtl();
-        }
-
-        long ttlMs = creator.getTtl().toMillis();
+        // this code is to manage the duplicate window
+        // it's done here. In v2 it was done in the builder like all this other stuff
+        Duration ttlMsDur = creator.getTtl();
+        long ttlMs = ttlMsDur == null ? 0 : ttlMsDur.toMillis();
         long dupeMs = SERVER_DEFAULT_DUPLICATE_WINDOW_MS;
         if (ttlMs > 0 && ttlMs < SERVER_DEFAULT_DUPLICATE_WINDOW_MS) {
             dupeMs = ttlMs;
