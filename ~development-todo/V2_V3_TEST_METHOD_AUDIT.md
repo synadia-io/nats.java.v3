@@ -131,38 +131,38 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
 - 🗃️ JetStreamPushQueueTests.java
     - ☑️ testQueueSubWorkflow
 - 🗃️ KeyValueTests.java
-    - 🚨 testWorkflow
-    - 🚨 testGetRevision
-    - 🚨 testKeys
-    - 🚨 testMaxHistoryPerKey
-    - 🚨 testCreateUpdate
-    - 🚨 testHistoryDeletePurge
-    - 🚨 testAtomicDeleteAtomicPurge
-    - 🚨 testPurgeDeletes
-    - 🚨 testCreateAndUpdate
-    - 🚨 testManageGetBucketNamesStatuses
-    - 🚨 testWatch
-    - 🚨 testWithAccount
-    - 🚨 testCoverBucketAndKey
-    - 🚨 testCoverPrefix
-    - 🚨 testKeyValueEntryEqualsImpl
-    - 🚨 testKeyValueOptionsBuilderCoverage
-    - 🚨 testKeyValuePurgeOptionsBuilderCoverage
-    - 🚨 testCreateDiscardPolicy
-    - 🚨 testEntryCoercion
-    - 🚨 testKeyResultConstruction
-    - 🚨 testMirrorSourceBuilderPrefixConversion
-    - 🚨 testKeyValueMirrorCrossDomains
-    - 🚨 testKeyValueTransform
+    - ☑️ testWorkflow
+    - ☑️ testGetRevision
+    - ☑️ testKeys
+    - ☑️ testMaxHistoryPerKey
+    - ☑️ testCreateUpdate
+    - ☑️ testHistoryDeletePurge
+    - ☑️ testAtomicDeleteAtomicPurge
+    - ☑️ testPurgeDeletes
+    - ☑️ testCreateAndUpdate
+    - ☑️ testManageGetBucketNamesStatuses
+    - ☑️ testWatch
+    - ☑️ testWithAccount
+    - ☑️ testCoverBucketAndKey
+    - ☑️ testCoverPrefix
+    - ☑️ testKeyValueEntryEqualsImpl
+    - ☑️ testKeyValueOptionsBuilderCoverage
+    - ☑️ testKeyValuePurgeOptionsBuilderCoverage
+    - ☑️ testCreateDiscardPolicy
+    - ☑️ testEntryCoercion
+    - ☑️ testKeyResultConstruction
+    - ☑️ testMirrorSourceBuilderPrefixConversion
+    - ☑️ testKeyValueMirrorCrossDomains
+    - ☑️ testKeyValueTransform
     - ✔️ testSubjectFiltersAgainst209OptOut
       - ✏️ this version doesn't care about 209
-    - 🚨 testTtlAndDuplicateWindowRoundTrip
-    - 🚨 testConsumeKeys
-    - 🚨 testLimitMarkerCoverage
-    - 🚨 testLimitMarkerBehavior
-    - 🚨 testJustLimitMarkerCreatePurge
-    - 🚨 testJustTtlForDeletePurge
-    - 🚨 testKeyValueOperation
+    - ☑️ testTtlAndDuplicateWindowRoundTrip
+    - ☑️ testConsumeKeys
+    - ☑️ testLimitMarkerCoverage
+    - ☑️ testLimitMarkerBehavior
+    - ☑️ testJustLimitMarkerCreatePurge
+    - ☑️ testJustTtlForDeletePurge
+    - ☑️ testKeyValueOperation
 - 🗃️ ObjectStoreApiTests.java
     - 🚨 testConfigurationConstruction
     - 🚨 testObjectInfoConstruction

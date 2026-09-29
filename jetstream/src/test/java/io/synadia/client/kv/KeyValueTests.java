@@ -1612,124 +1612,124 @@ public class KeyValueTests {
         });
     }
 
-        private void _testMirror(KeyValue okv, KeyValue mkv, int num) throws Exception {
-            mkv.put("key1", "aaa" + num);
-            mkv.put("key3", "c" + num);
+    private void _testMirror(KeyValue okv, KeyValue mkv, int num) throws Exception {
+        mkv.put("key1", "aaa" + num);
+        mkv.put("key3", "c" + num);
 
-            sleep(200); // make sure things get a chance to propagate
-            KeyValueEntry kve = mkv.get("key3");
-            assertEquals("c" + num, kve.getValueAsString());
+        sleep(200); // make sure things get a chance to propagate
+        KeyValueEntry kve = mkv.get("key3");
+        assertEquals("c" + num, kve.getValueAsString());
 
-            mkv.delete("key3");
-            sleep(200); // make sure things get a chance to propagate
-            assertNull(mkv.get("key3"));
+        mkv.delete("key3");
+        sleep(200); // make sure things get a chance to propagate
+        assertNull(mkv.get("key3"));
 
-            kve = mkv.get("key1");
-            assertEquals("aaa" + num, kve.getValueAsString());
+        kve = mkv.get("key1");
+        assertEquals("aaa" + num, kve.getValueAsString());
 
-            // Make sure we can create a watcher on the mirror KV.
-            TestKeyValueWatcher mWatcher = new TestKeyValueWatcher("mirrorWatcher" + num, false);
+        // Make sure we can create a watcher on the mirror KV.
+        TestKeyValueWatcher mWatcher = new TestKeyValueWatcher("mirrorWatcher" + num, false);
+        //noinspection unused
+        try (KeyValueWatchSubscription mWatchSub = mkv.watchAll(mWatcher)) {
+            sleep(200); // give the messages time to propagate
+        }
+        validateWatcher(new Object[]{"bb0", "aaa" + num, KeyValueOperation.DELETE}, mWatcher);
+
+        // Does the origin data match?
+        if (okv != null) {
+            TestKeyValueWatcher oWatcher = new TestKeyValueWatcher("originWatcher" + num, false);
             //noinspection unused
-            try (KeyValueWatchSubscription mWatchSub = mkv.watchAll(mWatcher)) {
+            try (KeyValueWatchSubscription oWatchSub = okv.watchAll(oWatcher)) {
                 sleep(200); // give the messages time to propagate
             }
-            validateWatcher(new Object[]{"bb0", "aaa" + num, KeyValueOperation.DELETE}, mWatcher);
-
-            // Does the origin data match?
-            if (okv != null) {
-                TestKeyValueWatcher oWatcher = new TestKeyValueWatcher("originWatcher" + num, false);
-                //noinspection unused
-                try (KeyValueWatchSubscription oWatchSub = okv.watchAll(oWatcher)) {
-                    sleep(200); // give the messages time to propagate
-                }
-                validateWatcher(new Object[]{"bb0", "aaa" + num, KeyValueOperation.DELETE}, oWatcher);
-            }
+            validateWatcher(new Object[]{"bb0", "aaa" + num, KeyValueOperation.DELETE}, oWatcher);
         }
+    }
 
-        @Test
-        public void testKeyValueTransform() throws Exception {
-            runInShared(VersionUtils::atLeast2_10_3, nc -> {
+    @Test
+    public void testKeyValueTransform() throws Exception {
+        runInShared(VersionUtils::atLeast2_10_3, nc -> {
 
-                try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                    KeyValueManagement kvm = kvCtx.kvm;
+            try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
+                KeyValueManagement kvm = kvCtx.kvm;
 
-                    String kvName1 = random();
-                    String kvName2 = kvName1 + "-mir";
-                    String mirrorSegment = "MirrorMe";
-                    String dontMirrorSegment = "DontMirrorMe";
-                    String generic = "foo";
+                String kvName1 = random();
+                String kvName2 = kvName1 + "-mir";
+                String mirrorSegment = "MirrorMe";
+                String dontMirrorSegment = "DontMirrorMe";
+                String generic = "foo";
 
-                    kvCtx.kvCreate(kvName1);
+                kvCtx.kvCreate(kvName1);
 
-                    SubjectTransformCreator transform = new SubjectTransformCreator(
-                        "$KV." + kvName1 + "." + mirrorSegment + ".*",
-                        "$KV." + kvName2 + "." + mirrorSegment + ".{{wildcard(1)}}"
-                    );
+                SubjectTransformCreator transform = new SubjectTransformCreator(
+                    "$KV." + kvName1 + "." + mirrorSegment + ".*",
+                    "$KV." + kvName2 + "." + mirrorSegment + ".{{wildcard(1)}}"
+                );
 
-                    MirrorCreator mirr = new MirrorCreator(kvName1)
-                        .subjectTransformCreators(transform);
+                MirrorCreator mirr = new MirrorCreator(kvName1)
+                    .subjectTransformCreators(transform);
 
-                    kvCtx.kvCreate(kvName2, cr -> cr.mirror(mirr));
+                kvCtx.kvCreate(kvName2, cr -> cr.mirror(mirr));
 
-                    KeyValue kv1 = kvm.keyValue(kvName1);
+                KeyValue kv1 = kvm.keyValue(kvName1);
 
-                    String key1 = mirrorSegment + "." + generic;
-                    String key2 = dontMirrorSegment + "." + generic;
-                    kv1.put(key1, mirrorSegment.getBytes());
-                    kv1.put(key2, dontMirrorSegment.getBytes());
+                String key1 = mirrorSegment + "." + generic;
+                String key2 = dontMirrorSegment + "." + generic;
+                kv1.put(key1, mirrorSegment.getBytes());
+                kv1.put(key2, dontMirrorSegment.getBytes());
 
-                    Thread.sleep(1000); // transforming takes some amount of time, otherwise the kv2.getKeys() fails
+                Thread.sleep(1000); // transforming takes some amount of time, otherwise the kv2.getKeys() fails
 
-                    List<String> keys = kv1.keys();
-                    assertTrue(keys.contains(key1));
-                    assertTrue(keys.contains(key2));
-                    // TODO COME BACK ONCE SERVER IS FIXED
+                List<String> keys = kv1.keys();
+                assertTrue(keys.contains(key1));
+                assertTrue(keys.contains(key2));
+                // TODO COME BACK ONCE SERVER IS FIXED
 //            assertNotNull(kv1.get(key1));
 //            assertNotNull(kv1.get(key2));
 
-                    KeyValue kv2 = kvm.keyValue(kvName2);
-                    keys = kv2.keys();
-                    assertTrue(keys.contains(key1));
-                    assertFalse(keys.contains(key2));
-                    // TODO COME BACK ONCE SERVER IS FIXED
+                KeyValue kv2 = kvm.keyValue(kvName2);
+                keys = kv2.keys();
+                assertTrue(keys.contains(key1));
+                assertFalse(keys.contains(key2));
+                // TODO COME BACK ONCE SERVER IS FIXED
 //            assertNotNull(kv2.get(key1));
 //            assertNull(kv2.get(key2));
-                }
-            });
-        }
+            }
+        });
+    }
 
-        @Test
-        public void testTtlAndDuplicateWindowRoundTrip() throws Exception {
-            runInShared(VersionUtils::atLeast2_10, nc -> {
-                try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                    KeyValueManagement kvm = kvCtx.kvm;
-                    String bucket = random();
-                    KeyValueCreator kvCreator = kvCtx.kvCreator(bucket);
-                    KeyValueStatus status = kvCtx.kvCreate(kvCreator);
+    @Test
+    public void testTtlAndDuplicateWindowRoundTrip() throws Exception {
+        runInShared(VersionUtils::atLeast2_10, nc -> {
+            try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
+                KeyValueManagement kvm = kvCtx.kvm;
+                String bucket = random();
+                KeyValueCreator kvCreator = kvCtx.kvCreator(bucket);
+                KeyValueStatus status = kvCtx.kvCreate(kvCreator);
 
-                    StreamConfiguration sc = status.getBackingStreamInfo().getConfiguration();
-                    assertEquals(0, sc.getMaxAge().toMillis());
-                    assertNotNull(sc.getDuplicateWindow());
-                    assertEquals(SERVER_DEFAULT_DUPLICATE_WINDOW_MS, sc.getDuplicateWindow().toMillis());
+                StreamConfiguration sc = status.getBackingStreamInfo().getConfiguration();
+                assertEquals(0, sc.getMaxAge().toMillis());
+                assertNotNull(sc.getDuplicateWindow());
+                assertEquals(SERVER_DEFAULT_DUPLICATE_WINDOW_MS, sc.getDuplicateWindow().toMillis());
 
-                    kvCreator.ttl(Duration.ofSeconds(10));
-                    status = kvm.update(kvCreator);
-                    sc = status.getBackingStreamInfo().getConfiguration();
-                    assertEquals(10_000, sc.getMaxAge().toMillis());
-                    assertNotNull(sc.getDuplicateWindow());
-                    assertEquals(10_000, sc.getDuplicateWindow().toMillis());
+                kvCreator.ttl(Duration.ofSeconds(10));
+                status = kvm.update(kvCreator);
+                sc = status.getBackingStreamInfo().getConfiguration();
+                assertEquals(10_000, sc.getMaxAge().toMillis());
+                assertNotNull(sc.getDuplicateWindow());
+                assertEquals(10_000, sc.getDuplicateWindow().toMillis());
 
-                    bucket = random();
-                    kvCreator = kvCtx.kvCreator(bucket).ttl(Duration.ofMinutes(30));
-                    status = kvCtx.kvCreate(kvCreator);
+                bucket = random();
+                kvCreator = kvCtx.kvCreator(bucket).ttl(Duration.ofMinutes(30));
+                status = kvCtx.kvCreate(kvCreator);
 
-                    sc = status.getBackingStreamInfo().getConfiguration();
-                    assertEquals(30, sc.getMaxAge().toMinutes());
-                    assertNotNull(sc.getDuplicateWindow());
-                    assertEquals(SERVER_DEFAULT_DUPLICATE_WINDOW_MS, sc.getDuplicateWindow().toMillis());
-                }
-            });
-        }
+                sc = status.getBackingStreamInfo().getConfiguration();
+                assertEquals(30, sc.getMaxAge().toMinutes());
+                assertNotNull(sc.getDuplicateWindow());
+                assertEquals(SERVER_DEFAULT_DUPLICATE_WINDOW_MS, sc.getDuplicateWindow().toMillis());
+            }
+        });
+    }
 
     @Test
     public void testConsumeKeys() throws Exception {
@@ -2026,118 +2026,118 @@ public class KeyValueTests {
         });
     }
 
-        private static long waitForPurge(KvTestingContext ctx, String rawStream) throws JetStreamException, InterruptedException {
-            for (int tries = 0; tries < 20; tries++) {
-                sleep(500); // it takes a bit of time for the purge to happen, depends on the server load
-                StreamInfo si = ctx.jsm.getStreamInfo(rawStream);
-                if (si.getStreamState().getMessageCount() == 0) {
-                    return System.currentTimeMillis();
-                }
+    private static long waitForPurge(KvTestingContext ctx, String rawStream) throws JetStreamException, InterruptedException {
+        for (int tries = 0; tries < 20; tries++) {
+            sleep(500); // it takes a bit of time for the purge to happen, depends on the server load
+            StreamInfo si = ctx.jsm.getStreamInfo(rawStream);
+            if (si.getStreamState().getMessageCount() == 0) {
+                return System.currentTimeMillis();
             }
-            return -1;
         }
-
-        @Test
-        public void testJustTtlForDeletePurge() throws Exception {
-            runInShared(VersionUtils::atLeast2_12, nc -> {
-                try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                    KeyValueManagement kvm = kvCtx.kvm;
-
-                    String bucket = random();
-                    String rawStream = "KV_" + bucket;
-                    String key = random();
-
-                    kvCtx.kvCreate(bucket, cr -> cr.ttl(Duration.ofSeconds(1)));
-
-                    KeyValue kv = kvm.keyValue(bucket);
-
-                    CountDownLatch errorLatch = new CountDownLatch(1);
-                    AtomicReference<String> error = new AtomicReference<>("");
-                    AtomicInteger messages = new AtomicInteger();
-                    List<String> ops = Collections.synchronizedList(new ArrayList<>());
-
-                    MessageHandler rawHandler = msg -> {
-                        int mcount = messages.incrementAndGet();
-                        String op = "null";
-                        if (msg.hasHeaders()) {
-                            op = msg.getHeaders().getFirst("KV-Operation");
-                            if (op == null) {
-                                op = "PUT";
-                            }
-                        }
-                        ops.add(op);
-                        if (mcount == 1 || mcount == 3) {
-                            if (!op.equals("PUT")) {
-                                error.set("Invalid message, expected PUT (" + mcount + ") " + stringify(msg));
-                                errorLatch.countDown();
-                            }
-                        }
-                        else if (mcount == 2) {
-                            if (!op.equals("DEL")) {
-                                error.set("Invalid message, expected DEL (" + mcount + ") " + stringify(msg));
-                                errorLatch.countDown();
-                            }
-                        }
-                        else if (mcount == 4) {
-                            if (!op.equals("PURGE")) {
-                                error.set("Invalid message, expected PURGE (" + mcount + ") " + stringify(msg));
-                                errorLatch.countDown();
-                            }
-                        }
-                    };
-
-                    PushConsumerCreator pushConsumerCreator = new PushConsumerCreator();
-                    //noinspection unused
-                    JetStreamPushSubscription sub = kvCtx.js.pushSubscribe(rawStream, pushConsumerCreator, rawHandler);
-
-                    kv.create(key, dataBytes());
-                    StreamInfo si = kvCtx.jsm.getStreamInfo(rawStream);
-                    assertEquals(1, si.getStreamState().getMessageCount());
-
-                    kv.delete(key);
-                    long createdTimeMark = System.currentTimeMillis();
-                    si = kvCtx.jsm.getStreamInfo(rawStream);
-                    assertEquals(1, si.getStreamState().getMessageCount());
-
-                    long purgedTimeMark = waitForPurge(kvCtx, rawStream);
-                    assertEquals(1, errorLatch.getCount(), error.get());
-                    assertEquals(2, messages.get());
-                    assertTrue(purgedTimeMark - createdTimeMark >= 1000);
-                    assertEquals("PUT", ops.get(0));
-                    assertEquals("DEL", ops.get(1));
-
-                    kv.create(key, dataBytes());
-                    createdTimeMark = System.currentTimeMillis();
-                    kv.purge(key);
-
-                    purgedTimeMark = waitForPurge(kvCtx, rawStream);
-                    assertEquals(1, errorLatch.getCount(), error.get());
-                    assertEquals(4, messages.get());
-                    assertTrue(purgedTimeMark - createdTimeMark >= 1000);
-                    assertEquals("PUT", ops.get(2));
-                    assertEquals("PURGE", ops.get(3));
-                }
-            });
-        }
-
-        public static String stringify(Message msg) {
-            return msg.metaData().streamSequence()
-                + "/" + msg.metaData().consumerSequence()
-                + "|" + msg.getSubject()
-                + "|";
-        }
-
-        @Test
-        public void testKeyValueOperation() {
-            assertEquals(KeyValueOperation.PUT, KeyValueOperation.instance("PUT"));
-            assertEquals(KeyValueOperation.DELETE, KeyValueOperation.instance("DEL"));
-            assertEquals(KeyValueOperation.PURGE, KeyValueOperation.instance("PURGE"));
-            assertNull(KeyValueOperation.instance("not-found"));
-            assertEquals(KeyValueOperation.PUT, KeyValueOperation.getOrDefault("PUT", KeyValueOperation.PUT));
-            assertEquals(KeyValueOperation.PUT, KeyValueOperation.getOrDefault("not-found", KeyValueOperation.PUT));
-            assertEquals(KeyValueOperation.DELETE, KeyValueOperation.instanceByMarkerReason("Remove"));
-            assertEquals(KeyValueOperation.PURGE, KeyValueOperation.instanceByMarkerReason("MaxAge"));
-            assertEquals(KeyValueOperation.PURGE, KeyValueOperation.instanceByMarkerReason("Purge"));
-            assertNull(KeyValueOperation.instanceByMarkerReason("not-found"));
-        }
+        return -1;
     }
+
+    @Test
+    public void testJustTtlForDeletePurge() throws Exception {
+        runInShared(VersionUtils::atLeast2_12, nc -> {
+            try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
+                KeyValueManagement kvm = kvCtx.kvm;
+
+                String bucket = random();
+                String rawStream = "KV_" + bucket;
+                String key = random();
+
+                kvCtx.kvCreate(bucket, cr -> cr.ttl(Duration.ofSeconds(1)));
+
+                KeyValue kv = kvm.keyValue(bucket);
+
+                CountDownLatch errorLatch = new CountDownLatch(1);
+                AtomicReference<String> error = new AtomicReference<>("");
+                AtomicInteger messages = new AtomicInteger();
+                List<String> ops = Collections.synchronizedList(new ArrayList<>());
+
+                MessageHandler rawHandler = msg -> {
+                    int mcount = messages.incrementAndGet();
+                    String op = "null";
+                    if (msg.hasHeaders()) {
+                        op = msg.getHeaders().getFirst("KV-Operation");
+                        if (op == null) {
+                            op = "PUT";
+                        }
+                    }
+                    ops.add(op);
+                    if (mcount == 1 || mcount == 3) {
+                        if (!op.equals("PUT")) {
+                            error.set("Invalid message, expected PUT (" + mcount + ") " + stringify(msg));
+                            errorLatch.countDown();
+                        }
+                    }
+                    else if (mcount == 2) {
+                        if (!op.equals("DEL")) {
+                            error.set("Invalid message, expected DEL (" + mcount + ") " + stringify(msg));
+                            errorLatch.countDown();
+                        }
+                    }
+                    else if (mcount == 4) {
+                        if (!op.equals("PURGE")) {
+                            error.set("Invalid message, expected PURGE (" + mcount + ") " + stringify(msg));
+                            errorLatch.countDown();
+                        }
+                    }
+                };
+
+                PushConsumerCreator pushConsumerCreator = new PushConsumerCreator();
+                //noinspection unused
+                JetStreamPushSubscription sub = kvCtx.js.pushSubscribe(rawStream, pushConsumerCreator, rawHandler);
+
+                kv.create(key, dataBytes());
+                StreamInfo si = kvCtx.jsm.getStreamInfo(rawStream);
+                assertEquals(1, si.getStreamState().getMessageCount());
+
+                kv.delete(key);
+                long createdTimeMark = System.currentTimeMillis();
+                si = kvCtx.jsm.getStreamInfo(rawStream);
+                assertEquals(1, si.getStreamState().getMessageCount());
+
+                long purgedTimeMark = waitForPurge(kvCtx, rawStream);
+                assertEquals(1, errorLatch.getCount(), error.get());
+                assertEquals(2, messages.get());
+                assertTrue(purgedTimeMark - createdTimeMark >= 1000);
+                assertEquals("PUT", ops.get(0));
+                assertEquals("DEL", ops.get(1));
+
+                kv.create(key, dataBytes());
+                createdTimeMark = System.currentTimeMillis();
+                kv.purge(key);
+
+                purgedTimeMark = waitForPurge(kvCtx, rawStream);
+                assertEquals(1, errorLatch.getCount(), error.get());
+                assertEquals(4, messages.get());
+                assertTrue(purgedTimeMark - createdTimeMark >= 1000);
+                assertEquals("PUT", ops.get(2));
+                assertEquals("PURGE", ops.get(3));
+            }
+        });
+    }
+
+    public static String stringify(Message msg) {
+        return msg.metaData().streamSequence()
+            + "/" + msg.metaData().consumerSequence()
+            + "|" + msg.getSubject()
+            + "|";
+    }
+
+    @Test
+    public void testKeyValueOperation() {
+        assertEquals(KeyValueOperation.PUT, KeyValueOperation.instance("PUT"));
+        assertEquals(KeyValueOperation.DELETE, KeyValueOperation.instance("DEL"));
+        assertEquals(KeyValueOperation.PURGE, KeyValueOperation.instance("PURGE"));
+        assertNull(KeyValueOperation.instance("not-found"));
+        assertEquals(KeyValueOperation.PUT, KeyValueOperation.getOrDefault("PUT", KeyValueOperation.PUT));
+        assertEquals(KeyValueOperation.PUT, KeyValueOperation.getOrDefault("not-found", KeyValueOperation.PUT));
+        assertEquals(KeyValueOperation.DELETE, KeyValueOperation.instanceByMarkerReason("Remove"));
+        assertEquals(KeyValueOperation.PURGE, KeyValueOperation.instanceByMarkerReason("MaxAge"));
+        assertEquals(KeyValueOperation.PURGE, KeyValueOperation.instanceByMarkerReason("Purge"));
+        assertNull(KeyValueOperation.instanceByMarkerReason("not-found"));
+    }
+}
