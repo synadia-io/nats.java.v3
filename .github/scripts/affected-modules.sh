@@ -52,7 +52,8 @@ while [ $added -eq 1 ]; do
     added=0
     for m in "${modules[@]}"; do
         if [ -n "${affected[$m]:-}" ]; then continue; fi
-        for dep in $(grep -oE "project\([^)]*':[^']+'" "$m/build.gradle" | sed -E "s/.*':([^']+)'/\1/"); do
+        # strip // comments so a commented-out dependency does not count
+        for dep in $(sed -E 's#//.*##' "$m/build.gradle" | grep -oE "project\([^)]*':[^']+'" | sed -E "s/.*':([^']+)'/\1/"); do
             if [ -n "${affected[$dep]:-}" ]; then
                 affected[$m]=1
                 added=1
