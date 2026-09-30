@@ -61,13 +61,17 @@ jobs:
       SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
     steps:
+      # checkout first: the gradle cache key is a hash of the build files
+      - name: Check out code
+        uses: actions/checkout@v5
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: Check out code
-        uses: actions/checkout@v5
+          # Keyed on the build files, so an entry is replaced only when dependencies change.
+          # Keeps parallel module jobs from each downloading everything from Maven Central (429s).
+          cache: 'gradle'
       - name: Install Nats Server
         uses: synadia-io/workflows/.github/actions/install_nats_server@main
       - name: Compile and Test
