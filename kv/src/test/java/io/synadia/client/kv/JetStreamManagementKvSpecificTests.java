@@ -1,4 +1,6 @@
-package io.synadia.client.impl;
+package io.synadia.client.kv;
+
+import io.synadia.client.impl.JetStreamTestBase;
 
 public class JetStreamManagementKvSpecificTests extends JetStreamTestBase {
 

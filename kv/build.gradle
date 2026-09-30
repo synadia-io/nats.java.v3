@@ -3,10 +3,10 @@
 // ---------------------------------------------------------------------------
 ext {
     jarVersion        = '3.0.0'
-    artifactNameExt   = 'jnats3-js'
-    moduleNameExt     = 'io.synadia.jnats3.js'
-    bundleNameExt     = 'io.synadia.jnats3.js'
-    pomDescriptionExt = 'JetStream library for the NATS messaging system.'
+    artifactNameExt   = 'jnats3-kv'
+    moduleNameExt     = 'io.synadia.jnats3.kv'
+    bundleNameExt     = 'io.synadia.jnats3.kv'
+    pomDescriptionExt = 'KeyValue library for the NATS messaging system.'
     projectUrlExt     = 'https://github.com/synadia-io/nats.java.v3'
 }
 
@@ -14,30 +14,17 @@ ext {
 // Subproject-specific dependencies
 // ---------------------------------------------------------------------------
 dependencies {
-    api project(':core')
+    api project(':jetstream')  // transitively pulls :core
     testImplementation project(path: ':core', configuration: 'testOutput')
+    testImplementation project(path: ':jetstream', configuration: 'testOutput')
 }
 
 // ---------------------------------------------------------------------------
 // Subproject-specific javadoc config
 // ---------------------------------------------------------------------------
 javadoc {
-    options.overview = 'src/main/javadoc/overview.html'
     options.memberLevel = JavadocMemberLevel.PUBLIC
     source = sourceSets.main.allJava
-    title = "SYNADIA.IO JetStream API"
+    title = "SYNADIA.IO KeyValue API"
     classpath = sourceSets.main.runtimeClasspath
-}
-
-tasks.register('testJar', Jar) {
-    archiveClassifier.set('tests')
-    from sourceSets.test.output
-}
-
-configurations {
-    testOutput
-}
-
-artifacts {
-    testOutput testJar
 }

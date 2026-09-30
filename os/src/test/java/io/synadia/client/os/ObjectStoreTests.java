@@ -25,7 +25,7 @@ import java.util.*;
 import static io.synadia.client.impl.JetStreamOptions.DEFAULT_JS_OPTIONS;
 import static io.synadia.client.os.ObjectStoreUtil.DEFAULT_CHUNK_SIZE;
 import static io.synadia.client.os.ObjectStoreWatchOption.*;
-import static io.synadia.client.utils.ObjectStoreClientError.*;
+import static io.synadia.client.os.ObjectStoreClientError.*;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 

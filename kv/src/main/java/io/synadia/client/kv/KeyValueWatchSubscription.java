@@ -5,6 +5,7 @@ import io.synadia.client.api.DeliverPolicy;
 import io.synadia.client.api.JetStreamException;
 import io.synadia.client.impl.NatsWatchSubscription;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,7 +41,7 @@ public class KeyValueWatchSubscription extends NatsWatchSubscription<KeyValueEnt
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public KeyValueWatchSubscription(KeyValue kv, List<String> keyPatterns, KeyValueWatcher watcher, long fromRevision, KeyValueWatchOption... watchOptions) throws JetStreamException, InterruptedException {
-        super(kv.js, watchOptions);
+        super(kv.js, isPushConsume(watchOptions));
         kvWatchInit(kv, keyPatterns, watcher, fromRevision, watchOptions);
     }
 
@@ -90,5 +91,16 @@ public class KeyValueWatchSubscription extends NatsWatchSubscription<KeyValueEnt
                 }
             }
         };
+    }
+
+    private static boolean isPushConsume(@Nullable KeyValueWatchOption[] watchOptions) {
+        if (watchOptions != null) {
+            for (KeyValueWatchOption wo : watchOptions) {
+                if (wo == KeyValueWatchOption.PUSH_CONSUME) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

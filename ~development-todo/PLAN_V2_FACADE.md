@@ -10,7 +10,7 @@ The goal is to let a v2 developer put v3 underneath existing v2-shaped code with
 
 Why a separate project rather than a compatibility layer inside `core`/`jetstream`:
 
-- v3's own surface stays clean — nothing ships in `jnats3-core` / `jnats3-jetstream` that exists only to serve a v2 shape
+- v3's own surface stays clean — nothing ships in `jnats3-core` / `jnats3-js` that exists only to serve a v2 shape
 - the facade can be deprecated-from-birth, which is the point: it's a migration ramp, not a destination
 - it versions and gets dropped independently of the client
 - it keeps the "what did v3 remove" story in one place, next to the code that softens each removal

@@ -16,7 +16,7 @@ import java.util.List;
 
 import static io.synadia.client.os.ObjectStoreUtil.*;
 import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
-import static io.synadia.client.utils.ObjectStoreClientError.*;
+import static io.synadia.client.os.ObjectStoreClientError.*;
 import static io.synadia.client.utils.Validator.validateNotNull;
 
 /**

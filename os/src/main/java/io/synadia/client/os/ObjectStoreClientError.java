@@ -1,4 +1,6 @@
-package io.synadia.client.utils;
+package io.synadia.client.os;
+
+import io.synadia.client.utils.ClientError;
 
 import static io.synadia.client.utils.ClientError.KIND_ILLEGAL_ARGUMENT;
 import static io.synadia.client.utils.ClientError.KIND_ILLEGAL_STATE;
@@ -8,7 +10,7 @@ import static io.synadia.client.utils.ClientError.KIND_ILLEGAL_STATE;
  * Each constant is a distinct error condition the client detects itself, before or instead of a server round
  * trip. Call {@link ClientError#instance(Object...)} to build the exception to throw.
  *
- * <p>Every constant here is listed in the Client Error Messages table in jetstream/README.md. A new one goes in both.
+ * <p>Every constant here is listed in the Client Error Messages table in os/README.md. A new one goes in both.
  */
 public abstract class ObjectStoreClientError {
     private ObjectStoreClientError() {} /* ensures cannot be constructed */

@@ -20,10 +20,10 @@ Non-split, for contrast: `io.synadia.client` and `io.synadia.client.global` (cor
 
 ```
 java.lang.module.ResolutionException: Modules io.synadia.jnats3.core and
-io.synadia.jnats3.jetstream export package io.synadia.client.api to module ...
+io.synadia.jnats3.js export package io.synadia.client.api to module ...
 ```
 
-**So `jnats3-core` + `jnats3-jetstream` cannot currently be placed on the module path together.** This is a pre-existing condition, not a regression. On the classpath (unnamed module) everything works fine, which is why it has gone unnoticed — most consumers are still on the classpath.
+**So `jnats3-core` + `jnats3-js` cannot currently be placed on the module path together.** This is a pre-existing condition, not a regression. On the classpath (unnamed module) everything works fine, which is why it has gone unnoticed — most consumers are still on the classpath.
 
 **OSGi.** The `biz.aQute.bnd.builder` plugin is applied to all subprojects (`build.gradle:51`) and generates `Export-Package` from the sources. Two bundles exporting the same package means the OSGi resolver picks *one* wiring per importer, so a consumer importing `io.synadia.client.api` gets whichever bundle wins and will get `NoClassDefFoundError` for the half that lives in the other. `Require-Bundle` or fragments can paper over it; neither is something to ask users to do.
 
@@ -45,7 +45,7 @@ Output: io.synadia:jnats3:3.0.0-SNAPSHOT   x4   (core, jetstream, service, examp
 
 Every module would have published to the same Maven coordinates and overwritten the others. Presumably inherited from V2's single-jar layout.
 
-**3.2 — `examples` carried jetstream's entire identity.** `examples/build.gradle` was an unedited copy-paste: `moduleNameExt` and `bundleNameExt` both `io.synadia.jnats3.jetstream`, and a POM description claiming to be the JetStream library. Since `maven-publish` and `signing` apply to **all** subprojects (`build.gradle:47-53`), `:examples` is publish-configured and would have collided with the real jetstream jar.
+**3.2 — `examples` carried jetstream's entire identity.** `examples/build.gradle` was an unedited copy-paste: `moduleNameExt` and `bundleNameExt` both `io.synadia.jnats3.js`, and a POM description claiming to be the JetStream library. Since `maven-publish` and `signing` apply to **all** subprojects (`build.gradle:47-53`), `:examples` is publish-configured and would have collided with the real jetstream jar.
 
 **The fix** follows the existing design rather than working around it: subprojects already declare their identity in `ext` and the root reads it in `afterEvaluate`, so artifact name simply joined that set.
 
@@ -62,11 +62,11 @@ Verified — four distinct artifacts, correct manifests, `:examples:compileJava`
 | Module | Artifact | Automatic-Module-Name |
 |---|---|---|
 | core | `io.synadia:jnats3-core` | `io.synadia.jnats3.core` |
-| jetstream | `io.synadia:jnats3-jetstream` | `io.synadia.jnats3.jetstream` |
+| jetstream | `io.synadia:jnats3-js` | `io.synadia.jnats3.js` |
 | service | `io.synadia:jnats3-service` | `io.synadia.jnats3.service` |
 | examples | `io.synadia:jnats3-examples` | `io.synadia.jnats3.examples` |
 
-The `-jdk25` variant still composes correctly (`jnats3-core-jdk25`). New modules must declare `artifactNameExt` — **kv and os get `jnats3-kv` / `jnats3-os` when they are split out.**
+The `-jdk25` variant still composes correctly (`jnats3-core-jdk25`). New modules must declare `artifactNameExt`. kv and os were split out on 2026-09-30 as `jnats3-kv` / `jnats3-os`. jetstream was renamed from `jnats3-jetstream` to `jnats3-js` on 2026-09-30.
 
 **3.3 — `examples` is still publish-configured.** Scott: examples are part of the repo only, never a Maven artifact. But `maven-publish` and `signing` apply to **every** subproject (`build.gradle:47-53`), so `:examples` still declares a `mavenJava` publication and would publish `io.synadia:jnats3-examples`.
 
@@ -87,7 +87,7 @@ Note option 2 interacts with the **KV/OS split** (they become separate projects)
 
 ## 5. Action items
 
-- [x] **O2 — Per-module identity** (§3.1/3.2). **DONE 2026-07-15.** Every subproject had artifactId `jnats3`; `examples` additionally carried jetstream's module/bundle name and POM description. Now `artifactNameExt` per subproject, read by the root's `afterEvaluate`. Verified green — including that `jnats3-jetstream`'s POM now correctly depends on `jnats3-core` instead of on itself.
+- [x] **O2 — Per-module identity** (§3.1/3.2). **DONE 2026-07-15.** Every subproject had artifactId `jnats3`; `examples` additionally carried jetstream's module/bundle name and POM description. Now `artifactNameExt` per subproject, read by the root's `afterEvaluate`. Verified green — including that `jnats3-js`'s POM now correctly depends on `jnats3-core` instead of on itself.
 - [ ] **O1 — Stop `:examples` publishing** (§3.3). Scott: examples are repo-only, never a Maven artifact — but the build still declares a publication for them. A `publishExt` implementation was reverted to keep the Gradle change scoped to the artifact id; see §3.3 for the shape this should take (`libraryExt`, not `publishExt`) whenever it is picked up.
 - [ ] **O3 — Decide the split-package strategy** (§4). Gate: if option 2, it should land in V3 before release, since it is a breaking rename.
 - [ ] **O4 — Add a module-path smoke test** so this can't regress silently. A trivial consumer with a `module-info.java` requiring both jars fails today; it should be the thing that proves O3 worked.

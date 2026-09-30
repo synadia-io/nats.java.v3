@@ -119,4 +119,4 @@ Failures the client detects itself carry a stable id rather than a bare message.
 - A description may contain `%s` placeholders, which the thrower fills with labels, so an id can cover a family of messages.
 - General argument validation does **not** get an id. It stays a plain `IllegalArgumentException` from `Validator`.
 
-Core defines no client errors of its own. The catalogs live with the module that raises them: [JetStream and ObjectStore](jetstream/README.md#client-error-messages).
+Core defines no client errors of its own. The catalogs live with the module that raises them: [JetStream](jetstream/README.md#client-error-messages) and [ObjectStore](os/README.md#client-error-messages).

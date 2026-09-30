@@ -5,6 +5,7 @@ import io.synadia.client.api.DeliverPolicy;
 import io.synadia.client.api.JetStreamException;
 import io.synadia.client.impl.NatsWatchSubscription;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 
@@ -25,7 +26,7 @@ public class ObjectStoreWatchSubscription extends NatsWatchSubscription<ObjectIn
      * @throws InterruptedException if interrupted while waiting for the server
      */
     public ObjectStoreWatchSubscription(ObjectStore os, ObjectStoreWatcher watcher, ObjectStoreWatchOption... watchOptions) throws JetStreamException, InterruptedException {
-        super(os.js, watchOptions);
+        super(os.js, isPushConsume(watchOptions));
 
         // figure out the result options
         boolean headersOnly = false;
@@ -65,5 +66,16 @@ public class ObjectStoreWatchSubscription extends NatsWatchSubscription<ObjectIn
                 }
             }
         };
+    }
+
+    private static boolean isPushConsume(@Nullable ObjectStoreWatchOption[] watchOptions) {
+        if (watchOptions != null) {
+            for (ObjectStoreWatchOption wo : watchOptions) {
+                if (wo == ObjectStoreWatchOption.PUSH_CONSUME) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

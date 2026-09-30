@@ -1,6 +1,6 @@
 # nats.java.v3 — KeyValue
 
-> **Work in progress.** Source not yet present in this project.
+> **Work in progress.**
 
 KeyValue (KV) client APIs. KV is built on top of JetStream streams and will live in this project as a standalone module.
 

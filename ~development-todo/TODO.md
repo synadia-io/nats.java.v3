@@ -79,7 +79,7 @@ The single source of truth for the things currently in progress — so any sessi
   * fluent JetStream subscribe/subscription builder — explored + reverted; recommends source-first builder over the reverted no-arg builder
 * OSGi_JPMS_TODO.md
   * 3 split packages across core+jetstream (`io.synadia.client.api`, `.impl`, `.utils`) → the jars can't sit on the JPMS module path together; OSGi resolves only one wiring
-  * **O2 DONE:** every subproject published as `io.synadia:jnats3` (root hardcoded `"jnats3" + jarEnd`) — so `jnats3-jetstream`'s POM depended on *itself*, not on core. Now per-module `artifactNameExt` → `jnats3-core` / `-jetstream` / `-service` / `-examples`. kv/os get `jnats3-kv` / `jnats3-os` when split out
+  * **O2 DONE:** every subproject published as `io.synadia:jnats3` (root hardcoded `"jnats3" + jarEnd`) — so `jnats3-js`'s POM depended on *itself*, not on core. Now per-module `artifactNameExt` → `jnats3-core` / `-js` / `-service` / `-examples`. kv/os are `jnats3-kv` / `jnats3-os` (split 2026-09-30)
   * O1 open — examples are repo-only but the build still declares a publication for them. A `publishExt` fix was written then reverted (Gradle changes scoped to artifact id only); if picked up, name it `libraryExt` — every library always publishes, so the only real predicate is "is this a library"
   * O3 (split-package strategy) still open — a breaking rename if taken, so V3 or never
 * EXCEPTIONS_AUDIT.md
