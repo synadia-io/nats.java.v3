@@ -16,6 +16,7 @@ ext {
 dependencies {
     api project(':jetstream')  // transitively pulls :core
     api project(':service')
-//    implementation project(':kv')
+    implementation project(':kv')
+    implementation project(':os')
     testImplementation project(path: ':core', configuration: 'testOutput')
 }
