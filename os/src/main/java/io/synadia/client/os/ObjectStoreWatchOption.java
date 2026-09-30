@@ -14,14 +14,14 @@ public enum ObjectStoreWatchOption {
     IGNORE_DELETE,
 
     /**
-     * Watch starting at the first entry for all keys.
-     * Default is to start at the last per key.
+     * Watch starting at the first entry for all objects.
+     * Default is to start at the last entry per object.
      */
     INCLUDE_HISTORY,
 
     /**
-     * Watch starting when there are new entries for keys.
-     * Default is to start at the last per key.
+     * Watch starting when there are new entries for objects.
+     * Default is to start at the last entry per object.
      */
     UPDATES_ONLY,
 
