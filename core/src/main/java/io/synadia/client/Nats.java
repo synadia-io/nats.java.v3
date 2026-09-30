@@ -378,7 +378,7 @@ public abstract class Nats {
     }
 
     /**
-     * Create an auth handler from an nkey and an option JWT. This credentials object is static, and will not change
+     * Create an auth handler from an nkey and an optional JWT. This credentials object is static, and will not change
      * over the course of its lifetime. Create a custom AuthHandler or use the file-based handler for dynamic credentials.
      *
      * @param jwt the contents of a user JWT file (optional if nkey authentication is being used)
