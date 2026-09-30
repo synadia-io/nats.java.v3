@@ -164,21 +164,21 @@ These v2 method names are absent from v3's test sources but present in `tdb/`.
     - ☑️ testJustTtlForDeletePurge
     - ☑️ testKeyValueOperation
 - 🗃️ ObjectStoreApiTests.java
-    - 🚨 testConfigurationConstruction
-    - 🚨 testObjectInfoConstruction
-    - 🚨 testObjectInfoCoverage
-    - 🚨 testObjectMetaMetaCoverage
+    - ☑️ testConfigurationConstruction
+    - ☑️ testObjectInfoConstruction
+    - ☑️ testObjectInfoCoverage
+    - ☑️ testObjectMetaMetaCoverage
 - 🗃️ ObjectStoreTests.java
-    - 🚨 testWorkflow
-    - 🚨 testManageGetBucketNamesStatuses
-    - 🚨 testObjectStoreOptionsBuilderCoverage
-    - 🚨 testObjectLinks
-    - 🚨 testList
-    - 🚨 testSeal
-    - 🚨 testCompression
-    - 🚨 testOverwrite
-    - 🚨 testWatch
-    - 🚨 testObjectStoreDomains
+    - ☑️ testWorkflow
+    - ☑️ testManageGetBucketNamesStatuses
+    - ☑️ testObjectStoreOptionsBuilderCoverage
+    - ☑️ testObjectLinks
+    - ☑️ testList
+    - ☑️ testSeal
+    - ☑️ testCompression
+    - ☑️ testOverwrite
+    - ☑️ testWatch
+    - ☑️ testObjectStoreDomains
 
 ## Not in v3 and not in `tdb/` (174 methods, 37 files)
 

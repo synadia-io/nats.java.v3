@@ -19,15 +19,13 @@ Question: can Coveralls report coverage correctly when CI builds only the module
 - 5 module jobs (core, jetstream, kv, os, service) each posted with their flag; every response was "Coverage for parallel build uploaded" to build [82066815](https://coveralls.io/builds/82066815).
 - The coverage job's `coveralls done` returned `{"done":true,...,"jobs":0}`. What `jobs: 0` counts is not documented.
 - Build totals from the public API: 90.85% covered, 11500 relevant lines, change -0.6%.
-- Not observable from here: the per-flag view. The public build JSON has totals only; the build page renders client-side. Needs a look in the browser.
-- Not yet exercised: carryforward. Every flag reported in this run, so nothing was carried. It needs a partial run, e.g. an os-only change.
+- Per-flag view: verified by Scott on 2026-09-30 in the browser. Build [82070012](https://coveralls.io/builds/82070012) (commit `d3e5d65d`) shows an individual coverage score for each module flag. The public build JSON has totals only.
+- Carryforward: verified 2026-09-30 by run 36771886306 (commit `0744f1f2`, an os-only javadoc change). Only the `changes`, `build (os)` and `coverage` jobs ran. Coveralls build [82070991](https://coveralls.io/builds/82070991) reports 90.85% over 11500 relevant lines, change 0.0%, identical to the full build 82070012, so the four modules not built were carried forward. Only `jnats3-os` got a new snapshot (20260930.202159); `jnats3-core` kept 20260930.194907.
 
 ## Unrelated failure in the same run
 
 All 5 `Publish Snapshot` steps failed: the repo has none of `OSSRH_USERNAME`, `OSSRH_TOKEN`, `SIGNING_KEY_ID`, `SIGNING_KEY`, `SIGNING_PASSWORD` (only `COVERALLS_REPO_TOKEN`; no org secret supplies them). `synadia-io/orbit.java` has all 5 as repo secrets. They have to be added to `synadia-io/nats.java.v3`.
 
-## Open
+## Result
 
-1. Look at build 82066815 in the browser: does it show per-flag coverage?
-2. Run a partial build (one module) and check the total stays ~90.8% rather than dropping to that module's lines alone. That is the carryforward test.
-3. If either fails, fall back to building everything on any code change (one job, one report).
+Module-based builds work with Coveralls: file paths are unique per module, each flag shows its own score, and carryforward keeps the total correct when only some modules build. Nothing open.
