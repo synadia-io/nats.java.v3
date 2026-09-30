@@ -1,0 +1,112 @@
+name: Build Modules
+
+# Shared by build-main.yml and build-pr.yml. Builds only the modules affected by the
+# change (see .github/scripts/affected-modules.sh), one job per module, and optionally
+# publishes their snapshots. Examples are built but never published. Batch-publish is
+# not published or covered until it has code.
+
+on:
+  workflow_call:
+    inputs:
+      base:
+        description: 'commit to diff against; empty builds every module'
+        type: string
+        required: false
+        default: ''
+      publish:
+        description: 'true to publish snapshots of the built modules'
+        type: boolean
+        required: false
+        default: false
+      branch:
+        description: 'non-empty for a branch-specific snapshot version, 3.0.0.<branch>-SNAPSHOT'
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.affected.outputs.modules }}
+      flags: ${{ steps.affected.outputs.flags }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Find affected modules
+        id: affected
+        run: |
+          modules=$(bash .github/scripts/affected-modules.sh "${{ inputs.base }}")
+          flags=$(sed -nE "s/^include '([^']+)'.*/\1/p" settings.gradle | grep -vxE 'examples|batch-publish' | paste -sd, -)
+          echo "Affected modules: $modules"
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+          echo "flags=$flags" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: changes
+    if: needs.changes.outputs.modules != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.changes.outputs.modules) }}
+    runs-on: ubuntu-latest
+    env:
+      BUILD_EVENT: ${{ github.event_name }}
+      BRANCH_REF_NAME: ${{ inputs.branch }}
+      OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      OSSRH_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Check out code
+        uses: actions/checkout@v5
+      - name: Install Nats Server
+        uses: synadia-io/workflows/.github/actions/install_nats_server@main
+      - name: Compile and Test
+        run: |
+          chmod +x gradlew && ./gradlew :${{ matrix.module }}:test
+      - name: Verify Javadoc
+        run: |
+          ./gradlew :${{ matrix.module }}:javadoc
+      - name: Run Jacoco Test Report
+        if: matrix.module != 'examples' && matrix.module != 'batch-publish'
+        run: |
+          ./gradlew :${{ matrix.module }}:jacocoTestReport
+      - name: Send coverage to Coveralls
+        if: matrix.module != 'examples' && matrix.module != 'batch-publish'
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          file: ${{ matrix.module }}/build/reports/jacoco/test/jacocoTestReport.xml
+          base-path: ${{ matrix.module }}/src/main/java
+          flag-name: ${{ matrix.module }}
+          parallel: true
+      - name: Publish Snapshot
+        if: inputs.publish && matrix.module != 'examples' && matrix.module != 'batch-publish'
+        run: |
+          ./gradlew -i :${{ matrix.module }}:publishToSonatype
+      - name: Clean up
+        if: always()
+        run: pkill -9 nats-server 2>/dev/null || true
+
+  # Closes the parallel Coveralls build. Modules not built this time keep their
+  # previous coverage through carryforward.
+  coverage:
+    needs: [changes, build]
+    if: always() && needs.build.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finish Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          parallel-finished: true
+          carryforward: ${{ needs.changes.outputs.flags }}

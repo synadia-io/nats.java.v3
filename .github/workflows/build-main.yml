@@ -8,35 +8,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    env:
-      BUILD_EVENT: ${{ github.event_name }}
-    steps:
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-      - name: Check out code
-        uses: actions/checkout@v5
-      - name: Install Nats Server
-        uses: synadia-io/workflows/.github/actions/install_nats_server@main
-      - name: Compile and Test
-        run: |
-          chmod +x gradlew && ./gradlew clean test
-#      - name: Verify Javadoc
-#        run: |
-#          ./gradlew javadoc
-#      - name: Run Jacoco Test Report
-#        run: |
-#          ./gradlew jacocoTestReport
-#      - name: Send coverage to Coveralls
-#        uses: coverallsapp/github-action@v2
-#        with:
-#          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
-#      - name: Publish Snapshot
-#        run: |
-#          ./gradlew -i publishToSonatype
-      - name: Clean up
-        if: always()
-        run: pkill -9 nats-server 2>/dev/null || true
+    uses: ./.github/workflows/build-modules.yml
+    with:
+      base: ${{ github.event.before }}
+      publish: true
+      # a manual run on a branch other than main publishes a branch-specific snapshot
+      branch: ${{ github.ref_name != 'main' && github.ref_name || '' }}
+    secrets: inherit
