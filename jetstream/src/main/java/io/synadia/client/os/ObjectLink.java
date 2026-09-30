@@ -2,8 +2,7 @@ package io.synadia.client.os;
 
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
-import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NullUnmarked;
 
 import static io.nats.json.JsonValueUtils.readString;
 import static io.nats.json.JsonWriteUtils.*;
@@ -14,14 +13,13 @@ import static io.synadia.client.utils.JsValidator.validateBucketName;
 /**
  * The ObjectLink is used to embed links to other objects.
  */
-@NullMarked
+@NullUnmarked
 public class ObjectLink implements JsonSerializable {
 
     private final String bucket;
     private final String objectName;
 
-    @Nullable
-    static ObjectLink optionalInstance(@Nullable JsonValue vLink) {
+    static ObjectLink optionalInstance(JsonValue vLink) {
         return vLink == null ? null : new ObjectLink(vLink);
     }
 
@@ -55,7 +53,6 @@ public class ObjectLink implements JsonSerializable {
      * Get the name of the object for the link
      * @return the object name
      */
-    @Nullable
     public String getObjectName() {
         return objectName;
     }

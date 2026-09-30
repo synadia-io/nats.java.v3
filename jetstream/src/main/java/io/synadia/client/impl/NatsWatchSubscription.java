@@ -3,6 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
 import io.synadia.client.kv.KeyValueWatchOption;
+import io.synadia.client.os.ObjectStoreWatchOption;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -32,10 +33,32 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
         this.pushConsume = isPushConsume(watchOptions);
     }
 
+    /**
+     * Construct the subscription. Nothing is subscribed until the subclass calls finishInit.
+     * @param js the JetStream context used to create the consumer and the dispatcher
+     * @param watchOptions the watch options, which decide whether entries are received with a push
+     *                     consumer or with the simplified consume. Simplified consume is the default.
+     */
+    public NatsWatchSubscription(JetStream js, @Nullable ObjectStoreWatchOption[] watchOptions) {
+        this.js = js;
+        this.pushConsume = isPushConsume(watchOptions);
+    }
+
     private static boolean isPushConsume(@Nullable KeyValueWatchOption[] watchOptions) {
         if (watchOptions != null) {
             for (KeyValueWatchOption wo : watchOptions) {
                 if (wo == KeyValueWatchOption.PUSH_CONSUME) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isPushConsume(@Nullable ObjectStoreWatchOption[] watchOptions) {
+        if (watchOptions != null) {
+            for (ObjectStoreWatchOption wo : watchOptions) {
+                if (wo == ObjectStoreWatchOption.PUSH_CONSUME) {
                     return true;
                 }
             }

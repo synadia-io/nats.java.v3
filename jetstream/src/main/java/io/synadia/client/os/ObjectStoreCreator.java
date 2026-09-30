@@ -14,9 +14,9 @@ import static io.synadia.client.utils.JsValidator.validateBucketName;
 import static io.synadia.client.utils.JsValidator.validateMaxBucketBytes;
 
 /**
- * ObjectStoreConfigurationCreator is used to create an Object Store bucket.
+ * ObjectStoreCreator is used to create an Object Store bucket.
  */
-public class ObjectStoreConfigurationCreator {
+public class ObjectStoreCreator {
 
     private final String bucketName;
     private final StreamCreator streamCreator;
@@ -26,7 +26,7 @@ public class ObjectStoreConfigurationCreator {
      * Constructor accepting the object store bucket name.
      * @param bucketName name of the store.
      */
-    public ObjectStoreConfigurationCreator(String bucketName) {
+    public ObjectStoreCreator(String bucketName) {
         this.bucketName = validateBucketName(bucketName, true);
         streamCreator = new StreamCreator(toStreamName(this.bucketName));
     }
@@ -40,7 +40,7 @@ public class ObjectStoreConfigurationCreator {
      * @param description description of the store.
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator description(String description) {
+    public ObjectStoreCreator description(String description) {
         streamCreator.description(description);
         return this;
     }
@@ -50,7 +50,7 @@ public class ObjectStoreConfigurationCreator {
      * @param maxBucketSize the maximum number of bytes
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator maxBucketSize(long maxBucketSize) {
+    public ObjectStoreCreator maxBucketSize(long maxBucketSize) {
         streamCreator.maxBytes(validateMaxBucketBytes(maxBucketSize));
         return this;
     }
@@ -60,7 +60,7 @@ public class ObjectStoreConfigurationCreator {
      * @param ttl the maximum age
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator ttl(Duration ttl) {
+    public ObjectStoreCreator ttl(Duration ttl) {
         this.ttl = ttl == null ? Duration.ZERO : ttl;
         streamCreator.maxAge(this.ttl);
         return this;
@@ -71,7 +71,7 @@ public class ObjectStoreConfigurationCreator {
      * @param ttlMillis the maximum age
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator ttl(Long ttlMillis) {
+    public ObjectStoreCreator ttl(Long ttlMillis) {
         this.ttl = ttlMillis == null || ttlMillis < 0 ? Duration.ZERO : Duration.ofMillis(ttlMillis);
         streamCreator.maxAge(this.ttl);
         return this;
@@ -82,7 +82,7 @@ public class ObjectStoreConfigurationCreator {
      * @param storageType the storage type
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator storageType(StorageType storageType) {
+    public ObjectStoreCreator storageType(StorageType storageType) {
         streamCreator.storageType(storageType);
         return this;
     }
@@ -92,7 +92,7 @@ public class ObjectStoreConfigurationCreator {
      * @param replicas the number of replicas
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator replicas(int replicas) {
+    public ObjectStoreCreator replicas(int replicas) {
         streamCreator.replicas(replicas);
         return this;
     }
@@ -102,7 +102,7 @@ public class ObjectStoreConfigurationCreator {
      * @param placement the placement directive object
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator placement(PlacementCreator placement) {
+    public ObjectStoreCreator placement(PlacementCreator placement) {
         streamCreator.placementCreator(placement);
         return this;
     }
@@ -112,7 +112,7 @@ public class ObjectStoreConfigurationCreator {
      * @param compression whether to use compression
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator compression(boolean compression) {
+    public ObjectStoreCreator compression(boolean compression) {
         streamCreator.compressionOption(compression ? CompressionOption.S2 : CompressionOption.None);
         return this;
     }
@@ -122,7 +122,7 @@ public class ObjectStoreConfigurationCreator {
      * @param metadata the metadata map
      * @return this instance for chaining
      */
-    public ObjectStoreConfigurationCreator metadata(Map<String, String> metadata) {
+    public ObjectStoreCreator metadata(Map<String, String> metadata) {
         streamCreator.metadata(metadata);
         return this;
     }
@@ -193,6 +193,6 @@ public class ObjectStoreConfigurationCreator {
 
     @Override
     public String toString() {
-        return "ObjectStoreConfigurationCreator " + streamCreator.toJson();
+        return "ObjectStoreCreator " + streamCreator.toJson();
     }
 }

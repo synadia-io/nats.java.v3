@@ -813,8 +813,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
             ConsumerContext consumerContext3 = streamContext.getConsumerContext(consumer);
 
             //noinspection resource
-            IllegalStateException ise = assertThrows(IllegalStateException.class, () -> consumerContext1.fetchMessages(10));
-            assertTrue(JsConsumerPinnedNotAllowed.matches(ise));
+            assertClientError(JsConsumerPinnedNotAllowed, () -> consumerContext1.fetchMessages(10));
 
             Set<String> pinIds = new HashSet<>();
             AtomicInteger count1 = new AtomicInteger();

@@ -8,6 +8,7 @@ import io.synadia.client.impl.NatsSubscription;
 import io.synadia.client.impl.SharedServer;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.function.Executable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +19,7 @@ import java.util.function.Supplier;
 
 import static io.nats.nkey.NKeyConstants.NKEY_PROVIDER_CLASS_SYSTEM_PROPERTY;
 import static io.synadia.client.OptionsConstants.DEFAULT_URL;
+import static io.synadia.client.utils.ClientError.KIND_ILLEGAL_ARGUMENT;
 import static io.synadia.client.utils.ConnectionUtils.*;
 import static io.synadia.client.utils.NatsConstants.DOT;
 import static io.synadia.client.utils.OptionsUtils.options;
@@ -555,6 +557,23 @@ public class TestBase {
                 assertTrue(metadata.size() > 1);
             }
             assertEquals(META_VALUE, metadata.get(META_KEY));
+        }
+    }
+
+    public static void assertClientError(ClientError error, Executable executable) {
+        String etype;
+        Exception e;
+        if (error.getKind() == KIND_ILLEGAL_ARGUMENT) {
+            etype = IllegalArgumentException.class.getSimpleName();
+            e = assertThrows(IllegalArgumentException.class, executable, "Expecting " + etype + ": " + error.message());
+        }
+        else {
+            etype = IllegalStateException.class.getSimpleName();
+            e = assertThrows(IllegalStateException.class, executable, "Expecting " + etype + ": " + error.message());
+        }
+
+        if (!error.matches(e)) {
+            fail("Expecting " + etype + ": " + error.message(), e);
         }
     }
 }

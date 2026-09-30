@@ -23,5 +23,16 @@ public enum ObjectStoreWatchOption {
      * Watch starting when there are new entries for keys.
      * Default is to start at the last per key.
      */
-    UPDATES_ONLY
+    UPDATES_ONLY,
+
+    /**
+     * Receive entries with a push consumer.
+     * Default is {@link #SIMPLIFIED_CONSUME}.
+     */
+    PUSH_CONSUME,
+
+    /**
+     * Receive entries with the simplified consume, which reads with a pull consumer. This is the default.
+     */
+    SIMPLIFIED_CONSUME
 }

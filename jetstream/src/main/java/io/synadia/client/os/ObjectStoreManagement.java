@@ -60,7 +60,7 @@ public class ObjectStoreManagement {
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public ObjectStoreStatus create(ObjectStoreConfigurationCreator creator) throws JetStreamException, InterruptedException {
+    public ObjectStoreStatus create(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
         StreamCreator sc = creator.getStreamCreatorCopy()
             .subjects(toMetaStreamSubject(creator.getBucketName()), toChunkStreamSubject(creator.getBucketName()))
             .allowRollup(true)

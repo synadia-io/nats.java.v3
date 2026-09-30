@@ -100,13 +100,8 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             assertEquals(10059, jsapiEx.getApiErrorCode());
 
             // JsSubNoMatchingStreamForSubject
-            IllegalStateException ise = assertThrows(IllegalStateException.class,
-                () -> ctx.js.pushSubscribe(random()));
-            assertTrue(JsSubNoMatchingStreamForSubject.matches(ise));
-
-            ise = assertThrows(IllegalStateException.class,
-                () -> ctx.js.pullSubscribe(random()));
-            assertTrue(JsSubNoMatchingStreamForSubject.matches(ise));
+            assertClientError(JsSubNoMatchingStreamForSubject, () -> ctx.js.pushSubscribe(random()));
+            assertClientError(JsSubNoMatchingStreamForSubject, () -> ctx.js.pullSubscribe(random()));
 
             // JsSubDispatcherNoHandlerCantReceiveMessages
             // you can have a handler without a dispatcher,
@@ -114,13 +109,8 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             NatsDispatcher d = ctx.js.createDispatcher();
             SubscribeBehavior behavior = new SubscribeBehavior().dispatcher(d);
 
-            ise = assertThrows(IllegalStateException.class,
-                () -> ctx.js.pushSubscribe(ctx.stream, new PushConsumerCreator(), behavior));
-            assertTrue(JsSubDispatcherNoHandlerCantReceiveMessages.matches(ise));
-
-            ise = assertThrows(IllegalStateException.class,
-                () -> ctx.js.pullSubscribe(ctx.stream, new PullConsumerCreator(), behavior));
-            assertTrue(JsSubDispatcherNoHandlerCantReceiveMessages.matches(ise));
+            assertClientError(JsSubDispatcherNoHandlerCantReceiveMessages, () -> ctx.js.pushSubscribe(ctx.stream, new PushConsumerCreator(), behavior));
+            assertClientError(JsSubDispatcherNoHandlerCantReceiveMessages, () -> ctx.js.pullSubscribe(ctx.stream, new PullConsumerCreator(), behavior));
         });
     }
 

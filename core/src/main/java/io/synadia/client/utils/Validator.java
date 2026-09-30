@@ -190,7 +190,7 @@ public abstract class Validator {
      * @return the value
      * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
      */
-    public static String required(String s, String label) {
+    public static @NonNull String required(String s, String label) {
         if (emptyAsNull(s) == null) {
             throw new IllegalArgumentException(label + " cannot be null or empty.");
         }
@@ -205,7 +205,7 @@ public abstract class Validator {
      * @return the value
      * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
      */
-    public static <T> T required(T o, String label) {
+    public static @NonNull <T> T required(T o, String label) {
         if (o == null) {
             throw new IllegalArgumentException(label + " cannot be null.");
         }

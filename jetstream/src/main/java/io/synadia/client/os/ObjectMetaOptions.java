@@ -2,8 +2,8 @@ package io.synadia.client.os;
 
 import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
-import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullUnmarked;
 
 import static io.nats.json.JsonValueUtils.readInteger;
 import static io.nats.json.JsonValueUtils.readValue;
@@ -14,7 +14,7 @@ import static io.synadia.client.utils.ApiConstants.MAX_CHUNK_SIZE;
 /**
  * The ObjectMetaOptions are additional options describing the object
  */
-@NullMarked
+@NullUnmarked
 public class ObjectMetaOptions implements JsonSerializable {
 
     private final ObjectLink link;
@@ -31,6 +31,7 @@ public class ObjectMetaOptions implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, LINK, link);
@@ -50,7 +51,6 @@ public class ObjectMetaOptions implements JsonSerializable {
      * Get the link this object refers to
      * @return the link or null if this is not a link object
      */
-    @Nullable
     public ObjectLink getLink() {
         return link;
     }

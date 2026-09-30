@@ -1275,16 +1275,13 @@ public class SimplificationTests extends JetStreamTestBase {
     }
 
     @SuppressWarnings("resource")
-    private void validateCantCallOtherMethods(OrderedConsumerContext ctx, boolean fetch, boolean consume) {
-        IllegalStateException ise = assertThrows(IllegalStateException.class, () -> ctx.next(1000L));
-        assertTrue(JsConsumerOrderedAlreadyReceiving.matches(ise));
-        if (fetch) {
-            ise = assertThrows(IllegalStateException.class, () -> ctx.fetchMessages(1));
-            assertTrue(JsConsumerOrderedAlreadyReceiving.matches(ise));
+    private void validateCantCallOtherMethods(OrderedConsumerContext ctx, boolean attemptFetch, boolean attemptConsume) {
+        assertClientError(JsConsumerOrderedAlreadyReceiving, () -> ctx.next(1000L));
+        if (attemptFetch) {
+            assertClientError(JsConsumerOrderedAlreadyReceiving, () -> ctx.fetchMessages(1));
         }
-        if (consume) {
-            ise = assertThrows(IllegalStateException.class, () -> ctx.consume(m -> {}));
-            assertTrue(JsConsumerOrderedAlreadyReceiving.matches(ise));
+        if (attemptConsume) {
+            assertClientError(JsConsumerOrderedAlreadyReceiving, () -> ctx.consume(m -> {}));
         }
     }
 

@@ -2,47 +2,32 @@ package io.synadia.client.os;
 
 import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.StorageType;
-import io.synadia.client.api.StreamInfo;
 import io.synadia.client.impl.JetStream;
 import io.synadia.client.impl.JetStreamManagement;
 import io.synadia.client.impl.NatsConnection;
-import io.synadia.client.utils.TestBase;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public class OsTestingContext implements AutoCloseable {
+    public final NatsConnection nc;
     public final JetStreamManagement jsm;
     public final JetStream js;
     public final ObjectStoreManagement osm;
 
-    private final String subjectBase;
-    private final Map<Object, String> subjects;
-    private final String consumerNameBase;
-    private final Map<Object, String> consumerNames;
-    public String stream;
-    public StreamInfo si;
-
     private final Set<String> osBuckets;
 
-    public OsTestingContext(NatsConnection nc) throws JetStreamException {
+    public OsTestingContext(NatsConnection nc) {
+        this.nc = nc;
         jsm = new JetStreamManagement(nc);
         js = jsm.jetStream();
         osm = new ObjectStoreManagement(nc);
-
-        stream = TestBase.random();
-        subjectBase = TestBase.random();
-        subjects = new HashMap<>();
-        consumerNameBase = TestBase.random();
-        consumerNames = new HashMap<>();
-
         osBuckets = new HashSet<>();
     }
 
-    public ObjectStoreConfigurationCreator osCreator(String bucketName) {
-        return new ObjectStoreConfigurationCreator(bucketName)
+    public ObjectStoreCreator osCreator(String bucketName) {
+        return new ObjectStoreCreator(bucketName)
             .storageType(StorageType.Memory);
     }
 
@@ -50,7 +35,11 @@ public class OsTestingContext implements AutoCloseable {
         return osCreate(osCreator(bucketName));
     }
 
-    public ObjectStoreStatus osCreate(ObjectStoreConfigurationCreator creator) throws JetStreamException, InterruptedException {
+    public ObjectStoreStatus osCreate(String bucketName, Function<ObjectStoreCreator, ObjectStoreCreator> fun) throws JetStreamException, InterruptedException {
+        return osCreate(fun.apply(osCreator(bucketName)));
+    }
+
+    public ObjectStoreStatus osCreate(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
         osBuckets.add(creator.getBucketName());
         return osm.create(creator);
     }

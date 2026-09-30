@@ -4,7 +4,6 @@ import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.StorageType;
 import io.synadia.client.impl.JetStream;
 import io.synadia.client.impl.JetStreamManagement;
-import io.synadia.client.impl.JetStreamTestingContext;
 import io.synadia.client.impl.NatsConnection;
 
 import java.util.HashSet;
@@ -18,14 +17,6 @@ public class KvTestingContext implements AutoCloseable {
     public final KeyValueManagement kvm;
 
     private final Set<String> kvBuckets;
-
-    public KvTestingContext(JetStreamTestingContext ctx) {
-        this.nc = ctx.nc;
-        jsm = ctx.jsm;
-        js = ctx.js;
-        kvm = new KeyValueManagement(nc);
-        kvBuckets = new HashSet<>();
-    }
 
     public KvTestingContext(NatsConnection nc) {
         this.nc = nc;
@@ -54,10 +45,6 @@ public class KvTestingContext implements AutoCloseable {
     public KeyValueStatus kvCreate(KeyValueCreator creator) throws JetStreamException, InterruptedException {
         kvBuckets.add(creator.getBucketName());
         return kvm.create(creator);
-    }
-
-    public void addBucket(String bucketName) {
-        kvBuckets.add(bucketName);
     }
 
     @Override

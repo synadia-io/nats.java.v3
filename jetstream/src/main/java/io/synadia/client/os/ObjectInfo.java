@@ -75,7 +75,7 @@ public class ObjectInfo implements JsonSerializable {
     public String toJson() {
         // never write MTIME (modified)
         StringBuilder sb = beginJson();
-        objectMeta.embedJson(sb); // the go code embeds the objectMeta's fields instead of as a child object.
+        objectMeta.embedJson(sb); // the "go" code embeds the objectMeta's fields instead of as a child object.
         addField(sb, BUCKET, bucket);
         addField(sb, NUID, nuid);
         addField(sb, SIZE, size);
@@ -97,7 +97,6 @@ public class ObjectInfo implements JsonSerializable {
      * the bucket nuid
      * @return the nuid
      */
-    @Nullable
     public String getNuid() {
         return nuid;
     }
@@ -114,7 +113,6 @@ public class ObjectInfo implements JsonSerializable {
      * When the object was last modified
      * @return the last modified date
      */
-    @Nullable
     public ZonedDateTime getModified() {
         return modified;
     }

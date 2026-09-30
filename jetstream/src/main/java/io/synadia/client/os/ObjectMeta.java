@@ -4,7 +4,7 @@ import io.nats.json.JsonSerializable;
 import io.nats.json.JsonValue;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.utils.Validator;
-import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
@@ -16,7 +16,6 @@ import static io.synadia.client.utils.ApiConstants.*;
 /**
  * The ObjectMeta is Object Meta is high level information about an object
  */
-@NullMarked
 public class ObjectMeta implements JsonSerializable {
 
     private final String objectName;
@@ -34,7 +33,7 @@ public class ObjectMeta implements JsonSerializable {
     }
 
     ObjectMeta(JsonValue vObjectMeta) {
-        objectName = readString(vObjectMeta, NAME);
+        this.objectName = Validator.validateNotNull(readString(vObjectMeta, NAME), "Object Name");
         description = readString(vObjectMeta, DESCRIPTION);
         Headers h = new Headers();
         JsonValue hJv = readMapObjectOrNull(vObjectMeta, HEADERS);
@@ -52,6 +51,7 @@ public class ObjectMeta implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         embedJson(sb);
@@ -61,7 +61,9 @@ public class ObjectMeta implements JsonSerializable {
     void embedJson(StringBuilder sb) {
         addField(sb, NAME, objectName);
         addField(sb, DESCRIPTION, description);
-        if (headers != null && headers.size() > 0) { addField(sb, HEADERS, headers.toMap()); }
+        if (headers.size() > 0) {
+            addField(sb, HEADERS, headers.toMap());
+        }
         addField(sb, METADATA, metadata);
 
         // avoid adding an empty child to the json because addField
@@ -75,6 +77,7 @@ public class ObjectMeta implements JsonSerializable {
      * The object name
      * @return the object name
      */
+    @NonNull
     public String getObjectName() {
         return objectName;
     }
@@ -92,6 +95,7 @@ public class ObjectMeta implements JsonSerializable {
      * Headers may be empty but will not be null. In all cases it will be unmodifiable
      * @return the headers object
      */
+    @NonNull
     public Headers getHeaders() {
         return headers;
     }
@@ -100,6 +104,7 @@ public class ObjectMeta implements JsonSerializable {
      * Metadata may be empty but will not be null. In all cases it will be unmodifiable
      * @return the map
      */
+    @NonNull
     public Map<String, String> getMetadata() {
         return metadata;
     }
@@ -127,7 +132,7 @@ public class ObjectMeta implements JsonSerializable {
      * @param om the existing meta
      * @return the builder
      */
-    public static Builder builder(ObjectMeta om) {
+    static Builder builder(ObjectMeta om) {
         return new Builder(om);
     }
 
@@ -154,7 +159,7 @@ public class ObjectMeta implements JsonSerializable {
          * Construct a builder starting with the object name
          * @param objectName the object name
          */
-        public Builder(String objectName) {
+        public Builder(@NonNull String objectName) {
             headers = new Headers();
             metadata = new HashMap<>();
             metaOptionsBuilder = ObjectMetaOptions.builder();
@@ -165,7 +170,7 @@ public class ObjectMeta implements JsonSerializable {
          * Construct a builder as a copy of existing meta
          * @param om the existing meta
          */
-        public Builder(ObjectMeta om) {
+        Builder(@NonNull ObjectMeta om) {
             objectName = om.objectName;
             description = om.description;
             headers = new Headers(om.headers);
@@ -178,7 +183,7 @@ public class ObjectMeta implements JsonSerializable {
          * @param name the name
          * @return the builder
          */
-        public Builder objectName(String name) {
+        Builder objectName(@NonNull String name) {
             this.objectName = Validator.validateNotNull(name, "Object Name");
             return this;
         }
@@ -263,23 +268,20 @@ public class ObjectMeta implements JsonSerializable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public final boolean equals(Object o) {
+        if (!(o instanceof ObjectMeta that)) return false;
 
-        ObjectMeta that = (ObjectMeta) o;
-
-        if (!objectName.equals(that.objectName)) return false;
-        if (description != null ? !description.equals(that.description) : that.description != null) return false;
-        if (!Objects.equals(headers, that.headers)) return false;
-        if (!Objects.equals(metadata, that.metadata)) return false;
-        return objectMetaOptions.equals(that.objectMetaOptions);
+        return objectName.equals(that.objectName)
+            && Objects.equals(description, that.description)
+            && headers.equals(that.headers)
+            && metadata.equals(that.metadata)
+            && objectMetaOptions.equals(that.objectMetaOptions);
     }
 
     @Override
     public int hashCode() {
         int result = objectName.hashCode();
-        result = 31 * result + (description != null ? description.hashCode() : 0);
+        result = 31 * result + Objects.hashCode(description);
         result = 31 * result + headers.hashCode();
         result = 31 * result + metadata.hashCode();
         result = 31 * result + objectMetaOptions.hashCode();

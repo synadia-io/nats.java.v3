@@ -56,11 +56,11 @@ public class ClientErrorTests {
 
     @Test
     public void testMatchesByKindAndId() {
-        assertTrue(FIXED.matches((Exception)FIXED.instance()));
-        assertTrue(THREE.matches((Exception)THREE.instance("A", "B", "C"))); // filled in, still matches
-        assertTrue(THREE.matches((Exception)THREE.instance()));              // and so does an unfilled one
+        assertTrue(FIXED.matches(FIXED.instance()));
+        assertTrue(THREE.matches(THREE.instance("A", "B", "C"))); // filled in, still matches
+        assertTrue(THREE.matches(THREE.instance()));              // and so does an unfilled one
 
-        assertFalse(FIXED.matches((Exception)THREE.instance("A", "B", "C"))); // different id
+        assertFalse(FIXED.matches(THREE.instance("A", "B", "C"))); // different id
         assertFalse(ONE.matches(new IllegalStateException("[TST-2] One only label."))); // right id, wrong kind
         assertFalse(FIXED.matches(new IllegalStateException("[TST-10] Fixed message."))); // id is not a prefix match
         assertFalse(FIXED.matches(new RuntimeException("[TST-1] Fixed message."))); // neither kind
