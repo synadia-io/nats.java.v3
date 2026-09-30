@@ -30,6 +30,11 @@ System.out.println("Target Compatibility: " + targetCompat)
 // nexusPublishing — root level only, covers all subproject publications
 // ---------------------------------------------------------------------------
 nexusPublishing {
+    // The plugin's defaults read the root project's version and group, which are unset
+    // here because each subproject sets its own. Without these, a snapshot publish
+    // tries to open a release staging repository for an empty package group.
+    useStaging = isRelease
+    packageGroup = 'io.synadia'
     repositories {
         sonatype {
             nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))

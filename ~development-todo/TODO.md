@@ -111,6 +111,9 @@ The single source of truth for the things currently in progress — so any sessi
   * cross account reading: push rides the `_INBOX.>` stream export, pull rides `$JS.API.>` which must be `response_type: Stream`. Measured both ways, tests in `ConsumeInAccountTests` with `account_push.conf` / `account_pull.conf`
   * carries the CLI only reproduction for the server team (overlapping specific Stream export beside a broad Singleton one drops replies), and a separate client finding: `ConsumeOptions.batchSize(1)` stalls after one message, same account too
 
+* COVERALLS_MODULE_COVERAGE.md
+  * whether Coveralls handles module-based CI builds (parallel flags + carryforward). Paths verified unique per module; per-flag view and carryforward not yet verified. Publish is blocked on the missing OSSRH/SIGNING repo secrets
+
 ## Plans / Audits TBD
 
 1. ObjectStore line 107 / ObjectStore nullability
