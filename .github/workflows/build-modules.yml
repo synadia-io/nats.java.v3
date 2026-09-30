@@ -86,6 +86,7 @@ jobs:
           ./gradlew :${{ matrix.module }}:jacocoTestReport
       - name: Send coverage to Coveralls
         if: matrix.module != 'examples' && matrix.module != 'batch-publish'
+        continue-on-error: true  # a Coveralls problem must not fail the build or skip the publish
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
@@ -109,6 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Finish Coveralls
+        continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
