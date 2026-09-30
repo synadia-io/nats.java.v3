@@ -19,7 +19,7 @@ import static io.synadia.service.Service.*;
  * Optionally you can set 'maxTimeMillis' and 'maxResults'. When making a discovery request,
  * the discovery will wait until the first one of those thresholds is reached before returning the results.
  * <p>'maxTimeMillis' defaults to {@value DEFAULT_DISCOVERY_MAX_TIME_MILLIS}</p>
- * <p>'maxResults' defaults tp {@value DEFAULT_DISCOVERY_MAX_RESULTS}</p>
+ * <p>'maxResults' defaults to {@value DEFAULT_DISCOVERY_MAX_RESULTS}</p>
  */
 public class Discovery {
     /** Default discover time */
@@ -57,7 +57,7 @@ public class Discovery {
     }
 
     /**
-     * Override the normal inbox with a custom inbox to support you security model
+     * Override the normal inbox with a custom inbox to support your security model
      * @param inboxSupplier the supplier
      */
     public void setInboxSupplier(Supplier<String> inboxSupplier) {
