@@ -31,7 +31,7 @@ declare -A affected=()
 while IFS= read -r file; do
     case "$file" in
         build.gradle|settings.gradle|gradle.properties|gradlew|gradlew.bat|gradle/*|\
-        .github/scripts/*|.github/workflows/build-main.yml|.github/workflows/build-pr.yml|.github/workflows/build-modules.yml)
+        .github/scripts/*|.github/workflows/build-main.yml|.github/workflows/build-pr.yml|.github/workflows/build-modules.yml|.github/workflows/build-windows.yml)
             print "${modules[@]}"
             exit 0
             ;;

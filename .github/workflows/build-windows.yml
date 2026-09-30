@@ -23,7 +23,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Same rule as build-main.yml: only the affected modules are tested, and a change
+  # that affects no module (docs, TODO files) skips the Windows build. One Windows job
+  # runs all the affected modules' tests, so nats-server is built once.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.affected.outputs.modules }}
+      tasks: ${{ steps.affected.outputs.tasks }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Find affected modules
+        id: affected
+        run: |
+          modules=$(bash .github/scripts/affected-modules.sh "${{ github.event.before }}")
+          echo "Affected modules: $modules"
+          tasks=$(echo "$modules" | tr -d '[]"' | tr ',' '\n' | sed 's/.*/:&:test/' | paste -sd' ' -)
+          echo "Windows test tasks: $tasks"
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+          echo "tasks=$tasks" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: changes
+    if: needs.changes.outputs.modules != '[]'
     runs-on: windows-latest
     timeout-minutes: 30
     env:
@@ -55,15 +80,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v5
       - name: Build and Test
-        run: .\gradlew.bat clean test
+        run: .\gradlew.bat clean ${{ needs.changes.outputs.tasks }}
       - name: Upload test reports
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
           name: windows-test-reports
           path: |
-            build/reports/tests/test
-            build/test-results/test
+            */build/reports/tests/test
+            */build/test-results/test
           retention-days: 14
       - name: Clean up
         if: always()
