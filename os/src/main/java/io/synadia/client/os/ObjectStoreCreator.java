@@ -56,7 +56,7 @@ public class ObjectStoreCreator {
     }
 
     /**
-     * Sets the maximum age for a value in this configuration.
+     * Sets the maximum age for an object in this configuration.
      * @param ttl the maximum age
      * @return this instance for chaining
      */
@@ -67,8 +67,8 @@ public class ObjectStoreCreator {
     }
 
     /**
-     * Sets the maximum age for a value in this configuration.
-     * @param ttlMillis the maximum age
+     * Sets the maximum age for an object in this configuration.
+     * @param ttlMillis the maximum age in milliseconds
      * @return this instance for chaining
      */
     public ObjectStoreCreator ttl(Long ttlMillis) {
