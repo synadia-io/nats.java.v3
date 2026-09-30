@@ -35,8 +35,8 @@ public class KeyValueCreator {
     // ----------------------------------------------------------------------------------------------------
 
     /**
-     * Sets the description of the store.
-     * @param description description of the store.
+     * Sets the description of the bucket.
+     * @param description description of the bucket.
      * @return this instance for chaining
      */
     public KeyValueCreator description(String description) {
