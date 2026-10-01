@@ -2,7 +2,24 @@
 
 # NATS - Java Client VERSION 3
 
-# WORK IN PROGRESS
+![N/A](https://img.shields.io/badge/Current_Release-N/A-27AAE0?style=for-the-badge)
+![3.0.0](https://img.shields.io/badge/Current_Snapshot-3.0.0--SNAPSHOT-27AAE0?style=for-the-badge)
+
+[![Build Main Badge](https://github.com/synadia-io/nats.java.v3/actions/workflows/build-main.yml/badge.svg?event=push)](https://github.com/synadia-io/nats.java.v3/actions/workflows/build-main.yml)
+[![Coverage Status](https://coveralls.io/repos/github/synadia-io/nats.java.v3/badge.svg?branch=main)](https://coveralls.io/github/synadia-io/nats.java.v3?branch=main)
+[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+
+
+# ALPHA 3.0.0-SNAPSHOT AVAILABLE
+
+| Project      | Group      | Artifact       | 
+|--------------|------------|----------------|
+| Core         | io.synadia | jnats3-core   | 
+| JetStream    | io.synadia | jnats3-js      |
+| KeyValue     | io.synadia | jnats3-kv      |
+| Object Store | io.synadia | jnats3-os      |
+| Service      | io.synadia | jnats3-service |
+
 
 ### Server Compatibility
 
