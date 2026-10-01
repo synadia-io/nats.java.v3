@@ -3,9 +3,9 @@
 // ---------------------------------------------------------------------------
 ext {
     jarVersion        = '3.0.0'
-    artifactNameExt   = 'jnats3-batch-publish'
-    moduleNameExt     = 'io.synadia.jnats3.batchpublish'
-    bundleNameExt     = 'io.synadia.jnats3.batchpublish'
+    artifactNameExt   = 'jnats3-bp'
+    moduleNameExt     = 'io.synadia.jnats3.bp'
+    bundleNameExt     = 'io.synadia.jnats3.bp'
     pomDescriptionExt = 'Batch publish library for the NATS messaging system.'
     projectUrlExt     = 'https://github.com/synadia-io/nats.java.v3'
 }

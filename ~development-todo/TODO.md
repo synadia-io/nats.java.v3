@@ -104,7 +104,7 @@ The single source of truth for the things currently in progress — so any sessi
   * **implemented 2026-09-21 (§8)**: the subscription paths throw the core unchecked `StatusException`, `JetStreamStatusInternalException` deleted, no signature changed, `JetStreamException` stays checked
 
 * BatchPublish port (no doc yet)
-  * `batch-publish` module scaffolded 2026-09-23 - `settings.gradle` include plus a `build.gradle` with `jnats3-batch-publish` / `io.synadia.jnats3.batchpublish` identity, `api project(':jetstream')`, and the `:core` + `:jetstream` testOutput configurations. Builds, no sources yet
+  * `batch-publish` module scaffolded 2026-09-23 - `settings.gradle` include plus a `build.gradle` with `jnats3-bp` / `io.synadia.jnats3.bp` identity (renamed from `jnats3-batch-publish` 2026-10-01), `api project(':jetstream')`, and the `:core` + `:jetstream` testOutput configurations. Builds, no sources yet
   * source is `/mnt/c/nats/orbit.java/batch-publish` (14 main classes, 6 test classes, 8 examples, Java 8 on jnats 2.26.3). The orbit session is writing the port brief; the port itself happens here
 
 * ACCOUNT_PUSH_PULL_EXPORTS.md

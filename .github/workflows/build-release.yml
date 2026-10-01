@@ -1,0 +1,72 @@
+name: Build Release
+
+# Releases one module. Publish a GitHub release whose tag is <name>/<version>, for
+# example core/3.0.0 or js/3.0.1. <name> is the module's artifact name without the
+# jnats3- prefix (core, js, kv, os, service) and <version> must equal that module's
+# jarVersion. bp (batch-publish) and examples are refused: bp until it has code,
+# examples always.
+# A module's POM depends on the released versions of the modules it uses, so release
+# them first (core, then js, then kv / os).
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_EVENT: release
+      OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      OSSRH_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+      - name: Validate tag
+        id: tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          name=${TAG%%/*}
+          version=${TAG#*/}
+          if [ "$name" = "$TAG" ] || [ -z "$version" ]; then
+            echo "::error::Tag '$TAG' is not <name>/<version>"; exit 1
+          fi
+          # find the module whose artifactNameExt is jnats3-<name>
+          module=''
+          for m in $(sed -nE "s/^include '([^']+)'.*/\1/p" settings.gradle); do
+            artifact=$(sed -nE "s/^\s*artifactNameExt\s*=\s*'([^']+)'.*/\1/p" "$m/build.gradle")
+            if [ "$artifact" = "jnats3-$name" ]; then module=$m; fi
+          done
+          if [ -z "$module" ]; then
+            echo "::error::No module has artifact jnats3-$name"; exit 1
+          fi
+          if [ "$module" = "examples" ] || [ "$module" = "batch-publish" ]; then
+            echo "::error::'$module' is not released"; exit 1
+          fi
+          jar_version=$(sed -nE "s/^\s*jarVersion\s*=\s*'([^']+)'.*/\1/p" "$module/build.gradle")
+          if [ "$version" != "$jar_version" ]; then
+            echo "::error::Tag version '$version' does not match $module jarVersion '$jar_version'"; exit 1
+          fi
+          echo "Releasing $module $version"
+          echo "module=$module" >> "$GITHUB_OUTPUT"
+      - name: Install Nats Server
+        uses: synadia-io/workflows/.github/actions/install_nats_server@main
+      - name: Compile and Test
+        run: |
+          chmod +x gradlew && ./gradlew :${{ steps.tag.outputs.module }}:test
+      - name: Verify, Sign and Publish Release
+        run: |
+          ./gradlew -i :${{ steps.tag.outputs.module }}:publishToSonatype closeAndReleaseSonatypeStagingRepository
+      - name: Clean up
+        if: always()
+        run: pkill -9 nats-server 2>/dev/null || true
