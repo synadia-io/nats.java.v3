@@ -106,7 +106,7 @@ public class JsValidatorTests extends ValidatorTests {
         assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_LOW));
         assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_127));
         assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_TIC));
-        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired("colon:isbetween9andA"));
+        assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(HAS_COLON));
         assertThrows(IllegalArgumentException.class, () -> validateKvKeyWildcardAllowedRequired(".starts.with.dot.not.allowed"));
 
         List<String> nullList = null;
@@ -134,7 +134,7 @@ public class JsValidatorTests extends ValidatorTests {
         assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_LOW));
         assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_127));
         assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_TIC));
-        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired("colon:isbetween9andA"));
+        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(HAS_COLON));
         assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKeyRequired(".starts.with.dot.not.allowed"));
     }
 
@@ -196,5 +196,149 @@ public class JsValidatorTests extends ValidatorTests {
 
         m2.put("C", "C");
         assertFalse(JsValidator.metaIsEquivalent(m1, m2));
+    }
+
+    @Test
+    public void testValidateMaxMessagesPerSubject() {
+        assertEquals(1, validateMaxHistory(1));
+        assertEquals(64, validateMaxHistory(64));
+        assertThrows(IllegalArgumentException.class, () -> validateMaxHistory(0));
+        assertThrows(IllegalArgumentException.class, () -> validateMaxHistory(-1));
+        assertThrows(IllegalArgumentException.class, () -> validateMaxHistory(65));
+    }
+
+    @Test
+    public void testValidateMaxBucketBytes() {
+        assertEquals(1, validateMaxBucketBytes(1));
+        assertEquals(-1, validateMaxBucketBytes(-1));
+        assertThrows(IllegalArgumentException.class, () -> validateMaxBucketBytes(0));
+        assertThrows(IllegalArgumentException.class, () -> validateMaxBucketBytes(-2));
+    }
+
+    @Test
+    public void testValidateConsumerName() {
+        allowedRequired(JsValidator::validateConsumerName, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOLLAR));
+        notAllowedRequired(JsValidator::validateConsumerName, Arrays.asList(null, "", HAS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, HAS_LOW, HAS_127, HAS_FWD_SLASH, HAS_BACK_SLASH));
+        notAllowedRequired(JsValidator::validateConsumerName, UTF_ONLY_STRINGS);
+        allowedNotRequiredEmptyAsNull(JsValidator::validateConsumerName, Arrays.asList(null, ""));
+    }
+
+    @Test
+    public void testValidatePrefixOrDomain() {
+        assertEquals(PLAIN, validatePrefixOrDomain(PLAIN, "label", true));
+        assertEquals(HAS_DOT, validatePrefixOrDomain(HAS_DOT, "label", true));
+        assertEquals(ENDS_WITH_DOT, validatePrefixOrDomain(ENDS_WITH_DOT, "label", true));
+        assertEquals(HAS_DOLLAR, validatePrefixOrDomain(HAS_DOLLAR, "label", true));
+        assertEquals(HAS_FWD_SLASH, validatePrefixOrDomain(HAS_FWD_SLASH, "label", true));
+        assertNull(validatePrefixOrDomain(null, "label", false));
+        assertNull(validatePrefixOrDomain("", "label", false));
+
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain(null, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain("", "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain(STARTS_WITH_DOT, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain(STAR_NOT_SEGMENT, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain(GT_NOT_SEGMENT, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain(HAS_SPACE, "label", false));
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain(HAS_LOW, "label", false));
+        assertThrows(IllegalArgumentException.class, () -> validatePrefixOrDomain(HAS_127, "label", false));
+    }
+
+    @Test
+    public void testValidateKvKeysWildcardAllowedRequiredValid() {
+        List<String> keys = Arrays.asList(PLAIN, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT);
+        assertSame(keys, validateKvKeysWildcardAllowedRequired(keys));
+        assertThrows(IllegalArgumentException.class, () -> validateKvKeysWildcardAllowedRequired(new ArrayList<>()));
+        assertThrows(IllegalArgumentException.class, () -> validateKvKeysWildcardAllowedRequired(Arrays.asList(PLAIN, HAS_SPACE)));
+    }
+
+    @Test
+    public void testValidateWildcardKvKey() {
+        assertEquals(PLAIN, validateWildcardKvKey(PLAIN, "label", true));
+        assertEquals(STAR_NOT_SEGMENT, validateWildcardKvKey(STAR_NOT_SEGMENT, "label", false));
+        assertEquals(GT_NOT_SEGMENT, validateWildcardKvKey(GT_NOT_SEGMENT, "label", false));
+        assertNull(validateWildcardKvKey(null, "label", false));
+        assertNull(validateWildcardKvKey("", "label", false));
+
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> validateWildcardKvKey(HAS_SPACE, "label", false));
+        assertTrue(iae.getMessage().startsWith("label"));
+        assertThrows(IllegalArgumentException.class, () -> validateWildcardKvKey(null, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateWildcardKvKey(STARTS_WITH_DOT, "label", false));
+    }
+
+    @Test
+    public void testValidateNonWildcardKvKey() {
+        assertEquals(PLAIN, validateNonWildcardKvKey(PLAIN, "label", true));
+        assertEquals(HAS_DOT, validateNonWildcardKvKey(HAS_DOT, "label", false));
+        assertNull(validateNonWildcardKvKey(null, "label", false));
+        assertNull(validateNonWildcardKvKey("", "label", false));
+
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKey(STAR_NOT_SEGMENT, "label", false));
+        assertTrue(iae.getMessage().startsWith("label"));
+        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKey(GT_NOT_SEGMENT, "label", false));
+        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKey(null, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateNonWildcardKvKey(STARTS_WITH_DOT, "label", false));
+    }
+
+    @Test
+    public void testValidateMaxValueSize() {
+        assertEquals(1, validateMaxValueSize(1));
+        assertEquals(-1, validateMaxValueSize(-1));
+        assertThrows(IllegalArgumentException.class, () -> validateMaxValueSize(0));
+        assertThrows(IllegalArgumentException.class, () -> validateMaxValueSize(-2));
+    }
+
+    @Test
+    public void testValidateNumberOfReplicas() {
+        assertEquals(1, validateNumberOfReplicas(1));
+        assertEquals(5, validateNumberOfReplicas(5));
+        assertThrows(IllegalArgumentException.class, () -> validateNumberOfReplicas(0));
+        assertThrows(IllegalArgumentException.class, () -> validateNumberOfReplicas(6));
+    }
+
+    @Test
+    public void testValidateDurationNotRequiredGtOrEqZeroIfZero() {
+        Duration ifZero = Duration.ofMillis(999);
+        assertEquals(ifZero, validateDurationNotRequiredGtOrEqZero(0, ifZero));
+        assertEquals(Duration.ofMillis(1), validateDurationNotRequiredGtOrEqZero(1, ifZero));
+        assertEquals(Duration.ofSeconds(1), validateDurationNotRequiredGtOrEqZero(1000, ifZero));
+        assertThrows(IllegalArgumentException.class, () -> validateDurationNotRequiredGtOrEqZero(-1, ifZero));
+    }
+
+    @Test
+    public void testNotNonWildcardKvKey() {
+        assertFalse(notNonWildcardKvKey(PLAIN));
+        assertFalse(notNonWildcardKvKey(HAS_DASH));
+        assertFalse(notNonWildcardKvKey(HAS_UNDER));
+        assertFalse(notNonWildcardKvKey(HAS_DOT));
+        assertFalse(notNonWildcardKvKey(HAS_FWD_SLASH));
+        assertFalse(notNonWildcardKvKey(HAS_EQUALS));
+        assertTrue(notNonWildcardKvKey(STARTS_WITH_DOT));
+        assertTrue(notNonWildcardKvKey(STAR_NOT_SEGMENT));
+        assertTrue(notNonWildcardKvKey(GT_NOT_SEGMENT));
+        assertTrue(notNonWildcardKvKey(HAS_SPACE));
+        assertTrue(notNonWildcardKvKey(HAS_DOLLAR));
+        assertTrue(notNonWildcardKvKey(HAS_BACK_SLASH));
+        assertTrue(notNonWildcardKvKey(HAS_TIC));
+        assertTrue(notNonWildcardKvKey(HAS_COLON));
+        assertTrue(notNonWildcardKvKey(HAS_BRACE));
+    }
+
+    @Test
+    public void testNotWildcardKvKey() {
+        assertFalse(notWildcardKvKey(PLAIN));
+        assertFalse(notWildcardKvKey(HAS_DASH));
+        assertFalse(notWildcardKvKey(HAS_UNDER));
+        assertFalse(notWildcardKvKey(HAS_DOT));
+        assertFalse(notWildcardKvKey(HAS_FWD_SLASH));
+        assertFalse(notWildcardKvKey(HAS_EQUALS));
+        assertFalse(notWildcardKvKey(STAR_NOT_SEGMENT));
+        assertFalse(notWildcardKvKey(GT_NOT_SEGMENT));
+        assertTrue(notWildcardKvKey(STARTS_WITH_DOT));
+        assertTrue(notWildcardKvKey(HAS_SPACE));
+        assertTrue(notWildcardKvKey(HAS_DOLLAR));
+        assertTrue(notWildcardKvKey(HAS_BACK_SLASH));
+        assertTrue(notWildcardKvKey(HAS_TIC));
+        assertTrue(notWildcardKvKey(HAS_COLON));
+        assertTrue(notWildcardKvKey(HAS_BRACE));
     }
 }

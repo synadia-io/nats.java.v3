@@ -492,14 +492,43 @@ These v2 method names appear nowhere in v3. 20 are still to be done, 119 were re
     - ✔️ testValidateMaxConsumers — validator removed in v3
     - ✔️ testValidateMaxMessages — validator removed in v3
     - ✔️ testValidateMaxMessagesPerSubject — validator removed in v3
-    - 🚨 testValidateMaxHistory — `JsValidator.validateMaxHistory` still exists and is untested
+    - ☑️ testValidateMaxHistory
+      - 🔧 JsValidatorTest.testValidateMaxMessagesPerSubject
     - ✔️ testValidateMaxBytes — validator removed in v3
-    - 🚨 testValidateMaxBucketBytes — `JsValidator.validateMaxBucketBytes` still exists and is untested
+    - ☑️ testValidateMaxBucketBytes
+        - 🔧 JsValidatorTest.testValidateMaxBucketBytes
     - ✔️ testValidateMaxMessageSize — validator removed in v3
     - ✔️ testValidateMaxValueBytes — validator removed in v3
     - ☑️ testValidateNumberOfReplicas
       - 🔧 ApiFieldsTest.testPullConsumerCreator (numReplicas 1..5)
+      - 🔧 JsValidatorTests.testValidateNumberOfReplicas
     - ✔️ testValidateMaxLength — validator removed in v3
+    - ✏️ added in v3 so every `Validator` / `JsValidator` method is called directly
+      - 🔧 ValidatorTests.testValidateSubjectTerm
+      - 🔧 ValidatorTests.testValidateSubjectTermStrictNoRequiredFlag
+      - 🔧 ValidatorTests.testValidateSubjectStrict
+      - 🔧 ValidatorTests.test_validate
+      - 🔧 ValidatorTests.testValidatePrintableExceptWildGt
+      - 🔧 ValidatorTests.testValidateIsRestrictedTerm
+      - 🔧 ValidatorTests.testValidateNotNullString
+      - 🔧 ValidatorTests.testValidateGtZeroOrMinus1Long
+      - 🔧 ValidatorTests.testNullOrEmpty
+      - 🔧 ValidatorTests.testNotPrintable
+      - 🔧 ValidatorTests.testNotPrintableOrHasChars
+      - 🔧 ValidatorTests.testNotRestrictedTerm
+      - 🔧 ValidatorTests.testNotPrintableOrHasWildGt
+      - 🔧 ValidatorTests.testEnsureEndsWithDot
+      - 🔧 ValidatorTests.testIsSemVer
+      - 🔧 JsValidatorTests.testValidateConsumerName
+      - 🔧 JsValidatorTests.testValidatePrefixOrDomain
+      - 🔧 JsValidatorTests.testValidateKvKeysWildcardAllowedRequiredValid
+      - 🔧 JsValidatorTests.testValidateWildcardKvKey
+      - 🔧 JsValidatorTests.testValidateNonWildcardKvKey
+      - 🔧 JsValidatorTests.testValidateMaxValueSize
+      - 🔧 JsValidatorTests.testValidateNumberOfReplicas
+      - 🔧 JsValidatorTests.testValidateDurationNotRequiredGtOrEqZeroIfZero
+      - 🔧 JsValidatorTests.testNotNonWildcardKvKey
+      - 🔧 JsValidatorTests.testNotWildcardKvKey
 - 🗃️ WebsocketConnectTests.java
     - ☑️ testRequestReply
       - 🔧 WebsocketConnectTests.testWs

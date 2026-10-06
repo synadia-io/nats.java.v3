@@ -2,7 +2,7 @@
 
 The single place for anything about the test suite: what still needs porting, where coverage is missing, tests worth improving, and the flaky-test investigation history.
 
-**This file was `FLAKY_TESTS_ANALYSIS.md` until 2026-08-28**, when the test-suggestions tracker was folded into it. Several archived docs under `~development-history/` still cite the old name — they mean this file. The flaky history is preserved verbatim in Part 2 below; nothing was summarized away.
+**This file was `FLAKY_TESTS_ANALYSIS.md` until 2026-08-28**, when the test-suggestions tracker was folded into it. Several archived docs under `~development-history/` still cite the old name — they mean this file. Entries that were complete were removed on 2026-10-06; their history is in git.
 
 ## How this file is maintained
 
@@ -26,26 +26,13 @@ Established 2026-08-28. A test should not open a connection to anything outside 
 
 | File | @Test count | Lines | Notes |
 |---|---|---|---|
-| `impl/JetStreamPullTests.java` | 36 | 1479 | largest JetStream gap; pull subscribe has no V3 coverage yet |
-| `impl/KeyValueTests.java` | 31 | 2081 | KV; gated behind the KV/OS split being deferred until the JetStream API settles |
-| `impl/JetStreamOldSubscribeTests.java` | 15 | 911 | "Old" subscribe API — check what still applies before porting |
-| `impl/ObjectStoreTests.java` | 10 | 721 | OS; same gating as KV |
-| `impl/JetStreamMirrorAndSourcesTests.java` | 6 | 310 | |
-| `impl/JetStreamPushAsyncTests.java` | 6 | 422 | overlaps the async half of `JetStreamSubscribeTests` |
 | `os/ObjectStoreApiTests.java` | 5 | 409 | already uses `dataAsString` |
 | `os/KeyValueConfigurationTests.java` | 2 | 106 | |
-| `impl/JetStreamPushQueueTests.java` | 1 | 130 | the only queue-group push coverage anywhere — see the deliver-group gap below |
 
 ## Coverage gaps worth a test
 
-### Push subscribe: deliver group / queue is untested
-`JetStream._createJsSubscription` passes `cc.getDeliverGroup()` as the queue name into both the sync and async subscribe paths, and `deliverGroup` appears in no test under `jetstream/src/test/.../client/impl` — so that argument is null in every push test in the repo. `tdb/.../JetStreamPushQueueTests.java` is the unported test that would cover it.
-
 ### `HappyEyeballsConnector` — only the short circuit is covered
 Per the jacoco report, lines 58-104 are entirely uncovered: the staggered-delay task construction, `executor.invokeAny`, the winner/loser socket handling in `closeAllExcept`, and the `No responsive IP found` throw. Covering it needs a hostname resolving to 2+ addresses that are all local. Possible approach: `NatsInetAddress` goes through a pluggable `PROVIDER`, so a test provider could return two loopback addresses (`127.0.0.1` and `127.0.0.2`, both local) for a fake name — unverified, and worth checking whether the provider is swappable from a test.
-
-### ~~`pushSubscribe(String subject)` with no matching stream~~ — CLOSED
-`JsSubNoMatchingStreamForSubject` is now asserted for both push and pull in `JetStreamSubscribeTests:117,121`.
 
 ### Null-argument validation on the push subscribe overloads
 Every `MessageHandler` / `SubscribeBehavior` overload calls `Validator.required(...)` and the javadoc promises `IllegalArgumentException`; nothing asserts it.
@@ -53,51 +40,18 @@ Every `MessageHandler` / `SubscribeBehavior` overload calls `Validator.required(
 ### `SubscribeBehavior.messageAlarmTime`
 Never set in any test under `client/impl`.
 
-### ~~Creator-hierarchy validation~~ — CLOSED 2026-08-31
+### Creator hierarchy: four commented-out tests in `StreamCreatorConfigurationTests`
 
-Audited 2026-08-31, then filled. All validation in the creator hierarchy lives in seven classes; the other ten (`PullConsumerCreator`, `PushConsumerCreator`, both ordered creators, both abstract bases, `ConsumerLimitsCreator`, `PlacementCreator`, `MirrorCreator`, `SourceCreator`) validate nothing of their own.
-
-Twenty distinct conditions. Nine had no negative test and two were partial; all are covered now, in `ConsumerConfigurationTests.testConsumerCreatorErrors` (consumer side) and `StreamCreatorConfigurationTests.testConstructionInvalidsCoverage` (stream side and the satellite creators): consumer `subjects()`/`filterSubjects()`, `_durable` and `_name` bad characters, `flowControl` idle heartbeat on both overloads, `backoff` negative on both overloads, stream `subjects()`, `subjectDeleteMarkerTtl`'s `Duration` overload, `ExternalCreator`'s two constructors, `RepublishCreator`, `SubjectTransformCreator`, and `StreamSourceCreator` via `MirrorCreator`/`SourceCreator` on both constructors.
-
-**Two real bugs fell out of writing them, both in `ConsumerCreator._flowControl`:**
-
-- **`flowControl(Duration)` checked the parameter instead of the field.** `_idleHeartbeat` clears the field to null for a non-positive value, but the guard read the *parameter*, which is non-null for `Duration.ZERO` or a negative. So `flowControl(Duration.ZERO)` set `flowControl = true` with no heartbeat — exactly the state the guard exists to prevent — and threw only for a literal `null`. The millis overload was correct by accident: it has no parameter of that name, so `idleHeartbeat` there already meant the field.
-- **The millis overload's message interpolated `MIN_IDLE_HEARTBEAT` (a `Duration`) rather than `MIN_IDLE_HEARTBEAT_MILLIS`**, so it read "must be at least PT0.1S milliseconds."
+`testPlacement` (`:627`), `testRepublish` (`:691`), `testSubjectTransform` (`:708`), `testConsumerLimits` (`:721`). Their *validation* content is covered by `StreamCreatorConfigurationTests.testConstructionInvalidsCoverage`; their round-trip and getter/setter content is not.
 
 Two notes worth keeping:
 
 - **`validateSubjectTermStrict` validates a whole subject, not a single term.** `HAS_DOT` ("has.dot") is a valid two-segment subject and does *not* throw; the name misleads. The subject cases that do throw are whitespace, a leading dot, an empty segment, a trailing dot, and misplaced wildcards. `null` and `""` never reach the validator at all — `replaceAllStrings` skips empty entries before calling it.
 - **The consumer/stream replica asymmetry is real and is covered on both sides.** `ConsumerCreator` reads `numReplicas < 1 ? UNSET : validateNumberOfReplicas(numReplicas)`, so `numReplicas(0)` silently means "unset"; `StreamCreator.replicas` calls the validator directly, so `replicas(0)` throws. Easy to "fix" wrongly later if the asymmetry is not noticed.
 
-Still open, deliberately: the four commented-out test methods in `StreamCreatorConfigurationTests` — `testPlacement` (`:582`), `testRepublish` (`:646`), `testSubjectTransform` (`:663`), `testConsumerLimits` (`:676`). The *validation* they contained is now covered by the additions above; what is still uncovered is their round-trip and getter/setter content.
+### ObjectStore `ClientError`: the digest / chunks / size mismatch trio
 
-### ObjectStore `ClientError` conditions — none are covered, and they wait on the `tdb/` port
-
-Recorded 2026-08-31, **not to be acted on yet**: `ObjectStoreTests` and `ObjectStoreApiTests` are still in `tdb/`, and KV/OS are gated behind the split being deferred until the JetStream API settles. This is the checklist for when that port happens.
-
-All ten `ObjectStoreClientError` constants are thrown from `ObjectStore.java` and **none is asserted anywhere in `jetstream/src/test`**. The `tdb/` copies cover six of them, so four have no test even waiting to be ported:
-
-| Constant | Kind | Throw sites | `tdb/` coverage |
-|---|---|---|---|
-| `OsObjectNotFound` | STATE | `:217` get, `:345` updateMeta, `:382` delete | `ObjectStoreTests` ×6 |
-| `OsObjectIsDeleted` | STATE | `:348` updateMeta | `ObjectStoreTests` ×2 — **one of those two is the `addLink` case and must become `OsCantLinkToDeletedObject`** |
-| `OsObjectAlreadyExists` | STATE | `:354` updateMeta, `:423` addLink, `:446` addBucketLink | `ObjectStoreTests` ×3 |
-| `OsCantLinkToLink` | ARGUMENT | `:418` addLink | `ObjectStoreTests` ×2 |
-| `OsGetLinkToBucket` | STATE | `:223` get | `ObjectStoreTests` ×1 |
-| `OsLinkNotAllowOnPut` | ARGUMENT | `:95` put | `ObjectStoreTests` ×1 |
-| `OsGetDigestMismatch` | STATE | `:295` get | **none** |
-| `OsGetChunksMismatch` | STATE | `:267`, `:292` get | **none** |
-| `OsGetSizeMismatch` | STATE | `:293` get | **none** |
-| `OsCantLinkToDeletedObject` | ARGUMENT | `:414` addLink | **none** (constant is new, 2026-08-31) |
-
-Three things to carry into that port:
-
-- **The digest/chunks/size trio has never been tested, in v2 either.** They need a corrupted or truncated download — a stored object whose chunks, size or digest disagree with its `ObjectInfo` — which means writing chunk messages directly rather than going through `put`. That is why they have no v2 test to port, and it is the single biggest gap in the OS error surface.
-- **`tdb/io/synadia/client/impl/ObjectStoreTests.java:371` is now wrong.** It asserts `OsObjectIsDeleted` for the `addLink` case; that split off into `OsCantLinkToDeletedObject` on 2026-08-31. Line 126 (`updateMeta`) is still correct.
-- **Every kind changed on 2026-08-31** except the three ARGUMENT ones, so any ported assertion that expects `IllegalArgumentException` for `OsObjectNotFound`, `OsObjectIsDeleted`, `OsObjectAlreadyExists`, `OsGetLinkToBucket` or the mismatch trio needs `IllegalStateException` instead. See `CLIENT_ERROR_AUDIT.md` §3e.
-
-### `JetStreamSubscribeConfig` — pull
-`testJetStreamSubscribeConfigCoverage` covers push, ordered, and the with/without name prefix cases. Pull is deliberately left for Scott.
+`OsGetDigestMismatch`, `OsGetChunksMismatch` (`ObjectStore.get`) and `OsGetSizeMismatch` are asserted nowhere; the other seven `ObjectStoreClientError` constants are covered in `os/src/test/.../ObjectStoreTests.java`. The trio has never been tested, in v2 either. It needs a corrupted or truncated download — a stored object whose chunks, size or digest disagree with its `ObjectInfo` — which means writing chunk messages directly rather than going through `put`.
 
 ## Test improvements
 
@@ -113,85 +67,15 @@ Added 2026-08-28. The test stays pointed at `demo.nats.io` on purpose (see the r
 
 # Part 2 — Flaky tests: investigation history
 
-Everything below is the original `FLAKY_TESTS_ANALYSIS.md`, unchanged apart from its title line. It is a running log of observation passes, so read the dates; later passes correct earlier ones.
+Everything below comes from the original `FLAKY_TESTS_ANALYSIS.md`, with resolved entries removed on 2026-10-06. It is a running log of observation passes, so read the dates; later passes correct earlier ones.
 
 Context: passes locally on Windows (individually and full-suite), flaps on the GitHub (Linux) runners — some attempts of the same test fail (x2/x4) then pass, one fails all 5 (x5). GH runners are slower, share CPU, and have smaller/oddly-tuned socket buffers vs a dev box, so anything that races the clock or floods a socket surfaces there. Below is the concrete mechanism for each, why it shows up on CI and not Windows, and ideas. None of these point to a wrong assertion that should be "fixed" by weakening it — they're timing/resource races; the fixes are about making the test tolerant of a slow box (and one looks like a genuine behavior issue worth a closer look).
 
 ## Shared root causes
 
 1. **Fixed wall-clock budgets vs a slow CPU.** `ConnectionUtils.waitUntilStatus` polls every 100ms up to `millis` (`DEFAULT_WAIT`), `managedConnect` retries connect 10× — but only retries on `IOException`. A connection that ends in **CLOSED** throws `AssertionFailedError`, which is *not* retried. So any connect that quietly closes (slow handshake + `maxReconnects(0)`) fails immediately instead of getting the 10 retries the helper appears to promise.
-2. **Async callbacks read synchronously.** Error/slow-consumer listeners run on `callbackExecutor` (`makeCallback`, NatsConnection.java:1974). Tests assert on counters those callbacks increment, but the producing side (e.g. `getDroppedCount`) is incremented synchronously — so the assert can win the race on a fast box and lose it on CI.
-3. **Socket flooding with no reader.** Two tests push tens of MB with nothing draining. On Linux the kernel send buffer / write-timeout interplay differs from Windows, so the writer stalls, ping/pong lapses, and the connection bounces into reconnect mid-test.
-4. **Heavy JetStream provisioning vs a single request timeout.** The JS management tests create 1100–1400 entities one request at a time, each bounded by the JS request timeout (which defaults to the *connection timeout* — see JetStreamImpl.java:50). One slow round-trip in a long serial loop = timeout.
 
 ## Per-test
-
-### ConnectTests.testConnectPendingCountCoverage — x5 (fails *every* attempt; treat as a real issue, not a flake)
-- Publishes `5000 × 8KB = ~40MB` with no consumer and no flush, while a watcher thread samples `outgoingPendingMessageCount/Bytes`. Fails at `_publish` (NatsConnection.java:1036) with *"Unable to queue any more messages during reconnect, max buffer is 8388608"*.
-- That branch (NatsConnection.java:1033) only fires when `status == RECONNECTING || DISCONNECTED`. So on CI the connection **drops mid-publish**: 40MB can't be written fast enough, the OS send buffer fills, the writer stalls, ping/pong lapses → disconnect → reconnect → now publishes land in the 8MB reconnect buffer → overflow → ISE.
-- Why not Windows: different socket send-buffer sizing/timing keeps the writer ahead, so it stays CONNECTED and the messages sit in the normal (unbounded-ish) outgoing queue.
-- Ideas: the test only needs a backlog big enough to observe `pending > 0`. Either (a) cut the volume / payload so it can't trigger a disconnect, (b) periodically `nc.flushBuffer()` or read, (c) bump `reconnectBufferSize`, or (d) the test should tolerate a transient disconnect (catch the ISE once pending was already observed > 0). Worth confirming whether the disconnect itself is expected under load — if the writer stall → disconnect is "correct," this is purely a test-design problem; if not, it's a writer/heartbeat bug.
-
-### ConnectTests.testFlushBufferThreadSafety — x2
-- Publisher thread sends 50000 × 5B; main thread loops `while (t.isAlive()) nc.flushBuffer();` at line 358 — **not** wrapped in try/catch. `flushBuffer()` throws `IllegalStateException("NatsConnection is not active.")` whenever `!isConnected()` (NatsConnection.java:2530).
-- On CI a transient disconnect/reconnect (same flooding/stall story, smaller scale) makes `isConnected()` momentarily false; the bare `flushBuffer()` in the main loop throws ISE and fails the test. The publisher's own `flushBuffer` (line 332) is guarded for `IOException` but **not** for the unchecked ISE either.
-- Ideas: tolerate the not-active window in the loop (catch ISE/IOException and continue while `t.isAlive()`), or gate the flush on `nc.getStatus() == CONNECTED`. This is a test robustness gap, not an API bug — though note `flushBuffer` mixes a checked `throws IOException` declaration with an unchecked ISE for the not-connected case, which is easy to miss.
-
-### ErrorListenerTests.testExceptionInSlowConsumerHandler — flaps
-- Fails at line 128 `assertTrue(getExceptions() > 0)` — line 124 `assertEquals(3, getDroppedCount())` already passed, so the slow consumer *was* detected.
-- Mechanism: `processSlowConsumer` → `makeCallback` → `callbackExecutor.execute(...)` (async). `BadHandler.slowConsumerDetected` throws, caught at NatsConnection.java:1981 → `incrementExceptionCount()`. But `getDroppedCount()` is bumped synchronously at drop time. So on CI the callback task hasn't run yet when `getExceptions()` is read. Worse: `nc.close()` shuts down `callbackExecutor`; if the task is still queued it can hit the `RejectedExecutionException` swallow (NatsConnection.java:1986) and the exception is **never** counted.
-- Why not Windows: the callback executor drains the task before/within `close()`; CI loses that race.
-- Ideas: after `close()`, poll for `getExceptions() > 0` with a short timeout instead of reading once; or flush/await the callback executor before asserting. The comment "should force the exception listener through" assumes close synchronously drains callbacks — it doesn't guarantee that for already-dropped messages.
-
-### Port 4222 contention under parallel forks — RESOLVED 2026-08-17: a `NatsServerRunner` bug, fixed in 4.0.0
-
-`AuthTests.testWsJWTAuthWithCredsFile`, `AuthTests.testWssJWTAuthWithCredsFile` and `ReconnectTests.testWsReconnect` failed together on a clean Windows run. The server never starts:
-
-```
-java.lang.IllegalStateException: Failed to run [nats-server --config ...]
-[FTL] Error listening on port: localhost:4222, "listen tcp 127.0.0.1:4222: bind: Only one usage of each socket address"
-```
-
-The websocket listener comes up fine — it is the **ordinary client port** that fails.
-
-**Immediate cause:** `ws_operator.conf` and `wss_operator.conf` had no top-level `port` line, so nats-server used its built-in default of 4222. `build.gradle:131` sets `maxParallelForks = Math.min(6, mpf)`, so any two of those tests scheduled together collided and the second server died. Which pair collided depended on scheduling, which is why it presented as flakiness rather than a consistent failure.
-
-**Root cause, and the reason the obvious fix did not work: a bug in `NatsServerRunner`.** Adding the missing `port: 0` traded the bind failure for `IOException: Improper configuration, cannot assign port multiple times.` The runner allowed only one literal `port:` line per config file, counting one at the top level and one inside a `ws { }` block as a conflict. In the bytecode the guard was evaluated *before* the brace-depth check, so a nested listener port claimed the top-level slot and the test that would have distinguished them ran too late to matter.
-
-Fixed upstream by the repo owner — the runner now throws only for multiple *top-level* ports. Released as **`io.nats:jnats-server-runner:4.0.0`**; `build.gradle` bumped from 3.1.0.
-
-**Final state: all five ws confs use a literal `port: 0`, uniformly.** The whole change is the two lines that were missing:
-
-| File | Change |
-|---|---|
-| `ws_operator.conf` | `port: 0` added — had no top-level port line |
-| `wss_operator.conf` | `port: 0` added — had no top-level port line |
-| `ws.conf`, `wss.conf`, `wssverify.conf` | unchanged; already `port: 0` |
-
-**Second half of the fix: the test helpers were building websocket URIs from the nats port.** With the runner corrected, `WebsocketConnectTests` failed 12 of 19 — every *positive* connect test — dialing `ws://` at the plain client port. A paired reading on one live server: conf `port: 44917` (nats) and `port: 46557` (ws block), test dialed `ws://127.0.0.1:44917`.
-
-`NatsServerRunner` 4.0.0 exposes `getNatsPort()`, `getNonNatsPort()`, `getConfigPort()`, `getReadyPort()` and `getMappedPort(String)`. The test code reached only for `getNatsPort()` — `getMappedPort` was never called anywhere in the test sources. Fixed by the repo owner in `WebsocketConnectTests.wsBuilder` / `wssBuilder`, `WebsocketSupportClassesTests.testWebSocketCoverage` (a raw `Socket` driving WebSocket framing), and `NatsTestServer.getLocalhostUri(String)` / `getLocalhostUris(String, ...)`, which now pick the port from the schema instead of always using the nats port.
-
-Worth remembering from that last one: the schema test was first written `schema.equals(WS) == schema.equals(WSS)`, which is true only when **both** are false — a string cannot be `"ws"` and `"wss"` at once — so it selected the websocket port for exactly the non-websocket schemas. `||` was intended. The suite would not have caught it, because no caller passed a `nats`/`tls` schema and the websocket callers landed back on the old behaviour.
-
-**A note on what "green" proved here.** The four negative wss tests (`testClientInsecureServerSecureMismatchWss`, `testClientServerCertMismatchWss` and the `WssVerify` pair) passed throughout the broken period — they assert a connection *fails*, and it did, just because the port was unreachable rather than because of the TLS mismatch they exist to exercise. A passing negative test says nothing until you know *why* it failed.
-
-**How the runner assigns ports**, worth keeping because it drove every wrong turn below:
-
-* A **literal** `port: <number>` is *rewritten* with the port the runner assigned, and that is what `getPort()` returns. `tls.conf` ships `port: 4443` and generates `port: 45797`. The value in the template is decorative — `0`, `4443`, `22222`, `2222` all appear across the confs.
-* A **named token** — `<ws>`, `<wss>`, `<p>` — gets its own separate allocation stored under that name, retrievable via `getPort("ws")`. `<p>` is a valid generic placeholder, but the port it receives is allocated *independently* of the one `getPort()` returns, so it must not be used for a port a test intends to dial. Measured on one live server: conf read `port: 45727`, test dialed `45723`.
-
-**Three wrong turns, recorded because each was disproved by measurement rather than argument:**
-
-| Attempt | Outcome |
-|---|---|
-| "the confs are fine, don't touch them" | Wrong. Verified the runner templates *a* port — but it was the **websocket** port, never the client port the error names. Verify the substitution on the port named in the error. |
-| all five confs to `port: <p>` | Operator pair fixed, but 15 `WebsocketConnectTests` failures — `testWs`/`testWss`/`testWssVerify` also dial the plain client port, and hit the `<p>`/`getPort()` divergence. Isolated in a throwaway worktree with identical source. |
-| all five to `port: 0` | `WebsocketConnectTests` green, operator pair failing on `cannot assign port multiple times` — which is what exposed the runner bug. |
-
-Only 3 of the 19 `WebsocketConnectTests` cases are sensitive to the top-level value at all: `testWs`, `testWss` and `testWssVerify` connect twice, once plain and once over websocket. The other 16 dial `ws://` only and pass under any of these configurations, which is most of why the problem stayed hidden.
-
-**Remaining risk is unchanged in kind:** anything else holding 4222 breaks these runs the same way — a dev server, or a `nats-server` left over from an earlier run (see the next section for the WSL blind spot). No longer a design dependency of the suite, but an occupied 4222 is still worth ruling out first.
 
 ### `nkill.bat` cannot see WSL — a cross-boundary blind spot
 
@@ -210,81 +94,24 @@ WSL still has no `nclean` equivalent of its own.
 
 ### AuthTests.testWssJWTAuthWithCredsFile — flaps
 
-> **Superseded in part (2026-08-15, updated 2026-08-17).** On Windows this test failed for the port-4222 reason above — now **resolved** by giving the ws confs a `port: <p>` placeholder — not for the handshake-timing reason below. The timing analysis may still explain earlier CI observations, but check the server actually started before pursuing it: a `Failed to run [nats-server ...]` is a bind failure, not slow TLS. Re-measure before treating anything below as live, since every observation predates the conf fix.
+> **Superseded in part (2026-08-15, updated 2026-08-17).** On Windows this test failed because port 4222 was taken — **resolved 2026-08-17** (`NatsServerRunner` 4.0.0 plus `port: 0` in the ws confs) — not for the handshake-timing reason below. The timing analysis may still explain earlier CI observations, but check the server actually started before pursuing it: a `Failed to run [nats-server ...]` is a bind failure, not slow TLS. Re-measure before treating anything below as live, since every observation predates the conf fix.
 
 - `managedConnect` with `maxReconnects(0)` over **wss + TLS + JWT/creds** — the heaviest, slowest handshake path. Ends CLOSED (status), so `waitUntilStatus` throws `AssertionFailedError`.
 - Critical detail: `managedConnect`'s 10× retry loop only catches `IOException` (ConnectionUtils.java:53). A handshake that overruns the connection timeout with `maxReconnects(0)` lands in **CLOSED**, surfaced as `AssertionFailedError` — which the loop does **not** retry. So this "retrying" helper gives the slowest connect path exactly one shot.
 - Why not Windows: the wss upgrade + TLS negotiation completes inside the timeout locally; on a loaded CI runner it occasionally doesn't.
 - Ideas: raise the connection timeout for the wss/TLS cases, and/or make `managedConnect` treat a CLOSED-result (AssertionFailedError) as retryable like an IOException so the 10 retries actually apply to handshake slowness. (Bumping `maxReconnects` would change semantics the test may rely on, so prefer the timeout/retry-helper route.)
 
-### JetStreamManagementTests.testGetStreamInfoOrNamesPaginationFilter — x4
-### JetStreamManagementTests.testGetConsumers — x5
-- Both fail with *"Timeout or no response waiting for NATS JetStream server"* (`responseRequired`, JetStreamImpl.java:209) while bulk-creating entities (`addStreams` 300+1100=1400; `addConsumers` 600+500=1100) — one `createOrUpdateConsumer`/stream-create per iteration, serially.
-- Each request is bounded by the JS request timeout, which **defaults to the connection timeout** when unset (JetStreamImpl.java:50). On a loaded runner, a single round-trip in that long serial loop exceeds the budget → IOException → whole test fails. `testGetConsumers` also runs on the **shared** server (`runInShared`), so it competes with other tests' load.
-- Why not Windows: the per-request round-trips stay well under timeout locally; CI contention pushes one over.
-- Ideas: give these provisioning-heavy tests an explicit, generous `JetStreamOptions.requestTimeout` (don't inherit the connection timeout); consider running the consumer test on its own server rather than the shared one; or retry the individual create on timeout. These are stress tests of pagination — the timeout is environmental, not a correctness signal.
-- **New failure mode, 2026-09-02 — `testGetConsumers` now fails a different way, and the fix idea above would not have helped.** Linux run [33681414583](https://github.com/synadia-io/nats.java.v3/actions/runs/33681414583) on `bfe8f237`, `:jetstream:test`, 401 tests / 5 failed — this test alone, all 5 attempts, taking the build down. Not a timeout: `JetStreamApiException: maximum consumers limit reached [10026]` from `ApiResponse.throwOnHasError` via `createOrUpdateConsumer`. A hard server rejection, so a bigger `requestTimeout` changes nothing.
-- The shape: the first `addConsumers(..., 600)` succeeded and `getConsumers` returned 600, so the ceiling is crossed during the second batch of 500 (`JetStreamManagementTests.java:920`) — somewhere between 600 and 1100 consumers, with 1000 the obvious candidate. **The limit is not the test's own:** `JetStreamTestingContext.scBuilder` builds the stream with `StorageType.Memory` and never calls `maxConsumers`, so `StreamCreator`'s default `-1` (unlimited) applies, and no `.conf` in the repo sets `max_consumers`. It is coming from the server/account side; where exactly is **not** pinned down.
-- **Not caused by `bfe8f237`.** That commit's only changes to `JetStreamManagementTests` / `JetStreamTestBase` were the `subjects` -> `filterSubjects` rename (a pure rename onto the same field) and widening `createMemoryStream` to return `StreamInfo`. Neither can produce a server-side consumer cap.
-- Worth deciding whether this test needs 1100 consumers at all. It is testing that `getConsumers` pages at 256 and `getConsumerNames` at 1024 — the second property is what forces the four-figure count, and it is the half now colliding with a server limit.
-- **ROOT CAUSE — a nats-server change, found by Scott 2026-09-02. Everything above this line that blames the CI runner is wrong; the correlation with `bfe8f237` was false.** Scott's machine had a recent-but-not-latest server and passed; he upgraded to head and `testGetConsumers` fails with `maximum consumers limit reached [10026]`. CI installs head (`synadia-io/workflows/.github/actions/install_nats_server@main`), a local WSL v2.14.4 passes. Old server passes, head fails — the client did not change, the server did.
-- **Client-side gap this exposes: v3 cannot send `max_consumers` at all unless it is positive, so "unlimited" is only expressible by omission.** Two things combine. `StreamCreator` defaults `maxConsumers = -1` (`:91`), and `maxConsumers(long)` runs `normalizeLong(v, 1)` (`JetStreamApiUtils:42`), which returns `UNSET` (`= -1`, `:28`) for anything below 1 — so an explicit `.maxConsumers(-1)` stays -1. Then `addField(sb, MAX_CONSUMERS, maxConsumers)` (`StreamCreator:229`) **drops the field entirely when negative** — confirmed from the jnats-json bytecode, `addField(StringBuilder, String, Long)` does `iflt` past the append. So the stream-create request omits `max_consumers` and the server applies whatever default it likes. jnats-json has `addFieldWhenGteMinusOne` for exactly this case and it is not used here.
-- The same omission applies to every other -1 default on `StreamCreator` — `maxMessages`, `maxMessagesPerSubject`, `maxBytes`, `maxMessageSize` (`:92-95`), all serialized with plain `addField`. Latent exposure to the same class of break if the server ever changes one of those defaults.
-- **Checked 2026-09-02: no other tracked flaky test has this cause.** `JSLimitOpts` on nats-server head has exactly one entry under `// Max asset limits` — `DefaultMaxConsumers`. There is no default max-*streams* limit, so the sibling bulk test `testGetStreamInfoOrNamesPaginationFilter` (1400 streams) is not exposed to this, and its recorded failure is a timeout, which fits. Every other entry on this page fails as a timeout, a client-side state exception, or an external-host reachability problem — none as a server API error code. **A `JetStreamApiException` with an error code is the server saying no; it is never a flake.**
-- **Forward risk:** that `// Max asset limits` section holds one field today and reads like a placeholder for more. If a `DefaultMaxStreams` lands, `testGetStreamInfoOrNamesPaginationFilter` breaks exactly the way `testGetConsumers` just did, for the same reason — a four-figure asset count on a shared account.
-- **CLOSED 2026-09-03. The server team agreed it is a breaking change and are keeping it, so the 1000-consumer default is permanent.** Scott fixed the test by moving it to `runInSharedCustomContext` and creating the stream with an explicit `new StreamCreator(ctx.stream).maxConsumers(10000)`. That works because the server's override guard is `maxc <= 0` — a **positive** stream-level value is honoured, only unset and `-1` are overridden. Written up in `~development-history/NATS_SERVER_MAX_CONSUMERS_REGRESSION.md`. **CI green on `886876fe`**, and verified locally against nats-server v2.15.0-dev (which has the limit) after upgrading the WSL server to head.
-- Carry forward: **any v3 test or example that wants more than 1000 consumers on a stream must now say so explicitly.** `-1` will not do it — there is no longer a stream-level way to express "unlimited", only server config (`jetstream { limits { default_max_consumers: -1 } }`).
+### JetStreamManagementTests bulk tests — open follow-ups from the `max_consumers` server change
 
-## Summary of ideas (cheapest → most involved)
-1. Wrap the bare `flushBuffer()` loop (testFlushBufferThreadSafety) to tolerate transient not-connected.
-2. Poll-with-timeout for `getExceptions() > 0` (testExceptionInSlowConsumerHandler) instead of a single read after close.
-3. Give the JS bulk tests an explicit large `requestTimeout` (and move testGetConsumers off the shared server).
-4. Make `managedConnect` retry on a CLOSED result, and/or raise the timeout for the wss/TLS auth test.
-5. Investigate testConnectPendingCountCoverage's mid-publish disconnect specifically — decide whether the writer-stall→disconnect under a 40MB flood is expected (then fix the test volume/handling) or a heartbeat/writer bug (then fix the client). This is the one failing 5/5, so it's the least "flaky" and most likely a real signal.
+The timeouts and the `maximum consumers limit reached [10026]` failure are closed (`~development-history/NATS_SERVER_MAX_CONSUMERS_REGRESSION.md`). What is still open:
 
-All of the above are environment/timing robustness changes on the test side except item 5, which needs a decision on intended behavior first.
+- **v3 cannot send `max_consumers` at all unless it is positive, so "unlimited" is only expressible by omission.** `StreamCreator.maxConsumers(long)` normalizes anything below 1 to `UNSET` (`-1`), and `addField(sb, MAX_CONSUMERS, maxConsumers)` (`StreamCreator:229`) drops the field when negative. jnats-json has `addFieldWhenGteMinusOne` for this case and it is not used. The same omission applies to `maxMessages`, `maxMessagesPerSubject`, `maxBytes`, `maxMessageSize`.
+- **Forward risk:** nats-server's `// Max asset limits` section holds only `DefaultMaxConsumers` today. If a `DefaultMaxStreams` lands, `testGetStreamInfoOrNamesPaginationFilter` (1400 streams) breaks the way `testGetConsumers` did.
+- Carry forward: **any v3 test or example that wants more than 1000 consumers on a stream must say so explicitly** with a positive `maxConsumers`; `-1` will not do it.
 
----
+## Open idea from the first pass
 
-# Follow-up: implementation-vs-test verdicts (verified)
-
-Re-examined under the rule: **don't change behavior, fix implementation that's genuinely wrong, don't "cheat" tests — make tests exercise real behavior.** Verified the mechanisms against the code; ran `testConnectPendingCountCoverage` on WSL Linux once → it **passed**, confirming these are load-dependent, not deterministic product bugs.
-
-## Verified root-cause facts
-- Default data port = `SocketDataPortWithWriteTimeout`, **60s** write timeout → on expiry calls `forceReconnect(FORCE_CLOSE)` (SocketDataPortWithWriteTimeout.java:42-59). Real disconnect trigger under a stalled write.
-- `DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE = 5000`; `testConnectPendingCountCoverage` publishes exactly 5000 — right on the saturation boundary (`normalOutgoing` blocks/`getWriteQueuePushTimeout` once full, discard defaults false).
-- JS request timeout defaults to the **connection** timeout = **2000ms** (JetStreamImpl.java:50, DEFAULT_CONNECTION_TIMEOUT). Each of 1100–1400 serial creates gets a 2s budget.
-- `flushBuffer()` signals not-connected via **unchecked `IllegalStateException`** though it declares `throws IOException`; ISE-when-not-connected is intended and is asserted for the CLOSED case (ConnectTests.java:302). `processSlowConsumer` fires once (first drop, guarded by `markSlow`); `shutdownExecutors` drains the callback executor with `shutdown()`+`awaitTermination` (Options.java:423-434).
-- `managedConnect` retries only `IOException` (ConnectionUtils.java:53); a CLOSED outcome surfaces as `AssertionFailedError` and is **not** retried.
-
-## Verdicts
-
-| Test | Verdict | Why / action |
-|---|---|---|
-| ConnectTests.testConnectPendingCountCoverage (x5) | **Test exercises a real behavior wrongly** | Reconnect-under-write-timeout (or server-side close) is correct behavior — keep it. The test only needs to observe `outgoingPendingMessageCount/Bytes > 0`, and the sampler already takes the running max — it does **not** need a 40MB flood sitting exactly on the 5000-msg queue limit. Make it create an observable backlog **within** `DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE` so it can't tip into a reconnect. Not a product bug; not cheating (assertions unchanged). |
-| ConnectTests.testFlushBufferThreadSafety (x2) | **Test must respect flushBuffer's contract** | `flushBuffer()` legitimately throws ISE when the connection isn't active; a transient reconnect window is a valid state. The publisher loop already guards flush (but only catches `IOException`, line 332). The bare main-thread loop (line 358) must accept the not-active window. No product change. (Latent smell worth noting separately: flushBuffer mixes a declared checked `IOException` with an unchecked ISE for not-connected.) |
-| ErrorListenerTests.testExceptionInSlowConsumerHandler | **Likely not a real bug** | Callback is submitted on the reader thread before `close()` (guaranteed by `dropped==3` passing at line 124), and `close()` drains it via `awaitTermination`. Should be deterministic. If it recurs, investigate reader-delivery vs assert ordering — but leave as-is for now. |
-| AuthTests.testWssJWTAuthWithCredsFile | **Test-helper fix (legitimate)** | `managedConnect`'s whole job is "keep trying to connect"; it should retry a CLOSED outcome (slow wss/TLS handshake) the same way it retries `IOException`. Fixing the helper to do what it's named for is not cheating and changes no product behavior. |
-| JetStreamManagementTests.testGetStreamInfoOrNamesPaginationFilter (x4) | **Test workload config (legitimate)** | Give the bulk-provisioning setup an explicit, generous `JetStreamOptions.requestTimeout` instead of inheriting the 2s connection timeout. Setting a request timeout appropriate to a 1400-entity loop is correct API usage, not an assertion change. |
-| JetStreamManagementTests.testGetConsumers (x5) | **Test workload config (legitimate)** | Same as above; also consider running it on its own server rather than the shared one to remove cross-test contention. |
-
-## Implemented (this pass)
-
-Corrected two earlier facts: tests set `.socketWriteTimeout(0)` (OptionsUtils:99-101) so the 60s write-timeout port does **not** apply in tests; and the JS request timeout in these tests = the connection timeout set at OptionsUtils:91 (was 4000ms), not the 2000ms product default — because the tests never set a `JetStreamOptions.requestTimeout`. (`JetStreamOptions` *does* have a separate `requestTimeout`; when unset/≤0 it falls back to the connection timeout — JetStreamImpl.java:50. So a per-context override exists; bumping the connection timeout simply moves the inherited default.) The real slow-consumer mechanism is that the test's callback executor is **user-supplied**, so `close()` doesn't drain it (`shutdownExecutors` only drains internal executors, Options.java:423) — `close()` cannot "force the listener through" for a user executor, so the assert raced the async callback.
-
-Changes (all behavior-preserving, no assertion weakened; all six pass locally):
-- **ErrorListenerTests.testExceptionInSlowConsumerHandler**: after `close()`, poll up to `DEFAULT_WAIT` for `getExceptions() > 0` instead of reading it once — correctly synchronizing with the listener that runs on the (undrained) user callback executor.
-- **testConnectPendingCountCoverage → testOutgoingPendingCountCoverage** (moved to `NatsConnectionImplTests`): made deterministic instead of volume-based. Racing a live writer is unwinnable in both directions — a fast box drains the queue so the count is 0; a slow box backs the queue past the reconnect buffer and `publish` throws (the original 40MB flood). The counts also can't be read during reconnect at all: the getters take `closeSocketLock`, and `closeSocket` holds it for the *entire* reconnect (it calls `reconnectImpl` inside the lock, NatsConnection.java:755). So the test now stops the writer (`getWriter().stop()`, a test hook) so nothing drains, publishes a fixed batch into `normalOutgoing`, and reads the getters while CONNECTED (locks free). Same assertions as before, now deterministic; moved to the impl package because it needs `getWriter()`. Runs in ~1.5s.
-- **ConnectTests.testFlushBufferThreadSafety**: tolerate `IllegalStateException` from `flushBuffer()` in both the publisher and the main flush loop — a transient not-active window is a valid state and isn't what this concurrency test targets. flushBuffer's not-active→ISE contract is unchanged.
-- **OptionsUtils:91**: test default `connectionTimeout` 4000 → 10000. Because the JS request timeout inherits the connection timeout, this gives every JS management request a 10s budget on a loaded runner, fixing both JetStreamManagementTests timeouts without per-test config.
-
-Not changed: `managedConnect` (per your call — other ConnectionUtils helpers exist for other needs).
-
-## ConnectionUtils WAIT ladder (resolved)
-With `connectionTimeout` now 10s, `DEFAULT_WAIT` (the connect/close status-poll budget) must be ≥ the connection timeout, or a slow-but-successful connect can be abandoned before it reaches CONNECTED. Bumped the whole ladder to preserve ordering and gaps: `DEFAULT_WAIT` 5000→11000, `MEDIUM_WAIT` 8000→14000, `LONG_WAIT` 12000→18000, `VERY_LONG_WAIT` 20000→26000.
-
-## Bottom line (first pass)
-No clear product **behavior** bug surfaced — these are load-sensitivity issues. The legitimate, behavior-preserving, non-cheating changes are: (a) `managedConnect` retries a CLOSED result, (b) the two JS bulk tests set an adequate `requestTimeout`, (c) the two ConnectTests exercise their target API (pending-count reporting; concurrent flush) within the connection's real operating envelope instead of flooding/hammering into a reconnect. Item 5 from the first section (whether a 2s default JS request timeout inherited from the connection timeout is too aggressive) remains the one genuine **behavior** question for you to decide — it is consistent with jnats today, so I'd leave it unless you want to revisit the default.
+`managedConnect` retries only `IOException` (`ConnectionUtils.java:53`); a CLOSED outcome surfaces as `AssertionFailedError` and is not retried. Making it retry a CLOSED result was left unimplemented by Scott's call. Also left open: whether the JS request timeout inheriting the connection timeout (2000ms product default) is too aggressive — consistent with jnats today.
 
 ---
 
@@ -495,102 +322,18 @@ Cheap next step for `testReconnectOverOrdered`, worth doing before anything else
 
 ---
 
-# Third pass — the V2 fix for `testConnectPendingCountCoverage`, ported here, 2026-08-11
-
-`ConnectTests.testConnectPendingCountCoverage` is back in v3, copied from the manual fix made in V2. It is a faithful port — only the helper names differ (`runInJsServer` → `runInShared`, `subject()` → `random()`); the sampler thread, the payload, the loop count and both assertions are identical to `nats.java` `ConnectTests:649`.
-
-**Verdict: the fix is correct as far as it goes, but it only closes one of the two directions this test can fail in, and it makes the other one worse. Measured 4 failures in 100 runs on WSL.** Details below, then what to do about it.
-
-## What the fix does close
-
-The change is `5000 × 8KB` (~40MB) → `3000 × 2KB` (~6MB), with a comment explaining that the total must stay under the 8MB reconnect buffer. That is right, and it removes the original x5 failure mode exactly:
-
-* 6MB < the 8MB `reconnectBufferSize`, so the `_publish` overflow branch (NatsConnection.java:1033, *"Unable to queue any more messages during reconnect"*) can no longer be reached even if the connection does bounce mid-publish.
-* 3000 < `DEFAULT_MAX_MESSAGES_IN_OUTGOING_QUEUE` (5000), so `normalOutgoing` cannot block on the message-count limit either.
-
-Both of the first pass's diagnosed mechanisms are genuinely gone.
-
-## What it does not close — measured
-
-The first pass's verdict was that this shape is "an unwinnable race **in both directions** — a fast box drains the queue so the count is 0; a slow box backs the queue past the reconnect buffer and `publish` throws." The fix addresses the slow-box direction only. And because it cut the flood from 40MB to 6MB, it shrank the observation window that the fast-box direction depends on.
-
-Instrumented on WSL (gitignored `Debug*` probe, since removed), publishing the 3000 messages takes **12-27 ms end to end**. The sampler thread `sleep(1)`s per iteration, so it collects **1 to 18 samples for the entire test**. The whole assertion rests on whether a handful of samples happen to land while the queue is non-empty.
-
-100 runs of the exact test body:
-
-| Outcome | Count |
-|---|---|
-| `assertTrue(largestOutgoingPendingMessageCount.get() > 0)` would fail | **2 / 100** |
-| `assertTrue(largestOutgoingPendingBytes.get() > largestOutgoingPendingMessageCount.get() * 1000)` would fail | **4 / 100** (the 2 above, plus 2 more) |
-| Fewest samples taken in a run | **1** |
-
-The test itself passed 10/10 when run normally, which is consistent with a ~4% rate — it is not going to look broken locally.
-
-## The second assertion has its own, separate bug
-
-The two runs that failed only the ratio assertion are the interesting ones:
-
-```
-run=9   maxCount=16    maxBytes=4142     ->  4142 > 16000 ?  no
-run=24  maxCount=107   maxBytes=93195    ->  93195 > 107000 ? no
-```
-
-Both observed a real backlog, so this is not the fast-box problem. It is that **the two maxima are accumulated by two separate reads and can come from different instants**:
-
-```java
-largestOutgoingPendingMessageCount.set(Math.max(largestOutgoingPendingMessageCount.get(), nc.outgoingPendingMessageCount()));
-largestOutgoingPendingBytes.set(Math.max(largestOutgoingPendingBytes.get(), nc.outgoingPendingBytes()));
-```
-
-The count is read, the writer drains, then the bytes are read from an emptier queue. Run 24 works out to 871 bytes per message, which is not a size any message in this test has. A **consistently sampled** pair measures ~2077 bytes per message (2048 payload + ~29 protocol) — more than 2× the 1000-byte threshold — so the ratio assertion has a comfortable margin and can only fail when the pair is torn. That makes it a sampling defect, not a threshold that needs raising.
-
-Worth noting this flaw was present in the original 40MB version too. It was simply unreachable there: with 40MB in flight the queue was never near empty, so no sample could be torn far enough to matter. Shrinking the flood is what exposed it.
-
-## What to do
-
-**Both done, 2026-08-11.** v3's copy is deleted and V2 took the deterministic route rather than the two patches; see "Resolution" at the end. The reasoning that led there is below.
-
-**In v3: delete it.** v3 already has `NatsConnectionImplTests.testOutgoingPendingCountCoverage`, written during the first pass specifically to replace this test, covering the same two getters (`outgoingPendingMessageCount`, `outgoingPendingBytes`) with the same two assertions and no race at all — it stops the writer so nothing drains, publishes a fixed 20 messages, and reads the getters while CONNECTED. Re-adding the sampler version gives v3 two tests for one pair of getters, one of which fails 4% of the time. The reasoning that produced the deterministic version has not changed.
-
-**In V2, where there is no deterministic equivalent**, two cheap changes make the ported shape sound:
-1. **Sample the pair together.** Read both counters once per iteration and keep the pair with the larger count, rather than maximising the two independently. Removes the torn-pair failure entirely.
-2. **Drop the `sleep(1)`** from the sampler loop, or lengthen the publish window. At 12-27 ms of publishing, a 1 ms sleep is the binding constraint on whether the test observes anything — a free-running sampler takes thousands of samples over the same window instead of a handful.
-
-Either one alone roughly halves the failure rate; together they close both remaining modes. The far better option, if V2 exposes a comparable hook, is the same one v3 took: stop the writer and make the backlog deterministic instead of racing a live one.
-
-## Resolution (2026-08-11)
-
-**v3:** `ConnectTests.testConnectPendingCountCoverage` deleted. `ConnectTests.java` is byte-identical to its committed version again. `NatsConnectionImplTests.testOutgoingPendingCountCoverage` is unchanged and remains the coverage for both getters.
-
-**V2 (`nats.java`, at `b9c5f9da`): fixed the same way v3 was, not with the two sampler patches.** Checking the repo turned up the hooks v3 relied on, already present and already labelled for this purpose:
-
-* `NatsConnection.getWriter()` (NatsConnection.java:2346) is `protected` under a `// For testing` comment;
-* `NatsConnectionWriter.stop()` (NatsConnectionWriter.java:107) is package-private and returns `Future<Boolean>`;
-* `src/test/java/io/nats/client/impl/NatsConnectionImplTests.java` already exists in that package.
-
-So the deterministic version costs nothing extra in V2 and removes the race outright instead of narrowing it. Changes, both uncommitted in the V2 working tree:
-
-* `ConnectTests.java` — `testConnectPendingCountCoverage` removed, along with the now-unused `AtomicLong` import and two imports that were already unused in the working tree before this (`io.nats.client.support.Debug`, `AtomicInteger` — debugging leftovers).
-* `NatsConnectionImplTests.java` — added `testOutgoingPendingCountCoverage`, mirroring v3: stop the writer, publish 20 × 2KB, read both getters while CONNECTED. Uses `runInServer` with a cast to `NatsConnection`, and `LONG_TIMEOUT_MS` for the stop future since V2's `TestBase` has no `DEFAULT_WAIT`.
-
-Verified on WSL: 5 consecutive runs of `NatsConnectionImplTests` green, then the same run plus `ConnectTests` green **under a real Java 8 JDK** (`-Dorg.gradle.java.home=/usr/lib/jvm/java-8-openjdk-amd64`), not just against `sourceCompatibility = 1.8` — with `-source/-target 8` on a modern compiler a Java 9+ API still resolves at compile time and only fails at runtime on 8, so the setting alone would not have proved it. The added test uses nothing past Java 8 (`Future.get(long, TimeUnit)` and a lambda).
-
-The two sampler patches suggested above (sample the pair together; drop the `sleep(1)`) were therefore not applied. They remain the fallback if the deterministic version is ever unavailable — but they only reduce the failure rate, where stopping the writer removes the race.
-
----
-
 # Two KV tests — V2 findings and the v3 plan (2026-08-11)
 
 Was parked awaiting a V2 investigation. Those notes are now in, below, along with what v3's staging copies do differently and what to change when the KV tests are ported.
 
-| Test | V2 | v3 staging copy |
+| Test | V2 | v3 |
 |---|---|---|
-| `KeyValueTests.testJustLimitMarkerCreatePurge` | `src/test/java/io/nats/client/impl/KeyValueTests.java:1969` | `tdb/io/synadia/client/impl/KeyValueTests.java:1879` |
-| `KeyValueTests.testJustTtlForDeletePurge` | `src/test/java/io/nats/client/impl/KeyValueTests.java:2079` | `tdb/io/synadia/client/impl/KeyValueTests.java:1978` |
+| `KeyValueTests.testJustLimitMarkerCreatePurge` | `src/test/java/io/nats/client/impl/KeyValueTests.java:1969` | `kv/src/test/java/io/synadia/client/kv/KeyValueTests.java:1907` |
+| `KeyValueTests.testJustTtlForDeletePurge` | `src/test/java/io/nats/client/impl/KeyValueTests.java:2079` | `kv/src/test/java/io/synadia/client/kv/KeyValueTests.java:2001` |
 
 Both are `atLeast2_12`-gated, use a 1-second TTL (`limitMarker` / bucket `ttl`), assert the exact operation sequence of the raw stream messages from a dispatcher, and poll `getStreamInfo` for the message count to reach zero while asserting the elapsed wall clock is `>= 1000`ms.
 
-Nothing in `tdb/` is tracked in git or wired into a source set, so neither test compiles or runs in v3 today. **This is porting work, not a live defect.** The advantage of that is real: nothing here has to preserve "it was working", so the assertions can be made correct rather than merely tolerant.
+Both tests are ported into `kv/src/test` and run. None of the plan below has been applied yet: `waitForPurge` still sleeps before the first check, and the TTL test still takes its mark after `kv.delete(key)` (`:2053-2054`).
 
 ## What the V2 investigation found
 
@@ -621,7 +364,7 @@ private static long waitForPurge(JetStreamTestingContext ctx, String rawStream) 
 
 **Finding 1 does not apply to v3.** 20 tries × 500ms is a wall-clock budget of ~10 seconds regardless of machine speed. That fragility was already designed out.
 
-**Finding 2 does apply**, unchanged — `tdb/…:158` is still `kv.delete(key); long createdTimeMark = System.currentTimeMillis();`.
+**Finding 2 does apply**, unchanged — `KeyValueTests.java:2053-2054` is still `kv.delete(key); long createdTimeMark = System.currentTimeMillis();`.
 
 And the helper introduces two problems of its own:
 
@@ -714,22 +457,9 @@ java.io.IOException: Unable to connect to NATS servers: [nats://demo.nats.io:422
 
 Separately, and unrelated to the flake: per the jacoco report, `HappyEyeballsConnector` lines 58-104 — the whole multi-ip racing path — are uncovered. Only the `ips.length == 1` short circuit is exercised. Tracked under coverage gaps in Part 1.
 
-## New candidate, seen 2026-09-01: `ServiceTests.testQueueGroup` / `testResponsesFromAllInstances` — Windows CI, publish beats the service SUB
+## `ServiceTests.EchoHandler` double-counts
 
-Windows CI run [33555128704](https://github.com/synadia-io/nats.java.v3/actions/runs/33555128704) on `f2057f8f`, `:service:test`, 20 tests / 6 failed. **`Build Main` for the same commit passed** (run `33555128747`), and the commit touched nothing in the service module. First entry on this page whose axis is *Windows*-CI-only — everything above flaps on the Linux runners and passes on Windows, so do not reach for the Linux-runner explanations here.
-
-- `testResponsesFromAllInstances` (`ServiceTests.java:632`) — failed once, passed on retry
-- `testQueueGroup` (`ServiceTests.java:563`, `assertTrue(latch.await(2, TimeUnit.SECONDS))`) — failed **all 5 attempts**, exhausting `maxFailures = 4` (`build.gradle:125`) and failing the build
-
-**Mechanism: the test publishes before the server has processed the services' SUBs.** `ServiceTests.java:530-531` starts both services and then immediately publishes from a *different* connection (`:558-561`). `Service.startService()` (`Service.java:191`) → `EndpointContext.start()` (`EndpointContext.java:59`) only calls `dispatcher.subscribe(...)`, which queues the SUB on the service connections — nothing flushes. `isStarted()` (`Service.java:363`) is no help: it checks a future that `startService` completes synchronously at `:203`, so it says nothing about the server having seen the subscription. On a loaded Windows runner the PUBs beat the SUBs, the messages are dropped with no responders, and a 2-second `latch.await` cannot recover a message that was never delivered.
-
-Why only one of the two failed outright: `testQueueGroup`'s 2-second latch had no slack, while `testResponsesFromAllInstances` happened to get its timing on the retry. **Do not read anything into the 5-for-5 attempt count.** CI machines are shared instances under heavy load and sometimes simply fail; a runner wedged for one attempt is usually still wedged for the next four. Fix the mechanism, not the attempt pattern.
-
-Correcting an earlier note here: `discoverMany` publishes its request **once** (`Discovery.java:195`) and a no-responders 503 makes it return immediately (`:207`), so the 10-second `Discovery` window buys nothing against this race - it only helps with slow responses, not a dropped request.
-
-**Idea, not applied.** Flush before publishing. `ServiceTests extends TestBase` and `TestBase.flushConnection` (`TestBase.java:523`) already exists but is used nowhere in `ServiceTests`: `flushConnection(serviceNc1)` / `flushConnection(serviceNc2)` after the two `startService()` calls, and `flushConnection(clientNc)` after `d.subscribe(replyTo)` — in both tests, since both share the race.
-
-Noticed in passing: `EchoHandler.onMessage` (`ServiceTests.java:394`) increments `counter` once directly and once again inside the default single-arg constructor's `responder` lambda (`:383`), so it double-counts. Nothing reads `counter` today, so it broke nothing — but it is a landmine for the first test that does assert on it.
+The 2026-09-01 publish-beats-SUB race in `testQueueGroup` / `testResponsesFromAllInstances` is closed: both now gate on `isStarted(1000)`. Still open: `EchoHandler.onMessage` increments `counter` once directly (`ServiceTests.java:397`) and once again inside the default constructor's `responder` lambda (`:385`). Nothing reads `counter` today, so it breaks nothing — but it is a landmine for the first test that does assert on it.
 
 ## New candidate, seen 2026-09-03: `AuthTests.testEncodedPassword` — the auth failure sometimes arrives as a generic connect failure
 
@@ -748,4 +478,4 @@ Caused by: java.io.IOException: Unable to connect to NATS servers: [nats://uspac
 
 **Scott's read, 2026-09-03: a timing issue or something in the exception handling.** Not diagnosed further. The observable is that the specific `AuthenticationException` is only surfaced sometimes, and otherwise the attempt ends in the generic `"Unable to connect to NATS servers"` `IOException` from `connectImpl` (`NatsConnection.java:295`) — the same shape of problem as [[REQUEST_BEHAVIOR_IMPROVEMENT]] is fixing elsewhere: a specific, known cause collapsing into a generic `IOException` that tells the caller nothing. Worth checking whether this one is a *client* defect rather than a test defect before changing the assertion — a connect that knows it was rejected for auth and reports "unable to connect" is losing information a user would want too.
 
-**Do not "fix" this by widening the assertion to accept either exception** until that question is answered. A negative test that passes for the wrong reason proves nothing — the same trap this page already records for the four wss cases that passed all through the broken period.
+**Do not "fix" this by widening the assertion to accept either exception** until that question is answered. A negative test that passes for the wrong reason proves nothing — the four negative wss tests passed all through the 2026-08-17 port-4222 breakage because the port was unreachable, not because of the TLS mismatch they exist to exercise.

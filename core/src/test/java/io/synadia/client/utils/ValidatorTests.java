@@ -533,4 +533,205 @@ public class ValidatorTests {
         assertTrue(mapsAreEquivalent(m6, null));
         assertTrue(mapsAreEquivalent(m6, m6));
     }
+
+    @Test
+    public void testValidateSubjectTerm() {
+        assertEquals(PLAIN, validateSubjectTerm(PLAIN, "label", true));
+        assertEquals(STARTS_WITH_DOT, validateSubjectTerm(STARTS_WITH_DOT, "label", true));
+        assertEquals(ENDS_WITH_DOT, validateSubjectTerm(ENDS_WITH_DOT, "label", true));
+        assertEquals(EMPTY_SEGMENT, validateSubjectTerm(EMPTY_SEGMENT, "label", true));
+        assertEquals(STAR_NOT_SEGMENT, validateSubjectTerm(STAR_NOT_SEGMENT, "label", true));
+        assertEquals(GT_NOT_LAST_SEGMENT, validateSubjectTerm(GT_NOT_LAST_SEGMENT, "label", true));
+        assertNull(validateSubjectTerm(null, "label", false));
+        assertNull(validateSubjectTerm("", "label", false));
+
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> validateSubjectTerm(null, "label", true));
+        assertTrue(iae.getMessage().startsWith("label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTerm("", "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTerm(HAS_SPACE, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTerm(HAS_TAB, "label", false));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTerm(HAS_CR, "label", false));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTerm(HAS_LF, "label", false));
+    }
+
+    @Test
+    public void testValidateSubjectTermStrictNoRequiredFlag() {
+        assertEquals(PLAIN, validateSubjectTermStrict(PLAIN, "label"));
+        assertEquals(HAS_DOT, validateSubjectTermStrict(HAS_DOT, "label"));
+        assertEquals(STAR_SEGMENT, validateSubjectTermStrict(STAR_SEGMENT, "label"));
+        assertEquals(GT_LAST_SEGMENT, validateSubjectTermStrict(GT_LAST_SEGMENT, "label"));
+
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(STARTS_WITH_DOT, "label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(ENDS_WITH_DOT, "label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(EMPTY_SEGMENT, "label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(STAR_NOT_SEGMENT, "label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(GT_NOT_SEGMENT, "label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(GT_NOT_LAST_SEGMENT, "label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(HAS_SPACE, "label"));
+        assertThrows(IllegalArgumentException.class, () -> validateSubjectTermStrict(HAS_TAB, "label"));
+    }
+
+    @Test
+    public void testValidateSubjectStrict() {
+        allowedRequired(Validator::validateSubjectStrict, Arrays.asList(PLAIN, HAS_PRINTABLE, HAS_DOT, HAS_DOLLAR, STAR_SEGMENT, GT_LAST_SEGMENT));
+        notAllowedRequired(Validator::validateSubjectStrict, Arrays.asList(null, "", HAS_SPACE, STARTS_WITH_DOT, ENDS_WITH_DOT, EMPTY_SEGMENT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, GT_NOT_LAST_SEGMENT));
+        allowedNotRequiredEmptyAsNull(Validator::validateSubjectStrict, Arrays.asList(null, ""));
+        notAllowedNotRequired(Validator::validateSubjectStrict, Arrays.asList(HAS_SPACE, STARTS_WITH_DOT, ENDS_WITH_DOT, EMPTY_SEGMENT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, GT_NOT_LAST_SEGMENT));
+    }
+
+    @Test
+    public void test_validate() {
+        assertEquals("custom", _validate(PLAIN, true, "label", () -> "custom"));
+        assertEquals("custom", _validate(PLAIN, false, "label", () -> "custom"));
+        assertNull(_validate(null, false, "label", () -> fail("supplier must not be called")));
+        assertNull(_validate(" ", false, "label", () -> fail("supplier must not be called")));
+        assertThrows(IllegalArgumentException.class, () -> _validate(null, true, "label", () -> fail("supplier must not be called")));
+        assertThrows(IllegalArgumentException.class, () -> _validate("", true, "label", () -> fail("supplier must not be called")));
+    }
+
+    @Test
+    public void testValidatePrintableExceptWildGt() {
+        assertEquals(PLAIN, validatePrintableExceptWildGt(PLAIN, "label", true));
+        assertEquals(HAS_PRINTABLE, validatePrintableExceptWildGt(HAS_PRINTABLE, "label", true));
+        assertEquals(HAS_DOT, validatePrintableExceptWildGt(HAS_DOT, "label", true));
+        assertEquals(HAS_DOLLAR, validatePrintableExceptWildGt(HAS_DOLLAR, "label", true));
+        assertEquals(HAS_FWD_SLASH, validatePrintableExceptWildGt(HAS_FWD_SLASH, "label", true));
+        assertEquals(HAS_BACK_SLASH, validatePrintableExceptWildGt(HAS_BACK_SLASH, "label", true));
+        assertNull(validatePrintableExceptWildGt(null, "label", false));
+
+        assertThrows(IllegalArgumentException.class, () -> validatePrintableExceptWildGt(null, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrintableExceptWildGt(STAR_NOT_SEGMENT, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrintableExceptWildGt(GT_NOT_SEGMENT, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrintableExceptWildGt(HAS_SPACE, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrintableExceptWildGt(HAS_LOW, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validatePrintableExceptWildGt(HAS_127, "label", true));
+    }
+
+    @Test
+    public void testValidateIsRestrictedTerm() {
+        assertEquals(PLAIN, validateIsRestrictedTerm(PLAIN, "label", true));
+        assertEquals(HAS_DASH, validateIsRestrictedTerm(HAS_DASH, "label", true));
+        assertEquals(HAS_UNDER, validateIsRestrictedTerm(HAS_UNDER, "label", true));
+        assertNull(validateIsRestrictedTerm(null, "label", false));
+
+        assertThrows(IllegalArgumentException.class, () -> validateIsRestrictedTerm(null, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateIsRestrictedTerm(HAS_DOT, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateIsRestrictedTerm(HAS_SPACE, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateIsRestrictedTerm(HAS_DOLLAR, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateIsRestrictedTerm(HAS_FWD_SLASH, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateIsRestrictedTerm(HAS_EQUALS, "label", true));
+        assertThrows(IllegalArgumentException.class, () -> validateIsRestrictedTerm(HAS_TIC, "label", true));
+    }
+
+    @Test
+    public void testValidateNotNullString() {
+        assertEquals("s", validateNotNull("s", "fieldName"));
+        assertEquals("", validateNotNull("", "fieldName"));
+        assertThrows(IllegalArgumentException.class, () -> validateNotNull((String) null, "fieldName"));
+    }
+
+    @Test
+    public void testValidateGtZeroOrMinus1Long() {
+        assertEquals(1L, validateGtZeroOrMinus1(1L, "test"));
+        assertEquals(-1L, validateGtZeroOrMinus1(-1L, "test"));
+        assertThrows(IllegalArgumentException.class, () -> validateGtZeroOrMinus1(0L, "test"));
+        assertThrows(IllegalArgumentException.class, () -> validateGtZeroOrMinus1(-2L, "test"));
+        assertThrows(IllegalArgumentException.class, () -> validateGtZeroOrMinus1(-2, "test"));
+    }
+
+    @Test
+    public void testNullOrEmpty() {
+        assertTrue(nullOrEmpty((String) null));
+        assertTrue(nullOrEmpty(""));
+        assertTrue(nullOrEmpty(" "));
+        assertFalse(nullOrEmpty(PLAIN));
+
+        assertTrue(nullOrEmpty((String[]) null));
+        assertTrue(nullOrEmpty(new String[0]));
+        assertFalse(nullOrEmpty(new String[]{PLAIN}));
+
+        assertTrue(nullOrEmpty((Collection<?>) null));
+        assertTrue(nullOrEmpty(new ArrayList<>()));
+        assertFalse(nullOrEmpty(Collections.singletonList(PLAIN)));
+    }
+
+    @Test
+    public void testNotPrintable() {
+        assertFalse(notPrintable(PLAIN));
+        assertFalse(notPrintable(HAS_PRINTABLE));
+        assertFalse(notPrintable(HAS_EXCLAMATION));
+        assertFalse(notPrintable(HAS_TILDE));
+        assertTrue(notPrintable(HAS_SPACE));
+        assertTrue(notPrintable(HAS_LOW));
+        assertTrue(notPrintable(HAS_127));
+    }
+
+    @Test
+    public void testNotPrintableOrHasChars() {
+        char[] chars = {'x', 'y'};
+        assertFalse(notPrintableOrHasChars(PLAIN, chars));
+        assertTrue(notPrintableOrHasChars(PLAIN, new char[]{'x', 'A'})); // first char of PLAIN
+        assertTrue(notPrintableOrHasChars(PLAIN, new char[]{'9', 'y'})); // last char of PLAIN
+        assertTrue(notPrintableOrHasChars(HAS_SPACE, chars));
+        assertTrue(notPrintableOrHasChars(HAS_127, chars));
+        assertFalse(notPrintableOrHasChars(PLAIN, new char[0]));
+    }
+
+    @Test
+    public void testNotRestrictedTerm() {
+        assertFalse(notRestrictedTerm(PLAIN));
+        assertFalse(notRestrictedTerm(HAS_DASH));
+        assertFalse(notRestrictedTerm(HAS_UNDER));
+        assertTrue(notRestrictedTerm(HAS_DOT));
+        assertTrue(notRestrictedTerm(HAS_SPACE));
+        assertTrue(notRestrictedTerm(HAS_FWD_SLASH));
+        assertTrue(notRestrictedTerm(HAS_COLON));
+        assertTrue(notRestrictedTerm(HAS_AT));
+        assertTrue(notRestrictedTerm(HAS_BRACKET));
+        assertTrue(notRestrictedTerm(HAS_TIC));
+        assertTrue(notRestrictedTerm(HAS_BRACE));
+    }
+
+    @Test
+    public void testNotPrintableOrHasWildGt() {
+        assertFalse(notPrintableOrHasWildGt(PLAIN));
+        assertFalse(notPrintableOrHasWildGt(HAS_DOT));
+        assertFalse(notPrintableOrHasWildGt(HAS_FWD_SLASH));
+        assertTrue(notPrintableOrHasWildGt(STAR_NOT_SEGMENT));
+        assertTrue(notPrintableOrHasWildGt(GT_NOT_SEGMENT));
+        assertTrue(notPrintableOrHasWildGt(HAS_SPACE));
+
+        assertFalse(notPrintableOrHasWildGtDot(PLAIN));
+        assertFalse(notPrintableOrHasWildGtDot(HAS_FWD_SLASH));
+        assertTrue(notPrintableOrHasWildGtDot(HAS_DOT));
+        assertTrue(notPrintableOrHasWildGtDot(STAR_NOT_SEGMENT));
+        assertTrue(notPrintableOrHasWildGtDot(GT_NOT_SEGMENT));
+        assertTrue(notPrintableOrHasWildGtDot(HAS_SPACE));
+
+        assertFalse(notPrintableOrHasWildGtDotSlashes(PLAIN));
+        assertTrue(notPrintableOrHasWildGtDotSlashes(HAS_FWD_SLASH));
+        assertTrue(notPrintableOrHasWildGtDotSlashes(HAS_BACK_SLASH));
+        assertTrue(notPrintableOrHasWildGtDotSlashes(HAS_DOT));
+        assertTrue(notPrintableOrHasWildGtDotSlashes(STAR_NOT_SEGMENT));
+        assertTrue(notPrintableOrHasWildGtDotSlashes(GT_NOT_SEGMENT));
+        assertTrue(notPrintableOrHasWildGtDotSlashes(HAS_SPACE));
+    }
+
+    @Test
+    public void testEnsureEndsWithDot() {
+        //noinspection ConstantValue
+        assertNull(ensureEndsWithDot(null));
+        assertEquals("a.", ensureEndsWithDot("a"));
+        assertEquals("a.", ensureEndsWithDot("a."));
+        assertEquals(".", ensureEndsWithDot(""));
+    }
+
+    @Test
+    public void testIsSemVer() {
+        assertTrue(isSemVer("1.2.3"));
+        assertTrue(isSemVer("1.0.0-alpha+beta"));
+        assertFalse(isSemVer("1.2"));
+        assertFalse(isSemVer("01.1.1"));
+        assertFalse(isSemVer(""));
+    }
 }
