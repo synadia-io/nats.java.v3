@@ -27,6 +27,7 @@ The single source of truth for the things currently in progress — so any sessi
 - **Request behavior improvement** - **In progress**, `REQUEST_BEHAVIOR_IMPROVEMENT.md`. Sequence is RTT -> `Service.isStarted` -> the general rework; **the first two are done and committed**, next is Steps 1-4 (the four types).
   - Two findings from the RTT spike to carry into the classifier: entry-state errors (not connected, max pings out) stay **out** of it as `IllegalStateException`, and do **not** classify on exception type alone - `CancellationException` means different things depending on the `CancelAction`.
   - Still open in the plan: the classifier gap making `NO_RESPONDERS` unreachable on the default `REPORT` path, which is coupled to the `CANCEL_ACTION_REVISIT.md` decision. Migration-guide entries go in **as each change lands**, not batched.
+- **Port `PingTests.testPingFailsWhenClosed` / `testMessagesDelayPings`** - **Working tree, not committed**. Both pass (3 of 3 forced reruns of `PingTests`). `testPingFailsWhenClosed` dropped v2's `pingInterval(10)` / `maxPingsOut(5)`: the protocol mock does not answer timer PINGs, so the connection closed before `standardConnect` confirmed CONNECTED. `testMessagesDelayPings` runs on the shared server with random subjects. Audit entries marked ☑️.
 
 ## Recently Closed
 

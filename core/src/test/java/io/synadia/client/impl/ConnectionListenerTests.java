@@ -21,13 +21,13 @@ public class ConnectionListenerTests extends TestBase {
 
     @Test
     public void testToString() {
-        assertEquals("nats: connection closed", ConnectionEvents.CLOSED.toString());
+        assertEquals("nats: connection closed", ConnectionEvent.CLOSED.toString());
     }
     
     @Test
     public void testCloseEvent() throws Exception {
         Listener listener = new Listener();
-        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
+        listener.queueConnectionEvent(ConnectionEvent.CLOSED);
         OptionsBuilder builder = optionsBuilder().connectionListener(listener);
         runInSharedOwnNc(builder, nc -> {
             closeAndConfirm(nc);
@@ -46,7 +46,7 @@ public class ConnectionListenerTests extends TestBase {
                     .maxReconnects(0)
                     .connectionListener(listener)
                     .build();
-                listener.queueConnectionEvent(ConnectionEvents.DISCOVERED_SERVERS);
+                listener.queueConnectionEvent(ConnectionEvent.DISCOVERED_SERVERS);
                 try (NatsConnection ignore = standardConnect(options)) {
                     listener.validate();
                 }
@@ -68,7 +68,7 @@ public class ConnectionListenerTests extends TestBase {
             port = ts.getNatsPort();
             nc = managedConnect(options);
             assertEquals(ts.getServerUri(), nc.getConnectedUrl());
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
         }
 
         try { nc.flush(250); } catch (Exception exp) { /* ignored */ }
@@ -76,7 +76,7 @@ public class ConnectionListenerTests extends TestBase {
         listener.validate();
         assertNull(nc.getConnectedUrl());
 
-        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
         try (NatsTestServer ts = new NatsTestServer(port)) {
             confirmConnected(nc); // wait for reconnect
             listener.validate();
@@ -101,12 +101,12 @@ public class ConnectionListenerTests extends TestBase {
         // and DISCONNECTED - only CLOSED is recorded to keep the assertion deterministic
         Set<String> capturedEvents = ConcurrentHashMap.newKeySet();
         ConnectionListener cl1 = (conn, event, time, details) -> {
-            if (event == ConnectionEvents.CLOSED) {
+            if (event == ConnectionEvent.CLOSED) {
                 capturedEvents.add("CL1-" + event.name());
             }
         };
         ConnectionListener cl2 = (conn, event, time, details) -> {
-            if (event == ConnectionEvents.CLOSED) {
+            if (event == ConnectionEvent.CLOSED) {
                 capturedEvents.add("CL2-" + event.name());
             }
         };
@@ -145,7 +145,7 @@ public class ConnectionListenerTests extends TestBase {
     public void testMultipleConnectionListeners() throws Exception {
         Set<String> capturedEvents = ConcurrentHashMap.newKeySet();
         Listener listener = new Listener();
-        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
+        listener.queueConnectionEvent(ConnectionEvent.CLOSED);
         AtomicReference<Statistics> stats = new AtomicReference<>();
         OptionsBuilder builder = optionsBuilder().connectionListener(listener);
         runInSharedOwnNc(builder, nc -> {
@@ -182,20 +182,20 @@ public class ConnectionListenerTests extends TestBase {
 
     @Test
     public void testConnectionListenerEventCoverage() {
-        assertTrue(ConnectionEvents.CONNECTED.isConnectionEvent());
-        assertTrue(ConnectionEvents.CLOSED.isConnectionEvent());
-        assertTrue(ConnectionEvents.DISCONNECTED.isConnectionEvent());
-        assertTrue(ConnectionEvents.RECONNECTED.isConnectionEvent());
-        assertFalse(ConnectionEvents.RESUBSCRIBED.isConnectionEvent());
-        assertFalse(ConnectionEvents.DISCOVERED_SERVERS.isConnectionEvent());
-        assertFalse(ConnectionEvents.LAME_DUCK.isConnectionEvent());
+        assertTrue(ConnectionEvent.CONNECTED.isConnectionEvent());
+        assertTrue(ConnectionEvent.CLOSED.isConnectionEvent());
+        assertTrue(ConnectionEvent.DISCONNECTED.isConnectionEvent());
+        assertTrue(ConnectionEvent.RECONNECTED.isConnectionEvent());
+        assertFalse(ConnectionEvent.RESUBSCRIBED.isConnectionEvent());
+        assertFalse(ConnectionEvent.DISCOVERED_SERVERS.isConnectionEvent());
+        assertFalse(ConnectionEvent.LAME_DUCK.isConnectionEvent());
 
-        assertEquals("opened", ConnectionEvents.CONNECTED.getEvent());
-        assertEquals("nats: connection opened", ConnectionEvents.CONNECTED.getNatsEvent());
-        assertEquals(ConnectionEvents.CONNECTED.getNatsEvent(), ConnectionEvents.CONNECTED.toString());
+        assertEquals("opened", ConnectionEvent.CONNECTED.getEvent());
+        assertEquals("nats: connection opened", ConnectionEvent.CONNECTED.getNatsEvent());
+        assertEquals(ConnectionEvent.CONNECTED.getNatsEvent(), ConnectionEvent.CONNECTED.toString());
 
-        assertEquals("lame duck mode", ConnectionEvents.LAME_DUCK.getEvent());
-        assertEquals("nats: lame duck mode", ConnectionEvents.LAME_DUCK.getNatsEvent());
-        assertEquals(ConnectionEvents.LAME_DUCK.getNatsEvent(), ConnectionEvents.LAME_DUCK.toString());
+        assertEquals("lame duck mode", ConnectionEvent.LAME_DUCK.getEvent());
+        assertEquals("nats: lame duck mode", ConnectionEvent.LAME_DUCK.getNatsEvent());
+        assertEquals(ConnectionEvent.LAME_DUCK.getNatsEvent(), ConnectionEvent.LAME_DUCK.toString());
     }
 }

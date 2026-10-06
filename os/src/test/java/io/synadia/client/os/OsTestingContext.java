@@ -31,17 +31,30 @@ public class OsTestingContext implements AutoCloseable {
             .storageType(StorageType.Memory);
     }
 
-    public ObjectStoreStatus osCreate(String bucketName) throws JetStreamException, InterruptedException {
-        return osCreate(osCreator(bucketName));
+    public ObjectStore create(String bucketName) throws JetStreamException, InterruptedException {
+        return create(osCreator(bucketName));
     }
 
-    public ObjectStoreStatus osCreate(String bucketName, Function<ObjectStoreCreator, ObjectStoreCreator> fun) throws JetStreamException, InterruptedException {
-        return osCreate(fun.apply(osCreator(bucketName)));
+    public ObjectStoreStatus createReturnStatus(String bucketName) throws JetStreamException, InterruptedException {
+        return createReturnStatus(osCreator(bucketName));
     }
 
-    public ObjectStoreStatus osCreate(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
+    public ObjectStore create(String bucketName, Function<ObjectStoreCreator, ObjectStoreCreator> fun) throws JetStreamException, InterruptedException {
+        return create(fun.apply(osCreator(bucketName)));
+    }
+
+    public ObjectStoreStatus createReturnStatus(String bucketName, Function<ObjectStoreCreator, ObjectStoreCreator> fun) throws JetStreamException, InterruptedException {
+        return createReturnStatus(fun.apply(osCreator(bucketName)));
+    }
+
+    public ObjectStore create(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
         osBuckets.add(creator.getBucketName());
         return osm.create(creator);
+    }
+
+    public ObjectStoreStatus createReturnStatus(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
+        osBuckets.add(creator.getBucketName());
+        return osm.createReturnStatus(creator);
     }
 
     @Override

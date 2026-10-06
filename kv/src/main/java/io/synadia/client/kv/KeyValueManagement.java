@@ -55,14 +55,50 @@ public class KeyValueManagement {
     }
 
     /**
+     * Gets a context for working with a Key Value bucket.
+     * Saves a trip to the server if you already have a KeyValueStatus
+     * @param status a Key Value Status
+     * @return a KeyValue instance.
+     */
+    public KeyValue keyValue(KeyValueStatus status) {
+        return new KeyValue(status.getBucketName(), nc, kvo, status.getBackingStreamInfo());
+    }
+
+    /**
      * Create a key value store.
      * @param creator the key value configuration creator
-     * @return the key value Status
+     * @return the key value instance
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueStatus create(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+    public KeyValue create(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+        StreamInfo si = jsm.addStream(buildStreamCreator(creator));
+        return new KeyValue(creator.getBucketName(), nc, kvo, si);
+    }
+
+    /**
+     * Update a key value store configuration. Storage type cannot change.
+     * @param creator the key value configuration
+     * @return the key value instance
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     * @throws IllegalArgumentException the server is not JetStream enabled
+     */
+    public KeyValue update(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+        StreamInfo si = jsm.updateStream(buildStreamCreator(creator));
+        return new KeyValue(creator.getBucketName(), nc, kvo, si);
+    }
+
+    /**
+     * Create a key value store.
+     * @param creator the key value configuration creator
+     * @return the Key Value Status
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     * @throws IllegalArgumentException the server is not JetStream enabled
+     */
+    public KeyValueStatus kvCreateReturnStatus(KeyValueCreator creator) throws JetStreamException, InterruptedException {
         return new KeyValueStatus(jsm.addStream(buildStreamCreator(creator)));
     }
 
@@ -74,7 +110,7 @@ public class KeyValueManagement {
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public KeyValueStatus update(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+    public KeyValueStatus updateReturnStatus(KeyValueCreator creator) throws JetStreamException, InterruptedException {
         return new KeyValueStatus(jsm.updateStream(buildStreamCreator(creator)));
     }
 

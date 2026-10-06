@@ -269,14 +269,14 @@ public class TLSConnectTests extends TestBase {
                 .build();
             ncRef.set(managedConnect(options));
             assertInstanceOf(SocketDataPort.class, ncRef.get().getDataPort(), "Correct data port class");
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
         });
 
         NatsConnection nc = ncRef.get();
         flushConnection(nc);
         listener.validate();
 
-        listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
+        listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
         runInConfiguredServer("tlsverify.conf", newPort, ts -> listener.validate());
         closeAndConfirm(nc);
     }
@@ -585,8 +585,8 @@ public class TLSConnectTests extends TestBase {
         }
 
         @Override
-        public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {
-            if (type == ConnectionEvents.CONNECTED) {
+        public void connectionEvent(NatsConnection conn, ConnectionEvent type, Long date, String uriDetails) {
+            if (type == ConnectionEvent.CONNECTED) {
                 latch.countDown();
             }
         }

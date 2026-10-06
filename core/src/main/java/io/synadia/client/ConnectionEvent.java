@@ -3,7 +3,7 @@ package io.synadia.client;
 /**
  * Enum for connection events
  */
-public enum ConnectionEvents {
+public enum ConnectionEvent {
     /** The connection has successfully completed the handshake with the nats-server. */
     CONNECTED(true, "opened"),
     /** The connection is permanently closed, either by manual action or failed reconnects. */
@@ -28,7 +28,7 @@ public enum ConnectionEvents {
      * @param connectionEvent whether this is a connection event
      * @param event the simple event text
      */
-    ConnectionEvents(boolean connectionEvent, String event) {
+    ConnectionEvent(boolean connectionEvent, String event) {
         this.connectionEvent = connectionEvent;
         this.event = event;
         if (connectionEvent) {

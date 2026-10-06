@@ -1,6 +1,6 @@
 package io.synadia.client.utils;
 
-import io.synadia.client.ConnectionEvents;
+import io.synadia.client.ConnectionEvent;
 import io.synadia.client.ErrorListener;
 
 import java.util.ArrayList;
@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 // Prep
 // ----------------------------------------------------------------------------------------------------
 public class ListenerFuture extends CompletableFuture<Void> {
-    public ConnectionEvents eventType;
+    public ConnectionEvent eventType;
     public String error;
     public Class<?> exceptionClass;
     public String exContains;
@@ -26,7 +26,7 @@ public class ListenerFuture extends CompletableFuture<Void> {
 
     public int validateTimeout;
 
-    ListenerFuture(ConnectionEvents type, int validateTimeout) {
+    ListenerFuture(ConnectionEvent type, int validateTimeout) {
         this.eventType = type;
         this.validateTimeout = validateTimeout;
     }

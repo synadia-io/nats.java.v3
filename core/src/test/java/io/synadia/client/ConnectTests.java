@@ -196,7 +196,7 @@ public class ConnectTests {
         Listener listener = new Listener();
         try (NatsTestServer ts = new NatsTestServer()) {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
-            listener.queueConnectionEvent(ConnectionEvents.CONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.CONNECTED);
             CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, false);
             listener.validate();
 
@@ -274,7 +274,7 @@ public class ConnectTests {
         NatsConnection nc = listener.getLastConnectionEventConnection(); // will be disconnected, but should be there
         assertNotNull(nc);
 
-        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
         try (NatsTestServer ignored = new NatsTestServer(port)) {
             // once a server is up the retry succeeds and the future completes with the same connection
             assertSame(nc, future.get(DEFAULT_WAIT, TimeUnit.MILLISECONDS));
@@ -290,7 +290,7 @@ public class ConnectTests {
             .errorListener(listener)
             .noReconnect()
             .build();
-        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
+        listener.queueConnectionEvent(ConnectionEvent.CLOSED);
         CompletableFuture<NatsConnection> future = Nats.connectAsynchronously(options, false);
         listener.validate();
         assertTrue(listener.getExceptionCount() > 0);
@@ -477,10 +477,10 @@ public class ConnectTests {
         try (NatsTestServer ts = new NatsTestServer(port)) {
             try {
                 SimulateSocketDataPortException.THROW_ON_CONNECT.set(true);
-                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+                listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
                 connection = Nats.connectReconnectOnConnect(options);
                 listener.validate();
-                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+                listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
             }
             catch (Exception e) {
                 fail("should have connected " + e);
@@ -491,7 +491,7 @@ public class ConnectTests {
         simExReceived.set(false);
 
         // 2. NORMAL RECONNECT
-        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+        listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
         try (NatsTestServer ts = new NatsTestServer(port)) {
             SimulateSocketDataPortException.THROW_ON_CONNECT.set(true);
             listener.validate();

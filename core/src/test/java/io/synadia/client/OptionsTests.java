@@ -755,23 +755,23 @@ public class OptionsTests extends TestBase {
 
         ConnectionListener cl = o.getConnectionListeners().get(0);
         Listener listener = ((Listener) cl);
-        listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
-        cl.connectionEvent(null, ConnectionEvents.DISCONNECTED, null, null);
+        listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
+        cl.connectionEvent(null, ConnectionEvent.DISCONNECTED, null, null);
         listener.validate();
 
-        listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
-        cl.connectionEvent(null, ConnectionEvents.RECONNECTED, null, null);
+        listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
+        cl.connectionEvent(null, ConnectionEvent.RECONNECTED, null, null);
         listener.validate();
 
-        listener.queueConnectionEvent(ConnectionEvents.CLOSED);
-        cl.connectionEvent(null, ConnectionEvents.CLOSED, null, null);
+        listener.queueConnectionEvent(ConnectionEvent.CLOSED);
+        cl.connectionEvent(null, ConnectionEvent.CLOSED, null, null);
         listener.validate();
     }
 
     // nested, so getName() (binary name with the $) is what Class.forName needs, not getCanonicalName()
     public static class PropertyTestConnectionListener implements ConnectionListener {
         @Override
-        public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {}
+        public void connectionEvent(NatsConnection conn, ConnectionEvent type, Long date, String uriDetails) {}
     }
 
     @Test

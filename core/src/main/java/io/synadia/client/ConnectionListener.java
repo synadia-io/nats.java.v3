@@ -28,5 +28,5 @@ public interface ConnectionListener {
      * @param date the time of the event, in milliseconds since January 1, 1970, 00:00:00 GMT (matching {@link java.util.Date#Date(long)})
      * @param uriDetails extra details about the uri related to this connection event
      */
-    void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails);
+    void connectionEvent(NatsConnection conn, ConnectionEvent type, Long date, String uriDetails);
 }

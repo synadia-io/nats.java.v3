@@ -16,7 +16,7 @@ public class BadHandler implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvent type, Long date, String uriDetails) {
         throw new IllegalStateException("Intentional");
     }
 }

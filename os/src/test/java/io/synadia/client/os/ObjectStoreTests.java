@@ -9,6 +9,7 @@ import io.synadia.client.impl.JetStreamApiException;
 import io.synadia.client.impl.JetStreamOptions;
 import io.synadia.client.utils.TestBase;
 import io.synadia.client.utils.VersionUtils;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -46,7 +47,7 @@ public class ObjectStoreTests extends TestBase {
                 String bucket = random();
                 String objectDesc = random();
 
-                ObjectStoreStatus status = osCtx.osCreate(bucket,
+                ObjectStoreStatus status = osCtx.createReturnStatus(bucket,
                     cr -> cr.description(objectDesc)
                         .ttl(Duration.ofHours(24))
                         .metadata(metadata));
@@ -252,11 +253,11 @@ public class ObjectStoreTests extends TestBase {
 
                 // create bucket 1
                 String bucket1 = random();
-                osCtx.osCreate(bucket1);
+                osCtx.createReturnStatus(bucket1);
 
                 // create bucket 2
                 String bucket2 = random();
-                osCtx.osCreate(bucket2);
+                osCtx.createReturnStatus(bucket2);
 
                 List<ObjectStoreStatus> infos = osCtx.osm.getStatuses();
                 assertEquals(2, infos.size());
@@ -306,14 +307,10 @@ public class ObjectStoreTests extends TestBase {
     public void testObjectLinks() throws Exception {
         runInShared(nc -> {
             try (OsTestingContext osCtx = new OsTestingContext(nc)) {
-                ObjectStoreManagement osm = osCtx.osm;
                 String bucket1 = random();
                 String bucket2 = random();
-                osCtx.osCreate(bucket1);
-                osCtx.osCreate(bucket2);
-
-                ObjectStore os1 = osm.objectStore(bucket1);
-                ObjectStore os2 = osm.objectStore(bucket2);
+                ObjectStore os1 = osCtx.create(bucket1);
+                ObjectStore os2 = osCtx.create(bucket2);
 
                 String name1 = "name1"; // name();
                 String name2 = "name2"; // name();
@@ -427,10 +424,8 @@ public class ObjectStoreTests extends TestBase {
     public void testList() throws Exception {
         runInShared(nc -> {
             try (OsTestingContext osCtx = new OsTestingContext(nc)) {
-                ObjectStoreManagement osm = osCtx.osm;
                 String bucket = random();
-                osCtx.osCreate(bucket);
-                ObjectStore os = osm.objectStore(bucket);
+                ObjectStore os = osCtx.create(bucket);
 
                 String[] names = new String[]{random(), random(), random(), random(), random()};
                 os.put(names[0], dataBytes());
@@ -462,11 +457,8 @@ public class ObjectStoreTests extends TestBase {
     public void testSeal() throws Exception {
         runInShared(nc -> {
             try (OsTestingContext osCtx = new OsTestingContext(nc)) {
-                ObjectStoreManagement osm = osCtx.osm;
                 String bucket = random();
-                osCtx.osCreate(bucket);
-
-                ObjectStore os = osm.objectStore(bucket);
+                ObjectStore os = osCtx.create(bucket);
                 String objectName = random();
                 os.put(objectName, "data".getBytes());
 
@@ -486,10 +478,8 @@ public class ObjectStoreTests extends TestBase {
     public void testCompression() throws Exception {
         runInShared(VersionUtils::atLeast2_10, nc -> {
             try (OsTestingContext osCtx = new OsTestingContext(nc)) {
-                ObjectStoreManagement osm = osCtx.osm;
                 String bucket = random();
-                osCtx.osCreate(bucket, cr -> cr.compression(true));
-                ObjectStore os = osm.objectStore(bucket);
+                ObjectStore os = osCtx.create(bucket, cr -> cr.compression(true));
                 ObjectStoreStatus oss = os.getStatus();
                 assertTrue(oss.isCompressed());
             }
@@ -504,7 +494,7 @@ public class ObjectStoreTests extends TestBase {
                 String bucket = random();
                 String objName = random();
 
-                ObjectStoreStatus oss = osCtx.osCreate(bucket);
+                ObjectStoreStatus oss = osCtx.createReturnStatus(bucket);
                 String realStreamName = oss.getConfiguration().getBackingConfig().getName();
 
                 ObjectStore os = osm.objectStore(bucket);
@@ -553,7 +543,7 @@ public class ObjectStoreTests extends TestBase {
         }
 
         @Override
-        public void watch(ObjectInfo oi) {
+        public void watch(@NonNull ObjectInfo oi) {
             entries.add(oi);
         }
 
@@ -596,7 +586,7 @@ public class ObjectStoreTests extends TestBase {
 
     private void _testWatch(OsTestingContext osCtx, TestObjectStoreWatcher watcher, Object[] expecteds, TestWatchSubSupplier supplier) throws Exception {
         String bucket = random() + watcher.name;
-        osCtx.osCreate(bucket);
+        osCtx.createReturnStatus(bucket);
 
         ObjectStore os = osCtx.osm.objectStore(bucket);
 
@@ -665,7 +655,7 @@ public class ObjectStoreTests extends TestBase {
 
                 // Create main OS on HUB
                 String bucketName = random();
-                ObjectStoreStatus hubStatus = hubCtx.osCreate(bucketName);
+                ObjectStoreStatus hubStatus = hubCtx.createReturnStatus(bucketName);
                 assertEquals(0, hubStatus.getSize());
 
                 validateStatus(hubOsm, leafOsm, bucketName);

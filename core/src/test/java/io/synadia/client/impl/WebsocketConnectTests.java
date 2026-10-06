@@ -14,8 +14,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
-import static io.synadia.client.ConnectionEvents.CONNECTED;
-import static io.synadia.client.ConnectionEvents.RECONNECTED;
+import static io.synadia.client.ConnectionEvent.CONNECTED;
+import static io.synadia.client.ConnectionEvent.RECONNECTED;
 import static io.synadia.client.NatsTestServer.configFileBuilder;
 import static io.synadia.client.NatsTestServer.nextPort;
 import static io.synadia.client.utils.ConnectionUtils.assertConnected;

@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.ConnectionEvents;
+import io.synadia.client.ConnectionEvent;
 import io.synadia.client.ConnectionListener;
 import io.synadia.client.NatsServerProtocolMock;
 import io.synadia.client.Options;
@@ -87,7 +87,7 @@ public class InfoHandlerTests {
         String customInfo = "{\"server_id\":\"myid\", \"version\":\"9.9.99\", \"ldm\":true}";
         CompletableFuture<Boolean> gotPong = new CompletableFuture<>();
         CompletableFuture<Boolean> sendInfo = new CompletableFuture<>();
-        CompletableFuture<ConnectionEvents> connectLDM = new CompletableFuture<>();
+        CompletableFuture<ConnectionEvent> connectLDM = new CompletableFuture<>();
 
         NatsServerProtocolMock.Customizer infoCustomizer = (ts, r, w) -> {
             // Wait for client to be ready.
@@ -128,7 +128,7 @@ public class InfoHandlerTests {
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(infoCustomizer, customInfo)) {
 
             ConnectionListener cl = (conn, event, time, details) -> {
-                if (event.equals(ConnectionEvents.LAME_DUCK)) connectLDM.complete(event);
+                if (event.equals(ConnectionEvent.LAME_DUCK)) connectLDM.complete(event);
             };
 
             Options options = optionsBuilder(mockTs).connectionListener(cl).build();
@@ -142,8 +142,8 @@ public class InfoHandlerTests {
             }
         }
 
-        ConnectionEvents event = connectLDM.get(5, TimeUnit.SECONDS);
-        assertEquals(ConnectionEvents.LAME_DUCK, event);
+        ConnectionEvent event = connectLDM.get(5, TimeUnit.SECONDS);
+        assertEquals(ConnectionEvent.LAME_DUCK, event);
         // System.out.println(event);
     }
 }

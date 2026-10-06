@@ -30,7 +30,7 @@ public class Listener implements ErrorListener, ConnectionListener {
 
     private final List<ListenerFuture> futures;
     private final List<Message> discardedMessages;
-    private final Map<ConnectionEvents, Integer> connectionEventCounts;
+    private final Map<ConnectionEvent, Integer> connectionEventCounts;
     private NatsConnection lastConnectionEventConnection;
     private int exceptionCount;
     private int heartbeatAlarmCount;
@@ -150,11 +150,11 @@ public class Listener implements ErrorListener, ConnectionListener {
         futures.add(f);
     }
 
-    public void queueConnectionEvent(ConnectionEvents type) {
+    public void queueConnectionEvent(ConnectionEvent type) {
         queue("Event", new ListenerFuture(type, DEFAULT_VALIDATE_TIMEOUT));
     }
 
-    public void queueConnectionEvent(ConnectionEvents type, int validateTimeout) {
+    public void queueConnectionEvent(ConnectionEvent type, int validateTimeout) {
         queue("Event", new ListenerFuture(type, validateTimeout));
     }
 
@@ -221,7 +221,7 @@ public class Listener implements ErrorListener, ConnectionListener {
         return discardedMessages;
     }
 
-    public int getConnectionEventCount(ConnectionEvents event) {
+    public int getConnectionEventCount(ConnectionEvent event) {
         return connectionEventCounts.getOrDefault(event, 0);
     }
 
@@ -251,7 +251,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     // NatsConnection Listener
     // ----------------------------------------------------------------------------------------------------
     @Override
-    public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {
+    public void connectionEvent(NatsConnection conn, ConnectionEvent type, Long date, String uriDetails) {
         if (verbose) {
             report("connectionEvent", type);
         }

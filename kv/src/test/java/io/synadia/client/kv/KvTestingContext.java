@@ -34,17 +34,30 @@ public class KvTestingContext implements AutoCloseable {
             .storageType(StorageType.Memory);
     }
 
-    public KeyValueStatus kvCreate(String bucketName) throws JetStreamException, InterruptedException {
+    public KeyValue kvCreate(String bucketName) throws JetStreamException, InterruptedException {
         return kvCreate(kvCreator(bucketName));
     }
 
-    public KeyValueStatus kvCreate(String bucketName, Function<KeyValueCreator, KeyValueCreator> fun) throws JetStreamException, InterruptedException {
+    public KeyValueStatus kvCreateReturnStatus(String bucketName) throws JetStreamException, InterruptedException {
+        return kvCreateReturnStatus(kvCreator(bucketName));
+    }
+
+    public KeyValue kvCreate(String bucketName, Function<KeyValueCreator, KeyValueCreator> fun) throws JetStreamException, InterruptedException {
         return kvCreate(fun.apply(kvCreator(bucketName)));
     }
 
-    public KeyValueStatus kvCreate(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+    public KeyValueStatus kvCreateReturnStatus(String bucketName, Function<KeyValueCreator, KeyValueCreator> fun) throws JetStreamException, InterruptedException {
+        return kvCreateReturnStatus(fun.apply(kvCreator(bucketName)));
+    }
+
+    public KeyValue kvCreate(KeyValueCreator creator) throws JetStreamException, InterruptedException {
         kvBuckets.add(creator.getBucketName());
         return kvm.create(creator);
+    }
+
+    public KeyValueStatus kvCreateReturnStatus(KeyValueCreator creator) throws JetStreamException, InterruptedException {
+        kvBuckets.add(creator.getBucketName());
+        return kvm.kvCreateReturnStatus(creator);
     }
 
     @Override

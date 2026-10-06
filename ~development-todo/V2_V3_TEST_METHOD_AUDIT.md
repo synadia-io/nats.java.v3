@@ -227,8 +227,8 @@ These v2 method names appear nowhere in v3. 20 are still to be done, 119 were re
     - ✔️ testTimeCheckCoverage — `TimeTraceLogger` / `traceConnection()` do not exist in v3
     - ✔️ testReconnectLogging — `TimeTraceLogger` / `traceConnection()` do not exist in v3
 - 🗃️ ConnectionListenerStaleStateTests.java
-    - 🚨 testConnectEventDetailsStayCorrectWhenTheCallbackIsProcessedLate
-    - 🚨 testEventDerivedStateSettlesToTheTruthAfterRapidReconnects
+    - ☑️ testConnectEventDetailsStayCorrectWhenTheCallbackIsProcessedLate
+    - ☑️ testEventDerivedStateSettlesToTheTruthAfterRapidReconnects
 - 🗃️ ConnectionListenerTests.java
     - ☑️ testCloseCount
       - 🔧 ConnectionListenerTests.testCloseEvent
@@ -324,13 +324,14 @@ These v2 method names appear nowhere in v3. 20 are still to be done, 119 were re
     - ☑️ testAuthCreateUpdateStream
       - 🔧 JetStreamManagementWithConfTests.testGoodAuthAccount
     - ✔️ testMessageGetRequestObjectDeprecatedMethods — the deprecated `MessageGetRequest` methods are gone; the current API is covered by JetStreamManagementTests.testMessageGetRequestObject
-    - 🚨 testDirectMessageRepublishedSubject
+    - ☑️ testDirectMessageRepublishedSubject
     - ☑️ testNoRespondersWhenConsumerDeleted
       - 🔧 JetStreamManagementTests.testNoRespondersWhenConsumerDeleted1026
 - ✔️ JetStreamPubTests.java
     - ✔️ testPublishNoAck — `JetStreamOptions.publishNoAck` does not exist in v3
 - 🗃️ JetStreamPushTests.java
-    - 🚨 testCantPullOnPushSub
+    - ✔️ testCantPullOnPushSub
+      - ✏️ Push subs don't have any pull methods anymore
 - 🗃️ MessageManagerTests.java
     - 🚨 testPushBeforeQueueProcessorAndManage
     - 🚨 testPullBeforeQueueProcessorAndManage
@@ -376,8 +377,8 @@ These v2 method names appear nowhere in v3. 20 are still to be done, 119 were re
     - ☑️ testMessageLineTooLong
       - 🔧 ParseTests.testProtocolLineTooLong / testTooShortMaxControlLineToConnect
 - 🗃️ PingTests.java
-    - 🚨 testPingFailsWhenClosed
-    - 🚨 testMessagesDelayPings
+    - ☑️ testPingFailsWhenClosed
+    - ☑️ testMessagesDelayPings
 - 🗃️ PublishTests.java
     - ☑️ throwsIfClosedOnPublish
       - 🔧 PublishTests.throwsIfClosed

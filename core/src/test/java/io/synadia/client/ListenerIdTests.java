@@ -45,7 +45,7 @@ public class ListenerIdTests extends TestBase {
             }
 
             @Override
-            public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {}
+            public void connectionEvent(NatsConnection conn, ConnectionEvent type, Long date, String uriDetails) {}
         };
         assertEquals("my-connection-listener", cl.getConnectionListenerId());
     }
@@ -98,6 +98,6 @@ public class ListenerIdTests extends TestBase {
 
     static class BothListener implements ConnectionListener, ErrorListener {
         @Override
-        public void connectionEvent(NatsConnection conn, ConnectionEvents type, Long date, String uriDetails) {}
+        public void connectionEvent(NatsConnection conn, ConnectionEvent type, Long date, String uriDetails) {}
     }
 }

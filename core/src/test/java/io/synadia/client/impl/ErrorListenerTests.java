@@ -37,8 +37,8 @@ public class ErrorListenerTests extends TestBase {
             nc = Nats.connect(options);
             assertConnected(nc);
             assertEquals(ts.getServerUri(), nc.getConnectedUrl());
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
-            listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
             listener.queueError("Authorization Violation");
 
             ts.close();
@@ -216,8 +216,8 @@ public class ErrorListenerTests extends TestBase {
                 .errorListener(listener)
                 .pingInterval(100_000) // make this long so we don't ping during test
                 .build();
-            listener.queueConnectionEvent(ConnectionEvents.CONNECTED, LONG_VALIDATE_TIMEOUT);
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED, LONG_VALIDATE_TIMEOUT);
+            listener.queueConnectionEvent(ConnectionEvent.CONNECTED, LONG_VALIDATE_TIMEOUT);
+            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED, LONG_VALIDATE_TIMEOUT);
             try (NatsConnection nc = managedConnect(options)) {
                 nc.flush(1000);
                 listener.validate();

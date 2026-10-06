@@ -182,7 +182,7 @@ public class MessageContentTests extends TestBase {
                 .connectionListener(listener)
                 .build();
             try (NatsConnection ignore = ConnectionUtils.standardConnect(options)) {
-                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+                listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
                 ready.complete(Boolean.TRUE);
                 listener.validate();
             }

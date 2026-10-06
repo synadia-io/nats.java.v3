@@ -175,13 +175,13 @@ public class AuthTests extends TestBase {
             Message msg = sub.nextMessage(5000L);
             assertNotNull(msg);
 
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
         }
 
         TestBase.flushConnection(nc);
         listener.validate();
 
-        listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
+        listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
 
         try (NatsTestServer ignored = new NatsTestServer(customArgs, port)) {
             confirmConnected(nc); // wait for reconnect
@@ -233,7 +233,7 @@ public class AuthTests extends TestBase {
             flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
             Message msg = sub.nextMessage(5000L);
             assertNotNull(msg);
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
         }
 
         TestBase.flushConnection(nc);
@@ -243,7 +243,7 @@ public class AuthTests extends TestBase {
         ConnectionStatus status = nc.getStatus();
         assertTrue(
                 ConnectionStatus.RECONNECTING == status || ConnectionStatus.DISCONNECTED == status, "Reconnecting status");
-        listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
+        listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
 
         try (NatsTestServer ignored = new NatsTestServer(customArgs, port)) {
             confirmConnected(nc); // wait for reconnect
@@ -273,7 +273,7 @@ public class AuthTests extends TestBase {
 
             try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
-                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
+                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
                 ts1.close();
                 confirmConnected(nc); // wait for reconnect
                 assertEquals(nc.getConnectedUrl(), url2);
@@ -298,7 +298,7 @@ public class AuthTests extends TestBase {
             try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
 
-                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED, LONG_VALIDATE_TIMEOUT);
+                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED, LONG_VALIDATE_TIMEOUT);
                 ts1.close();
                 listener.validate();
                 assertConnected(nc);
@@ -325,7 +325,7 @@ public class AuthTests extends TestBase {
             try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
 
-                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
+                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
                 ts1.close();
                 listener.validate();
 
@@ -354,7 +354,7 @@ public class AuthTests extends TestBase {
             try (NatsConnection nc = managedConnect(options)) {
                 assertEquals(nc.getConnectedUrl(), url1);
 
-                listener.queueConnectionEvent(ConnectionEvents.RESUBSCRIBED);
+                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
                 ts1.close();
                 listener.validate();
 
@@ -552,7 +552,7 @@ public class AuthTests extends TestBase {
                 NatsConnection nc = managedConnect(options);
                 assertEquals(ts1.getServerUri(), nc.getConnectedUrl());
 
-                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+                listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
 
                 ts1.close();
 
@@ -582,7 +582,7 @@ public class AuthTests extends TestBase {
                 try (NatsConnection nc = managedConnect(options)) {
                     assertEquals(ts2.getServerUri(), nc.getConnectedUrl());
 
-                    listener.queueConnectionEvent(ConnectionEvents.CLOSED, LONG_VALIDATE_TIMEOUT);
+                    listener.queueConnectionEvent(ConnectionEvent.CLOSED, LONG_VALIDATE_TIMEOUT);
 
                     ts2.close();
 
@@ -667,7 +667,7 @@ public class AuthTests extends TestBase {
                     .connectionListener(listener)
                     .build();
 
-                listener.queueConnectionEvent(ConnectionEvents.RECONNECTED);
+                listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
 
                 try (NatsConnection nc = standardConnect(options)) {
                     assertEquals(mockTs.getServerUri(), nc.getConnectedUrl());

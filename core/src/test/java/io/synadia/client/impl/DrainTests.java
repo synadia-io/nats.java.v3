@@ -567,7 +567,7 @@ public class DrainTests {
             try (NatsConnection subCon = managedConnect(options)) {
                 subCon.flush(1000); // Get the sub to the server
 
-                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+                listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
                 ts.close(); // make the drain flush fail
                 listener.validate();
 

@@ -452,7 +452,7 @@ public class NatsConnection implements AutoCloseable {
 
         writer.enterWaitingForEndReconnectMode();
 
-        processConnectionEvent(ConnectionEvents.RESUBSCRIBED, uriDetail(currentServer));
+        processConnectionEvent(ConnectionEvent.RESUBSCRIBED, uriDetail(currentServer));
     }
 
     protected void reconnectImplConnect() {
@@ -2133,12 +2133,12 @@ public class NatsConnection implements AutoCloseable {
         List<String> urls = newServerInfo.getConnectURLs();
         if (!urls.isEmpty()) {
             if (serverPool.acceptDiscoveredUrls(urls)) {
-                processConnectionEvent(ConnectionEvents.DISCOVERED_SERVERS, urls.toString());
+                processConnectionEvent(ConnectionEvent.DISCOVERED_SERVERS, urls.toString());
             }
         }
 
         if (newServerInfo.isLameDuckMode()) {
-            processConnectionEvent(ConnectionEvents.LAME_DUCK, uriDetail(currentServer));
+            processConnectionEvent(ConnectionEvent.LAME_DUCK, uriDetail(currentServer));
             this.lameDuckTriggered = true;
         }
     }
@@ -2312,7 +2312,7 @@ public class NatsConnection implements AutoCloseable {
         return hostOrlast == null ? null : hostOrlast.toString();
     }
 
-    protected void processConnectionEvent(ConnectionEvents type, String uriDetails) {
+    protected void processConnectionEvent(ConnectionEvent type, String uriDetails) {
         long time = System.currentTimeMillis();
         for (ConnectionListener listener : connectionListeners.values()) {
             makeCallback(() -> listener.connectionEvent(this, type, time, uriDetails));
@@ -2521,16 +2521,16 @@ public class NatsConnection implements AutoCloseable {
         }
 
         if (newStatus == DISCONNECTED) {
-            processConnectionEvent(ConnectionEvents.DISCONNECTED, uriDetail);
+            processConnectionEvent(ConnectionEvent.DISCONNECTED, uriDetail);
         }
         else if (newStatus == CLOSED) {
-            processConnectionEvent(ConnectionEvents.CLOSED, uriDetail);
+            processConnectionEvent(ConnectionEvent.CLOSED, uriDetail);
         }
         else if (oldStatus == RECONNECTING && newStatus == CONNECTED) {
-            processConnectionEvent(ConnectionEvents.RECONNECTED, uriDetail);
+            processConnectionEvent(ConnectionEvent.RECONNECTED, uriDetail);
         }
         else if (newStatus == CONNECTED) {
-            processConnectionEvent(ConnectionEvents.CONNECTED, uriDetail);
+            processConnectionEvent(ConnectionEvent.CONNECTED, uriDetail);
         }
     }
 

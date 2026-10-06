@@ -53,6 +53,16 @@ public class ObjectStoreManagement {
     }
 
     /**
+     * Gets a context for working with an Object Store.
+     * Saves a trip to the server if you already have a ObjectStoreStatus
+     * @param status an Object Store Status
+     * @return an ObjectStore instance.
+     */
+    public ObjectStore objectStore(ObjectStoreStatus status) {
+        return new ObjectStore(status.getBucketName(), nc, oso);
+    }
+
+    /**
      * Create an object store.
      * @param creator the object store configuration creator
      * @return the object store status
@@ -60,7 +70,25 @@ public class ObjectStoreManagement {
      * @throws InterruptedException if interrupted while waiting for the server
      * @throws IllegalArgumentException the server is not JetStream enabled
      */
-    public ObjectStoreStatus create(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
+    public ObjectStore create(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
+        StreamCreator sc = creator.getStreamCreatorCopy()
+            .subjects(toMetaStreamSubject(creator.getBucketName()), toChunkStreamSubject(creator.getBucketName()))
+            .allowRollup(true)
+            .allowDirect(true)
+            .discardPolicy(DiscardPolicy.New);
+        jsm.addStream(sc);
+        return new ObjectStore(creator.getBucketName(), nc, oso);
+    }
+
+    /**
+     * Create an object store.
+     * @param creator the object store configuration creator
+     * @return the object store status
+     * @throws JetStreamException covers communication and server-side JetStream errors
+     * @throws InterruptedException if interrupted while waiting for the server
+     * @throws IllegalArgumentException the server is not JetStream enabled
+     */
+    public ObjectStoreStatus createReturnStatus(ObjectStoreCreator creator) throws JetStreamException, InterruptedException {
         StreamCreator sc = creator.getStreamCreatorCopy()
             .subjects(toMetaStreamSubject(creator.getBucketName()), toChunkStreamSubject(creator.getBucketName()))
             .allowRollup(true)

@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -61,7 +60,7 @@ public class KeyValueTests {
                 // create the bucket
                 String bucket = random();
                 String desc = random();
-                KeyValueStatus status = kvCtx.kvCreate(bucket,
+                KeyValueStatus status = kvCtx.kvCreateReturnStatus(bucket,
                     cr -> cr.description(desc)
                         .maxHistoryPerKey(3)
                         .metadata(metadata));
@@ -353,7 +352,7 @@ public class KeyValueTests {
                 KeyValueManagement kvm = kvCtx.kvm;
 
                 String bucket = random();
-                kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(2));
+                kvCtx.kvCreateReturnStatus(bucket, cr -> cr.maxHistoryPerKey(2));
 
                 String key = random();
                 KeyValue kv = kvm.keyValue(bucket);
@@ -389,7 +388,7 @@ public class KeyValueTests {
                 KeyValueManagement kvm = kvCtx.kvm;
 
                 String bucket = random();
-                kvCtx.kvCreate(bucket);
+                kvCtx.kvCreateReturnStatus(bucket);
 
                 KeyValue kv = kvm.keyValue(bucket);
                 for (int x = 1; x <= 10; x++) {
@@ -479,8 +478,7 @@ public class KeyValueTests {
                 String bucket2 = random();
 
                 // default maxHistoryPerKey is 1
-                kvCtx.kvCreate(bucket1);
-                KeyValue kv = kvm.keyValue(bucket1);
+                KeyValue kv = kvCtx.kvCreate(bucket1);
                 String key = random();
                 kv.put(key, 1);
                 kv.put(key, 2);
@@ -489,7 +487,7 @@ public class KeyValueTests {
                 assertEquals(1, history.size());
                 assertEquals(2, history.get(0).getValueAsLong());
 
-                kvCtx.kvCreate(bucket2, cr -> cr.maxHistoryPerKey(2));
+                kvCtx.kvCreateReturnStatus(bucket2, cr -> cr.maxHistoryPerKey(2));
 
                 key = random();
                 kv = kvm.keyValue(bucket2);
@@ -516,7 +514,7 @@ public class KeyValueTests {
                 // doesn't exist yet
                 assertThrows(JetStreamApiException.class, () -> kvm.getStatus(bucket));
 
-                KeyValueStatus kvs = kvCtx.kvCreate(bucket);
+                KeyValueStatus kvs = kvCtx.kvCreateReturnStatus(bucket);
 
                 assertEquals(bucket, kvs.getBucketName());
                 assertNull(kvs.getDescription());
@@ -549,7 +547,7 @@ public class KeyValueTests {
                     .ttl(Duration.ofHours(1))
                     .compression(compression);
 
-                kvs = kvm.update(kvc);
+                kvs = kvm.updateReturnStatus(kvc);
 
                 assertEquals(bucket, kvs.getBucketName());
                 assertEquals(desc, kvs.getDescription());
@@ -577,13 +575,9 @@ public class KeyValueTests {
     public void testHistoryDeletePurge() throws Exception {
         runInShared(nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
-
                 // create bucket
                 String bucket = random();
-                kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
-
-                KeyValue kv = kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
                 String key = random();
                 kv.put(key, "a");
                 kv.put(key, "b");
@@ -606,13 +600,9 @@ public class KeyValueTests {
     public void testAtomicDeleteAtomicPurge() throws Exception {
         runInShared(nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
-
                 // create bucket
                 String bucket = random();
-                kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
-
-                KeyValue kv = kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
                 String key = random();
                 kv.put(key, "a");
                 kv.put(key, "b");
@@ -661,13 +651,9 @@ public class KeyValueTests {
     public void testPurgeDeletes() throws Exception {
         runInShared(nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
-
                 // create bucket
                 String bucket = random();
-                kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
-
-                KeyValue kv = kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
                 String keyA = random();
                 String keyB = random();
                 String keyC = random();
@@ -722,12 +708,9 @@ public class KeyValueTests {
     public void testCreateAndUpdate() throws Exception {
         runInShared(nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
                 // create bucket
                 String bucket = random();
-                kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
-
-                KeyValue kv = kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(64));
 
                 String key = random();
                 // 1. allowed to create something that does not exist
@@ -830,10 +813,10 @@ public class KeyValueTests {
                 KeyValueManagement kvm = kvCtx.kvm;
 
                 String bucket1 = random();
-                kvCtx.kvCreate(bucket1);
+                kvCtx.kvCreateReturnStatus(bucket1);
 
                 String bucket2 = random();
-                kvCtx.kvCreate(bucket2);
+                kvCtx.kvCreateReturnStatus(bucket2);
 
                 List<KeyValueStatus> statuses = kvm.getStatuses();
                 List<String> buckets = new ArrayList<>();
@@ -1013,12 +996,8 @@ public class KeyValueTests {
     }
 
     private void _testWatch(KvTestingContext kvCtx, TestKeyValueWatcher watcher, Object[] expectedKves, long fromRevision, TestWatchSubSupplier supplier) throws Exception {
-        KeyValueManagement kvm = kvCtx.kvm;
-
         String bucket = random() + watcher.name;
-        kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(10));
-
-        KeyValue kv = kvm.keyValue(bucket);
+        KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.maxHistoryPerKey(10));
 
         KeyValueWatchSubscription sub = null;
 
@@ -1096,9 +1075,8 @@ public class KeyValueTests {
                 assertTrue(kve.getValue() == null || kve.getValue().length == 0);
                 assertEquals(0, kve.getDataLen());
             }
-            else if (expected instanceof String) {
+            else if (expected instanceof String s) {
                 assertSame(KeyValueOperation.PUT, kve.getOperation());
-                String s = (String) expected;
                 if (watcher.metaOnly) {
                     assertTrue(kve.getValue() == null || kve.getValue().length == 0);
                     assertEquals(s.length(), kve.getDataLen());
@@ -1247,7 +1225,7 @@ public class KeyValueTests {
         assertTrue(keys.contains(key2));
     }
 
-    private void assertKveAccount(KeyValue kvWorker, String key, KeyValue kvUserA, KeyValue kvUserI) throws IOException, JetStreamException, InterruptedException {
+    private void assertKveAccount(KeyValue kvWorker, String key, KeyValue kvUserA, KeyValue kvUserI) throws JetStreamException, InterruptedException {
         kvWorker.create(key, dataBytes(0));
         assertKveAccountGet(kvUserA, kvUserI, key, data(0));
 
@@ -1284,7 +1262,7 @@ public class KeyValueTests {
         }
     }
 
-    private void assertKveAccountGet(KeyValue kvUserA, KeyValue kvUserI, String key, String data) throws IOException, JetStreamException, InterruptedException {
+    private void assertKveAccountGet(KeyValue kvUserA, KeyValue kvUserI, String key, String data) throws JetStreamException, InterruptedException {
         KeyValueEntry kveUserA = kvUserA.get(key);
         KeyValueEntry kveUserI = kvUserI.get(key);
         assertNotNull(kveUserA);
@@ -1332,18 +1310,10 @@ public class KeyValueTests {
     public void testKeyValueEntryEqualsImpl() throws Exception {
         runInShared(nc -> {
             KvTestingContext kvCtx = new KvTestingContext(nc);
-            KeyValueManagement kvm = kvCtx.kvm;
-
-            // create bucket 1
             String bucket1 = random();
-            kvCtx.kvCreate(bucket1);
-
-            // create bucket 2
             String bucket2 = random();
-            kvCtx.kvCreate(bucket2);
-
-            KeyValue kv1 = kvm.keyValue(bucket1);
-            KeyValue kv2 = kvm.keyValue(bucket2);
+            KeyValue kv1 = kvCtx.kvCreate(bucket1);
+            KeyValue kv2 = kvCtx.kvCreate(bucket2);
             String key1 = random();
             String key2 = random();
             String key3 = random();
@@ -1440,7 +1410,7 @@ public class KeyValueTests {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
                 // create bucket
                 String bucket1 = random();
-                KeyValueStatus status = kvCtx.kvCreate(bucket1);
+                KeyValueStatus status = kvCtx.kvCreateReturnStatus(bucket1);
 
                 DiscardPolicy dp = status.getConfiguration().getBackingConfig().getDiscardPolicy();
                 if (nc.getServerInfo().isSameOrNewerThanVersion("2.7.2")) {
@@ -1459,9 +1429,7 @@ public class KeyValueTests {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
                 // create bucket
                 String bucket = random();
-                KeyValueStatus s = kvCtx.kvCreate(bucket);
-
-                KeyValue kv = kvCtx.kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket);
                 kv.put("a", "a");
                 KeyValueEntry kve = kv.get("a");
                 assertNotNull(kve);
@@ -1577,9 +1545,8 @@ public class KeyValueTests {
 
                 // Create main KV on HUB
                 String hubBucket = random();
-                hubCtx.kvCreate(hubBucket);
 
-                KeyValue hubKv = hubKvm.keyValue(hubBucket);
+                KeyValue hubKv = hubCtx.kvCreate(hubBucket);
                 hubKv.put("key1", "aaa0");
                 hubKv.put("key2", "bb0");
                 hubKv.put("key3", "c0");
@@ -1587,7 +1554,7 @@ public class KeyValueTests {
 
                 String leafBucket = random();
                 String leafStream = "KV_" + leafBucket;
-                leafCtx.kvCreate(leafBucket,
+                leafCtx.kvCreateReturnStatus(leafBucket,
                     cr -> cr.mirror(new MirrorCreator(hubBucket).domain(HUB_DOMAIN)));
 
                 sleep(200); // make sure things get a chance to propagate
@@ -1660,7 +1627,7 @@ public class KeyValueTests {
                 String dontMirrorSegment = "DontMirrorMe";
                 String generic = "foo";
 
-                kvCtx.kvCreate(kvName1);
+                kvCtx.kvCreateReturnStatus(kvName1);
 
                 SubjectTransformCreator transform = new SubjectTransformCreator(
                     "$KV." + kvName1 + "." + mirrorSegment + ".*",
@@ -1670,7 +1637,7 @@ public class KeyValueTests {
                 MirrorCreator mirr = new MirrorCreator(kvName1)
                     .subjectTransformCreators(transform);
 
-                kvCtx.kvCreate(kvName2, cr -> cr.mirror(mirr));
+                kvCtx.kvCreateReturnStatus(kvName2, cr -> cr.mirror(mirr));
 
                 KeyValue kv1 = kvm.keyValue(kvName1);
 
@@ -1706,7 +1673,7 @@ public class KeyValueTests {
                 KeyValueManagement kvm = kvCtx.kvm;
                 String bucket = random();
                 KeyValueCreator kvCreator = kvCtx.kvCreator(bucket);
-                KeyValueStatus status = kvCtx.kvCreate(kvCreator);
+                KeyValueStatus status = kvCtx.kvCreateReturnStatus(kvCreator);
 
                 StreamConfiguration sc = status.getBackingStreamInfo().getConfiguration();
                 assertEquals(0, sc.getMaxAge().toMillis());
@@ -1714,7 +1681,7 @@ public class KeyValueTests {
                 assertEquals(SERVER_DEFAULT_DUPLICATE_WINDOW_MS, sc.getDuplicateWindow().toMillis());
 
                 kvCreator.ttl(Duration.ofSeconds(10));
-                status = kvm.update(kvCreator);
+                status = kvm.updateReturnStatus(kvCreator);
                 sc = status.getBackingStreamInfo().getConfiguration();
                 assertEquals(10_000, sc.getMaxAge().toMillis());
                 assertNotNull(sc.getDuplicateWindow());
@@ -1722,7 +1689,7 @@ public class KeyValueTests {
 
                 bucket = random();
                 kvCreator = kvCtx.kvCreator(bucket).ttl(Duration.ofMinutes(30));
-                status = kvCtx.kvCreate(kvCreator);
+                status = kvCtx.kvCreateReturnStatus(kvCreator);
 
                 sc = status.getBackingStreamInfo().getConfiguration();
                 assertEquals(30, sc.getMaxAge().toMinutes());
@@ -1737,12 +1704,10 @@ public class KeyValueTests {
         int count = 10000;
         runInShared(VersionUtils::atLeast2_10, nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
                 String bucket = random();
-                kvCtx.kvCreate(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket);
 
                 // put a bunch of keys so consume takes some time.
-                KeyValue kv = kvm.keyValue(bucket);
                 for (int x = 0; x < count; x++) {
                     kv.put("key" + x, "" + x);
                 }
@@ -1772,7 +1737,7 @@ public class KeyValueTests {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
                 KeyValueManagement kvm = kvCtx.kvm;
                 String bucket = random();
-                KeyValueStatus status = kvCtx.kvCreate(bucket, cr -> cr.limitMarkerTtl(1000));
+                KeyValueStatus status = kvCtx.kvCreateReturnStatus(bucket, cr -> cr.limitMarkerTtl(1000));
                 assertNotNull(status.getLimitMarkerTtl());
                 assertEquals(1000, status.getLimitMarkerTtl().toMillis());
 
@@ -1789,7 +1754,7 @@ public class KeyValueTests {
                 assertNull(kve);
 
                 // coverage of duration api vs ms api
-                status = kvCtx.kvCreate(random(), cr -> cr.limitMarkerTtl(Duration.ofSeconds(2)));
+                status = kvCtx.kvCreateReturnStatus(random(), cr -> cr.limitMarkerTtl(Duration.ofSeconds(2)));
                 assertNotNull(status.getLimitMarkerTtl());
                 assertEquals(2000, status.getLimitMarkerTtl().toMillis());
 
@@ -1836,15 +1801,12 @@ public class KeyValueTests {
     public void testLimitMarkerBehavior() throws Exception {
         runInShared(VersionUtils::atLeast2_12, nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
                 String bucket = random();
                 String key1 = random();
                 String key2 = random();
                 String key3 = random();
 
-                kvCtx.kvCreate(bucket, cr -> cr.limitMarkerTtl(Duration.ofSeconds(5)));
-
-                KeyValue kv = kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.limitMarkerTtl(Duration.ofSeconds(5)));
 
                 AtomicInteger wPuts = new AtomicInteger();
                 AtomicInteger wDels = new AtomicInteger();
@@ -1945,14 +1907,11 @@ public class KeyValueTests {
     public void testJustLimitMarkerCreatePurge() throws Exception {
         runInShared(VersionUtils::atLeast2_12, nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
                 String bucket = random();
                 String rawStream = "KV_" + bucket;
                 String key = random();
 
-                kvCtx.kvCreate(bucket, cr -> cr.limitMarkerTtl(Duration.ofSeconds(1)));
-
-                KeyValue kv = kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.limitMarkerTtl(Duration.ofSeconds(1)));
 
                 CountDownLatch errorLatch = new CountDownLatch(1);
                 AtomicReference<String> error = new AtomicReference<>("");
@@ -2042,15 +2001,11 @@ public class KeyValueTests {
     public void testJustTtlForDeletePurge() throws Exception {
         runInShared(VersionUtils::atLeast2_12, nc -> {
             try (KvTestingContext kvCtx = new KvTestingContext(nc)) {
-                KeyValueManagement kvm = kvCtx.kvm;
-
                 String bucket = random();
                 String rawStream = "KV_" + bucket;
                 String key = random();
 
-                kvCtx.kvCreate(bucket, cr -> cr.ttl(Duration.ofSeconds(1)));
-
-                KeyValue kv = kvm.keyValue(bucket);
+                KeyValue kv = kvCtx.kvCreate(bucket, cr -> cr.ttl(Duration.ofSeconds(1)));
 
                 CountDownLatch errorLatch = new CountDownLatch(1);
                 AtomicReference<String> error = new AtomicReference<>("");

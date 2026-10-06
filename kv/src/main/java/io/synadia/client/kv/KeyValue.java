@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.synadia.client.impl.JetStreamConstants.JS_SEQUENCE_TEMPORARILY_UNKNOWN;
 import static io.synadia.client.impl.JetStreamConstants.JS_WRONG_LAST_SEQUENCE;
@@ -30,39 +32,47 @@ public class KeyValue extends AbstractBucketFeature {
     private final String readPrefix;
     private final String writePrefix;
 
-    KeyValue(String bucketName, NatsConnection connection) throws JetStreamException, InterruptedException {
-        this(bucketName, connection, null);
+    KeyValue(String bucketName, NatsConnection nc, KeyValueOptions kvo) throws JetStreamException, InterruptedException {
+        super(bucketName, nc, kvo);
+        StreamInfo si = jsm.getStreamInfo(streamName);
+        streamSubject = toStreamSubject(bucketName);
+        String[] prefixes = getReadAndWritePrefixes(bucketName, kvo, si);
+        readPrefix = prefixes[0];
+        writePrefix = prefixes[1];
     }
 
-    KeyValue(String bucketName, NatsConnection connection, KeyValueOptions kvo) throws JetStreamException, InterruptedException {
-        super(bucketName, connection, kvo);
-        StreamInfo si = this.jsm.getStreamInfo(streamName);
-
+    KeyValue(String bucketName, NatsConnection nc, KeyValueOptions kvo, StreamInfo si) {
+        super(bucketName, nc, kvo);
         streamSubject = toStreamSubject(bucketName);
-        String readTemp = toKeyPrefix(bucketName);
+        String[] prefixes = getReadAndWritePrefixes(bucketName, kvo, si);
+        readPrefix = prefixes[0];
+        writePrefix = prefixes[1];
+    }
 
-        String writeTemp;
+    private static String[] getReadAndWritePrefixes(String bucketName, KeyValueOptions kvo, StreamInfo si) {
+        String readPrefix = toKeyPrefix(bucketName);
+
+        String writePrefix;
         Mirror m = si.getConfiguration().getMirror();
         if (m != null) {
             String bName = trimPrefix(m.getStreamName());
             String mExtApi = m.getExternal() == null ? null : m.getExternal().getApi();
             if (mExtApi == null) {
-                writeTemp = toKeyPrefix(bName);
+                writePrefix = toKeyPrefix(bName);
             }
             else {
-                readTemp = toKeyPrefix(bName);
-                writeTemp = mExtApi + DOT + toKeyPrefix(bName);
+                readPrefix = toKeyPrefix(bName);
+                writePrefix = mExtApi + DOT + toKeyPrefix(bName);
             }
         }
         else if (kvo == null || kvo.getJetStreamOptions().isDefaultPrefix()) {
-            writeTemp = readTemp;
+            writePrefix = readPrefix;
         }
         else {
-            writeTemp = kvo.getJetStreamOptions().getPrefix() + readTemp;
+            writePrefix = kvo.getJetStreamOptions().getPrefix() + readPrefix;
         }
 
-        readPrefix = readTemp;
-        writePrefix = writeTemp;
+        return new String[]{readPrefix, writePrefix};
     }
 
     @Override

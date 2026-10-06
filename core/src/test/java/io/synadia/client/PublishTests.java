@@ -218,7 +218,7 @@ public class PublishTests extends TestBase {
 
         runInSharedOwnNc(builder, nc -> {
             listener.queueError("Maximum Payload Violation");
-            listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
             int maxPayload = (int)nc.getServerInfo().getMaxPayload();
             nc.publish(random(), new byte[maxPayload + 1]);
             listener.validateAll();

@@ -7,6 +7,7 @@ import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.synadia.client.utils.ConnectionUtils.*;
@@ -62,6 +63,18 @@ public class PingTests extends TestBase {
     }
 
     @Test
+    public void testPingFailsWhenClosed() throws Exception {
+        try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.NO_EXIT)) {
+            Options options = optionsBuilder(mockTs).maxReconnects(0).build();
+            NatsConnection nc = standardConnect(options);
+            nc.close();
+            CompletableFuture<Boolean> pong = nc.sendPing();
+            assertNotNull(pong);
+            assertFalse(pong.get(10, TimeUnit.MILLISECONDS));
+        }
+    }
+
+    @Test
     public void testMaxPingsOut() throws Exception {
         try (NatsServerProtocolMock mockTs = new NatsServerProtocolMock(ExitAt.NO_EXIT)) {
             Options options = optionsBuilder(mockTs)
@@ -100,7 +113,7 @@ public class PingTests extends TestBase {
             Options options = optionsBuilder(ts).connectionListener(listener).build();
             try (NatsConnection nc = managedConnect(options)) {
                 nc.flush(2000);
-                listener.queueConnectionEvent(ConnectionEvents.DISCONNECTED);
+                listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
                 ts.close();
                 listener.validate();
                 assertThrows(TimeoutException.class, () -> nc.flush(2000));
@@ -128,5 +141,39 @@ public class PingTests extends TestBase {
                 }
             }
         }
+    }
+
+    @Test
+    public void testMessagesDelayPings() throws Exception {
+        OptionsBuilder builder = optionsBuilder().pingInterval(200);
+        runInSharedOwnNc(builder, nc -> {
+            String subject = random();
+            String doneSubject = random();
+            CompletableFuture<Boolean> done = new CompletableFuture<>();
+            Dispatcher d = nc.createDispatcher(msg -> {
+                if (msg.getSubject().equals(doneSubject)) {
+                    done.complete(Boolean.TRUE);
+                }
+            });
+            d.subscribe(subject);
+            d.subscribe(doneSubject);
+            nc.flush(1000); // wait for the subscriptions to go through
+
+            Statistics stats = nc.getStatistics();
+            long before = stats.getPings();
+            for (int i = 0; i < 10; i++) {
+                sleep(50);
+                nc.publish(subject, new byte[16]);
+            }
+            assertEquals(before, stats.getPings(), "pings hidden");
+            nc.publish(doneSubject, new byte[16]);
+            nc.flush(1000); // wait for the messages to go through
+            done.get(500, TimeUnit.MILLISECONDS);
+
+            // no more messages, pings should start to go through
+            before = stats.getPings();
+            sleep(500);
+            assertTrue(stats.getPings() > before, "pings restarted");
+        });
     }
 }
