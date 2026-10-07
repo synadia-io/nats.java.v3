@@ -16,14 +16,4 @@ Checked against V2 (`/mnt/c/nats/nats.java`) `main` at `f74fc83f`. Each entry sa
 
 ## 2. A late reader or writer thread from the previous socket can stop or disturb the current one — suspected, not reproduced
 
-**Where:** `NatsConnectionReader.java:170, 182, 249-250, 258` and `NatsConnectionWriter.java:95, 108, 221-222, 230`.
-
-**Mechanism:** one reader object and one writer object serve every socket of the connection, each with one shared `running` flag. `start()` sets it true for the new socket's thread. An old thread that has not exited yet can:
-- reach its error handling, see `running` true (set for the new socket), and report its old socket's error through `handleCommunicationIssue`. The healthy connection then reconnects for no reason;
-- run its `finally`, which sets the shared `running` to false (`:258`, `:230`), and so stop the new socket's reader or writer. The connection then stops reading or writing while still reporting CONNECTED.
-
-**Why it is only suspected:** the connection joins the old threads before starting new ones (with timeouts), so this needs a join to time out — an old thread still alive after the stop wait. I have not reproduced it.
-
-**Fix:** a per-run flag. `start()` creates a new flag that the thread captures; `stop()` clears the current one; a thread checks and clears only its own. No change when the joins succeed.
-
-**Test:** needs a hook that stalls an old thread past the join. Not written.
+**Decision 2026-10-07: not fixed.** The window needs a reader or writer thread to outlive the `connectionTimeout` join in `closeSocketImpl` after its socket is closed; not reproduced. The per-run flag added complexity for that case only, so it was removed from both the V2 branch and classic in v3.

@@ -51,9 +51,7 @@ public class NatsConnectionWriter implements Runnable {
     private Future<Boolean> stopped;
     private Future<DataPort> dataPortFuture;
     private DataPort dataPort;
-    // A new flag per start(). The thread started by start() checks and clears only the flag it was
-    // started with, so a late thread from a previous socket cannot stop or disturb the current one.
-    private volatile AtomicBoolean running;
+    private final AtomicBoolean running;
     private final AtomicReference<Mode> mode;
     private final ReentrantLock startStopLock;
 
@@ -98,11 +96,10 @@ public class NatsConnectionWriter implements Runnable {
         this.startStopLock.lock();
         try {
             this.dataPortFuture = dataPortFuture;
-            AtomicBoolean runFlag = new AtomicBoolean(true);
-            this.running = runFlag;
+            this.running.set(true);
             this.normalOutgoing.resume();
             this.reconnectOutgoing.resume();
-            this.stopped = connection.getWriterExecutor().submit(() -> run(runFlag), Boolean.TRUE);
+            this.stopped = connection.getWriterExecutor().submit(this, Boolean.TRUE);
         } finally {
             this.startStopLock.unlock();
         }
@@ -112,9 +109,8 @@ public class NatsConnectionWriter implements Runnable {
     // Returns a future that is completed when the thread completes, not when this
     // method does.
     Future<Boolean> stop() {
-        AtomicBoolean runFlag = running;
-        if (runFlag.get()) {
-            runFlag.set(false);
+        if (running.get()) {
+            running.set(false);
             startStopLock.lock();
             try {
                 this.normalOutgoing.pause();
@@ -204,10 +200,6 @@ public class NatsConnectionWriter implements Runnable {
 
     @Override
     public void run() {
-        run(running);
-    }
-
-    private void run(AtomicBoolean runFlag) {
         long outgoingTimeoutMillis = 2 * 60 * 1000L; // 2 minutes; can be long since no one is sending
         long reconnectTimeoutMillis = 1L; // This should be short, since we are trying to get the reconnect through
 
@@ -215,7 +207,7 @@ public class NatsConnectionWriter implements Runnable {
             dataPort = this.dataPortFuture.get(); // Will wait for the future to complete
             StatisticsCollector stats = this.connection.getStatisticsCollector();
 
-            while (runFlag.get() && !Thread.interrupted()) {
+            while (running.get() && !Thread.interrupted()) {
                 NatsMessage msg;
                 if (mode.get() == Mode.Normal) {
                     msg = this.normalOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, outgoingTimeoutMillis);
@@ -229,7 +221,7 @@ public class NatsConnectionWriter implements Runnable {
             }
         } catch (IOException | BufferOverflowException io) {
             // if already not running, an IOE is not unreasonable in a transition state
-            if (runFlag.get()) {
+            if (running.get()) {
                 this.connection.handleCommunicationIssue(io);
             }
         } catch (CancellationException | ExecutionException ex) {
@@ -238,7 +230,7 @@ public class NatsConnectionWriter implements Runnable {
             // Exit
             Thread.currentThread().interrupt();
         } finally {
-            runFlag.set(false);
+            this.running.set(false);
         }
     }
 
