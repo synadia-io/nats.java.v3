@@ -4,6 +4,7 @@ import io.nats.json.DateTimeUtils;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.NUID;
 import io.synadia.client.impl.NatsConnection;
+import io.synadia.client.utils.ApiUtils;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -26,6 +27,11 @@ import static io.synadia.service.ServiceConstants.*;
  * When multiple instances of a service endpoints are active they work in a queue, meaning only one listener responds to any given request.
  */
 public class Service {
+    /**
+     * Version of the service library
+     */
+    public static final String LIBRARY_VERSION = ApiUtils.loadVersion(Service.class, "service");
+
     /**
      * Constant for the PING service
      */

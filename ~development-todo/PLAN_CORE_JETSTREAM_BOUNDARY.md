@@ -1,5 +1,9 @@
 # Core ↔ JetStream Boundary & Package Topology Plan
 
+**Superseded in direction 2026-10-07.** JPMS module-path support was dropped as a requirement (`OSGi_JPMS_TODO.md`, decision at the top): modules share packages by design and may use each other's package-private and protected members. §5 Option 3 (distinct packages + `module-info`), Phase 4–5, the "JetStream uses core only like a user" goal, and §10's interface-driven cleanup no longer follow from a requirement. The coupling measurements (§2, §3, §10a, §10b) remain accurate as of their dates. The plan is to be re-looked at fresh on this basis.
+
+**2026-10-07:** `NatsConnection` / `NatsConnectionV3` internals were made package-private, then reverted the same day (Scott): `protected` stays, because users may subclass (for example `NatsServerPool`) in cases not envisioned. Access is as before. See `PROTECTED_ACCESS_AUDIT.md`. JetStream reaches the internals through the shared package (OSGi: jetstream is a fragment of core).
+
 **Status:** Plan / design only. No code changes proposed for now — this is the "make the plan" deliverable for `TODO.md` › `## Plans / Audits TBD` item 1. It is still gated on settling the in-flight work ([[project_connection_removal]] especially); see §7.
 
 **Goal (Scott's words):** JetStream should consume core *just like any user would* — touching only core's public API, never a private/internal type or member. Today it is far from that, and nothing in the build stops it.
@@ -264,3 +268,68 @@ Under Strategy 1 almost all of M1–M3 is **additive** and does not need the mod
 - **Don't front-load `module-info`.** It's the ratchet, not the lever. Adding it before the API exists just produces unbuildable errors.
 - **Category C is a genuine fork.** "Shared utils belong in a common exported package" vs "jetstream shouldn't touch core utils at all" are different philosophies; picking one shapes whether we grow a `-common` module. Flag for Scott in Phase 1.
 - **This corrects the TODO note's coupling numbers** (§2) — the plan is built on the measured map, not the earlier estimate.
+
+## 10. The `Connection` interface and the boundary together — re-measured 2026-10-07
+
+§8 recommended a concrete public class over an interface because there was "exactly one" connection implementation. That is no longer true: `ConnectionImplementation` selects `NatsConnection` (Classic) or `NatsConnectionV3`, and active/passive (`PLAN_ACTIVE_PASSIVE_V3.md`) adds a third subclass. That is §8's justification (i), so this section plans the interface and the boundary cleanup as one piece of work: the interface is the public surface the other modules must use, so it has to hold everything they need, and nothing they reach today outside it may remain.
+
+Subscription internals are out of scope here (Scott, 2026-10-07): they are not part of the connection boundary; the `_` names stay, and `protected` is acceptable for `NatsSubscription` members if a package split ever requires it.
+
+### 10a. What the other modules call on the connection (measured)
+
+45 call sites on a `NatsConnection` receiver across `jetstream`, `kv`, `os`, `service` main sources (receivers `connection`, `conn`, `nc`; inheritance and dispatcher calls are in 10b).
+
+| Method | Calls | Visibility today | Modules |
+|---|---|---|---|
+| `publish` | 10 | public | jetstream, service |
+| `notifyErrorListener` | 7 | public | jetstream |
+| `isForceFlushOnRequest` | 4 | public | jetstream |
+| `createDispatcher` | 4 | public, returns `NatsDispatcher` | jetstream, service |
+| `request` | 3 | public | jetstream, service |
+| `createInbox` | 3 | public | jetstream |
+| `closeDispatcher` | 3 | public | jetstream, service |
+| `getOptions` | 2 | public | jetstream, kv |
+| `subscribe` | 1 | public, returns `NatsSubscription` | service |
+| `requestAsync` | 1 | public | jetstream |
+| `processException` | 1 | public | jetstream |
+| `RTT` | 1 | public | service |
+| `getServerInfo` | 1 | public | jetstream |
+| `isClosing`, `isClosed` | 1 each | **protected** | jetstream `JetStreamImpl:44` |
+| `getScheduledExecutor` | 1 | **protected** | jetstream `MessageManager:235` |
+| `_createSubscriptionByFactory` | 1 | **package-private** | jetstream `JetStream:539` |
+
+`kv` makes one connection call (`getOptions`, `KeyValue:523`), `os` none; both go through JetStream. `service` uses only public methods, but types its field as `NatsConnection` (15 declarations) and receives `NatsDispatcher`/`NatsSubscription`.
+
+### 10b. Reach the qualified-call count does not see (measured)
+
+- `NatsDispatcher._subscribeByFactory` (package-private), `JetStream:544`.
+- Other extends across the boundary: `JetStreamStatusException extends StatusException`, `JsValidator extends Validator`, `DebugJs extends Debug`.
+
+Core `.impl`/`.utils`/`.api` types referenced from the other modules (files): `Validator` 23, `NatsConnection` 23, `ApiUtils` 21, `NatsConstants` 15, `Headers` 12, `NatsDispatcher` 11, `Status` 9, `NatsMessage` 6, `StatusException` 3, `NatsSubscription` 3, `ServerInfo` 2, `NatsRequestCompletableFuture` 2, `ClientError` 2, and 1 each for `ScheduledTask`, `NatsSubscriptionFactory`, `MessageSupplier`, `JetStreamMetaData`, `IncomingHeadersProcessor`, `Digester`, `Debug`. Split packages are unchanged: jetstream still has 73 files in `io.synadia.client.api`, 55 in `.impl`, 5 in `.utils`.
+
+### 10c. Proposed `Connection` interface content
+
+In `io.synadia.client` (exported). `NatsConnection implements Connection`; `NatsConnectionV3` keeps extending `NatsConnection` (D1 of `PLAN_NATS_CONNECTION_V3.md` decides whether that changes). `Nats.connect` returns `Connection`.
+
+1. The current public user API of `NatsConnection`, retyped to public interfaces (§8 M1): `createDispatcher` → `Dispatcher`, `subscribe` → `Subscription`, `publish(Message)` instead of `NatsMessage`.
+2. The public methods the modules already use that are not user operations: `notifyErrorListener`, `processException`, `isForceFlushOnRequest`. Each needs a decision: on the interface (javadoc-labeled advanced, §8 Option A), or replaced (e.g. `isForceFlushOnRequest` is an options value).
+3. The four non-public members, each with an action:
+   - `isClosing` / `isClosed` → delete the use; `JetStreamImpl:44` uses `getStatus()` (§8 M2).
+   - `getScheduledExecutor` → public on the interface, "use with care" javadoc (§8 M3). Same decision for `getExecutor`.
+   - `_createSubscriptionByFactory` + `NatsDispatcher._subscribeByFactory` → public `subscribe(subject, queue, SubscriptionFactory)` on `Connection` and the same on `Dispatcher`; `NatsSubscriptionFactory` → public `SubscriptionFactory` (§8 M3-factory).
+
+What the interface makes visible that §8's concrete class did not: every member in 2 and 3 becomes interface API that a second implementation (V3, AP) must also honor; today they are inherited from `NatsConnection` and come for free.
+
+### 10d. Order
+
+1. M2 (`isClosing`/`isClosed` → `getStatus`) and M1 (retype returns): additive, no interface yet.
+2. Extract `Connection` with the members in 10c; `NatsConnection implements Connection`; `Nats.connect` returns `Connection`.
+3. Repoint `jetstream`, `kv`, `os`, `service` fields and parameters from `NatsConnection` to `Connection`; any call that no longer compiles is a member 10c missed.
+4. Per-module internal packages + `module-info` (§5 Option 3, Phase 4–5), D4 exceptions moved in the same pass. After step 3 the `NatsConnection` row of 10b is gone; the remaining split-package reach is the value types (`Headers`, `NatsMessage`) and the shared utils (§4 B and C).
+
+### 10e. Open decisions
+
+- **C1.** Interface (this section) or concrete public class (§8). Two implementations now exist; recommendation is the interface.
+- **C2.** `notifyErrorListener`, `processException`, `isForceFlushOnRequest`: on the interface, or replaced.
+- **C3.** Executors public on the interface: `getScheduledExecutor` only, or also `getExecutor` (reader/writer executors stay internal).
+- **C5.** Does `Connection` replace `NatsConnection` in every public signature (JetStream, KV, OS, Service factories and constructors), with `NatsConnection` no longer named in any other module's source?

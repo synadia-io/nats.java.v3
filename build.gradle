@@ -73,13 +73,13 @@ subprojects {
         testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
     }
 
-    // version.properties generation — safe outside afterEvaluate because
+    // <project name>-version.properties generation (a distinct name per jar, so jars on one classpath do not shadow each other) — safe outside afterEvaluate because
     // version is only read at execution time (inside doLast), not config time
     def generateVersionProps = tasks.register("generateVersionProperties") {
         def propsDir = layout.buildDirectory.dir("generated-resources/main")
         outputs.dir(propsDir)
         doLast {
-            def f = propsDir.get().file("io/synadia/jnats3/version.properties").asFile
+            def f = propsDir.get().file("io/synadia/jnats3/${project.name}-version.properties").asFile
             f.parentFile.mkdirs()
             f.text = "version=${version}\n"
         }

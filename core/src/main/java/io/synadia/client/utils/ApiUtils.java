@@ -7,11 +7,13 @@ import io.synadia.client.NUID;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.function.Function;
 
 /**
@@ -156,5 +158,28 @@ public abstract class ApiUtils {
     public static ZonedDateTime readDateOrDefault(@NonNull LazyJsonValue ljv, @NonNull String key) {
         ZonedDateTime zdt = LazyJsonValueUtils.readDate(ljv, key);
         return zdt == null ? DateTimeUtils.DEFAULT_TIME : zdt;
+    }
+
+    /**
+     * Read a module's version from the {@code <project>-version.properties} resource the build puts in that module's jar.
+     * @param anchor a class in the module; its class loader finds the resource
+     * @param projectName the module's project name, for example {@code core} or {@code jetstream}
+     * @return the version, or {@code development} if the resource cannot be read
+     */
+    public static String loadVersion(Class<?> anchor, String projectName) {
+        try (InputStream is = anchor.getResourceAsStream("/io/synadia/jnats3/" + projectName + "-version.properties")) {
+            if (is != null) {
+                Properties props = new Properties();
+                props.load(is);
+                String version = props.getProperty("version");
+                if (version != null) {
+                    return version;
+                }
+            }
+        }
+        catch (Exception ignore) {
+            // don't fail on any exception
+        }
+        return "development";
     }
 }

@@ -28,3 +28,10 @@ javadoc {
     title = "SYNADIA.IO ObjectStore API"
     classpath = sourceSets.main.runtimeClasspath
 }
+
+// OSGi: export this module's package
+jar {
+    bundle {
+        bnd('-exportcontents': 'io.synadia.client.os')
+    }
+}

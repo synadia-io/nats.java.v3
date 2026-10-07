@@ -2,10 +2,9 @@ package io.synadia.client;
 
 import io.synadia.client.impl.NatsConnection;
 import io.synadia.client.impl.NatsImpl;
+import io.synadia.client.utils.ApiUtils;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -67,27 +66,13 @@ public abstract class Nats {
     /**
      * Current version of the library
      */
-    public static final String CLIENT_VERSION;
+    public static final String CLIENT_VERSION = ApiUtils.loadVersion(Nats.class, "core");
 
     /**
      * Current language of the library - {@value}
      */
     public static final String CLIENT_LANGUAGE = "java";
 
-    static {
-        Properties props = new Properties();
-        String cv = null;
-        try (InputStream is = Nats.class.getResourceAsStream("/io/synadia/jnats/version.properties")) {
-            if (is != null) {
-                props.load(is);
-                cv = props.getProperty("version");
-            }
-        }
-        catch (Exception ignore) {
-            // don't fail on any exception
-        }
-        CLIENT_VERSION = cv == null ? "development" : cv;
-    }
 
     /**
      * Connect to the default URL, {@link OptionsConstants#DEFAULT_URL DEFAULT_URL}, with all the

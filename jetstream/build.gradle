@@ -41,3 +41,13 @@ configurations {
 artifacts {
     testOutput testJar
 }
+
+// OSGi: a fragment of the core bundle, loaded by core's class loader, because it shares the
+// io.synadia.client.api / impl / utils packages with core and uses their package-private members.
+// Its classes are reached through the core bundle's exports of those packages.
+jar {
+    bundle {
+        bnd('Fragment-Host': 'jnats3-core',
+            'Import-Package': '!io.synadia.client.*, *')
+    }
+}

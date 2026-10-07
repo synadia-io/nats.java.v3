@@ -3,6 +3,7 @@ package io.synadia.client.kv;
 import io.nats.json.DateTimeUtils;
 import io.synadia.client.api.*;
 import io.synadia.client.impl.*;
+import io.synadia.client.utils.ApiUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
@@ -16,6 +17,7 @@ import java.util.function.Supplier;
 import static io.synadia.client.impl.JetStreamConstants.JS_SEQUENCE_TEMPORARILY_UNKNOWN;
 import static io.synadia.client.impl.JetStreamConstants.JS_WRONG_LAST_SEQUENCE;
 import static io.synadia.client.kv.KeyValueUtils.*;
+import static io.synadia.client.kv.KvValidator.*;
 import static io.synadia.client.utils.JsValidator.*;
 import static io.synadia.client.utils.NatsConstants.DOT;
 import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
@@ -27,6 +29,11 @@ import static io.synadia.client.utils.NatsConstants.GREATER_THAN;
  * where a method explicitly allows them, such as the {@code watch} and {@code keys} filters.
  */
 public class KeyValue extends AbstractBucketFeature {
+    /**
+     * Version of the kv library
+     */
+    public static final String LIBRARY_VERSION = ApiUtils.loadVersion(KeyValue.class, "kv");
+
 
     private final String streamSubject;
     private final String readPrefix;

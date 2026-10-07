@@ -1990,7 +1990,9 @@ public class NatsConnection implements AutoCloseable {
         boolean ponged = false;
         try {
             long startNanos = NatsSystemClock.nanoTime();
-            queueOutgoing(new ProtocolMessage(PING_PROTO));
+            if (!queueOutgoing(new ProtocolMessage(PING_PROTO))) {
+                throw new IOException("RTT PING was not queued.");
+            }
             pongFuture.get(timeout, TimeUnit.MILLISECONDS);
             ponged = true;
             return NatsSystemClock.nanoTime() - startNanos;
@@ -2039,23 +2041,30 @@ public class NatsConnection implements AutoCloseable {
         CompletableFuture<Boolean> pongFuture = new CompletableFuture<>();
         pongQueue.add(pongFuture);
 
+        // a future left in the queue without its PING sent would be completed by the next PONG,
+        // consuming the one a live waiter (a flush) is owed, so it is removed if the PING is not queued
+        boolean queued;
         try {
-            if (treatAsInternal) {
-                queueInternalOutgoing(new ProtocolMessage(PING_PROTO));
-            }
-            else {
-                queueOutgoing(new ProtocolMessage(PING_PROTO));
-            }
+            ProtocolMessage ping = new ProtocolMessage(PING_PROTO);
+            queued = treatAsInternal ? queueInternalOutgoing(ping) : queueOutgoing(ping);
         }
         catch (RuntimeException e) {
-            // a future left in the queue would be completed by the next PONG,
-            // consuming the one a live waiter (a flush) is owed
             pongQueue.remove(pongFuture);
             throw e;
+        }
+        if (!queued) {
+            return pingNotQueued(pongFuture);
         }
 
         needPing.set(true);
         statistics.incrementPingCount();
+        return pongFuture;
+    }
+
+    // A PING that was not queued gets no PONG: its future leaves the queue and fails, so a flush waiting on it fails
+    protected CompletableFuture<Boolean> pingNotQueued(CompletableFuture<Boolean> pongFuture) {
+        pongQueue.remove(pongFuture);
+        pongFuture.completeExceptionally(new IllegalStateException("PING was not queued."));
         return pongFuture;
     }
 
@@ -2168,16 +2177,20 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void queueOutgoing(NatsMessage msg) {
+    // false if the message was not queued (discarded, or the thread was interrupted)
+    protected boolean queueOutgoing(NatsMessage msg) {
         validatePayloadAndControlLineSizes(msg);
-        if (!writer.queue(msg)) {
-            notifyErrorListener((c, el) -> el.messageDiscarded(c, msg));
+        if (writer.queue(msg)) {
+            return true;
         }
+        notifyErrorListener((c, el) -> el.messageDiscarded(c, msg));
+        return false;
     }
 
-    protected void queueInternalOutgoing(NatsMessage msg) {
+    // false if the message was not queued (the thread was interrupted)
+    protected boolean queueInternalOutgoing(NatsMessage msg) {
         validatePayloadAndControlLineSizes(msg);
-        writer.queueInternalMessage(msg);
+        return writer.queueInternalMessage(msg);
     }
 
     protected void deliverMessage(NatsMessage msg) {

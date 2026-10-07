@@ -1,6 +1,7 @@
 package io.synadia.client.utils;
 
 import io.nats.json.*;
+import io.synadia.client.Nats;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -101,4 +102,9 @@ public class ApiUtilsTests {
         assertEquals("", readStringOrEmpty(ljv, "missing"));
     }
 
+    @Test
+    public void testLoadVersion() {
+        assertEquals(Nats.CLIENT_VERSION, loadVersion(Nats.class, "core"));
+        assertEquals("development", loadVersion(Nats.class, "no-such-project"));
+    }
 }

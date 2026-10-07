@@ -20,6 +20,9 @@ public abstract class KeyValueUtils {
 
     private KeyValueUtils() {} /* ensures cannot be constructed */
 
+    /** The most history a KV bucket keeps per key. {@value} */
+    public static final int MAX_HISTORY_PER_KEY = 64;
+
     /** Prefix of the stream name backing a KV bucket. {@value} */
     public static final String KV_STREAM_PREFIX = "KV_";
 

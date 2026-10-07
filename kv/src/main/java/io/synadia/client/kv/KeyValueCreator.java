@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.synadia.client.kv.KeyValueUtils.toStreamName;
+import static io.synadia.client.kv.KvValidator.*;
 import static io.synadia.client.utils.JsValidator.*;
 
 /**

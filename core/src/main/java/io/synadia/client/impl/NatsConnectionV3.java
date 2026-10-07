@@ -1146,6 +1146,7 @@ public class NatsConnectionV3 extends NatsConnection {
         if (!queued) {
             NatsMessage pm = new ProtocolMessage(PING_PROTO);
             notifyErrorListener((c, el) -> el.messageDiscarded(c, pm));
+            return pingNotQueued(pongFuture);
         }
 
         needPing.set(true);
@@ -1159,16 +1160,16 @@ public class NatsConnectionV3 extends NatsConnection {
     }
 
     @Override
-    protected void queueOutgoing(NatsMessage msg) {
-        queueMessage(msg, false);
+    protected boolean queueOutgoing(NatsMessage msg) {
+        return queueMessage(msg, false);
     }
 
     @Override
-    protected void queueInternalOutgoing(NatsMessage msg) {
-        queueMessage(msg, true);
+    protected boolean queueInternalOutgoing(NatsMessage msg) {
+        return queueMessage(msg, true);
     }
 
-    private void queueMessage(NatsMessage msg, boolean internal) {
+    private boolean queueMessage(NatsMessage msg, boolean internal) {
         validatePayloadAndControlLineSizes(msg);
         boolean queued;
         if (msg.isProtocol()) {
@@ -1183,6 +1184,7 @@ public class NatsConnectionV3 extends NatsConnection {
         if (!queued) {
             notifyErrorListener((c, el) -> el.messageDiscarded(c, msg));
         }
+        return queued;
     }
 
     @Override

@@ -1,5 +1,7 @@
 # OSGi / JPMS TODO — split packages and module identity
 
+**Decision 2026-10-07 (Scott): JPMS module-path support is not a requirement for V3.** JPMS adoption is low (Spring, for one, is not JPMS-safe), and nothing but a developer's own choice puts an application on the module path. The split packages `io.synadia.client.api` / `.impl` / `.utils` are kept **by design**: modules share packages so they can use package-private and protected members of each other, as JetStream does with the connection today. O3 is decided as §4 option 1 (keep, document); O4 and O5 are dropped. OSGi is still open (O6).
+
 Tracking doc for the module-system problems in the V3 jar layout. Nothing here is urgent for correctness on the classpath; all of it bites consumers who use the JPMS module path or OSGi. Split out of EXCEPTIONS_AUDIT.md §4b/D4, where it surfaced as a (rejected) argument for where to put the exception types.
 
 ## 1. Three split packages across the core and jetstream jars
@@ -89,9 +91,11 @@ Note option 2 interacts with the **KV/OS split** (they become separate projects)
 
 - [x] **O2 — Per-module identity** (§3.1/3.2). **DONE 2026-07-15.** Every subproject had artifactId `jnats3`; `examples` additionally carried jetstream's module/bundle name and POM description. Now `artifactNameExt` per subproject, read by the root's `afterEvaluate`. Verified green — including that `jnats3-js`'s POM now correctly depends on `jnats3-core` instead of on itself.
 - [ ] **O1 — Stop `:examples` publishing** (§3.3). Scott: examples are repo-only, never a Maven artifact — but the build still declares a publication for them. A `publishExt` implementation was reverted to keep the Gradle change scoped to the artifact id; see §3.3 for the shape this should take (`libraryExt`, not `publishExt`) whenever it is picked up.
-- [ ] **O3 — Decide the split-package strategy** (§4). Gate: if option 2, it should land in V3 before release, since it is a breaking rename.
-- [ ] **O4 — Add a module-path smoke test** so this can't regress silently. A trivial consumer with a `module-info.java` requiring both jars fails today; it should be the thing that proves O3 worked.
-- [ ] **O5 — Decide whether V3 ships real `module-info.java`** or stays on `Automatic-Module-Name` (§4 option 4). Depends on O3.
+- [x] **O3 — Decide the split-package strategy.** Decided 2026-10-07: keep the split packages by design (§4 option 1); JPMS module path is not supported.
+- [x] ~~**O4 — Module-path smoke test.**~~ Dropped 2026-10-07 with O3.
+- [x] ~~**O5 — Real `module-info.java`.**~~ Dropped 2026-10-07 with O3.
+- [x] **O6 — OSGi.** Fixed 2026-10-07. Before: no bundle exported any package (core and jetstream had everything in `Private-Package`; kv, os, service had no `Export-Package`), so none was usable in OSGi. Now: core exports `io.synadia.client.*` (`-exportcontents`); jetstream is a fragment of core (`Fragment-Host: jnats3-core`), loaded by core's class loader, so the split packages and package-private access work; kv, os, service export their own package. `examples` `OsgiBundleTests` installs the five built jars in Apache Felix 7.0.5, checks resolution and the shared class loader, and runs `JetStreamManagement` against a server; it fails with jetstream as a plain bundle (fragment not attached). Remaining: jnats-json and nkeys `core` have no `Export-Package` either, so the test provides `io.nats.json` / `io.nats.nkey` from the system bundle; a real OSGi user needs those two libraries fixed the same way (separate repos).
+- [ ] **O7 — `Automatic-Module-Name`.** Every jar still sets it (`build.gradle:180`), which advertises module-path use that the split packages make fail. Keep or remove.
 
 ### `ClientError` is already O3-ready (2026-09-01)
 

@@ -5,6 +5,7 @@ import io.synadia.client.Message;
 import io.synadia.client.NUID;
 import io.synadia.client.api.*;
 import io.synadia.client.impl.*;
+import io.synadia.client.utils.ApiUtils;
 import io.synadia.client.utils.Digester;
 
 import java.io.*;
@@ -25,6 +26,11 @@ import static io.synadia.client.utils.Validator.validateNotNull;
  * <p>Obtain an instance from the connection rather than constructing one.
  */
 public class ObjectStore extends AbstractBucketFeature {
+    /**
+     * Version of the os library
+     */
+    public static final String LIBRARY_VERSION = ApiUtils.loadVersion(ObjectStore.class, "os");
+
 
     private final String rawChunkPrefix;
     private final String rawMetaPrefix;

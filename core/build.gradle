@@ -50,3 +50,11 @@ javadoc {
     ]
     classpath = sourceSets.main.runtimeClasspath
 }
+
+// OSGi: export every package. jetstream attaches to this bundle as a fragment, so the
+// packages it shares with core (api, impl, utils) are one package at runtime.
+jar {
+    bundle {
+        bnd('-exportcontents': 'io.synadia.client.*')
+    }
+}

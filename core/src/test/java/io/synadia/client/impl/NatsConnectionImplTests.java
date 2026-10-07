@@ -6,6 +6,7 @@ import io.synadia.client.OptionsBuilder;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -387,6 +388,60 @@ public class NatsConnectionImplTests extends TestBase {
                 int before = nc.pongQueue.size();
 
                 assertThrows(IllegalStateException.class, nc::sendPing);
+                assertEquals(before, nc.pongQueue.size());
+
+                // RTT queues its PING through the same queue
+                assertThrows(IllegalStateException.class, nc::RTT);
+                assertEquals(before, nc.pongQueue.size());
+
+                resumeWriter(nc);
+            }
+        }
+    }
+
+    @Test
+    public void testSendPingDoesNotLeavePongFutureWhenInterrupted() throws Exception {
+        try (NatsTestServer ts = new NatsTestServer()) {
+            try (NatsConnection nc = managedConnect(optionsBuilder(ts).build())) {
+                nc.flush(DEFAULT_WAIT);
+                int before = nc.pongQueue.size();
+
+                // both implementations throw when the queueing thread is interrupted
+                Thread.currentThread().interrupt();
+                try {
+                    assertThrows(IllegalStateException.class, nc::sendPing);
+                }
+                finally {
+                    assertTrue(Thread.interrupted()); // also clears the flag
+                }
+                assertEquals(before, nc.pongQueue.size());
+                nc.flush(DEFAULT_WAIT);
+            }
+        }
+    }
+
+    @Test
+    public void testPingDoesNotLeavePongFutureWhenDiscarded() throws Exception {
+        try (NatsTestServer ts = new NatsTestServer()) {
+            Options options = optionsBuilder(ts)
+                .maxMessagesInOutgoingQueue(1)
+                .discardMessagesWhenOutgoingQueueFull()
+                .pingInterval(100_000) // no timer pings during the test
+                .build();
+            try (NatsConnection nc = managedConnect(options)) {
+                nc.flush(DEFAULT_WAIT);
+                // stop the writer so the outgoing queue cannot drain, then fill it
+                pauseWriter(nc);
+                nc.publish(random(), null);
+                int before = nc.pongQueue.size();
+
+                // the timer's ping
+                CompletableFuture<Boolean> f = nc.sendPing(false);
+                assertNotNull(f);
+                assertTrue(f.isCompletedExceptionally());
+                assertEquals(before, nc.pongQueue.size());
+
+                assertThrows(IOException.class, nc::RTT);
                 assertEquals(before, nc.pongQueue.size());
 
                 resumeWriter(nc);

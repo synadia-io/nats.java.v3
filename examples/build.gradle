@@ -20,3 +20,18 @@ dependencies {
     implementation project(':os')
     testImplementation project(path: ':core', configuration: 'testOutput')
 }
+
+// OsgiBundleTests installs the built bundles in an OSGi framework
+dependencies {
+    testImplementation 'org.apache.felix:org.apache.felix.framework:7.0.5'
+}
+
+def osgiBundleProjects = [':core', ':jetstream', ':kv', ':os', ':service']
+test {
+    dependsOn osgiBundleProjects.collect { it + ':jar' }
+    doFirst {
+        systemProperty 'osgi.bundles', osgiBundleProjects
+            .collect { project(it).tasks.named('jar').get().archiveFile.get().asFile.absolutePath }
+            .join(File.pathSeparator)
+    }
+}

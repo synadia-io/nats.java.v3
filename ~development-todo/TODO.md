@@ -30,7 +30,7 @@ The single source of truth for the things currently in progress — so any sessi
 - **Validator / JsValidator coverage + TEST_TRACKING cleanup** - **Committed**. `TestBase.PLAIN` is now `"AZaz09"`; new `HAS_EXCLAMATION` / `HAS_TILDE` / `HAS_COLON` / `HAS_AT` / `HAS_BRACKET` / `HAS_BRACE`. 15 tests appended to `ValidatorTests`, 10 to `JsValidatorTests`; every public method of both classes is now called directly; `ValidatorTests` 35/35 and `JsValidatorTests` 57/57 green. Listed in `V2_V3_TEST_METHOD_AUDIT.md` under `ValidatorTests.java`. `TEST_TRACKING.md` trimmed of completed entries (751 -> ~480 lines).
 - **`NatsConnectionV3` + connection proposal** - **Committed** to main 2026-10-07 (`da6dcaa5`, javadoc `95669e86`). `PLAN_NATS_CONNECTION_V3.md`. Subclass selected by `OptionsBuilder.connectionImplementation(...)` or the properties key; **V3 is the default since 2026-10-06**; `-PconnectionImplementation=Classic` runs the tests on classic; post-merge `build-variants.yml` = Windows default (V3), Windows classic, Linux classic. Outgoing data in blocks of `bufferSize` (one per write, so a failed write loses at most one block, as classic). Measured 2.2x / 4.2x small-message publish (1 / 4 threads), bad-auth connect 3 ms vs 2,001 ms. D2, D3, D4, D6, D9, D10, D11, D12, D15 done; D1, D5, D7, D8, D13, D14 open. Full module suites green on V3 on Linux and Windows (2026-10-06).
   - Kept-block limits (2026-10-07): standard pool by bytes (larger of 1 MB or 4 blocks); large pool capped by the first server's max payload + max control line + 2, keeps the largest. `OutboundBufferTests.testLargePoolKeepsBiggestUpToMax`.
-  - Part B applied to classic: B-S1 (protocol buffer sized to the control line), B-S2 (`tryingToConnect.compareAndSet`), B-S3 (pending getters without `closeSocketLock`/`writerLock`, = TBD #4), B-S6 (`sendPing` removes its pong future when queueing throws). B-S8 (per-run reader/writer flag, D12) applied then removed 2026-10-07, not worth the complexity; removed from V2 too. B-S4 dropped (D3). Two new `NatsConnectionImplTests` (fail 5/5 without the fixes). 12 affected core classes green on classic.
+  - Part B applied to classic: B-S1 (protocol buffer sized to the control line), B-S2 (`tryingToConnect.compareAndSet`), B-S3 (pending getters without `closeSocketLock`/`writerLock`, = TBD #4), B-S6 (`sendPing` removes its pong future when queueing throws; 2026-10-07 also when the PING is discarded, in classic and V3 `sendPing` and in `RTT`, per `PR1636_REVIEW.md`; `queueOutgoing` / `queueInternalOutgoing` now return whether queued). B-S8 (per-run reader/writer flag, D12) applied then removed 2026-10-07, not worth the complexity; removed from V2 too. B-S4 dropped (D3). Two new `NatsConnectionImplTests` (fail 5/5 without the fixes). 12 affected core classes green on classic.
 
 ## Recently Closed
 
@@ -57,6 +57,9 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Plans / Audits
 * PLAN_CORE_JETSTREAM_BOUNDARY.md
+    * **2026-10-07: direction superseded** (no JPMS requirement); to be re-looked at fresh. Measurements still valid
+    * 2026-10-07: connection internals made package-private, then reverted the same day: `protected` stays (see `PROTECTED_ACCESS_AUDIT.md`)
+    * §10 (2026-10-07): `Connection` interface + boundary planned together, touchpoints re-measured; open C1–C5
     * **Absorbs the package/protected/private visibility question** — do not start a separate plan for it. §3a (added 2026-08-15) records the member-level pass done as a by-product of the naming audit: 11 cross-object internal accesses exist, **only 2 cross a module boundary**, both `JetStream` reaching into core (`_createSubscriptionByFactory`, `_subscribeByFactory`). The second is a new finding and matches what §8 predicted
     * Still outstanding for its Phase 0: `Headers`, `NatsMessage`, and inheritance-based reach (`JetStreamSubscription extends NatsSubscription`), which the qualified-call sweep cannot see
     * Make JetStream consume core only through public API; kill the split-package reach (`.impl`/`.api`/`.utils` shared by both jars, no `module-info`)
@@ -88,6 +91,7 @@ The single source of truth for the things currently in progress — so any sessi
 * PLAN_FLUENT_SUBSCRIBE_BUILDER.md
   * fluent JetStream subscribe/subscription builder — explored + reverted; recommends source-first builder over the reverted no-arg builder
 * OSGi_JPMS_TODO.md
+  * **2026-10-07: JPMS module path dropped as a requirement**; split packages kept by design (O3 decided, O4/O5 dropped). O6 OSGi fixed (core exports, jetstream fragment, `OsgiBundleTests` in Felix); jnats-json / nkeys still export nothing. Open: O7 `Automatic-Module-Name`
   * 3 split packages across core+jetstream (`io.synadia.client.api`, `.impl`, `.utils`) → the jars can't sit on the JPMS module path together; OSGi resolves only one wiring
   * **O2 DONE:** every subproject published as `io.synadia:jnats3` (root hardcoded `"jnats3" + jarEnd`) — so `jnats3-js`'s POM depended on *itself*, not on core. Now per-module `artifactNameExt` → `jnats3-core` / `-js` / `-service` / `-examples`. kv/os are `jnats3-kv` / `jnats3-os` (split 2026-09-30)
   * O1 open — examples are repo-only but the build still declares a publication for them. A `publishExt` fix was written then reverted (Gradle changes scoped to artifact id only); if picked up, name it `libraryExt` — every library always publishes, so the only real predicate is "is this a library"
@@ -131,6 +135,10 @@ The single source of truth for the things currently in progress — so any sessi
     * Open decisions D1-D10
 * V2_BUGS_FROM_CONNECTION_REVIEW.md
     * V2 bugs only, from the v3 connection review: `sendPing` pong-future leak, stale reader/writer thread stopping the current one (suspected). Header mutation after publish is a documented V2 limitation, not listed
+* KV_OS_SERVICE_API_USAGE_AUDIT.md
+    * 2026-10-07: what kv / os / service use from jetstream and core; the non-user-API part is `AbstractBucketFeature` (6 public fields), `NatsWatchSubscription`, `JsValidator`, constants. Decision: package access rule as for jetstream → core; only A3 applied (KV validators + tests moved to kv `KvValidator`)
+* PROTECTED_ACCESS_AUDIT.md
+    * 2026-10-07: 335 protected members (bytecode); 25 must stay (kv / os subclass jetstream bases across packages, plus `api.SubscribeBehavior` / `api.ApiResponse` extended from jetstream `impl`); 310 could be package-private (compile + javadoc verified in a copy). Decision: keep `protected` (users may subclass, e.g. `NatsServerPool`); nothing applied
 
 ## Plans / Audits TBD
 

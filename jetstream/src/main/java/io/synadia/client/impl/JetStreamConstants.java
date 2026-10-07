@@ -10,7 +10,6 @@ public interface JetStreamConstants extends NatsConstants {
     /**
      * The Max History Per Key KV key
      */
-    int MAX_HISTORY_PER_KEY = 64;
 
     /** Window the server keeps message ids for duplicate detection when a stream does not set its own. {@value} milliseconds */
     long SERVER_DEFAULT_DUPLICATE_WINDOW_MS = 120_000; // 1000ms/sec * 60sec/min * 2 min

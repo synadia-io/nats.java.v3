@@ -4,6 +4,7 @@ import io.synadia.client.Dispatcher;
 import io.synadia.client.Message;
 import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
+import io.synadia.client.utils.ApiUtils;
 import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -24,6 +25,11 @@ import static io.synadia.client.utils.Validator.*;
  */
 @NullMarked
 public class JetStream extends JetStreamImpl {
+    /**
+     * Version of the jetstream library
+     */
+    public static final String LIBRARY_VERSION = ApiUtils.loadVersion(JetStream.class, "jetstream");
+
     @Nullable
     private JetStreamManagement jsm; // this is lazy init'ed
 
