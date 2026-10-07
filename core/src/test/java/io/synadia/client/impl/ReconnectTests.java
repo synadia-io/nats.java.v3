@@ -33,6 +33,7 @@ import static io.synadia.client.utils.OptionsUtils.*;
 import static io.synadia.client.utils.TestBase.*;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Isolated
 public class ReconnectTests {
@@ -579,6 +580,8 @@ public class ReconnectTests {
                 .noReconnect()
                 .connectionListener(listener)
                 .build();
+            // exercises a stop/start race in the classic writer (#203); NatsConnectionV3 makes a new writer per socket
+            assumeTrue(options.connectionImplementation() == ConnectionImplementation.Classic);
 
             nc = Nats.connect(options);
             assertConnected(nc);

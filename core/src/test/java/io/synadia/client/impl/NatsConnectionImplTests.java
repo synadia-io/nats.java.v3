@@ -10,7 +10,10 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.client.utils.ConnectionUtils.*;
+import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static org.junit.jupiter.api.Assertions.*;
+import static io.synadia.client.impl.WriterTestControl.pauseWriter;
+import static io.synadia.client.impl.WriterTestControl.resumeWriter;
 
 public class NatsConnectionImplTests extends TestBase {
 
@@ -297,9 +300,8 @@ public class NatsConnectionImplTests extends TestBase {
             // Stop the writer so nothing drains the outgoing queue, giving a deterministic backlog
             // to exercise the pending-count getters against. Reading them while the writer is live
             // is an unwinnable race (a fast machine drains to 0; a slow machine backs up past the
-            // reconnect buffer and the publish throws), and they can't be read during reconnect at
-            // all because that path holds closeSocketLock for the whole reconnect.
-            nc.getWriter().stop().get(DEFAULT_WAIT, TimeUnit.MILLISECONDS);
+            // reconnect buffer and the publish throws).
+            pauseWriter(nc);
 
             String subject = random();
             byte[] data = new byte[2 * 1024]; // > 1000 bytes so pending bytes > count * 1000
@@ -334,5 +336,61 @@ public class NatsConnectionImplTests extends TestBase {
             // the sid goes with it - the subscription is not just taken out of service
             assertEquals(sinkCount, nc.getSinkCount());
         });
+    }
+
+    @Test
+    public void testOutgoingPendingGettersDoNotWaitForCloseSocketLock() throws Exception {
+        runInShared(nc -> {
+            // closeSocket holds closeSocketLock for an entire reconnect; the getters must not wait on it
+            CountDownLatch locked = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            Thread holder = new Thread(() -> {
+                nc.closeSocketLock.lock();
+                try {
+                    locked.countDown();
+                    release.await();
+                }
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                finally {
+                    nc.closeSocketLock.unlock();
+                }
+            });
+            holder.start();
+            try {
+                assertTrue(locked.await(DEFAULT_WAIT, TimeUnit.MILLISECONDS));
+                CompletableFuture<Long> f = CompletableFuture.supplyAsync(
+                    () -> nc.outgoingPendingMessageCount() + nc.outgoingPendingBytes());
+                assertTrue(f.get(DEFAULT_WAIT, TimeUnit.MILLISECONDS) >= 0);
+            }
+            finally {
+                release.countDown();
+                holder.join(DEFAULT_WAIT);
+            }
+        });
+    }
+
+    @Test
+    public void testSendPingDoesNotLeavePongFutureWhenQueueingFails() throws Exception {
+        try (NatsTestServer ts = new NatsTestServer()) {
+            Options options = optionsBuilder(ts)
+                .maxMessagesInOutgoingQueue(1)
+                .writeQueuePushTimeout(50)
+                .pingInterval(100_000) // no timer pings during the test
+                .build();
+            try (NatsConnection nc = managedConnect(options)) {
+                nc.flush(DEFAULT_WAIT);
+                // stop the writer so the outgoing queue cannot drain, then fill it
+                pauseWriter(nc);
+                nc.publish(random(), null);
+                int before = nc.pongQueue.size();
+
+                assertThrows(IllegalStateException.class, nc::sendPing);
+                assertEquals(before, nc.pongQueue.size());
+
+                resumeWriter(nc);
+            }
+        }
     }
 }

@@ -1,9 +1,14 @@
-name: Build Windows
+name: Build Variants
 
-# Windows coverage for the client. The Linux workflows gate pull requests; this one
-# runs after a merge to main to catch problems that only appear in the Windows
-# environment - in the client, in the test harness, or in the server itself, which
-# is built here from the tip of nats-server main.
+# The builds the Linux workflows do not cover. The Linux workflows gate pull requests on the
+# default connection implementation; this one runs after a merge to main and adds:
+#   1. Windows, default connection implementation
+#   2. Windows, the other connection implementation
+#   3. Linux, the other connection implementation
+# Windows catches problems that only appear in the Windows environment - in the client, in the
+# test harness, or in the server itself, which is built here from the tip of nats-server main.
+# The other implementation is the one that is not the default (see ConnectionImplementation and
+# OptionsBuilder); it is chosen for the test JVM with -PconnectionImplementation.
 
 # Nothing here writes: checkout reads the repo, and upload-artifact uses the runtime
 # token rather than GITHUB_TOKEN.
@@ -19,13 +24,17 @@ on:
 # A burst of merges should test the resulting state once rather than rebuild and
 # retest the same server several times over.
 concurrency:
-  group: build-windows
+  group: build-variants
   cancel-in-progress: true
+
+env:
+  # The connection implementation that is NOT the default. Change this when the default flips.
+  OTHER_IMPLEMENTATION: Classic
 
 jobs:
   # Same rule as build-main.yml: only the affected modules are tested, and a change
-  # that affects no module (docs, TODO files) skips the Windows build. One Windows job
-  # runs all the affected modules' tests, so nats-server is built once.
+  # that affects no module (docs, TODO files) skips these builds. Each variant runs all
+  # the affected modules' tests in one job, so nats-server is installed once per variant.
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -42,14 +51,28 @@ jobs:
           modules=$(bash .github/scripts/affected-modules.sh "${{ github.event.before }}")
           echo "Affected modules: $modules"
           tasks=$(echo "$modules" | tr -d '[]"' | tr ',' '\n' | sed 's/.*/:&:test/' | paste -sd' ' -)
-          echo "Windows test tasks: $tasks"
+          echo "Test tasks: $tasks"
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           echo "tasks=$tasks" >> "$GITHUB_OUTPUT"
 
   build:
     needs: changes
     if: needs.changes.outputs.modules != '[]'
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: windows-default
+            os: windows-latest
+            other: false
+          - variant: windows-other
+            os: windows-latest
+            other: true
+          - variant: linux-other
+            os: ubuntu-latest
+            other: true
+    name: build (${{ matrix.variant }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
       BUILD_EVENT: ${{ github.event_name }}
@@ -63,7 +86,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '9.2.1' # Quotes required to prevent YAML converting to number
-      - name: Install Nats Server
+      - name: Install Nats Server (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         # The shared synadia-io/workflows install action is bash and unix-only, so
         # Windows builds its own. Go is preinstalled on the runner image, and
@@ -77,22 +101,33 @@ jobs:
           # NatsRunnerUtils.getResolvedServerPath() reads this environment variable.
           # An absolute path keeps PATH and PATHEXT out of the picture entirely.
           "nats_server_path=$env:RUNNER_TEMP\nats-server.exe" >> $env:GITHUB_ENV
+      - name: Install Nats Server (Linux)
+        if: runner.os == 'Linux'
+        uses: synadia-io/workflows/.github/actions/install_nats_server@main
       - name: Check out code
         uses: actions/checkout@v5
-      - name: Build and Test
-        run: .\gradlew.bat clean ${{ needs.changes.outputs.tasks }}
+      - name: Build and Test (Windows)
+        if: runner.os == 'Windows'
+        run: .\gradlew.bat clean ${{ needs.changes.outputs.tasks }} ${{ matrix.other && format('-PconnectionImplementation={0}', env.OTHER_IMPLEMENTATION) || '' }}
+      - name: Build and Test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x gradlew && ./gradlew clean ${{ needs.changes.outputs.tasks }} ${{ matrix.other && format('-PconnectionImplementation={0}', env.OTHER_IMPLEMENTATION) || '' }}
       - name: Upload test reports
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: windows-test-reports
+          name: ${{ matrix.variant }}-test-reports
           path: |
             */build/reports/tests/test
             */build/test-results/test
           retention-days: 14
-      - name: Clean up
-        if: always()
+      - name: Clean up (Windows)
+        if: always() && runner.os == 'Windows'
         shell: pwsh
         run: |
           Get-Process nats-server -ErrorAction SilentlyContinue | Stop-Process -Force
           exit 0
+      - name: Clean up (Linux)
+        if: always() && runner.os == 'Linux'
+        run: pkill -9 nats-server 2>/dev/null || true

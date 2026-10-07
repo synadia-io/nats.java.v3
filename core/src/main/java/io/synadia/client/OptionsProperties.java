@@ -270,6 +270,12 @@ public interface OptionsProperties {
      */
     String PROP_FORCE_FLUSH_ON_REQUEST = PFX + "forceFlushOnRequest";
     /**
+     * Property used to choose the connection implementation.
+     * The value is the case-insensitive name of a {@link ConnectionImplementation} constant
+     * ({@code Classic} or {@code V3}). An unrecognized value is ignored. {@value}
+     */
+    String PROP_CONNECTION_IMPLEMENTATION = PFX + "connectionImplementation";
+    /**
      * Property used to set class name for the Executor Service (executor) class. {@value}
      */
     String PROP_EXECUTOR_SERVICE_CLASS = PFX + "executorServiceClass";

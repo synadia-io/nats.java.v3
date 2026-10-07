@@ -16,6 +16,8 @@ import static io.synadia.client.utils.Listener.LONG_VALIDATE_TIMEOUT;
 import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
+import static io.synadia.client.impl.WriterTestControl.pauseWriter;
+import static io.synadia.client.impl.WriterTestControl.resumeWriter;
 
 public class ErrorListenerTests extends TestBase {
 
@@ -183,11 +185,11 @@ public class ErrorListenerTests extends TestBase {
 
             try {
                 nc.flush(2000);
-                nc.getWriter().stop().get(2, TimeUnit.SECONDS);
+                pauseWriter(nc);
                 for (int i = 0; i < maxMessages + 1; i++) {
                     nc.publish(subject + i, ("message" + i).getBytes());
                 }
-                nc.getWriter().start(nc.getDataPortFuture());
+                resumeWriter(nc);
 
                 nc.flush(2000);
             } finally {

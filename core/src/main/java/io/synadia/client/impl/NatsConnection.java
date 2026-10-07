@@ -217,9 +217,8 @@ public class NatsConnection implements AutoCloseable {
 
     // Connect is only called after creation
     protected void connect(boolean reconnectOnConnect) throws InterruptedException, IOException {
-        if (!tryingToConnect.get()) {
+        if (tryingToConnect.compareAndSet(false, true)) {
             try {
-                tryingToConnect.set(true);
                 connectImpl(reconnectOnConnect);
             }
             finally {
@@ -319,9 +318,8 @@ public class NatsConnection implements AutoCloseable {
      * @throws InterruptedException the connection is not connected
      */
     public void forceReconnect(ForceReconnectOptions options) throws IOException, InterruptedException {
-        if (!tryingToConnect.get()) {
+        if (tryingToConnect.compareAndSet(false, true)) {
             try {
-                tryingToConnect.set(true);
                 forceReconnectImpl(options == null ? ForceReconnectOptions.DEFAULT_INSTANCE : options);
             }
             finally {
@@ -405,9 +403,8 @@ public class NatsConnection implements AutoCloseable {
     }
 
     protected void reconnect() throws InterruptedException {
-        if (!tryingToConnect.get()) {
+        if (tryingToConnect.compareAndSet(false, true)) {
             try {
-                tryingToConnect.set(true);
                 reconnectImpl();
             }
             finally {
@@ -722,6 +719,16 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
+    /**
+     * Called by a reader that hit an I/O error. The reader passes itself so an implementation that uses
+     * more than one reader over the connection's life can ignore a report from one that is no longer current.
+     * @param source the reader reporting
+     * @param io the error
+     */
+    protected void handleCommunicationIssue(NatsConnectionReader source, Exception io) {
+        handleCommunicationIssue(io);
+    }
+
     // Called from reader/writer thread
     protected void handleCommunicationIssue(Exception io) {
         // If we are connecting or disconnecting, note exception and leave
@@ -744,10 +751,8 @@ public class NatsConnection implements AutoCloseable {
         // Spawn a thread so we don't have timing issues with
         // waiting on read/write threads
         executor.submit(() -> {
-            if (!tryingToConnect.get()) {
+            if (tryingToConnect.compareAndSet(false, true)) {
                 try {
-                    tryingToConnect.set(true);
-
                     // any issue that brings us here is pretty serious
                     // so we are comfortable forcing the close
                     closeSocket(true, true);
@@ -2034,11 +2039,19 @@ public class NatsConnection implements AutoCloseable {
         CompletableFuture<Boolean> pongFuture = new CompletableFuture<>();
         pongQueue.add(pongFuture);
 
-        if (treatAsInternal) {
-            queueInternalOutgoing(new ProtocolMessage(PING_PROTO));
+        try {
+            if (treatAsInternal) {
+                queueInternalOutgoing(new ProtocolMessage(PING_PROTO));
+            }
+            else {
+                queueOutgoing(new ProtocolMessage(PING_PROTO));
+            }
         }
-        else {
-            queueOutgoing(new ProtocolMessage(PING_PROTO));
+        catch (RuntimeException e) {
+            // a future left in the queue would be completed by the next PONG,
+            // consuming the one a live waiter (a flush) is owed
+            pongQueue.remove(pongFuture);
+            throw e;
         }
 
         needPing.set(true);
@@ -2848,13 +2861,7 @@ public class NatsConnection implements AutoCloseable {
      * @return the number of messages in the outgoing queue
      */
     public long outgoingPendingMessageCount() {
-        closeSocketLock.lock();
-        try {
-            return writer == null ? -1 : writer.outgoingPendingMessageCount();
-        }
-        finally {
-            closeSocketLock.unlock();
-        }
+        return writer == null ? -1 : writer.outgoingPendingMessageCount();
     }
 
     /**
@@ -2865,13 +2872,7 @@ public class NatsConnection implements AutoCloseable {
      * @return the number of messages in the outgoing queue
      */
     public long outgoingPendingBytes() {
-        closeSocketLock.lock();
-        try {
-            return writer == null ? -1 : writer.outgoingPendingBytes();
-        }
-        finally {
-            closeSocketLock.unlock();
-        }
+        return writer == null ? -1 : writer.outgoingPendingBytes();
     }
 
     /**

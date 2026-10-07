@@ -92,6 +92,7 @@ public class Options {
     final boolean useTimeoutException;
     final boolean useDispatcherWithExecutor;
     final boolean forceFlushOnRequest;
+    final ConnectionImplementation connectionImplementation;
 
     final AuthHandler authHandler;
     final ReconnectDelayHandler reconnectDelayHandler;
@@ -258,6 +259,7 @@ public class Options {
         this.useTimeoutException = b.useTimeoutException;
         this.useDispatcherWithExecutor = b.useDispatcherWithExecutor;
         this.forceFlushOnRequest = b.forceFlushOnRequest;
+        this.connectionImplementation = b.connectionImplementation;
 
         this.serverPool = b.serverPool;
         this.dispatcherFactory = b.dispatcherFactory;
@@ -1012,6 +1014,14 @@ public class Options {
      */
     public boolean forceFlushOnRequest() {
         return forceFlushOnRequest;
+    }
+
+    /**
+     * Get which connection implementation {@link Nats#connect(Options) Nats.connect} builds.
+     * @return the implementation
+     */
+    public ConnectionImplementation connectionImplementation() {
+        return connectionImplementation;
     }
 
     /**

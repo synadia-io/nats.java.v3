@@ -1624,4 +1624,28 @@ public class OptionsTests extends TestBase {
         }
     }
     */
+
+    @Test
+    public void testConnectionImplementation() {
+        // a test run can replace the default through the system property (-PconnectionImplementation)
+        ConnectionImplementation fromProperty = ConnectionImplementation.get(System.getProperty(PROP_CONNECTION_IMPLEMENTATION));
+        ConnectionImplementation expectedDefault = fromProperty == null ? ConnectionImplementation.V3 : fromProperty;
+        assertEquals(expectedDefault, Options.builder().build().connectionImplementation());
+        assertEquals(ConnectionImplementation.V3,
+            Options.builder().connectionImplementation(null).build().connectionImplementation());
+
+        Options o = Options.builder().connectionImplementation(ConnectionImplementation.Classic).build();
+        assertEquals(ConnectionImplementation.Classic, o.connectionImplementation());
+        assertEquals(ConnectionImplementation.Classic, new OptionsBuilder(o).build().connectionImplementation());
+
+        Properties props = new Properties();
+        props.setProperty(PROP_CONNECTION_IMPLEMENTATION, "classic");
+        assertEquals(ConnectionImplementation.Classic, new OptionsBuilder(props).build().connectionImplementation());
+        props.setProperty(PROP_CONNECTION_IMPLEMENTATION, "not-an-implementation");
+        assertEquals(expectedDefault, new OptionsBuilder(props).build().connectionImplementation());
+
+        assertEquals(ConnectionImplementation.Classic, ConnectionImplementation.get("CLASSIC"));
+        assertNull(ConnectionImplementation.get("not-an-implementation"));
+        assertNull(ConnectionImplementation.get(null));
+    }
 }

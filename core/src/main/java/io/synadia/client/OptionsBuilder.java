@@ -94,6 +94,7 @@ public class OptionsBuilder {
     boolean useTimeoutException = false;
     boolean useDispatcherWithExecutor = false;
     boolean forceFlushOnRequest = true; // true since it's the original b/w compatible way
+    ConnectionImplementation connectionImplementation = defaultConnectionImplementation();
     ServerPool serverPool = null;
     DispatcherFactory dispatcherFactory = null;
 
@@ -257,6 +258,13 @@ public class OptionsBuilder {
         booleanProperty(props, PROP_USE_TIMEOUT_EXCEPTION, this::useTimeoutException);
         booleanProperty(props, PROP_USE_DISPATCHER_WITH_EXECUTOR, this::useDispatcherWithExecutor);
         booleanProperty(props, PROP_FORCE_FLUSH_ON_REQUEST, this::forceFlushOnRequest);
+
+        stringProperty(props, PROP_CONNECTION_IMPLEMENTATION, s -> {
+            ConnectionImplementation ci = ConnectionImplementation.get(s);
+            if (ci != null) {
+                connectionImplementation(ci);
+            }
+        });
 
         stringProperty(props, PROP_HOSTNAME_RESOLVE_MODE, s -> {
             HostnameResolveMode mode = HostnameResolveMode.get(s);
@@ -1400,6 +1408,24 @@ public class OptionsBuilder {
         return this;
     }
 
+    // The JVM system property of the same name replaces the default, which is how a test run chooses the
+    // implementation (see -PconnectionImplementation in build.gradle). Absent or unrecognized means V3.
+    private static ConnectionImplementation defaultConnectionImplementation() {
+        ConnectionImplementation ci = ConnectionImplementation.get(System.getProperty(PROP_CONNECTION_IMPLEMENTATION));
+        return ci == null ? ConnectionImplementation.V3 : ci;
+    }
+
+    /**
+     * Set which connection implementation to build. See {@link ConnectionImplementation}.
+     *
+     * @param connectionImplementation the implementation, null means {@link ConnectionImplementation#V3}
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder connectionImplementation(ConnectionImplementation connectionImplementation) {
+        this.connectionImplementation = connectionImplementation == null ? ConnectionImplementation.V3 : connectionImplementation;
+        return this;
+    }
+
     /**
      * Set the DispatcherFactory implementation for connections to use instead of the default implementation
      *
@@ -1618,6 +1644,7 @@ public class OptionsBuilder {
         this.useTimeoutException = o.useTimeoutException;
         this.useDispatcherWithExecutor = o.useDispatcherWithExecutor;
         this.forceFlushOnRequest = o.forceFlushOnRequest;
+        this.connectionImplementation = o.connectionImplementation;
 
         this.serverPool = o.serverPool;
         this.dispatcherFactory = o.dispatcherFactory;

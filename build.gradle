@@ -136,6 +136,10 @@ subprojects {
         maxParallelForks = Math.min(6, mpf)
         systemProperty 'junit.jupiter.execution.timeout.default', '3m'
         systemProperty 'nkey.provider.class', 'io.nats.nkey.LtsNKeyProvider'
+        // For testing: -PconnectionImplementation=<name> runs the tests on that connection implementation
+        if (project.hasProperty('connectionImplementation')) {
+            systemProperty 'io.nats.client.connectionImplementation', project.property('connectionImplementation')
+        }
     }
 
     jacoco {

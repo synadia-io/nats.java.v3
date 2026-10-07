@@ -63,7 +63,9 @@ public class NatsConnectionReader implements Runnable {
     private Future<Boolean> stopped;
     private Future<DataPort> dataPortFuture;
     private DataPort dataPort;
-    private final AtomicBoolean running;
+    // A new flag per start(). The thread started by start() checks and clears only the flag it was
+    // started with, so a late thread from a previous socket cannot stop or disturb the current one.
+    private volatile AtomicBoolean running;
 
     private final boolean utf8Mode;
     // The listener the reader thread invokes: either a no-op (no ReadListener configured) or a wrapper
@@ -182,8 +184,9 @@ public class NatsConnectionReader implements Runnable {
     // This method resets that future so mistiming can result in badness.
     void start(Future<DataPort> dataPortFuture) {
         this.dataPortFuture = dataPortFuture;
-        this.running.set(true);
-        this.stopped = connection.getReaderExecutor().submit(this, Boolean.TRUE);
+        AtomicBoolean runFlag = new AtomicBoolean(true);
+        this.running = runFlag;
+        this.stopped = connection.getReaderExecutor().submit(() -> run(runFlag), Boolean.TRUE);
     }
 
     Future<Boolean> stop() {
@@ -194,8 +197,9 @@ public class NatsConnectionReader implements Runnable {
     // Returns a future that is completed when the thread completes, not when this
     // method does.
     Future<Boolean> stop(boolean shutdownDataPort) {
-        if (running.get()) {
-            running.set(false);
+        AtomicBoolean runFlag = running;
+        if (runFlag.get()) {
+            runFlag.set(false);
             if (shutdownDataPort && dataPort != null) {
                 try {
                     dataPort.shutdownInput();
@@ -214,13 +218,17 @@ public class NatsConnectionReader implements Runnable {
 
     @Override
     public void run() {
+        run(running);
+    }
+
+    private void run(AtomicBoolean runFlag) {
         try {
             dataPort = this.dataPortFuture.get(); // Will wait for the future to complete
             this.mode = Mode.GATHER_OP;
             this.gotCR = false;
             this.opPos = 0;
 
-            while (running.get() && !Thread.interrupted()) {
+            while (runFlag.get() && !Thread.interrupted()) {
                 this.bufferPosition = 0;
                 int bytesRead = dataPort.read(this.buffer, 0, this.buffer.length);
 
@@ -261,8 +269,8 @@ public class NatsConnectionReader implements Runnable {
             }
         } catch (IOException io) {
             // if already not running, an IOE is not unreasonable in a transition state
-            if (running.get()) {
-                this.connection.handleCommunicationIssue(io);
+            if (runFlag.get()) {
+                this.connection.handleCommunicationIssue(this, io);
             }
         } catch (CancellationException | ExecutionException ex) {
             // Exit
@@ -270,7 +278,7 @@ public class NatsConnectionReader implements Runnable {
             // Exit
             Thread.currentThread().interrupt();
         } finally {
-            this.running.set(false);
+            runFlag.set(false);
             // Clear the buffers, since they are only used inside this try/catch
             // We will reuse later
             this.protocolBuffer.clear();

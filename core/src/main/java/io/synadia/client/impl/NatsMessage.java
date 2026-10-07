@@ -119,7 +119,7 @@ public class NatsMessage implements Message {
 
         // initialize the builder with a reasonable length, preventing resize in 99.9% of the cases
         // 32 for misc + subject length doubled in case of utf8 mode + replyToLen + totLen (headerLen + dataLen)
-        ByteArrayBuilder bab = new ByteArrayBuilder(32 + (subject.length() * 2) + replyToLen + headerAndDataLen, UTF_8);
+        ByteArrayBuilder bab = new ByteArrayBuilder(32 + (subject.length() * 2) + replyToLen, UTF_8); // the control line only, not the payload
 
         // protocol come first
         if (headerLen > 0) {

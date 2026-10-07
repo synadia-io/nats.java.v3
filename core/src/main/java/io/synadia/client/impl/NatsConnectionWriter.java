@@ -1,5 +1,5 @@
 
-// Copyright 2015-2018 The NATS Authors
+// Copyright 2015-2026 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at:
@@ -51,7 +51,9 @@ public class NatsConnectionWriter implements Runnable {
     private Future<Boolean> stopped;
     private Future<DataPort> dataPortFuture;
     private DataPort dataPort;
-    private final AtomicBoolean running;
+    // A new flag per start(). The thread started by start() checks and clears only the flag it was
+    // started with, so a late thread from a previous socket cannot stop or disturb the current one.
+    private volatile AtomicBoolean running;
     private final AtomicReference<Mode> mode;
     private final ReentrantLock startStopLock;
 
@@ -96,10 +98,11 @@ public class NatsConnectionWriter implements Runnable {
         this.startStopLock.lock();
         try {
             this.dataPortFuture = dataPortFuture;
-            this.running.set(true);
+            AtomicBoolean runFlag = new AtomicBoolean(true);
+            this.running = runFlag;
             this.normalOutgoing.resume();
             this.reconnectOutgoing.resume();
-            this.stopped = connection.getWriterExecutor().submit(this, Boolean.TRUE);
+            this.stopped = connection.getWriterExecutor().submit(() -> run(runFlag), Boolean.TRUE);
         } finally {
             this.startStopLock.unlock();
         }
@@ -109,8 +112,9 @@ public class NatsConnectionWriter implements Runnable {
     // Returns a future that is completed when the thread completes, not when this
     // method does.
     Future<Boolean> stop() {
-        if (running.get()) {
-            running.set(false);
+        AtomicBoolean runFlag = running;
+        if (runFlag.get()) {
+            runFlag.set(false);
             startStopLock.lock();
             try {
                 this.normalOutgoing.pause();
@@ -200,6 +204,10 @@ public class NatsConnectionWriter implements Runnable {
 
     @Override
     public void run() {
+        run(running);
+    }
+
+    private void run(AtomicBoolean runFlag) {
         long outgoingTimeoutMillis = 2 * 60 * 1000L; // 2 minutes; can be long since no one is sending
         long reconnectTimeoutMillis = 1L; // This should be short, since we are trying to get the reconnect through
 
@@ -207,7 +215,7 @@ public class NatsConnectionWriter implements Runnable {
             dataPort = this.dataPortFuture.get(); // Will wait for the future to complete
             StatisticsCollector stats = this.connection.getStatisticsCollector();
 
-            while (running.get() && !Thread.interrupted()) {
+            while (runFlag.get() && !Thread.interrupted()) {
                 NatsMessage msg;
                 if (mode.get() == Mode.Normal) {
                     msg = this.normalOutgoing.accumulate(sendBufferLength.get(), MAX_MESSAGES_IN_NETWORK_BUFFER, outgoingTimeoutMillis);
@@ -221,7 +229,7 @@ public class NatsConnectionWriter implements Runnable {
             }
         } catch (IOException | BufferOverflowException io) {
             // if already not running, an IOE is not unreasonable in a transition state
-            if (running.get()) {
+            if (runFlag.get()) {
                 this.connection.handleCommunicationIssue(io);
             }
         } catch (CancellationException | ExecutionException ex) {
@@ -230,7 +238,7 @@ public class NatsConnectionWriter implements Runnable {
             // Exit
             Thread.currentThread().interrupt();
         } finally {
-            this.running.set(false);
+            runFlag.set(false);
         }
     }
 
@@ -279,22 +287,10 @@ public class NatsConnectionWriter implements Runnable {
     }
 
     long outgoingPendingMessageCount() {
-        writerLock.lock();
-        try {
-            return normalOutgoing == null ? -1 : normalOutgoing.length();
-        }
-        finally {
-            writerLock.unlock();
-        }
+        return normalOutgoing.length();
     }
 
     long outgoingPendingBytes() {
-        writerLock.lock();
-        try {
-            return normalOutgoing == null ? -1 : normalOutgoing.sizeInBytes();
-        }
-        finally {
-            writerLock.unlock();
-        }
+        return normalOutgoing.sizeInBytes();
     }
 }

@@ -1,6 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.AuthHandler;
+import io.synadia.client.ConnectionImplementation;
 import io.synadia.client.Options;
 import io.synadia.client.Statistics;
 
@@ -22,7 +23,9 @@ public class NatsImpl {
      * @throws InterruptedException if the current thread is interrupted while connecting
      */
     public static NatsConnection createConnection(Options options, boolean reconnectOnConnect) throws IOException, InterruptedException {
-        NatsConnection conn = new NatsConnection(options);
+        NatsConnection conn = options.connectionImplementation() == ConnectionImplementation.V3
+            ? new NatsConnectionV3(options)
+            : new NatsConnection(options);
         conn.connect(reconnectOnConnect);
         return conn;
     }
