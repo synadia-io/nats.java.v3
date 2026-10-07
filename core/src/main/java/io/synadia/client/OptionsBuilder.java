@@ -846,6 +846,8 @@ public class OptionsBuilder {
 
     /**
      * Set the amount of time to wait to acquire the lock and to offer a message to the outgoing message queue
+     * <p>Same in both implementations: it covers acquiring the outgoing lock and waiting for room when the queue
+     * is full, and a value below {@link OptionsConstants#MINIMUM_WRITE_QUEUE_PUSH_TIMEOUT} is raised to it.
      *
      * @param millis the wait time in milliseconds
      * @return the Builder for chaining
@@ -867,9 +869,15 @@ public class OptionsBuilder {
     }
 
     /**
-     * Sets the initial size for buffers in the connection, primarily for testing.
+     * Sets the buffer size. Both implementations use it for the socket read buffer. The outgoing side differs:
+     * <ul>
+     * <li>{@link ConnectionImplementation#V3 V3}: the size of each outgoing block. The writer writes one block per pass,
+     *     so this is also the most data a failed socket write can lose. A message bigger than this gets a block of its own.</li>
+     * <li>{@link ConnectionImplementation#Classic Classic}: the initial size of the send buffer. It grows to fit a message
+     *     bigger than it and never shrinks; the most data a failed socket write can lose is its current size.</li>
+     * </ul>
      *
-     * @param size the size in bytes to make buffers for connections created with this options
+     * @param size the size in bytes
      * @return the Builder for chaining
      */
     public OptionsBuilder bufferSize(int size) {
@@ -878,9 +886,12 @@ public class OptionsBuilder {
     }
 
     /**
-     * Set the maximum number of bytes to buffer in the client when trying to
-     * reconnect. When this value is exceeded the client will start to drop messages.
-     * The count of dropped messages can be read from the {@link Statistics#getDroppedCount() Statistics}.
+     * Set the maximum number of bytes to buffer in the client while disconnected or reconnecting.
+     * A publish that would reach it throws {@link IllegalStateException}.
+     * <ul>
+     * <li>{@link ConnectionImplementation#V3 V3}: counts the bytes in the data lane.</li>
+     * <li>{@link ConnectionImplementation#Classic Classic}: counts the bytes in the normal outgoing queue.</li>
+     * </ul>
      * A value of zero will disable the reconnect buffer, a value less than zero means unlimited. Caution
      * should be used for negative numbers as they can result in an unreliable network connection plus a
      * high message rate leading to an out of memory error.
@@ -1261,6 +1272,12 @@ public class OptionsBuilder {
 
     /**
      * Set the maximum number of messages in the outgoing queue.
+     * <ul>
+     * <li>{@link ConnectionImplementation#V3 V3}: counts the entries in the data lane. PONGs, and resubscribes sent
+     *     during a reconnect, go in the control lane and are not counted.</li>
+     * <li>{@link ConnectionImplementation#Classic Classic}: counts the messages in the normal outgoing queue, PONGs
+     *     included. Internal messages sent during a reconnect go in the reconnect queue and are not counted.</li>
+     * </ul>
      *
      * @param maxMessagesInOutgoingQueue the maximum number of messages in the outgoing queue
      * @return the Builder for chaining
@@ -1274,6 +1291,7 @@ public class OptionsBuilder {
 
     /**
      * Enable discard messages when the outgoing queue full. See {@link OptionsBuilder#maxMessagesInOutgoingQueue(int) maxMessagesInOutgoingQueue}
+     * <p>Same in both implementations: only user messages are discarded; internal messages wait for room.
      *
      * @return the Builder for chaining
      */
@@ -1284,6 +1302,7 @@ public class OptionsBuilder {
 
     /**
      * Set whether to discard messages when the outgoing queue is full.
+     * <p>Same in both implementations: only user messages are discarded; internal messages wait for room.
      * @param discardMessagesWhenOutgoingQueueFull true to discard
      * @return the Builder for chaining
      */
