@@ -91,6 +91,7 @@ The single source of truth for the things currently in progress — so any sessi
 * PLAN_FLUENT_SUBSCRIBE_BUILDER.md
   * fluent JetStream subscribe/subscription builder — explored + reverted; recommends source-first builder over the reverted no-arg builder
 * OSGi_JPMS_TODO.md
+  * 2026-10-07: jnats-json 3.1.1 and nkeys 3.0.6 released with OSGi exports (nkeys providers are fragments); V3 core uses them; `OsgiBundleTests` installs all dependencies as real bundles
   * **2026-10-07: JPMS module path dropped as a requirement**; split packages kept by design (O3 decided, O4/O5 dropped). O6 OSGi fixed (core exports, jetstream fragment, `OsgiBundleTests` in Felix); jnats-json / nkeys still export nothing. Open: O7 `Automatic-Module-Name`
   * 3 split packages across core+jetstream (`io.synadia.client.api`, `.impl`, `.utils`) → the jars can't sit on the JPMS module path together; OSGi resolves only one wiring
   * **O2 DONE:** every subproject published as `io.synadia:jnats3` (root hardcoded `"jnats3" + jarEnd`) — so `jnats3-js`'s POM depended on *itself*, not on core. Now per-module `artifactNameExt` → `jnats3-core` / `-js` / `-service` / `-examples`. kv/os are `jnats3-kv` / `jnats3-os` (split 2026-09-30)

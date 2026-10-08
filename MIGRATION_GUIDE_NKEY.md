@@ -41,7 +41,7 @@ All three produce identical keys and signatures — they differ only in which Bo
 ```groovy
 dependencies {
     // jnats3-core brings io.nats.nkeys:core-jdk21 transitively
-    implementation 'io.nats.nkeys:regular-jdk21:3.0.4'
+    implementation 'io.nats.nkeys:regular-jdk21:3.0.6'
 }
 ```
 
@@ -51,11 +51,13 @@ dependencies {
 <dependency>
     <groupId>io.nats.nkeys</groupId>
     <artifactId>regular-jdk21</artifactId>
-    <version>3.0.4</version>
+    <version>3.0.6</version>
 </dependency>
 ```
 
 Swap `regular-jdk21` for `lts-jdk21` or `fips-jdk21` to use a different provider. Keep the nkeys version aligned with whatever `jnats3-core` pins — mixing a newer provider against an older core is not supported.
+
+Use exactly one provider. The three contain classes with the same names in the same package, so with two on the classpath one replaces the other's classes and the provider fails at runtime. From 3.0.6, Gradle builds fail with a capability conflict on `io.nats.nkeys:nkey-provider` when two providers are in the dependency graph; Maven does not check this.
 
 ### If you don't want BouncyCastle
 
