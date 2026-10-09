@@ -29,6 +29,11 @@ final class PrefixedDataPort implements DataPort {
     }
 
     @Override
+    public void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, @NonNull NatsUri unresolvedUri, long timeoutNanos) throws IOException {
+        port.connect(conn, uri, unresolvedUri, timeoutNanos);
+    }
+
+    @Override
     public void afterConstruct(@NonNull Options options) {
         port.afterConstruct(options);
     }

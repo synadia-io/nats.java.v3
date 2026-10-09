@@ -189,11 +189,6 @@ public interface OptionsProperties {
      */
     String PROP_SECURE = PFX + "secure";
     /**
-     * Property used to enable open TLS mode. {@value}
-     * Boolean flag — uses an SSL context that takes any server TLS certificate. The server must have tls_verify OFF.
-     */
-    String PROP_OPEN_TLS = PFX + "openTls";
-    /**
      * Property used to configure max messages in outgoing queue. {@value}
      */
     String PROP_MAX_MESSAGES_IN_OUTGOING_QUEUE = PFX + "maxMessagesInOutgoingQueue";
@@ -253,6 +248,11 @@ public interface OptionsProperties {
      * Property used to configure tls-first behavior. {@value}
      */
     String PROP_TLS_FIRST = PFX + "tlsFirst";
+    /**
+     * Property used to configure tls hostname verification, whether to verify that the certificate
+     * the server presents is issued for the server name. On by default. {@value}
+     */
+    String PROP_TLS_VERIFY_HOSTNAME = PFX + "tlsVerifyHostname";
     /**
      * Property used to configure support for UTF8 subjects. {@value}
      */

@@ -54,6 +54,7 @@ public class NatsConnection implements AutoCloseable {
     // Volatile so that a caller reading getConnectedUrl() and getStatus() back to back cannot see
     // the pair out of the order teardown writes them in.
     protected volatile NatsUri currentServer;
+    protected NatsUri connectingServer;
     protected NatsUri lastServer;
     protected CompletableFuture<Boolean> reconnectWaiter;
     private volatile boolean lameDuckTriggered = false;
@@ -522,6 +523,7 @@ public class NatsConnection implements AutoCloseable {
     // writer.stop
     protected void tryToConnect(NatsUri cur, NatsUri resolved, long nowNanos) {
         clearCurrentServer();
+        connectingServer = cur; // the origin of discovered servers in the initial INFO, before currentServer is set
 
         try {
             long end = nowNanos + (options.getConnectionTimeout() * NANOS_PER_MILLI);
@@ -558,7 +560,7 @@ public class NatsConnection implements AutoCloseable {
 
             timeLeftNanos = timeCheck(end);
             DataPort newDataPort = options.createDataPort();
-            newDataPort.connect(this, resolved, timeLeftNanos);
+            newDataPort.connect(this, resolved, cur, timeLeftNanos);
 
             // Notify any threads waiting on the sockets
             this.dataPort = newDataPort;
@@ -2154,7 +2156,8 @@ public class NatsConnection implements AutoCloseable {
 
         List<String> urls = newServerInfo.getConnectURLs();
         if (!urls.isEmpty()) {
-            if (serverPool.acceptDiscoveredUrls(urls)) {
+            NatsUri origin = currentServer == null ? connectingServer : currentServer;
+            if (serverPool.acceptDiscoveredUrls(urls, origin)) {
                 processConnectionEvent(ConnectionEvent.DISCOVERED_SERVERS, urls.toString());
             }
         }

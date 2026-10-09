@@ -39,11 +39,6 @@ import static io.synadia.client.OptionsConstants.DEFAULT_URL;
  * SSL Context is used.
  * <li>Call {@link OptionsBuilder#sslContext(javax.net.ssl.SSLContext) sslContext} when building your options.
  * Your context will be used.
- * <li>Pass an opentls:// url to the connect method, or in the options. The library will create a special
- * SSLContext that has no client certificates and trusts any server. <strong>This is less secure, but useful for
- * testing and behind a firewall.</strong>
- * <li>Call the {@link OptionsBuilder#openTls() opentls} method on the builder when creating your options, again
- * the all trusting, non-verifiable client is created.
  * </ul>
  * 
  * <p>To set up the default context for tls:// or {@link OptionsBuilder#secure() secure} you can:
@@ -52,8 +47,7 @@ import static io.synadia.client.OptionsConstants.DEFAULT_URL;
  * <li>Set the context manually with the SSLContext setDefault method.
  * </ul>
  * 
- * <p>If the server is configured to verify clients, the opentls mode will not work, and the other modes require a client certificate
- * to work.
+ * <p>If the server is configured to verify clients, the context must have a client certificate.
  * 
  * <p>Authentication, if configured on the server, is managed via the Options as well. However, the url passed to {@link #connect(String) connect()}
  * can provide a user/password pair or a token using the forms: {@code nats://user:password@server:port} and {@code nats://token@server:port}.
@@ -116,10 +110,7 @@ public abstract class Nats {
      * <p>or token in them {@code nats://token@hostname:port}.</p>
      *
      * <p>Moreover, you can initiate a TLS connection, by using the `tls`
-     * schema, which will use the default SSLContext, or fail if one is not set. For
-     * testing and development, the `opentls` schema is support when the server is
-     * in non-verify mode. In this case, the client will accept any server
-     * certificate and will not provide one of its own.</p>
+     * schema, which will use the default SSLContext, or fail if one is not set.</p>
      *
      * <p>This is a synchronous call, and the connection should be ready for use on return
      * there are network timing issues that could result in a successful connect call but

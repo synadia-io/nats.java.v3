@@ -34,6 +34,7 @@ public class NatsUri {
     private boolean isSecure;
     private boolean isWebsocket;
     private boolean hostIsIpAddress;
+    private @Nullable String tlsHost;
 
     /**
      * Get the underlying Java URI.
@@ -77,7 +78,7 @@ public class NatsUri {
     }
 
     /**
-     * Whether this URI uses a secure scheme (tls, wss, opentls).
+     * Whether this URI uses a secure scheme (tls, wss).
      * @return true if secure
      */
     public boolean isSecure() {
@@ -101,6 +102,28 @@ public class NatsUri {
     }
 
     /**
+     * The hostname to present to the server during the TLS handshake. It differs from the host
+     * when this uri was rehosted to an ip address by hostname resolution, or when it was discovered
+     * as a bare ip address from a server that had a hostname.
+     * @return the saved hostname, or the host when none has been saved
+     */
+    public String getTlsHost() {
+        return tlsHost == null ? getHost() : tlsHost;
+    }
+
+    /**
+     * Copy this uri with a hostname to present to the server during the TLS handshake.
+     * This does not change the host, the port, equality, the hash code or the string form.
+     * @param tlsHost the hostname
+     * @return a copy with the hostname
+     */
+    public NatsUri withTlsHost(String tlsHost) {
+        NatsUri copy = new NatsUri(this);
+        copy.tlsHost = tlsHost;
+        return copy;
+    }
+
+    /**
      * Create a new NatsUri with the same scheme, port, and user info but a different host.
      * Handles IPv6 addresses by adding brackets if needed.
      * @param newHost the new host
@@ -116,7 +139,12 @@ public class NatsUri {
         String newUrl = (uri.getRawUserInfo() == null)
             ? uri.getScheme() + "://" + newHost + ":" + uri.getPort()
             : uri.getScheme() + "://" + uri.getRawUserInfo() + "@" + newHost + ":" + uri.getPort();
-        return new NatsUri(newUrl, uri.getScheme());
+        NatsUri rehosted = new NatsUri(newUrl, uri.getScheme());
+        // keep the hostname for the TLS handshake when rehosting to an ip address
+        if (rehosted.hostIsIpAddress() && (tlsHost != null || !hostIsIpAddress)) {
+            rehosted.tlsHost = getTlsHost();
+        }
+        return rehosted;
     }
 
     @Override
@@ -147,6 +175,14 @@ public class NatsUri {
             throw new RuntimeException(e);
         }
         postConstruct();
+    }
+
+    private NatsUri(NatsUri source) {
+        uri = source.uri;
+        isSecure = source.isSecure;
+        isWebsocket = source.isWebsocket;
+        hostIsIpAddress = source.hostIsIpAddress;
+        tlsHost = source.tlsHost;
     }
 
     /**

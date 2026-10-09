@@ -1,5 +1,6 @@
 package io.synadia.client.impl;
 
+import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
 import io.synadia.client.utils.NatsUri;
 import org.jspecify.annotations.NonNull;
@@ -20,6 +21,23 @@ public interface DataPort {
      * @throws IOException if the data port is unable to connect.
      */
     void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException;
+
+    /**
+     * Execute the connect, also providing the uri before any hostname resolution.
+     * The connection resolves hostnames to ip addresses in the resolving {@link HostnameResolveMode} modes,
+     * so the uri to connect to may have an ip address where the server was configured or discovered with a hostname.
+     * A data port that needs the hostname, for instance to present it to the server during the TLS handshake
+     * as the server name (SNI), gets it from the unresolved uri.
+     * The default implementation ignores the unresolved uri and calls {@link #connect(NatsConnection, NatsUri, long)}.
+     * @param conn the NatsConnection object
+     * @param uri the NatsUri to connect to, possibly resolved to an ip address
+     * @param unresolvedUri the NatsUri before any hostname resolution. The same object as uri when no resolution happened.
+     * @param timeoutNanos the timeout
+     * @throws IOException if the data port is unable to connect.
+     */
+    default void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, @NonNull NatsUri unresolvedUri, long timeoutNanos) throws IOException {
+        connect(conn, uri, timeoutNanos);
+    }
 
     /**
      * Called once right after the data port instance is created, before any connect attempt,

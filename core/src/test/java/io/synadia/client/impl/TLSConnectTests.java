@@ -4,6 +4,7 @@ import io.nats.NatsServerRunner;
 import io.synadia.client.*;
 import io.synadia.client.utils.CloseOnUpgradeAttempt;
 import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.SSLUtils;
 import io.synadia.client.utils.TestBase;
 import io.synadia.client.utils.ssl.ExpiringClientCertUtil;
 import io.synadia.client.utils.ssl.ExpiringComponents;
@@ -102,39 +103,27 @@ public class TLSConnectTests extends TestBase {
     }
 
     @Test
-    public void testURISchemeOpenTLSConnection() throws Exception {
+    public void testURISchemeTrustAllTLSConnection() throws Exception {
         runInSharedConfiguredServer("tls.conf", 1, ts1 -> {
-            String[] servers = NatsTestServer.getLocalhostUris("opentls", ts1);
+            String[] servers = NatsTestServer.getLocalhostUris("tls", ts1);
             Options options = optionsBuilder(servers)
                 .maxReconnects(0)
-                .openTls()
+                .sslContext(SSLUtils.createTrustAllTlsContext())
                 .build();
             assertCanConnectAndPubSub(options);
-
-            Properties props = new Properties();
-            props.setProperty(PROP_SERVERS, String.join(",", servers));
-            props.setProperty(PROP_MAX_RECONNECTS, "0");
-            props.setProperty(PROP_OPEN_TLS, "true");
-            assertCanConnectAndPubSub(new OptionsBuilder(props).build());
         });
     }
 
     @Test
-    public void testMultipleUrlOpenTLSConnection() throws Exception {
+    public void testMultipleUrlTrustAllTLSConnection() throws Exception {
         runInSharedConfiguredServer("tls.conf", 1, ts1 ->
             runInSharedConfiguredServer("tls.conf", 2, ts2 -> {
-                String[] servers = NatsTestServer.getLocalhostUris("opentls", ts1, ts2);
+                String[] servers = NatsTestServer.getLocalhostUris("tls", ts1, ts2);
                 Options options = optionsBuilder(servers)
                     .maxReconnects(0)
-                    .openTls()
+                    .sslContext(SSLUtils.createTrustAllTlsContext())
                     .build();
                 assertCanConnectAndPubSub(options);
-
-                Properties props = new Properties();
-                props.setProperty(PROP_SERVERS, String.join(",", servers));
-                props.setProperty(PROP_MAX_RECONNECTS, "0");
-                props.setProperty(PROP_OPEN_TLS, "true");
-                assertCanConnectAndPubSub(new OptionsBuilder(props).build());
             }));
     }
 
@@ -162,21 +151,14 @@ public class TLSConnectTests extends TestBase {
     }
 
     @Test
-    public void testOpenTLSConnection() throws Exception {
+    public void testTrustAllTLSConnection() throws Exception {
         runInSharedConfiguredServer("tls.conf", 1, ts1 -> {
-            String servers = ts1.getServerUri();
             Options options = optionsBuilder()
-                .server(servers)
+                .server(ts1.getServerUri())
                 .maxReconnects(0)
-                .openTls()
+                .sslContext(SSLUtils.createTrustAllTlsContext())
                 .build();
             assertCanConnectAndPubSub(options);
-
-            Properties props = new Properties();
-            props.setProperty(PROP_SERVERS, servers);
-            props.setProperty(PROP_MAX_RECONNECTS, "0");
-            props.setProperty(PROP_OPEN_TLS, "true");
-            assertCanConnectAndPubSub(new OptionsBuilder(props).build());
         });
     }
 
@@ -337,7 +319,6 @@ public class TLSConnectTests extends TestBase {
             .truststorePath("truststorePath")
             .truststorePassword("tsp".toCharArray())
             .secure()
-            .openTls()
             .tlsAlgorithm("tlsAlgorithm")
             .build();
 

@@ -26,6 +26,20 @@ public interface ServerPool {
     boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers);
 
     /**
+     * When the connection received discovered servers (ServerInfo.getConnectURLs)
+     * it passes them on to the provider for later use, together with the server whose INFO supplied them.
+     * A discovered server given as a bare ip address has no hostname to present to the server
+     * during the TLS handshake; the pool may save the origin's hostname on it for that purpose.
+     * The default implementation ignores the origin and calls {@link #acceptDiscoveredUrls(List)}.
+     * @param discoveredServers the list of discovered servers.
+     * @param origin the server whose INFO supplied the list, or null when it is not known
+     * @return true if there were any unknown servers provided
+     */
+    default boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers, @Nullable NatsUri origin) {
+        return acceptDiscoveredUrls(discoveredServers);
+    }
+
+    /**
      * Just take a peek at the next server without doing any processing.
      * @return the next server Nuri or null if the pool is empty.
      */

@@ -29,7 +29,10 @@ public enum HostnameResolveMode {
     ResolveToFirstIncludeIPV6(true, true, true),
 
     /**
-     * Do not resolve, instead use InetSocketAddress.createUnresolved while creating the socket.
+     * Do not resolve the hostname in the client. When a proxy is configured, the socket is connected with
+     * InetSocketAddress.createUnresolved so the proxy receives the hostname and resolves it. Without a proxy,
+     * one address is resolved at connect time through NatsInetAddress. In both cases the hostname is kept
+     * and is the TLS server name.
      */
     Unresolved(false, false, false),
 

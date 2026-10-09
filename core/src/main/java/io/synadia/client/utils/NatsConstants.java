@@ -20,7 +20,6 @@ public interface NatsConstants {
     /** Server URL scheme requiring the connection be upgraded to TLS. {@value} */
     String TLS_PROTOCOL = "tls";
     /** Server URL scheme for TLS that trusts any server certificate, intended for testing. {@value} */
-    String OPENTLS_PROTOCOL = "opentls";
     /** Server URL scheme for a connection tunneled over a plain WebSocket. {@value} */
     String WEBSOCKET_PROTOCOL = "ws";
     /** Server URL scheme for a connection tunneled over a TLS secured WebSocket. {@value} */
@@ -29,9 +28,9 @@ public interface NatsConstants {
     String NATS_PROTOCOL_SLASH_SLASH = "nats://";
 
     /** Every URL scheme the client accepts in a server URL. */
-    List<String> KNOWN_PROTOCOLS = Arrays.asList(NATS_PROTOCOL, TLS_PROTOCOL, OPENTLS_PROTOCOL, WEBSOCKET_PROTOCOL, SECURE_WEBSOCKET_PROTOCOL);
+    List<String> KNOWN_PROTOCOLS = Arrays.asList(NATS_PROTOCOL, TLS_PROTOCOL, WEBSOCKET_PROTOCOL, SECURE_WEBSOCKET_PROTOCOL);
     /** URL schemes that require the connection be encrypted with TLS. */
-    List<String> SECURE_PROTOCOLS = Arrays.asList(TLS_PROTOCOL, OPENTLS_PROTOCOL, SECURE_WEBSOCKET_PROTOCOL);
+    List<String> SECURE_PROTOCOLS = Arrays.asList(TLS_PROTOCOL, SECURE_WEBSOCKET_PROTOCOL);
     /** URL schemes that require the WebSocket handshake and framing. */
     List<String> WEBSOCKET_PROTOCOLS = Arrays.asList(WEBSOCKET_PROTOCOL, SECURE_WEBSOCKET_PROTOCOL);
 

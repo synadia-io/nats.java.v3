@@ -29,6 +29,12 @@ Established 2026-08-28. A test should not open a connection to anything outside 
 | `os/ObjectStoreApiTests.java` | 5 | 409 | already uses `dataAsString` |
 | `os/KeyValueConfigurationTests.java` | 2 | 106 | |
 
+## TLS hostname tests — added 2026-10-09
+
+- `impl/TlsHostnameTests` (43 executions), ported from nats.java PR #1638 with `utils/ssl/SniTestServer`: SNI in every `HostnameResolveMode` with and without TLS first, `Unresolved` through a loopback HTTP CONNECT proxy, ip literals, the unresolved-uri `DataPort` overload, default-on hostname verification (wrong name, ip SAN, trust-all context), discovered-ip hostname carry-over, and the pool's per-entry TLS names. `ExpiringClientCertUtil.generateKeyPair` / `generateCertificate` are package-private now, with a subject-alternative-name overload.
+- `opentls` removal: `TLSConnectTests` `*OpenTLS*` tests became `*TrustAll*` tests with a supplied `SSLUtils.createTrustAllTlsContext()`; their property halves were dropped. `WebsocketConnectTests.testWsOpenTLS` and `testWssVerifyOpenTLS` were removed, `testWssOpenTLS` became `testWssTrustAllContext`. `ReconnectTests` `tls_noip.conf` case connects by `localhost` and its reconnect to the gossiped ip passes only through the hostname carry-over.
+- `OptionsTests.testTlsVerifyHostname` added; `testSslContextIsProvided` and `testNatsUri` assert that `opentls` is rejected.
+
 ## Coverage gaps worth a test
 
 ### `HappyEyeballsConnector` — only the short circuit is covered

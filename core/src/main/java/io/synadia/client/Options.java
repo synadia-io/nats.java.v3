@@ -89,6 +89,7 @@ public class Options {
     final boolean discardMessagesWhenOutgoingQueueFull;
     final boolean ignoreDiscoveredServers;
     final boolean tlsFirst;
+    final boolean tlsVerifyHostname;
     final boolean useTimeoutException;
     final boolean useDispatcherWithExecutor;
     final boolean forceFlushOnRequest;
@@ -256,6 +257,7 @@ public class Options {
 
         this.ignoreDiscoveredServers = b.ignoreDiscoveredServers;
         this.tlsFirst = b.tlsFirst;
+        this.tlsVerifyHostname = b.tlsVerifyHostname;
         this.useTimeoutException = b.useTimeoutException;
         this.useDispatcherWithExecutor = b.useDispatcherWithExecutor;
         this.forceFlushOnRequest = b.forceFlushOnRequest;
@@ -992,6 +994,15 @@ public class Options {
      */
     public boolean isTlsFirst() {
         return tlsFirst;
+    }
+
+    /**
+     * Get whether to verify that the certificate the server presents is issued for the server name,
+     * which is on by default, see {@link OptionsBuilder#tlsVerifyHostname(boolean)}
+     * @return the flag
+     */
+    public boolean isTlsVerifyHostname() {
+        return tlsVerifyHostname;
     }
 
     /**

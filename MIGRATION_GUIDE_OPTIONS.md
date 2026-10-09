@@ -35,7 +35,7 @@ Both resolve to the same property.
 | `PROP_TRUSTSTORE`             | `PROP_TRUST_STORE`                | `trustStore`                    |                          |
 | `PROP_TRUSTSTORE_PASSWORD`    | `PROP_TRUST_STORE_PASSWORD`       | `trustStorePassword`            |                          |
 | `PROP_NORANDOMIZE`            | `PROP_NO_RANDOMIZE`               | `noRandomize`                   | `norandomize`            |
-| `PROP_OPENTLS`                | `PROP_OPEN_TLS`                   | `openTls`                       | `opentls`                |
+| `PROP_OPENTLS`                | removed, see [TLS configuration](TLS_CONFIGURATION.md) | removed               | `opentls`                |
 | `PROP_UTF8_SUBJECTS`          | `PROP_SUPPORT_UTF8_SUBJECTS`      | `supportUtf8Subjects`           | `allow.utf8.subjects`    |
 
 ## 4. Constants whose values changed (name unchanged)
@@ -66,6 +66,7 @@ The `Old value` column shows the value as it appears in the old `io.nats.client.
 | `PROP_TLS_ALGORITHM`                             | `tlsAlgorithm`                         | `tls.algorithm`                     |
 | `PROP_CREDENTIAL_PATH`                           | `credentialPath`                       | `credential.path`                   |
 | `PROP_TLS_FIRST`                                 | `tlsFirst`                             | `tls.first`                         |
+| `PROP_TLS_VERIFY_HOSTNAME`                       | `tlsVerifyHostname`                    | `tls.verify.hostname`               |
 | `PROP_USE_TIMEOUT_EXCEPTION`                     | `useTimeoutException`                  | `use.timeout.exception`             |
 | `PROP_USE_DISPATCHER_WITH_EXECUTOR`              | `useDispatcherWithExecutor`            | `use.dispatcher.with.executor`      |
 | `PROP_FORCE_FLUSH_ON_REQUEST`                    | `forceFlushOnRequest`                  | `force.flush.on.request`            |
@@ -193,6 +194,6 @@ Late in v3 a few property keys, builder setters, and getters were renamed so the
 | `Options.getReceiveBufferSize()` | `Options.getSocketReceiveBufferSize()` |
 | `Options.getSendBufferSize()` | `Options.getSocketSendBufferSize()` |
 | `Options.getMaxReconnect()` | `Options.getMaxReconnects()` |
-| `OptionsBuilder.opentls()` / `opentls(boolean)` | `OptionsBuilder.openTls()` / `openTls(boolean)` |
+| `OptionsBuilder.opentls()` / `opentls(boolean)` | removed, see [TLS configuration](TLS_CONFIGURATION.md) |
 
-For `maxPings`/`cleanupInterval`/`reconnectBufSize`/`maxReconnect` the **key** was changed to match the existing setter/getter; for the socket buffer sizes the **setter/getter** were changed to match the existing `socketReceiveBufferSize`/`socketSendBufferSize` keys; for `opentls` only the method casing was fixed (the `openTls` property key was already correct). The `PROP_*` constants were renamed to match (`PROP_MAX_PINGS`→`PROP_MAX_PINGS_OUT`, `PROP_CLEANUP_INTERVAL`→`PROP_REQUEST_CLEANUP_INTERVAL`, `PROP_RECONNECT_BUF_SIZE`→`PROP_RECONNECT_BUFFER_SIZE`, `PROP_MAX_RECONNECT`→`PROP_MAX_RECONNECTS`).
+For `maxPings`/`cleanupInterval`/`reconnectBufSize`/`maxReconnect` the **key** was changed to match the existing setter/getter; for the socket buffer sizes the **setter/getter** were changed to match the existing `socketReceiveBufferSize`/`socketSendBufferSize` keys. The `PROP_*` constants were renamed to match (`PROP_MAX_PINGS`→`PROP_MAX_PINGS_OUT`, `PROP_CLEANUP_INTERVAL`→`PROP_REQUEST_CLEANUP_INTERVAL`, `PROP_RECONNECT_BUF_SIZE`→`PROP_RECONNECT_BUFFER_SIZE`, `PROP_MAX_RECONNECT`→`PROP_MAX_RECONNECTS`).

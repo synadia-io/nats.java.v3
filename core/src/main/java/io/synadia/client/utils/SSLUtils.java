@@ -32,7 +32,7 @@ public class SSLUtils {
      * Install the delegate consulted by the trust-all trust manager. When no delegate is set,
      * the trust-all trust manager accepts every certificate without inspecting it. Setting a
      * delegate is global to the JVM and affects every context created afterward by
-     * {@link #createTrustAllTlsContext()} / {@link #createOpenTLSContext()}.
+     * {@link #createTrustAllTlsContext()}.
      * @param trustManagerDelegate the delegate to install, or null to go back to accepting everything
      */
     public static void setDefaultTrustManagerDelegate(TrustManagerDelegate trustManagerDelegate) {
@@ -84,20 +84,6 @@ public class SSLUtils {
             }
         }
     };
-
-    /**
-     * Same as {@link #createTrustAllTlsContext()} but swallows any failure. Intended for the
-     * "opentls" convenience URI scheme, where there is nowhere to report a problem.
-     * @return the context, or null if one could not be created
-     */
-    public static SSLContext createOpenTLSContext() {
-        try {
-            return createTrustAllTlsContext();
-        }
-        catch (Exception e) {
-            return null;
-        }
-    }
 
     /**
      * Create a context whose trust manager accepts any server certificate. Only appropriate for

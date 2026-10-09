@@ -15,7 +15,6 @@ import java.net.Proxy;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -91,6 +90,7 @@ public class OptionsBuilder {
     boolean discardMessagesWhenOutgoingQueueFull = DEFAULT_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL;
     boolean ignoreDiscoveredServers = false;
     boolean tlsFirst = false;
+    boolean tlsVerifyHostname = true;
     boolean useTimeoutException = false;
     boolean useDispatcherWithExecutor = false;
     boolean forceFlushOnRequest = true; // true since it's the original b/w compatible way
@@ -121,7 +121,6 @@ public class OptionsBuilder {
     Proxy proxy = null;
 
     boolean useDefaultTls = false;
-    boolean useTrustAllTls = false;
     String keystore = null;
     char[] keystorePassword = null;
     String truststore = null;
@@ -190,7 +189,6 @@ public class OptionsBuilder {
         classnameProperty(props, PROP_TOKEN_SUPPLIER_CLASS, o -> tokenSupplier((Supplier<char[]>) o));
 
         booleanProperty(props, PROP_SECURE, this::secure);
-        booleanProperty(props, PROP_OPEN_TLS, this::openTls);
 
         classnameProperty(props, PROP_SSL_CONTEXT_FACTORY_CLASS, o -> sslContextFactory((SSLContextFactory) o));
         stringProperty(props, PROP_KEY_STORE, this::keystorePath);
@@ -255,6 +253,7 @@ public class OptionsBuilder {
 
         booleanProperty(props, PROP_IGNORE_DISCOVERED_SERVERS, this::ignoreDiscoveredServers);
         booleanProperty(props, PROP_TLS_FIRST, this::tlsFirst);
+        booleanProperty(props, PROP_TLS_VERIFY_HOSTNAME, this::tlsVerifyHostname);
         booleanProperty(props, PROP_USE_TIMEOUT_EXCEPTION, this::useTimeoutException);
         booleanProperty(props, PROP_USE_DISPATCHER_WITH_EXECUTOR, this::useDispatcherWithExecutor);
         booleanProperty(props, PROP_FORCE_FLUSH_ON_REQUEST, this::forceFlushOnRequest);
@@ -527,27 +526,6 @@ public class OptionsBuilder {
      */
     public OptionsBuilder secure(boolean useDefaultTls) {
         this.useDefaultTls = useDefaultTls;
-        return this;
-    }
-
-    /**
-     * Set the options to use an SSL context that accepts any server certificate and has no client certificates.
-     *
-     * @return the Builder for chaining
-     * @throws NoSuchAlgorithmException <em>Not thrown, deferred to build() method, left in for backward compatibility</em>
-     */
-    public OptionsBuilder openTls() throws NoSuchAlgorithmException {
-        useTrustAllTls = true;
-        return this;
-    }
-
-    /**
-     * Set whether to use an SSL context that accepts any server certificate (the context is created at build() time).
-     * @param useTrustAllTls true to use the trust-all SSL context
-     * @return the Builder for chaining
-     */
-    public OptionsBuilder openTls(boolean useTrustAllTls) {
-        this.useTrustAllTls = useTrustAllTls;
         return this;
     }
 
@@ -1357,6 +1335,35 @@ public class OptionsBuilder {
     }
 
     /**
+     * Set whether to verify that the certificate the server presents is issued for the server name.
+     * On by default; pass false to turn it off.
+     * <p>
+     * When on, the certificate the server presents must be issued for the server name the
+     * connection was made with: the configured hostname, in every {@link HostnameResolveMode},
+     * or the ip address when the server was configured by ip address, in which case the
+     * certificate must carry that address as a subject alternative name.
+     * The check is the one the JDK performs for HTTPS, against the certificate's
+     * subject alternative names. A server discovered from connect_urls as a bare ip address
+     * is checked against the hostname of the server that supplied it, when that server was
+     * configured by hostname; otherwise it is checked as an ip address.
+     * The check is performed by the trust manager in use. The JDK performs it for its own
+     * trust managers, which an SSLContext built from a keystore and truststore or the default
+     * SSLContext has, and for any plain X509TrustManager, which it wraps, including a trust-all
+     * manager such as the one in {@link SSLUtils#createTrustAllTlsContext()}.
+     * A custom X509ExtendedTrustManager is responsible for its own identity check.
+     * <p>
+     * Turning it off removes the proof that the server is the one named in the url.
+     * Do that only where the certificate is known not to name the server, such as development
+     * against a self-signed certificate, and prefer reissuing the certificate for the name.
+     * @param tlsVerifyHostname true to verify, false to skip the check
+     * @return the Builder for chaining
+     */
+    public OptionsBuilder tlsVerifyHostname(boolean tlsVerifyHostname) {
+        this.tlsVerifyHostname = tlsVerifyHostname;
+        return this;
+    }
+
+    /**
      * Throw {@link java.util.concurrent.TimeoutException} on timeout instead of {@link java.util.concurrent.CancellationException}?
      *
      * @return the Builder for chaining
@@ -1466,9 +1473,6 @@ public class OptionsBuilder {
      * <li>If there is no user/password is set but the URI has them, {@code nats://user:password@server:port}, they will be used.
      * <li>If there is no token is set but the URI has one, {@code nats://token@server:port}, it will be used.
      * <li>If the URI is of the form tls:// and no SSL context was assigned, one is created, see {@link OptionsBuilder#secure() secure()}.
-     * <li>If the URI is of the form opentls:// and no SSL context was assigned one will be created
-     * that does not check the servers certificate for validity. This is not secure and only provided
-     * for tests and development.
      * </ul>
      *
      * @return the new options object
@@ -1526,35 +1530,19 @@ public class OptionsBuilder {
                 }
                 else {
                     // the sslContext has not been requested via factory or keystore/truststore properties
-                    // If we haven't been told to use the default or the trust all context
+                    // If we haven't been told to use the default context
                     // and the server isn't the default url, check to see if the server uris
                     // suggest we need the ssl context.
-                    if (!useDefaultTls && !useTrustAllTls && checkUrisForSecure) {
-                        for (int i = 0; sslContext == null && i < natsServerUris.size(); i++) {
-                            NatsUri natsUri = natsServerUris.get(i);
-                            switch (natsUri.getScheme()) {
-                                case TLS_PROTOCOL:
-                                case SECURE_WEBSOCKET_PROTOCOL:
-                                    useDefaultTls = true;
-                                    break;
-                                case OPENTLS_PROTOCOL:
-                                    useTrustAllTls = true;
-                                    break;
+                    if (!useDefaultTls && checkUrisForSecure) {
+                        for (int i = 0; !useDefaultTls && i < natsServerUris.size(); i++) {
+                            String scheme = natsServerUris.get(i).getScheme();
+                            if (TLS_PROTOCOL.equals(scheme) || SECURE_WEBSOCKET_PROTOCOL.equals(scheme)) {
+                                useDefaultTls = true;
                             }
                         }
                     }
 
-                    // check trust all (open) first, in case they provided both
-                    // PROP_SECURE (secure) and PROP_OPEN_TLS (openTls)
-                    if (useTrustAllTls) {
-                        try {
-                            this.sslContext = SSLUtils.createTrustAllTlsContext();
-                        }
-                        catch (GeneralSecurityException e) {
-                            throw new IllegalStateException("Unable to create SSL context", e);
-                        }
-                    }
-                    else if (useDefaultTls) {
+                    if (useDefaultTls) {
                         try {
                             this.sslContext = SSLContext.getDefault();
                         }
@@ -1660,6 +1648,7 @@ public class OptionsBuilder {
 
         this.ignoreDiscoveredServers = o.ignoreDiscoveredServers;
         this.tlsFirst = o.tlsFirst;
+        this.tlsVerifyHostname = o.tlsVerifyHostname;
         this.useTimeoutException = o.useTimeoutException;
         this.useDispatcherWithExecutor = o.useDispatcherWithExecutor;
         this.forceFlushOnRequest = o.forceFlushOnRequest;

@@ -24,6 +24,7 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Current Implementation
 
+- **TLS hostname verification on by default, `opentls` removed** - **Committed**. `PLAN_SNI_HOSTNAME_VERIFICATION_V3.md` (port of nats.java PR #1638: SNI in every resolve mode, `Unresolved` without a proxy, `tlsVerifyHostname(boolean)` default true, discovered bare ip carries the announcing server's hostname) in classic and V3; `PLAN_TLS_CONTEXT_POLICY_V3.md` option C. New `TlsHostnameTests` (43) and `SniTestServer`. Targeted TLS classes green on V3 (225) and Classic (226, `testReconnectFailsAfterCertExpires` green on retry).
 - **Request behavior improvement** - **In progress**, `REQUEST_BEHAVIOR_IMPROVEMENT.md`. Sequence is RTT -> `Service.isStarted` -> the general rework; **the first two are done and committed**, next is Steps 1-4 (the four types).
   - Two findings from the RTT spike to carry into the classifier: entry-state errors (not connected, max pings out) stay **out** of it as `IllegalStateException`, and do **not** classify on exception type alone - `CancellationException` means different things depending on the `CancelAction`.
   - Still open in the plan: the classifier gap making `NO_RESPONDERS` unreachable on the default `REPORT` path, which is coupled to the `CANCEL_ACTION_REVISIT.md` decision. Migration-guide entries go in **as each change lands**, not batched.
@@ -140,6 +141,12 @@ The single source of truth for the things currently in progress — so any sessi
     * 2026-10-07: what kv / os / service use from jetstream and core; the non-user-API part is `AbstractBucketFeature` (6 public fields), `NatsWatchSubscription`, `JsValidator`, constants. Decision: package access rule as for jetstream → core; only A3 applied (KV validators + tests moved to kv `KvValidator`)
 * PROTECTED_ACCESS_AUDIT.md
     * 2026-10-07: 335 protected members (bytecode); 25 must stay (kv / os subclass jetstream bases across packages, plus `api.SubscribeBehavior` / `api.ApiResponse` extended from jetstream `impl`); 310 could be package-private (compile + javadoc verified in a copy). Decision: keep `protected` (users may subclass, e.g. `NatsServerPool`); nothing applied
+* PLAN_SNI_HOSTNAME_VERIFICATION_V3.md
+    * 2026-10-08: port of nats.java PR #1638 (SNI in every resolve mode, `Unresolved` without a proxy, hostname verification, gossiped-ip hostname carry-over) to both connections; verification **on by default** in V3 with `tlsVerifyHostname(false)` as the opt-out.
+    * 2026-10-09: done, steps A-D in both connections, `TlsHostnameTests` (43 executions) added. Targeted TLS tests pass on V3 and Classic.
+* PLAN_TLS_CONTEXT_POLICY_V3.md
+    * 2026-10-08: companion to the SNI plan. Already in the tree uncommitted: the both-contexts rejection (port of nats.java PR #1639), `TLS_CONFIGURATION.md`, README links. Two decisions for V3: hostname verification on by default (Go precedent table), and requiring an explicit SSLContext for `openTls` (three shapes, consequences, test touch list; V2 session recommends removing `openTls` and rejecting the scheme). Decided 2026-10-08: remove all `opentls` recognition; trust-all only via `sslContext(ctx)`, plus `tlsVerifyHostname(false)` when needed; side doc like `TLS_CONFIGURATION.md`.
+    * 2026-10-09: done. `opentls://`, `openTls()`/`openTls(boolean)`, the `openTls` property and `SSLUtils.createOpenTLSContext()` removed; the both-contexts rejection dropped with it; `TLS_CONFIGURATION.md` rewritten.
 
 ## Plans / Audits TBD
 

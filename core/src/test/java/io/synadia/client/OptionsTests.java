@@ -387,7 +387,7 @@ public class OptionsTests extends TestBase {
         props.setProperty(PROP_VERBOSE, "true");
         props.setProperty(PROP_PEDANTIC, "true");
         props.setProperty(PROP_NO_RANDOMIZE, "true");
-        props.setProperty(PROP_OPEN_TLS, "true");
+        props.setProperty(PROP_SECURE, "true");
         props.setProperty(PROP_NO_ECHO, "true");
         props.setProperty(PROP_DISCARD_MESSAGES_WHEN_OUTGOING_QUEUE_FULL, "true");
 
@@ -403,7 +403,7 @@ public class OptionsTests extends TestBase {
         assertTrue(o.isNoRandomize(), "property norandomize");
         assertTrue(o.isNoEcho(), "property noecho");
         assertTrue(o.isDiscardMessagesWhenOutgoingQueueFull(), "property discard messages when outgoing queue full");
-        assertNotNull(o.getSslContext(), "property opentls");
+        assertNotNull(o.getSslContext(), "property secure");
     }
 
     @Test
@@ -577,7 +577,6 @@ public class OptionsTests extends TestBase {
     public void testPropertiesCoverageOptions() {
         Properties props = new Properties();
         props.setProperty(PROP_SECURE, "false");
-        props.setProperty(PROP_OPEN_TLS, "false");
         props.setProperty(PROP_RECONNECT_JITTER, "1000");
         props.setProperty(PROP_RECONNECT_JITTER_TLS, "2000");
         props.setProperty(PROP_CLIENT_SIDE_LIMIT_CHECKS, "true"); // deprecated
@@ -1269,9 +1268,9 @@ public class OptionsTests extends TestBase {
         }
     }
 
-    String[] schemes = new String[]   { "NATS", "unk",  "tls",  "opentls",  "ws",   "wss", "nats"};
-    boolean[] secures = new boolean[] { false,  false,  true,   true,       false,  true,  false};
-    boolean[] wses = new boolean[]    { false,  false,  false,  false,      true,   true,  false};
+    String[] schemes = new String[]   { "NATS", "unk",  "tls",  "ws",   "wss", "nats"};
+    boolean[] secures = new boolean[] { false,  false,  true,   false,  true,  false};
+    boolean[] wses = new boolean[]    { false,  false,  false,  true,   true,  false};
     String[] hosts = new String[]     { "host", "1.2.3.4", "[1:2:3:4:5:6:7:8]", null, "nats"};
     boolean[] ips = new boolean[]     { false,  true,      true,           false, false};
     Integer[] ports = new Integer[]   {1122, null};
@@ -1288,6 +1287,10 @@ public class OptionsTests extends TestBase {
 
         //noinspection DataFlowIssue // parameter is annotated as @NonNull
         assertThrows(NullPointerException.class, () -> new NatsUri((String)null));
+
+        // opentls is not a scheme
+        assertThrows(URISyntaxException.class, () -> new NatsUri("opentls://localhost:4222"));
+        assertThrows(URISyntaxException.class, () -> new NatsUri("localhost:4222", "opentls"));
 
         // coverage
         //noinspection SimplifiableAssertion,ConstantValue
@@ -1515,7 +1518,7 @@ public class OptionsTests extends TestBase {
     }
 
     @Test
-    public void testSslContextIsProvided() {
+    public void testSslContextIsProvided() throws Exception {
         Options o = new OptionsBuilder().server("localhost").build();
         assertNull(o.getSslContext());
         o = new OptionsBuilder().server("ws://localhost").build();
@@ -1526,10 +1529,27 @@ public class OptionsTests extends TestBase {
         assertNotNull(o.getSslContext());
         o = new OptionsBuilder().server("wss://localhost").build();
         assertNotNull(o.getSslContext());
-        o = new OptionsBuilder().server("opentls://localhost").build();
-        assertNotNull(o.getSslContext());
         o = new OptionsBuilder().server("nats://localhost,tls://localhost").build();
         assertNotNull(o.getSslContext());
+
+        // opentls is not recognized; a trust-all context is supplied like any other context
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("opentls://localhost"));
+        SSLContext trustAll = SSLUtils.createTrustAllTlsContext();
+        assertSame(trustAll, new OptionsBuilder().server("tls://localhost").sslContext(trustAll).build().getSslContext());
+    }
+
+    @Test
+    public void testTlsVerifyHostname() {
+        assertTrue(new OptionsBuilder().build().isTlsVerifyHostname());
+        assertTrue(new OptionsBuilder().tlsVerifyHostname(true).build().isTlsVerifyHostname());
+        Options options = new OptionsBuilder().tlsVerifyHostname(false).build();
+        assertFalse(options.isTlsVerifyHostname());
+        assertFalse(new OptionsBuilder(options).build().isTlsVerifyHostname());
+        Properties props = new Properties();
+        props.setProperty(PROP_TLS_VERIFY_HOSTNAME, "true");
+        assertTrue(new OptionsBuilder(props).build().isTlsVerifyHostname());
+        props.setProperty(PROP_TLS_VERIFY_HOSTNAME, "false");
+        assertFalse(new OptionsBuilder(props).build().isTlsVerifyHostname());
     }
 
     @Test

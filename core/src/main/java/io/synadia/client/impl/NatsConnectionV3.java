@@ -578,6 +578,7 @@ public class NatsConnectionV3 extends NatsConnection {
     // counted rejections - the time a server has to start accepting again - is the same as classic.
     private void tryToConnectV3(NatsUri cur, NatsUri resolved, boolean holdOnAuthError) {
         clearCurrentServer();
+        connectingServer = cur; // the origin of discovered servers in the initial INFO, before currentServer is set
 
         long end = NatsSystemClock.nanoTime() + options.getConnectionTimeout() * NANOS_PER_MILLI;
         DataPort port = null;
@@ -594,7 +595,7 @@ public class NatsConnectionV3 extends NatsConnection {
             if (closeRequested) {
                 throw new IOException("Connection is closing.");
             }
-            port.connect(this, resolved, timeCheck(end));
+            port.connect(this, resolved, cur, timeCheck(end));
             this.dataPort = port; // readInitialInfo and upgradeToSecureIfNeeded use the field
 
             final DataPort handshakePort = port;

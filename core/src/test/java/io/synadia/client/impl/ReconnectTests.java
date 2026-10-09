@@ -5,6 +5,7 @@ import io.synadia.client.*;
 import io.synadia.client.api.ServerInfo;
 import io.synadia.client.utils.ConnectionUtils;
 import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.SSLUtils;
 import io.synadia.client.utils.ssl.SslTestingHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -521,25 +522,33 @@ public class ReconnectTests {
 
         SslTestingHelper.setKeystoreSystemParameters();
 
-        // Regular tls for first connection, then no ip for second
+        // Both servers present the certificate that names localhost and carries no ip address.
         try (NatsTestServer ts = new NatsTestServer( "tls_noip.conf", tsInserts, tsPort);
              NatsTestServer ts2 = new NatsTestServer( "tls_noip.conf", ts2Inserts, ts2Port) ) {
 
-            // Test 1. tls Scheme
-            Options options = optionsBuilder(ts, "tls")
+            // Test 1. tls Scheme. The certificate names localhost only, so connect by that name;
+            // the default hostname verification checks it
+            Options options = optionsBuilder()
+                .server("tls://localhost:" + ts.getNatsPort())
                 .connectionTimeout(5000)
                 .maxReconnects(0)
                 .build();
             assertCanConnect(options);
 
-            // Test 2. opentls Scheme
-            options = optionsBuilder(ts, "opentls")
+            // Test 2. A supplied trust-all context. It trusts any chain, but the name is still checked
+            // by default and the url is the ip, so the check is turned off here.
+            options = optionsBuilder(ts, "tls")
+                .sslContext(SSLUtils.createTrustAllTlsContext())
+                .tlsVerifyHostname(false)
                 .maxReconnects(0)
                 .build();
             assertCanConnect(options);
 
-            // Test 3. Reconnect
-            options = optionsBuilder(ts)
+            // Test 3. Reconnect. Connect by name; the servers gossip each other by ip, and the reconnect
+            // to the gossiped ip is verified against the name of the server that gossiped it.
+            String tsUri = "nats://localhost:" + ts.getNatsPort();
+            options = optionsBuilder()
+                .server(tsUri)
                 .secure()
                 .connectionListener(listener)
                 .maxReconnects(20)
@@ -550,7 +559,7 @@ public class ReconnectTests {
 
             listener.queueConnectionEvent(ConnectionEvent.DISCOVERED_SERVERS);
             nc = ConnectionUtils.managedConnect(options);
-            assertEquals(ts.getServerUri(), nc.getConnectedUrl());
+            assertEquals(tsUri, nc.getConnectedUrl());
 
             flushConnection(nc); // make sure we get the new server via info
             listener.validate();
