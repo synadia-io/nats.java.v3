@@ -4,22 +4,33 @@ import io.nats.NatsServerRunner;
 import io.synadia.client.*;
 import io.synadia.client.utils.CloseOnUpgradeAttempt;
 import io.synadia.client.utils.Listener;
+import io.synadia.client.utils.NatsUri;
 import io.synadia.client.utils.SSLUtils;
 import io.synadia.client.utils.TestBase;
 import io.synadia.client.utils.ssl.ExpiringClientCertUtil;
 import io.synadia.client.utils.ssl.ExpiringComponents;
+import io.synadia.client.utils.ssl.SniTestServer;
 import io.synadia.client.utils.ssl.SslTestingHelper;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -597,6 +608,182 @@ public class TLSConnectTests extends TestBase {
                 t = t.getCause();
             }
             return false;
+        }
+    }
+
+    // ---- a ws:// server when the options require TLS ----
+
+    static class RejectionListener extends Listener {
+        final List<String> exceptionMessages = new CopyOnWriteArrayList<>();
+
+        @Override
+        public void exceptionOccurred(NatsConnection conn, Exception exp) {
+            super.exceptionOccurred(conn, exp);
+            exceptionMessages.add(String.valueOf(exp.getMessage()));
+        }
+    }
+
+    private static OptionsBuilder tlsRequiring(SniTestServer server, SniTestServer.Certificates certificates, Listener listener) throws Exception {
+        // the certificate carries 127.0.0.1 as an ip subject alternative name, so the default hostname verification passes
+        return Options.builder()
+            .server("tls://127.0.0.1:" + server.port())
+            .sslContext(certificates.clientContext())
+            .connectionListener(listener)
+            .errorListener(listener)
+            .noRandomize()
+            .connectionTimeout(2000);
+    }
+
+    private static void assertRejectedOnce(RejectionListener listener, String server) {
+        for (int x = 0; x < 200 && listener.getServerRejectedEvents().isEmpty(); x++) {
+            sleep(10);
+        }
+        List<Listener.ServerRejectedEvent> events = listener.getServerRejectedEvents();
+        assertEquals(1, events.size(), events.toString());
+        assertEquals(server, events.get(0).server());
+        assertTrue(events.get(0).reason().contains("never upgraded to TLS"), events.get(0).reason());
+        for (String m : listener.exceptionMessages) {
+            assertFalse(m.contains(server), m);
+        }
+    }
+
+    // a pool that hands out the given server first; it can ignore serverRejected and keep the server,
+    // and it can hold only that server
+    private static ServerPool poolWithFirst(NatsUri first, boolean keepsRejected, boolean only) {
+        return new NatsServerPool() {
+            @Override
+            public void initialize(@NonNull Options opts) {
+                super.initialize(opts);
+                listLock.lock();
+                try {
+                    if (only) {
+                        entryList.clear();
+                    }
+                    entryList.add(0, new ServerPoolEntry(first, false));
+                }
+                finally {
+                    listLock.unlock();
+                }
+            }
+
+            @Override
+            public void serverRejected(@NonNull NatsUri nuri) {
+                if (!keepsRejected) {
+                    super.serverRejected(nuri);
+                }
+            }
+        };
+    }
+
+    @Test
+    public void testDiscoveredPlainWebsocketServerIsRejectedOnce() throws Exception {
+        // a ws:// entry in connect_urls enters the pool like any other entry. When the pool first hands it out,
+        // a connection that requires TLS skips it without dialing it, goes on to the next server, reports it
+        // through serverRejected, and tells the pool, which drops it and does not take it back from a later INFO
+        SniTestServer.Certificates certificates = new SniTestServer.Certificates(SniTestServer.HOST, true);
+        RejectionListener listener = new RejectionListener();
+        try (ServerSocket plainWs = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
+            String wsUrl = "ws://127.0.0.1:" + plainWs.getLocalPort();
+            try (SniTestServer second = new SniTestServer(certificates, false, Collections.singletonList(wsUrl), true);
+                 SniTestServer first = new SniTestServer(certificates, false, Arrays.asList(wsUrl, "127.0.0.1:" + second.port()), true)) {
+                Options options = tlsRequiring(first, certificates, listener)
+                    .reconnectWait(50)
+                    .maxReconnects(3)
+                    .build();
+                listener.queueConnectionEvent(ConnectionEvent.DISCOVERED_SERVERS);
+                try (NatsConnection nc = Nats.connect(options)) {
+                    nc.flush(2000);
+                    listener.validate();
+                    Collection<String> servers = nc.getServers();
+                    assertTrue(servers.contains(wsUrl), servers.toString());
+                    assertTrue(servers.contains("tls://127.0.0.1:" + second.port()), servers.toString());
+                    assertTrue(listener.getServerRejectedEvents().isEmpty());
+
+                    // the first server goes away: the pool hands out the ws entry, then the second server
+                    listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
+                    first.close();
+                    listener.validate();
+                    assertEquals("tls://127.0.0.1:" + second.port(), nc.getConnectedUrl());
+
+                    assertRejectedOnce(listener, wsUrl);
+                    // the second server's INFO advertised the ws entry again and the pool did not take it back
+                    servers = nc.getServers();
+                    assertFalse(servers.contains(wsUrl), servers.toString());
+                    plainWs.setSoTimeout(500);
+                    assertThrows(SocketTimeoutException.class, plainWs::accept);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testPlainWebsocketServerFromThePoolIsSkipped() throws Exception {
+        // a custom ServerPool can hand the connection a ws:// server. With TLS required it is skipped without
+        // being dialed, reported through serverRejected, and handed back to the pool, which drops it;
+        // the connection goes on to the next server
+        SniTestServer.Certificates certificates = new SniTestServer.Certificates(SniTestServer.HOST, true);
+        RejectionListener listener = new RejectionListener();
+        try (ServerSocket plainWs = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"));
+             SniTestServer server = new SniTestServer(certificates, false, 0, true)) {
+            NatsUri wsUri = new NatsUri("ws://127.0.0.1:" + plainWs.getLocalPort());
+            Options options = tlsRequiring(server, certificates, listener).serverPool(poolWithFirst(wsUri, false, false)).build();
+            try (NatsConnection nc = Nats.connect(options)) {
+                nc.flush(2000);
+                assertEquals("tls://127.0.0.1:" + server.port(), nc.getConnectedUrl());
+                assertRejectedOnce(listener, wsUri.toString());
+                assertFalse(nc.getServers().contains(wsUri.toString()), nc.getServers().toString());
+                plainWs.setSoTimeout(500);
+                assertThrows(SocketTimeoutException.class, plainWs::accept);
+            }
+        }
+    }
+
+    @Test
+    public void testConnectEndsWhenThePoolKeepsOnlyARejectedServer() throws Exception {
+        // a pool that ignores serverRejected and holds only a ws:// server: the connect ends instead of
+        // taking the same server forever, and reports it once
+        SniTestServer.Certificates certificates = new SniTestServer.Certificates(SniTestServer.HOST, true);
+        RejectionListener listener = new RejectionListener();
+        try (ServerSocket plainWs = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"));
+             SniTestServer server = new SniTestServer(certificates, false, 0, true)) {
+            NatsUri wsUri = new NatsUri("ws://127.0.0.1:" + plainWs.getLocalPort());
+            Options options = tlsRequiring(server, certificates, listener).serverPool(poolWithFirst(wsUri, true, true)).build();
+            IOException e = assertThrows(IOException.class, () -> Nats.connect(options));
+            assertTrue(e.getMessage().contains("Unable to connect"), e.getMessage());
+            assertRejectedOnce(listener, wsUri.toString());
+            plainWs.setSoTimeout(500);
+            assertThrows(SocketTimeoutException.class, plainWs::accept);
+        }
+    }
+
+    @Test
+    public void testReconnectEndsWhenThePoolKeepsOnlyARejectedServer() throws Exception {
+        // a pool that ignores serverRejected keeps a ws:// server next to a TLS server. The connect and the
+        // reconnect each report it once. When the TLS server has used up its attempts and the pool holds only
+        // the ws:// server, the reconnect ends and the connection closes instead of taking the same server forever
+        SniTestServer.Certificates certificates = new SniTestServer.Certificates(SniTestServer.HOST, true);
+        RejectionListener listener = new RejectionListener();
+        try (ServerSocket plainWs = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
+            NatsUri wsUri = new NatsUri("ws://127.0.0.1:" + plainWs.getLocalPort());
+            SniTestServer server = new SniTestServer(certificates, false, 0, true);
+            Options options = tlsRequiring(server, certificates, listener)
+                .serverPool(poolWithFirst(wsUri, true, false))
+                .reconnectWait(50)
+                .maxReconnects(2)
+                .build();
+            try (NatsConnection nc = Nats.connect(options)) {
+                nc.flush(2000);
+                listener.queueConnectionEvent(ConnectionEvent.CLOSED, 10000);
+                server.close();
+                listener.validate();
+                List<Listener.ServerRejectedEvent> events = listener.getServerRejectedEvents();
+                assertEquals(2, events.size(), events.toString());
+                plainWs.setSoTimeout(500);
+                assertThrows(SocketTimeoutException.class, plainWs::accept);
+            }
+            finally {
+                server.close();
+            }
         }
     }
 }

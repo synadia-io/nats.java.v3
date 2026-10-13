@@ -146,6 +146,18 @@ public interface ErrorListener {
     default void socketWriteTimeout(NatsConnection conn) {}
 
     /**
+     * Called by the connection when the server pool supplied a server that the connection will never attempt,
+     * because it cannot be used with the options: for example a plain ws:// server when the options have
+     * an SSL context, since a plain websocket is never upgraded to TLS. The connection goes on to the next
+     * server, and the pool is told through {@link ServerPool#serverRejected ServerPool.serverRejected} so it stops supplying the server.
+     *
+     * @param conn The connection that rejected the server
+     * @param server The server that was rejected, as a url
+     * @param reason Why it was rejected
+     */
+    default void serverRejected(NatsConnection conn, String server, String reason) {}
+
+    /**
      * General message producing function which understands the possible parameters to listener calls.
      * @param label the label for the message
      * @param conn The connection that had the issue, if provided.

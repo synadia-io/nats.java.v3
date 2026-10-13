@@ -1536,6 +1536,15 @@ public class OptionsTests extends TestBase {
         assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("opentls://localhost"));
         SSLContext trustAll = SSLUtils.createTrustAllTlsContext();
         assertSame(trustAll, new OptionsBuilder().server("tls://localhost").sslContext(trustAll).build().getSslContext());
+
+        // with TLS required, a ws:// server would be reached without TLS: a builder error. nats:// servers are upgraded.
+        assertThrows(IllegalStateException.class, () -> new OptionsBuilder().server("wss://a,ws://b").build());
+        assertThrows(IllegalStateException.class, () -> new OptionsBuilder().server("tls://a,ws://b").build());
+        assertThrows(IllegalStateException.class, () -> new OptionsBuilder().server("ws://a").secure().build());
+        assertThrows(IllegalStateException.class, () -> new OptionsBuilder().server("ws://a").sslContext(trustAll).build());
+        assertNotNull(new OptionsBuilder().server("nats://a,tls://b").build().getSslContext());
+        assertNotNull(new OptionsBuilder().server("nats://a").secure().build().getSslContext());
+        assertNull(new OptionsBuilder().server("ws://a,nats://b").build().getSslContext());
     }
 
     @Test

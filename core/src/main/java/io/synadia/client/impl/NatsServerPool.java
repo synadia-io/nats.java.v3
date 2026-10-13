@@ -28,6 +28,7 @@ public class NatsServerPool implements ServerPool {
     protected boolean hasSecureServer;
     protected NatsUri lastConnected;
     protected String defaultScheme;
+    protected final List<NatsUri> rejected;
 
     /**
      * Construct an empty pool. It is not usable until {@link #initialize(Options)} supplies the options
@@ -36,6 +37,7 @@ public class NatsServerPool implements ServerPool {
     public NatsServerPool() {
         listLock = new ReentrantLock();
         entryList = new ArrayList<>(); // this gets updated occasionally
+        rejected = new ArrayList<>();
         options = Options.builder().build(); // this will get updated when initialize is called
     }
 
@@ -88,14 +90,6 @@ public class NatsServerPool implements ServerPool {
      * {@inheritDoc}
      */
     @Override
-    public boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers) {
-        return acceptDiscoveredUrls(discoveredServers, null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers, @Nullable NatsUri origin) {
         // 1. If ignored discovered servers, don't do anything b/c never want
         //    anything but the explicit, which is already loaded.
@@ -109,10 +103,14 @@ public class NatsServerPool implements ServerPool {
             // 2. Build a list for discovered
             //    - since we'll need the NatsUris later
             //    - and to have a list to use to prune removed gossiped servers
+            //    - a server the connection rejected is never supplied again, so it is left out here
             List<NatsUri> discovered = new ArrayList<>();
             for (String d : discoveredServers) {
                 try {
-                    discovered.add(new NatsUri(d, defaultScheme));
+                    NatsUri nuri = new NatsUri(d, defaultScheme);
+                    if (!isRejected(nuri)) {
+                        discovered.add(nuri);
+                    }
                 } catch (URISyntaxException ignore) {
                     // should never actually happen
                 }
@@ -275,6 +273,27 @@ public class NatsServerPool implements ServerPool {
     }
 
     @Override
+    public void serverRejected(@NonNull NatsUri nuri) {
+        // 1. Remember it so a later discovery does not bring it back
+        // 2. Remove it from the list. Work from the end because nextServer moved the one being tried to the end
+        listLock.lock();
+        try {
+            if (!isRejected(nuri)) {
+                rejected.add(nuri);
+            }
+            for (int x = entryList.size() - 1; x >= 0; x--) {
+                if (entryList.get(x).nuri.equals(nuri)) {
+                    entryList.remove(x);
+                    return;
+                }
+            }
+        }
+        finally {
+            listLock.unlock();
+        }
+    }
+
+    @Override
     @NonNull
     public List<String> getServerList() {
         listLock.lock();
@@ -293,6 +312,17 @@ public class NatsServerPool implements ServerPool {
     @Override
     public boolean hasSecureServer() {
         return hasSecureServer;
+    }
+
+    // Rejected is about the scheme as well as the server: a server rejected as ws:// is not rejected
+    // when it is advertised as wss:// or nats://, which the connection can use.
+    protected boolean isRejected(NatsUri nuri) {
+        for (NatsUri r : rejected) {
+            if (r.equivalent(nuri) && r.getScheme().equals(nuri.getScheme())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected int findEquivalent(List<NatsUri> list, NatsUri toFind) {

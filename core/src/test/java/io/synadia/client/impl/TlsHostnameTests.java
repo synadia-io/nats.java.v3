@@ -457,7 +457,7 @@ public class TlsHostnameTests {
             else {
                 assertEquals("one.test", entry(pool, "127.0.0.1").getTlsHost());
                 // the overload without an origin saves nothing
-                pool.acceptDiscoveredUrls(Arrays.asList("127.0.0.1:4222", "127.0.0.2:4222"));
+                pool.acceptDiscoveredUrls(Arrays.asList("127.0.0.1:4222", "127.0.0.2:4222"), null);
                 assertEquals("one.test", entry(pool, "127.0.0.1").getTlsHost());
                 assertEquals("127.0.0.2", entry(pool, "127.0.0.2").getTlsHost());
             }

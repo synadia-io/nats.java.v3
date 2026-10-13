@@ -14,6 +14,8 @@ The context is accepted or created once, when `OptionsBuilder.build()` runs, in 
 4. `secure()` was called, the `secure` property is true, or any bootstrap server has the `tls://` or `wss://` scheme: `SSLContext.getDefault()`, described in section 2.
 5. Otherwise no context, and the connection is plain TCP. A server that requires TLS then fails the connect with "SSL required by server."
 
+When the options end up with a context, by any of rules 1 to 4, a `ws://` server in the list is an error at `build()`: `ws://` is a plain websocket and is never upgraded to TLS, so that server would be reached without it. Use `wss://` for it. A `nats://` server is allowed, because it is upgraded to TLS like every other server of the connection. A `ws://` server that reaches the connection another way, advertised by the cluster in `connect_urls` or supplied by a custom `ServerPool`, is never dialed: when the pool hands it out, the connection skips it and goes on to the next server, reports it through `ErrorListener.serverRejected`, and tells the pool through `ServerPool.serverRejected`, so the default pool drops it and does not take it back as `ws://` from a later `connect_urls`.
+
 There is no `opentls://` scheme, `openTls()` builder method or `openTls` property. An `opentls://` url fails with "Unsupported NATS URI scheme." A context that trusts every certificate is supplied with rule 1, section 4.
 
 ## 2. The default context: `tls://`, `wss://`, `secure()`

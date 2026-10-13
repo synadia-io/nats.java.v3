@@ -81,7 +81,7 @@ public class ServerPoolTests extends TestBase {
         assertNull(nsp.nextServer());
 
         // and that it's put back
-        nsp.acceptDiscoveredUrls(Collections.singletonList(BOOT_ONE));
+        nsp.acceptDiscoveredUrls(Collections.singletonList(BOOT_ONE), null);
         validateNslp(nsp, null, false, BOOT_ONE);
 
         // testing that servers that fail max times and is removed
@@ -93,7 +93,7 @@ public class ServerPoolTests extends TestBase {
         assertNull(nsp.nextServer());
 
         // and that it's put back
-        nsp.acceptDiscoveredUrls(Collections.singletonList(BOOT_ONE));
+        nsp.acceptDiscoveredUrls(Collections.singletonList(BOOT_ONE), null);
         validateNslp(nsp, null, false, BOOT_ONE);
     }
 
@@ -105,13 +105,39 @@ public class ServerPoolTests extends TestBase {
         validateNslp(nsp, null, false, combined);
 
         // new discovered list is missing d3
-        nsp.acceptDiscoveredUrls(Arrays.asList(DISC_ONE, DISC_TWO));
+        nsp.acceptDiscoveredUrls(Arrays.asList(DISC_ONE, DISC_TWO), null);
         validateNslp(nsp, null, false, BOOT_ONE, BOOT_TWO, DISC_ONE, DISC_TWO);
 
         // new discovered list is missing the last connected
         nsp.connectSucceeded(new NatsUri(DISC_TWO));
-        nsp.acceptDiscoveredUrls(Collections.singletonList(DISC_ONE));
+        nsp.acceptDiscoveredUrls(Collections.singletonList(DISC_ONE), null);
         validateNslp(nsp, null, false, BOOT_ONE, BOOT_TWO, DISC_ONE, DISC_TWO);
+    }
+
+    @Test
+    public void testServerRejected() throws URISyntaxException {
+        // a rejected server leaves the pool and does not come back when it is discovered again
+        Options o = optionsBuilder(bootstrap).noRandomize().build();
+        NatsServerPool nsp = newNatsServerPool(o, null, discoveredServers);
+        validateNslp(nsp, null, true, combined);
+
+        nsp.serverRejected(new NatsUri(DISC_ONE));
+        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO, DISC_TWO, DISC_THREE);
+
+        // discovered again: not taken back, and not counted as an unknown server
+        assertFalse(nsp.acceptDiscoveredUrls(discoveredServers, null));
+        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO, DISC_TWO, DISC_THREE);
+
+        // a server the pool does not hold is remembered all the same; the empty result prunes the gossiped servers as usual
+        nsp.serverRejected(new NatsUri("nats://d4"));
+        assertFalse(nsp.acceptDiscoveredUrls(Collections.singletonList("nats://d4"), null));
+        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO);
+
+        // the rejection is for the scheme: the same host and port under another scheme is taken
+        nsp.serverRejected(new NatsUri("ws://d5:4222"));
+        assertFalse(nsp.acceptDiscoveredUrls(Collections.singletonList("ws://d5:4222"), null));
+        assertTrue(nsp.acceptDiscoveredUrls(Collections.singletonList("wss://d5:4222"), null));
+        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO, "wss://d5:4222");
     }
 
     private static NatsServerPool newNatsServerPool(Options o, NatsUri last, List<String> discoveredServers) {
@@ -126,7 +152,7 @@ public class ServerPoolTests extends TestBase {
             nsp.connectSucceeded(last);
         }
         if (discoveredServers != null) {
-            nsp.acceptDiscoveredUrls(discoveredServers);
+            nsp.acceptDiscoveredUrls(discoveredServers, null);
         }
         return nsp;
     }

@@ -19,25 +19,14 @@ public interface ServerPool {
 
     /**
      * When the connection received discovered servers (ServerInfo.getConnectURLs)
-     * it passes them on to the provider for later use
-     * @param discoveredServers the list of discovered servers.
-     * @return true if there were any unknown servers provided
-     */
-    boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers);
-
-    /**
-     * When the connection received discovered servers (ServerInfo.getConnectURLs)
      * it passes them on to the provider for later use, together with the server whose INFO supplied them.
      * A discovered server given as a bare ip address has no hostname to present to the server
      * during the TLS handshake; the pool may save the origin's hostname on it for that purpose.
-     * The default implementation ignores the origin and calls {@link #acceptDiscoveredUrls(List)}.
      * @param discoveredServers the list of discovered servers.
      * @param origin the server whose INFO supplied the list, or null when it is not known
      * @return true if there were any unknown servers provided
      */
-    default boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers, @Nullable NatsUri origin) {
-        return acceptDiscoveredUrls(discoveredServers);
-    }
+    boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers, @Nullable NatsUri origin);
 
     /**
      * Just take a peek at the next server without doing any processing.
@@ -75,6 +64,17 @@ public interface ServerPool {
      * @param nuri should match the NatsUri given by nextServer
      */
     void connectFailed(@NonNull NatsUri nuri);
+
+    /**
+     * The connection will never attempt the server, because it cannot be used with the options:
+     * for example a plain ws:// server when the options have an SSL context, since a plain websocket
+     * is never upgraded to TLS. The connection has already taken the server from the pool and goes on
+     * to the next one. The pool should stop supplying the server, including when it is discovered again.
+     * A pool that keeps supplying it does not make the connection attempt it: when the pool supplies
+     * a rejected server again and has supplied nothing usable since, the connection ends that connect or reconnect.
+     * @param nuri the server that was rejected
+     */
+    void serverRejected(@NonNull NatsUri nuri);
 
     /**
      * Get the list of servers known to the pool. Purely informational

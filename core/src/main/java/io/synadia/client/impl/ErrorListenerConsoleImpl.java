@@ -95,4 +95,12 @@ public class ErrorListenerConsoleImpl implements ErrorListener {
     public void socketWriteTimeout(NatsConnection conn) {
         System.out.println(supplyMessage("[SEVERE] socketWriteTimeout", conn, null));
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void serverRejected(NatsConnection conn, String server, String reason) {
+        System.out.println(supplyMessage("[WARNING] serverRejected", conn, null, "Server: ", server, "Reason: ", reason));
+    }
 }

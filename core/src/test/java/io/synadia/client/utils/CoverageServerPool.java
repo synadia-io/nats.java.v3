@@ -17,7 +17,7 @@ public class CoverageServerPool implements ServerPool {
     }
 
     @Override
-    public boolean acceptDiscoveredUrls(@NonNull List<String> discoveredServers) {
+    public boolean acceptDiscoveredUrls(@NonNull List<String> discoveredServers, @Nullable NatsUri origin) {
         return false;
     }
 
@@ -42,6 +42,10 @@ public class CoverageServerPool implements ServerPool {
 
     @Override
     public void connectFailed(@NonNull NatsUri nuri) {
+    }
+
+    @Override
+    public void serverRejected(@NonNull NatsUri nuri) {
     }
 
     @Override

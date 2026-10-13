@@ -16,7 +16,9 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -364,7 +366,25 @@ public class NatsConnectionV3 extends NatsConnection {
         boolean keepGoing = true;
         NatsUri first = null;
         NatsUri cur;
+        // A rejected server, mapped to the count of usable servers handed out when it was last supplied.
+        // The pool is told to drop a rejected server; if it supplies one again with nothing usable in between, it has nothing else.
+        Map<NatsUri, Long> rejected = new HashMap<>();
+        long usableCount = 0;
         while (keepGoing && (cur = serverPool.peekNextServer()) != null) {
+            String rejection = rejectionReason(cur);
+            if (rejection != null) {
+                serverPool.nextServer(); // b/c we only peeked, and the pool must have handed it out before it is told
+                Long usableAtLastRejection = rejected.put(cur, usableCount);
+                if (usableAtLastRejection == null) {
+                    rejectServer(cur, rejection);
+                    failList.add(cur);
+                }
+                else if (usableAtLastRejection == usableCount) {
+                    break; // the pool kept a rejected server and handed out nothing usable since it last supplied it
+                }
+                continue; // before first is set: a rejected server must not end the pass
+            }
+            usableCount++;
             if (first == null) {
                 first = cur;
             }
@@ -480,7 +500,22 @@ public class NatsConnectionV3 extends NatsConnection {
         long round = 0;
         NatsUri first = null;
         NatsUri cur;
+        // see connect: a rejected server, mapped to the count of usable servers handed out when it was last supplied
+        Map<NatsUri, Long> rejected = new HashMap<>();
+        long usableCount = 0;
         while ((cur = serverPool.nextServer()) != null) {
+            String rejection = rejectionReason(cur);
+            if (rejection != null) {
+                Long usableAtLastRejection = rejected.put(cur, usableCount);
+                if (usableAtLastRejection == null) {
+                    rejectServer(cur, rejection);
+                }
+                else if (usableAtLastRejection == usableCount) {
+                    return; // the pool kept a rejected server and handed out nothing usable since it last supplied it
+                }
+                continue; // before first is set and before the delay: a rejected server is not an attempt
+            }
+            usableCount++;
             if (first == null) {
                 first = cur;
                 ++round;   // round becomes 1

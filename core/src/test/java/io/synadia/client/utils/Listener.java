@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -37,6 +38,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     private int flowControlCount;
     private int pullStatusWarningsCount;
     private int socketWriteTimeoutCount;
+    private final List<ServerRejectedEvent> serverRejectedEvents = new CopyOnWriteArrayList<>();
 
     public Listener() {
         this(false, false);
@@ -67,6 +69,7 @@ public class Listener implements ErrorListener, ConnectionListener {
         flowControlCount = 0;
         pullStatusWarningsCount = 0;
         socketWriteTimeoutCount = 0;
+        serverRejectedEvents.clear();
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -247,6 +250,8 @@ public class Listener implements ErrorListener, ConnectionListener {
 
     public int getSocketWriteTimeoutCount() { return socketWriteTimeoutCount; }
 
+    public List<ServerRejectedEvent> getServerRejectedEvents() { return serverRejectedEvents; }
+
     // ----------------------------------------------------------------------------------------------------
     // NatsConnection Listener
     // ----------------------------------------------------------------------------------------------------
@@ -356,6 +361,16 @@ public class Listener implements ErrorListener, ConnectionListener {
         socketWriteTimeoutCount++;
         tryToComplete(futures, f -> f.forSocketWriteTimeout);
     }
+
+    @Override
+    public void serverRejected(NatsConnection conn, String server, String reason) {
+        if (verbose) {
+            report("serverRejected", server + " " + reason);
+        }
+        serverRejectedEvents.add(new ServerRejectedEvent(server, reason));
+    }
+
+    public record ServerRejectedEvent(String server, String reason) {}
 
     // ----------------------------------------------------------------------------------------------------
     // Helpers
