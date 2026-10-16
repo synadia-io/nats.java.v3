@@ -70,8 +70,9 @@ public interface ServerPool {
      * for example a plain ws:// server when the options have an SSL context, since a plain websocket
      * is never upgraded to TLS. The connection has already taken the server from the pool and goes on
      * to the next one. The pool should stop supplying the server, including when it is discovered again.
-     * A pool that keeps supplying it does not make the connection attempt it: when the pool supplies
-     * a rejected server again and has supplied nothing usable since, the connection ends that connect or reconnect.
+     * A pool that keeps supplying it does not make the connection attempt it: the connection skips it
+     * every time it is supplied, also reports it through {@link #connectFailed(NatsUri)} each time,
+     * and reports it to the error listener once per connect or reconnect.
      * @param nuri the server that was rejected
      */
     void serverRejected(@NonNull NatsUri nuri);

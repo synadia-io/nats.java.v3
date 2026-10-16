@@ -740,8 +740,8 @@ public class TLSConnectTests extends TestBase {
 
     @Test
     public void testConnectEndsWhenThePoolKeepsOnlyARejectedServer() throws Exception {
-        // a pool that ignores serverRejected and holds only a ws:// server: the connect ends instead of
-        // taking the same server forever, and reports it once
+        // a pool that ignores serverRejected and holds only a ws:// server: each rejection is also a connectFailed,
+        // so the pool counts the server out and the connect ends instead of taking the same server forever; reported once
         SniTestServer.Certificates certificates = new SniTestServer.Certificates(SniTestServer.HOST, true);
         RejectionListener listener = new RejectionListener();
         try (ServerSocket plainWs = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"));
@@ -759,8 +759,8 @@ public class TLSConnectTests extends TestBase {
     @Test
     public void testReconnectEndsWhenThePoolKeepsOnlyARejectedServer() throws Exception {
         // a pool that ignores serverRejected keeps a ws:// server next to a TLS server. The connect and the
-        // reconnect each report it once. When the TLS server has used up its attempts and the pool holds only
-        // the ws:// server, the reconnect ends and the connection closes instead of taking the same server forever
+        // reconnect each report it once. Each rejection is also a connectFailed, so the ws:// server uses up its
+        // attempts like the TLS server, the pool runs empty, and the connection closes
         SniTestServer.Certificates certificates = new SniTestServer.Certificates(SniTestServer.HOST, true);
         RejectionListener listener = new RejectionListener();
         try (ServerSocket plainWs = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {

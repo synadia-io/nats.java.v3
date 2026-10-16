@@ -16,9 +16,7 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -80,8 +78,6 @@ public class NatsConnectionV3 extends NatsConnection {
     // A reconnect asked for while another transition was running. The transition runs it when it ends.
     private volatile @Nullable Generation pendingReconnect;
 
-    private volatile boolean lameDuck;
-
     // volatile copies of NatsConnection.closing and reconnectWaiter, which are read across threads here
     private volatile boolean closeRequested;
     private volatile @Nullable CompletableFuture<Boolean> reconnectWait;
@@ -115,20 +111,15 @@ public class NatsConnectionV3 extends NatsConnection {
 
     @Override
     protected void connect(boolean reconnectOnConnect) throws InterruptedException, IOException {
-        if (!tryingToConnect.compareAndSet(false, true)) {
-            return;
+        if (tryingToConnect.compareAndSet(false, true)) {
+            try {
+                connectImpl(reconnectOnConnect);
+            }
+            finally {
+                tryingToConnect.set(false);
+                runRequestedTransitions();
+            }
         }
-        try {
-            connectV3(reconnectOnConnect);
-        }
-        finally {
-            endTransition();
-        }
-    }
-
-    @Override
-    protected void connectImpl(boolean reconnectOnConnect) throws InterruptedException, IOException {
-        connectV3(reconnectOnConnect);
     }
 
     @Override
@@ -136,14 +127,27 @@ public class NatsConnectionV3 extends NatsConnection {
         if (isClosed() || closeRequested) {
             return;
         }
-        if (!tryingToConnect.compareAndSet(false, true)) {
-            return;
+        if (tryingToConnect.compareAndSet(false, true)) {
+            try {
+                forceReconnectImpl(frOptions == null ? ForceReconnectOptions.DEFAULT_INSTANCE : frOptions);
+            }
+            finally {
+                tryingToConnect.set(false);
+                runRequestedTransitions();
+            }
         }
-        try {
-            forceReconnectImpl(frOptions == null ? ForceReconnectOptions.DEFAULT_INSTANCE : frOptions);
-        }
-        finally {
-            endTransition();
+    }
+
+    @Override
+    protected void reconnect() throws InterruptedException {
+        if (tryingToConnect.compareAndSet(false, true)) {
+            try {
+                reconnectImpl();
+            }
+            finally {
+                tryingToConnect.set(false);
+                runRequestedTransitions();
+            }
         }
     }
 
@@ -158,24 +162,6 @@ public class NatsConnectionV3 extends NatsConnection {
             }
         }
         reconnectFromConnected(frOpts.isForceClose());
-    }
-
-    @Override
-    protected void reconnect() throws InterruptedException {
-        if (!tryingToConnect.compareAndSet(false, true)) {
-            return;
-        }
-        try {
-            reconnectAndResume();
-        }
-        finally {
-            endTransition();
-        }
-    }
-
-    @Override
-    protected void reconnectImpl() throws InterruptedException {
-        reconnectAndResume();
     }
 
     @Override
@@ -230,7 +216,8 @@ public class NatsConnectionV3 extends NatsConnection {
                     finalClose(forceClose);
                 }
                 finally {
-                    endTransition();
+                    tryingToConnect.set(false);
+                    runRequestedTransitions();
                 }
                 return;
             }
@@ -244,10 +231,11 @@ public class NatsConnectionV3 extends NatsConnection {
         }
     }
 
-    // Release the transition guard, then run anything that was asked for while it was held.
-    private void endTransition() {
+    // Run anything that was asked for while the guard was held: a close, or a reconnect of the live socket.
+    // Called right after the guard is released, so a request either took the guard itself or is seen here.
+    // Each one is a transition of its own, and a request can arrive while it runs, so check again after it.
+    private void runRequestedTransitions() {
         while (true) {
-            tryingToConnect.set(false);
             boolean wantClose = closeRequested && !isClosed();
             Generation p = pendingReconnect;
             boolean wantReconnect = !wantClose && p != null && p == generation && isConnected();
@@ -268,8 +256,10 @@ public class NatsConnectionV3 extends NatsConnection {
             catch (InterruptedException e) {
                 processException(e);
                 Thread.currentThread().interrupt();
-                tryingToConnect.set(false);
                 return;
+            }
+            finally {
+                tryingToConnect.set(false);
             }
         }
     }
@@ -340,7 +330,8 @@ public class NatsConnectionV3 extends NatsConnection {
                             Thread.currentThread().interrupt();
                         }
                         finally {
-                            endTransition();
+                            tryingToConnect.set(false);
+                            runRequestedTransitions();
                         }
                     }
                 });
@@ -355,7 +346,8 @@ public class NatsConnectionV3 extends NatsConnection {
     // Connect and reconnect
     // ----------------------------------------------------------------------------------------------------
 
-    private void connectV3(boolean reconnectOnConnect) throws InterruptedException, IOException {
+    @Override
+    protected void connectImpl(boolean reconnectOnConnect) throws InterruptedException, IOException {
         if (options.getServers().isEmpty()) {
             throw new IllegalArgumentException("No servers provided in options");
         }
@@ -366,25 +358,20 @@ public class NatsConnectionV3 extends NatsConnection {
         boolean keepGoing = true;
         NatsUri first = null;
         NatsUri cur;
-        // A rejected server, mapped to the count of usable servers handed out when it was last supplied.
-        // The pool is told to drop a rejected server; if it supplies one again with nothing usable in between, it has nothing else.
-        Map<NatsUri, Long> rejected = new HashMap<>();
-        long usableCount = 0;
+        // The pool is told to drop a rejected server, and the rejection is also a fail, so a pool that keeps it counts it out.
+        // A server it supplies again is skipped again, but reported only once.
+        Set<NatsUri> rejected = new HashSet<>();
         while (keepGoing && (cur = serverPool.peekNextServer()) != null) {
             String rejection = rejectionReason(cur);
             if (rejection != null) {
                 serverPool.nextServer(); // b/c we only peeked, and the pool must have handed it out before it is told
-                Long usableAtLastRejection = rejected.put(cur, usableCount);
-                if (usableAtLastRejection == null) {
+                if (rejected.add(cur)) {
                     rejectServer(cur, rejection);
                     failList.add(cur);
                 }
-                else if (usableAtLastRejection == usableCount) {
-                    break; // the pool kept a rejected server and handed out nothing usable since it last supplied it
-                }
-                continue; // before first is set: a rejected server must not end the pass
+                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
+                continue; // before first is set: the pool drops it, so it must not be the server that ends the pass
             }
-            usableCount++;
             if (first == null) {
                 first = cur;
             }
@@ -432,7 +419,7 @@ public class NatsConnectionV3 extends NatsConnection {
 
         if (!isClosed()) {
             if (reconnectOnConnect) {
-                reconnectAndResume();
+                reconnectImpl();
             }
             else {
                 finalClose(false);
@@ -454,11 +441,12 @@ public class NatsConnectionV3 extends NatsConnection {
             finalClose(false);
             return;
         }
-        reconnectAndResume();
+        reconnectImpl();
     }
 
     // From not connected: run the reconnect campaign, then resubscribe and release the held back data.
-    private void reconnectAndResume() throws InterruptedException {
+    @Override
+    protected void reconnectImpl() throws InterruptedException {
         if (isClosed()) {
             return;
         }
@@ -500,31 +488,26 @@ public class NatsConnectionV3 extends NatsConnection {
         long round = 0;
         NatsUri first = null;
         NatsUri cur;
-        // see connect: a rejected server, mapped to the count of usable servers handed out when it was last supplied
-        Map<NatsUri, Long> rejected = new HashMap<>();
-        long usableCount = 0;
+        // see connect: a rejected server is skipped and failed every time it is supplied, but reported only once
+        Set<NatsUri> rejected = new HashSet<>();
         while ((cur = serverPool.nextServer()) != null) {
             String rejection = rejectionReason(cur);
             if (rejection != null) {
-                Long usableAtLastRejection = rejected.put(cur, usableCount);
-                if (usableAtLastRejection == null) {
+                if (rejected.add(cur)) {
                     rejectServer(cur, rejection);
                 }
-                else if (usableAtLastRejection == usableCount) {
-                    return; // the pool kept a rejected server and handed out nothing usable since it last supplied it
-                }
-                continue; // before first is set and before the delay: a rejected server is not an attempt
+                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
+                continue; // before first is set and before the delay: the pool drops it, so it must not be the server that ends the pass
             }
-            usableCount++;
             if (first == null) {
                 first = cur;
                 ++round;   // round becomes 1
                 // Consume the lame duck signal whatever the behavior does with it, so a signal received
                 // under a behavior that ignores it does not survive into a later campaign.
-                boolean ld = lameDuck;
-                lameDuck = false;
-                if (delayBeforeFirstRound(ld)) {
-                    waitReconnectDelay(round, ld);
+                boolean lameDuck = lameDuckTriggered;
+                lameDuckTriggered = false;
+                if (delayBeforeFirstRound(lameDuck)) {
+                    waitReconnectDelay(round, lameDuck);
                 }
             }
             else if (first.equals(cur)) {
@@ -559,14 +542,6 @@ public class NatsConnectionV3 extends NatsConnection {
                 serverPool.connectFailed(cur);
             }
         }
-    }
-
-    private boolean delayBeforeFirstRound(boolean lameDuckTriggered) {
-        return switch (options.reconnectDelayBehavior()) {
-            case BeforeAllRounds -> true;
-            case LameDuckAware -> lameDuckTriggered;
-            default -> false;   // BeforeSubsequentRounds
-        };
     }
 
     private void waitReconnectDelay(long round, boolean lameDuckTriggered) {
@@ -894,7 +869,7 @@ public class NatsConnectionV3 extends NatsConnection {
             outbound.setLargePoolMax(maxPayload + options.getMaxControlLine() + 2);
         }
         if (serverInfo.get().isLameDuckMode()) {
-            lameDuck = true;
+            lameDuckTriggered = true;
         }
     }
 

@@ -57,7 +57,7 @@ public class NatsConnection implements AutoCloseable {
     protected NatsUri connectingServer;
     protected NatsUri lastServer;
     protected CompletableFuture<Boolean> reconnectWaiter;
-    private volatile boolean lameDuckTriggered = false;
+    protected volatile boolean lameDuckTriggered = false;
     protected final ConcurrentHashMap<NatsUri, String> serverAuthErrors;
 
     protected NatsConnectionReader reader;
@@ -239,25 +239,20 @@ public class NatsConnection implements AutoCloseable {
         boolean keepGoing = true;
         NatsUri first = null;
         NatsUri cur;
-        // A rejected server, mapped to the count of usable servers handed out when it was last supplied.
-        // The pool is told to drop a rejected server; if it supplies one again with nothing usable in between, it has nothing else.
-        Map<NatsUri, Long> rejected = new HashMap<>();
-        long usableCount = 0;
+        // The pool is told to drop a rejected server, and the rejection is also a fail, so a pool that keeps it counts it out.
+        // A server it supplies again is skipped again, but reported only once.
+        Set<NatsUri> rejected = new HashSet<>();
         while (keepGoing && (cur = serverPool.peekNextServer()) != null) {
             String rejection = rejectionReason(cur);
             if (rejection != null) {
                 serverPool.nextServer(); // b/c we only peeked, and the pool must have handed it out before it is told
-                Long usableAtLastRejection = rejected.put(cur, usableCount);
-                if (usableAtLastRejection == null) {
+                if (rejected.add(cur)) {
                     rejectServer(cur, rejection);
                     failList.add(cur);
                 }
-                else if (usableAtLastRejection == usableCount) {
-                    break; // the pool kept a rejected server and handed out nothing usable since it last supplied it
-                }
-                continue; // before first is set: a rejected server must not end the pass
+                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
+                continue; // before first is set: the pool drops it, so it must not be the server that ends the pass
             }
-            usableCount++;
             if (first == null) {
                 first = cur;
             }
@@ -475,22 +470,17 @@ public class NatsConnection implements AutoCloseable {
         long round = 0;
         NatsUri first = null;
         NatsUri cur;
-        // see connect: a rejected server, mapped to the count of usable servers handed out when it was last supplied
-        Map<NatsUri, Long> rejected = new HashMap<>();
-        long usableCount = 0;
+        // see connect: a rejected server is skipped and failed every time it is supplied, but reported only once
+        Set<NatsUri> rejected = new HashSet<>();
         while ((cur = serverPool.nextServer()) != null) {
             String rejection = rejectionReason(cur);
             if (rejection != null) {
-                Long usableAtLastRejection = rejected.put(cur, usableCount);
-                if (usableAtLastRejection == null) {
+                if (rejected.add(cur)) {
                     rejectServer(cur, rejection);
                 }
-                else if (usableAtLastRejection == usableCount) {
-                    return; // the pool kept a rejected server and handed out nothing usable since it last supplied it
-                }
-                continue; // before first is set and before the delay: a rejected server is not an attempt
+                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
+                continue; // before first is set and before the delay: the pool drops it, so it must not be the server that ends the pass
             }
-            usableCount++;
             if (first == null) {
                 first = cur;
                 ++round;   // round becomes 1
@@ -2702,7 +2692,7 @@ public class NatsConnection implements AutoCloseable {
      * @param lameDuck whether the campaign was triggered by a server lame duck signal
      * @return true to invoke the handler before round 1
      */
-    private boolean delayBeforeFirstRound(boolean lameDuck) {
+    protected boolean delayBeforeFirstRound(boolean lameDuck) {
         return switch (options.reconnectDelayBehavior()) {
             case BeforeAllRounds -> true;
             case LameDuckAware -> lameDuck;

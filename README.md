@@ -27,6 +27,10 @@
 
 v2 of the client carried runtime checks and opt-outs for server features introduced in 2.9 and earlier. v3 drops them: the 2.10 floor is assumed, not tested for, so pointing v3 at an older server is unsupported and will fail in ways the client does not attempt to diagnose. Features added after 2.10 are still detected at runtime from the server's `INFO` — those degrade gracefully rather than requiring the newer server.
 
+### Connection Implementations
+
+The client has two connection implementations: V3, the default, and Classic, the implementation carried over from v2. See [Connection Implementations: V3 and Classic](CONNECTION_IMPLEMENTATIONS.md) for how to choose one and what is different.
+
 ### Push Consumers and the Deliver Subject
 
 > **DRAFT** — not yet reviewed.
@@ -63,6 +67,7 @@ The property loader accepts each key with or without the `io.nats.client.` prefi
 
 | Name                                   | Default Value                           | Description                                                                                                                                                                                                                                           |
 |----------------------------------------|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `connectionImplementation`             | `V3`                                    | `V3` or `Classic`, ignoring case. See [Connection Implementations](CONNECTION_IMPLEMENTATIONS.md).                                                                                                                                                    |
 | `connectionListenerClass`              | `(none)`                                | Configure a connectionListener (class name).                                                                                                                                                                                                          |
 | `dataPortType`                         | `io.synadia.client.impl.SocketDataPort` | Configure a dataPortType.                                                                                                                                                                                                                             |
 | `errorListenerClass`                   | `(none)`                                | Configure an errorListener (class name).                                                                                                                                                                                                              |
