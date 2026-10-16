@@ -685,7 +685,7 @@ public class KeyValueTests {
     }
 
     private void assertPurgeDeleteEntries(JetStream js, String bucket, String[] expected) throws JetStreamException, InterruptedException {
-        JetStreamPushSubscription sub = js.pushSubscribe(KeyValueUtils.toStreamSubject(bucket));
+        JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(js, KeyValueUtils.toStreamSubject(bucket));
 
         for (String s : expected) {
             Message m = sub.nextMessage(1000);
@@ -1867,7 +1867,7 @@ public class KeyValueTests {
 
                 PushConsumerCreator creator = new PushConsumerCreator().filterSubject(">");
                 //noinspection unused
-                JetStreamPushSubscription sub = kvCtx.js.pushSubscribe("KV_" + bucket, creator, rawHandler);
+                JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(kvCtx.js, "KV_" + bucket, creator, rawHandler);
 
                 kv.create(key1, dataBytes(), MessageTtl.seconds(2));
                 kv.create(key2, dataBytes());
@@ -1953,7 +1953,7 @@ public class KeyValueTests {
 
                 PushConsumerCreator creator = new PushConsumerCreator().filterSubject(">");
                 //noinspection unused
-                JetStreamPushSubscription sub = kvCtx.js.pushSubscribe(rawStream, creator, rawHandler);
+                JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(kvCtx.js, rawStream, creator, rawHandler);
 
                 long createdTimeMark = System.currentTimeMillis();
                 kv.create(key, dataBytes(), MessageTtl.seconds(1));
@@ -2044,7 +2044,7 @@ public class KeyValueTests {
 
                 PushConsumerCreator pushConsumerCreator = new PushConsumerCreator();
                 //noinspection unused
-                JetStreamPushSubscription sub = kvCtx.js.pushSubscribe(rawStream, pushConsumerCreator, rawHandler);
+                JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(kvCtx.js, rawStream, pushConsumerCreator, rawHandler);
 
                 kv.create(key, dataBytes());
                 StreamInfo si = kvCtx.jsm.getStreamInfo(rawStream);

@@ -92,16 +92,16 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
         runInShared((nc, ctx) -> {
             // stream not found
             JetStreamApiException jsapiEx = assertThrows(JetStreamApiException.class,
-                () -> ctx.js.pushSubscribe(random(), new PushConsumerCreator()));
+                () -> JsPushSubscribe.pushSubscribe(ctx.js, random(), new PushConsumerCreator()));
             assertEquals(10059, jsapiEx.getApiErrorCode());
 
             jsapiEx = assertThrows(JetStreamApiException.class,
-                () -> ctx.js.pullSubscribe(random(), new PullConsumerCreator()));
+                () -> JsPullSubscribe.pullSubscribe(ctx.js, random(), new PullConsumerCreator()));
             assertEquals(10059, jsapiEx.getApiErrorCode());
 
             // JsSubNoMatchingStreamForSubject
-            assertClientError(JsSubNoMatchingStreamForSubject, () -> ctx.js.pushSubscribe(random()));
-            assertClientError(JsSubNoMatchingStreamForSubject, () -> ctx.js.pullSubscribe(random()));
+            assertClientError(JsSubNoMatchingStreamForSubject, () -> JsPushSubscribe.pushSubscribe(ctx.js, random()));
+            assertClientError(JsSubNoMatchingStreamForSubject, () -> JsPullSubscribe.pullSubscribe(ctx.js, random()));
 
             // JsSubDispatcherNoHandlerCantReceiveMessages
             // you can have a handler without a dispatcher,
@@ -109,8 +109,8 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             NatsDispatcher d = ctx.js.createDispatcher();
             SubscribeBehavior behavior = new SubscribeBehavior().dispatcher(d);
 
-            assertClientError(JsSubDispatcherNoHandlerCantReceiveMessages, () -> ctx.js.pushSubscribe(ctx.stream, new PushConsumerCreator(), behavior));
-            assertClientError(JsSubDispatcherNoHandlerCantReceiveMessages, () -> ctx.js.pullSubscribe(ctx.stream, new PullConsumerCreator(), behavior));
+            assertClientError(JsSubDispatcherNoHandlerCantReceiveMessages, () -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, new PushConsumerCreator(), behavior));
+            assertClientError(JsSubDispatcherNoHandlerCantReceiveMessages, () -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, new PullConsumerCreator(), behavior));
         });
     }
 
@@ -134,7 +134,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             jsPublish(ctx.js, ctx.subject(), data);
 
             // 1. pushSubscribe(ConsumerInfo consumerInfo)
-            SubFunPushSync subfun1 = ci -> ctx.js.pushSubscribe(ci);
+            SubFunPushSync subfun1 = ci -> JsPushSubscribe.pushSubscribe(ctx.js, ci);
 
             // 1a. durable
             String name1a = random();
@@ -155,7 +155,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             assertPushSync(ctx, name1c, false, consumerInfo, data, subfun1);
 
             // 2. pushSubscribe(ConsumerInfo consumerInfo, MessageHandler messageHandler)
-            SubFunPushAsync subfun2 = (ci, h) -> ctx.js.pushSubscribe(ci, h);
+            SubFunPushAsync subfun2 = (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ci, h);
             // 2a. durable
             String name2a = random();
             creator = new PushConsumerCreator().durable(name2a);
@@ -180,7 +180,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name3a = consumerInfo.getName();
             SubscribeBehavior behavior3a = new SubscribeBehavior();
-            assertPushSync(ctx, name3a, false, consumerInfo, data, ci -> ctx.js.pushSubscribe(ci, behavior3a));
+            assertPushSync(ctx, name3a, false, consumerInfo, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ci, behavior3a));
 
             // 3b. async
             creator = new PushConsumerCreator();
@@ -188,19 +188,19 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             String name3b = consumerInfo.getName();
             BasicsHandler basicsHandler3b = new BasicsHandler();
             SubscribeBehavior behavior3b = new SubscribeBehavior().handler(basicsHandler3b);
-            assertPushAsync(ctx, name3b, false, basicsHandler3b, consumerInfo, data, (ci, h) -> ctx.js.pushSubscribe(ci, behavior3b));
+            assertPushAsync(ctx, name3b, false, basicsHandler3b, consumerInfo, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ci, behavior3b));
 
             // 4. pushSubscribe(String stream, String consumerName) throws JetStreamException, InterruptedException
             creator = new PushConsumerCreator();
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name4 = consumerInfo.getName();
-            assertPushSync(ctx, name4, false, consumerInfo, data, ci -> ctx.js.pushSubscribe(ctx.stream, name4));
+            assertPushSync(ctx, name4, false, consumerInfo, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, name4));
 
             // 5. pushSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws JetStreamException,
             creator = new PushConsumerCreator();
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name5 = consumerInfo.getName();
-            assertPushAsync(ctx, name5, false, null, consumerInfo, data, (ci, h) -> ctx.js.pushSubscribe(ctx.stream, name5, h));
+            assertPushAsync(ctx, name5, false, null, consumerInfo, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, name5, h));
 
             // 6. pushSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 6a. sync
@@ -208,7 +208,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name6a = consumerInfo.getName();
             SubscribeBehavior behavior6a = new SubscribeBehavior();
-            assertPushSync(ctx, name6a, false, consumerInfo, data, ci -> ctx.js.pushSubscribe(ctx.stream, name6a, behavior6a));
+            assertPushSync(ctx, name6a, false, consumerInfo, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, name6a, behavior6a));
 
             // 6b. async
             creator = new PushConsumerCreator();
@@ -216,64 +216,64 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             String name6b = consumerInfo.getName();
             BasicsHandler basicsHandler6b = new BasicsHandler();
             SubscribeBehavior behavior6b = new SubscribeBehavior().handler(basicsHandler6b);
-            assertPushAsync(ctx, name6b, false, basicsHandler6b, consumerInfo, data, (ci, h) -> ctx.js.pushSubscribe(ctx.stream, name6b, behavior6b));
+            assertPushAsync(ctx, name6b, false, basicsHandler6b, consumerInfo, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, name6b, behavior6b));
 
             // 7. pushSubscribe(String subject) throws JetStreamException, InterruptedException
-            assertPushSync(ctx, null, false, null, data, ci -> ctx.js.pushSubscribe(ctx.subject()));
+            assertPushSync(ctx, null, false, null, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject()));
 
             // 8. pushSubscribe(String subject, MessageHandler messageHandler) throws JetStreamException, InterruptedException
             BasicsHandler basicsHandler8 = new BasicsHandler();
-            assertPushAsync(ctx, null, false, basicsHandler8, null, data, (ci, h) -> ctx.js.pushSubscribe(ctx.subject(), h));
+            assertPushAsync(ctx, null, false, basicsHandler8, null, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject(), h));
 
             // 9. pushSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 9a. sync
             SubscribeBehavior behavior9a = new SubscribeBehavior();
-            assertPushSync(ctx, null, false, null, data, ci -> ctx.js.pushSubscribe(ctx.subject(), behavior9a));
+            assertPushSync(ctx, null, false, null, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject(), behavior9a));
 
             // 9b. async
             BasicsHandler basicsHandler9b = new BasicsHandler();
             SubscribeBehavior behavior9b = new SubscribeBehavior().handler(basicsHandler9b);
-            assertPushAsync(ctx, null, false, basicsHandler9b, null, data, (ci, h) -> ctx.js.pushSubscribe(ctx.subject(), behavior9b));
+            assertPushAsync(ctx, null, false, basicsHandler9b, null, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject(), behavior9b));
 
             // 10. pushSubscribe(String stream, PushConsumerCreator creator) throws JetStreamException, InterruptedException
             PushConsumerCreator creator10 = new PushConsumerCreator();
-            assertPushSync(ctx, null, false, null, data, ci -> ctx.js.pushSubscribe(ctx.stream, creator10));
+            assertPushSync(ctx, null, false, null, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator10));
 
             // 11. pushSubscribe(String stream, PushConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException
             PushConsumerCreator creator11 = new PushConsumerCreator();
-            assertPushAsync(ctx, null, false, null, null, data, (ci, h) -> ctx.js.pushSubscribe(ctx.stream, creator11, h));
+            assertPushAsync(ctx, null, false, null, null, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator11, h));
 
             // 12. pushSubscribe(String stream, PushConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 12a. sync
             PushConsumerCreator creator12a = new PushConsumerCreator();
             SubscribeBehavior behavior12a = new SubscribeBehavior();
-            assertPushSync(ctx, null, false, null, data, ci -> ctx.js.pushSubscribe(ctx.stream, creator12a, behavior12a));
+            assertPushSync(ctx, null, false, null, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator12a, behavior12a));
 
             // 12b. async
             BasicsHandler basicsHandler12b = new BasicsHandler();
             SubscribeBehavior behavior12b = new SubscribeBehavior().handler(basicsHandler12b);
             PushConsumerCreator creator12b = new PushConsumerCreator();
-            assertPushAsync(ctx, null, false, basicsHandler12b, null, data, (ci, h) -> ctx.js.pushSubscribe(ctx.stream, creator12b, behavior12b));
+            assertPushAsync(ctx, null, false, basicsHandler12b, null, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator12b, behavior12b));
 
             // 13. pushSubscribe(String stream, PushOrderedConsumerCreator creator) throws JetStreamException, InterruptedException
             PushOrderedConsumerCreator creator13 = new PushOrderedConsumerCreator();
-            assertPushSync(ctx, null, false, null, data, ci -> ctx.js.pushSubscribe(ctx.stream, creator13));
+            assertPushSync(ctx, null, false, null, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator13));
 
             // 14. pushSubscribe(String stream, PushOrderedConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException
             PushOrderedConsumerCreator creator14 = new PushOrderedConsumerCreator();
-            assertPushAsync(ctx, null, false, null, null, data, (ci, h) -> ctx.js.pushSubscribe(ctx.stream, creator14, h));
+            assertPushAsync(ctx, null, false, null, null, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator14, h));
 
             // 15. pushSubscribe(String stream, PushOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 15a. sync
             PushOrderedConsumerCreator creator15a = new PushOrderedConsumerCreator();
             SubscribeBehavior behavior15a = new SubscribeBehavior();
-            assertPushSync(ctx, null, false, null, data, ci -> ctx.js.pushSubscribe(ctx.stream, creator15a, behavior15a));
+            assertPushSync(ctx, null, false, null, data, ci -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator15a, behavior15a));
 
             // 15b. async
             BasicsHandler basicsHandler15b = new BasicsHandler();
             SubscribeBehavior behavior15b = new SubscribeBehavior().handler(basicsHandler15b);
             PushOrderedConsumerCreator creator15b = new PushOrderedConsumerCreator();
-            assertPushAsync(ctx, null, false, basicsHandler15b, null, data, (ci, h) -> ctx.js.pushSubscribe(ctx.stream, creator15b, behavior15b));
+            assertPushAsync(ctx, null, false, basicsHandler15b, null, data, (ci, h) -> JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator15b, behavior15b));
         });
     }
 
@@ -330,7 +330,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             jsPublish(ctx.js, ctx.subject(), data);
 
             // 1. pullSubscribe(ConsumerInfo consumerInfo)
-            SubFunPullSync subfun1 = ci -> ctx.js.pullSubscribe(ci);
+            SubFunPullSync subfun1 = ci -> JsPullSubscribe.pullSubscribe(ctx.js, ci);
 
             // 1a. durable
             String name1a = random();
@@ -351,7 +351,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             assertPullSync(ctx, name1c, false, consumerInfo, data, subfun1);
 
             // 2. pullSubscribe(ConsumerInfo consumerInfo, MessageHandler messageHandler)
-            SubFunPullAsync subfun2 = (ci, h) -> ctx.js.pullSubscribe(ci, h);
+            SubFunPullAsync subfun2 = (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ci, h);
             // 2a. durable
             String name2a = random();
             creator = new PullConsumerCreator().durable(name2a);
@@ -376,7 +376,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name3a = consumerInfo.getName();
             SubscribeBehavior behavior3a = new SubscribeBehavior();
-            assertPullSync(ctx, name3a, false, consumerInfo, data, ci -> ctx.js.pullSubscribe(ci, behavior3a));
+            assertPullSync(ctx, name3a, false, consumerInfo, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ci, behavior3a));
 
             // 3b. async
             creator = new PullConsumerCreator();
@@ -384,19 +384,19 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             String name3b = consumerInfo.getName();
             BasicsHandler basicsHandler3b = new BasicsHandler();
             SubscribeBehavior behavior3b = new SubscribeBehavior().handler(basicsHandler3b);
-            assertPullAsync(ctx, name3b, false, basicsHandler3b, consumerInfo, data, (ci, h) -> ctx.js.pullSubscribe(ci, behavior3b));
+            assertPullAsync(ctx, name3b, false, basicsHandler3b, consumerInfo, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ci, behavior3b));
 
             // 4. pullSubscribe(String stream, String consumerName) throws JetStreamException, InterruptedException
             creator = new PullConsumerCreator();
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name4 = consumerInfo.getName();
-            assertPullSync(ctx, name4, false, consumerInfo, data, ci -> ctx.js.pullSubscribe(ctx.stream, name4));
+            assertPullSync(ctx, name4, false, consumerInfo, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, name4));
 
             // 5. pullSubscribe(String stream, String consumerName, MessageHandler messageHandler) throws JetStreamException,
             creator = new PullConsumerCreator();
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name5 = consumerInfo.getName();
-            assertPullAsync(ctx, name5, false, null, consumerInfo, data, (ci, h) -> ctx.js.pullSubscribe(ctx.stream, name5, h));
+            assertPullAsync(ctx, name5, false, null, consumerInfo, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, name5, h));
 
             // 6. pullSubscribe(String stream, String consumerName, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 6a. sync
@@ -404,7 +404,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             consumerInfo = ctx.jsm.createConsumer(ctx.stream, creator);
             String name6a = consumerInfo.getName();
             SubscribeBehavior behavior6a = new SubscribeBehavior();
-            assertPullSync(ctx, name6a, false, consumerInfo, data, ci -> ctx.js.pullSubscribe(ctx.stream, name6a, behavior6a));
+            assertPullSync(ctx, name6a, false, consumerInfo, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, name6a, behavior6a));
 
             // 6b. async
             creator = new PullConsumerCreator();
@@ -412,64 +412,64 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             String name6b = consumerInfo.getName();
             BasicsHandler basicsHandler6b = new BasicsHandler();
             SubscribeBehavior behavior6b = new SubscribeBehavior().handler(basicsHandler6b);
-            assertPullAsync(ctx, name6b, false, basicsHandler6b, consumerInfo, data, (ci, h) -> ctx.js.pullSubscribe(ctx.stream, name6b, behavior6b));
+            assertPullAsync(ctx, name6b, false, basicsHandler6b, consumerInfo, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, name6b, behavior6b));
 
             // 7. pullSubscribe(String subject) throws JetStreamException, InterruptedException
-            assertPullSync(ctx, null, false, null, data, ci -> ctx.js.pullSubscribe(ctx.subject()));
+            assertPullSync(ctx, null, false, null, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.subject()));
 
             // 8. pullSubscribe(String subject, MessageHandler messageHandler) throws JetStreamException, InterruptedException
             BasicsHandler basicsHandler8 = new BasicsHandler();
-            assertPullAsync(ctx, null, false, basicsHandler8, null, data, (ci, h) -> ctx.js.pullSubscribe(ctx.subject(), h));
+            assertPullAsync(ctx, null, false, basicsHandler8, null, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.subject(), h));
 
             // 9. pullSubscribe(String subject, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 9a. sync
             SubscribeBehavior behavior9a = new SubscribeBehavior();
-            assertPullSync(ctx, null, false, null, data, ci -> ctx.js.pullSubscribe(ctx.subject(), behavior9a));
+            assertPullSync(ctx, null, false, null, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.subject(), behavior9a));
 
             // 9b. async
             BasicsHandler basicsHandler9b = new BasicsHandler();
             SubscribeBehavior behavior9b = new SubscribeBehavior().handler(basicsHandler9b);
-            assertPullAsync(ctx, null, false, basicsHandler9b, null, data, (ci, h) -> ctx.js.pullSubscribe(ctx.subject(), behavior9b));
+            assertPullAsync(ctx, null, false, basicsHandler9b, null, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.subject(), behavior9b));
 
             // 10. pullSubscribe(String stream, PullConsumerCreator creator) throws JetStreamException, InterruptedException
             PullConsumerCreator creator10 = new PullConsumerCreator();
-            assertPullSync(ctx, null, false, null, data, ci -> ctx.js.pullSubscribe(ctx.stream, creator10));
+            assertPullSync(ctx, null, false, null, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator10));
 
             // 11. pullSubscribe(String stream, PullConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException
             PullConsumerCreator creator11 = new PullConsumerCreator();
-            assertPullAsync(ctx, null, false, null, null, data, (ci, h) -> ctx.js.pullSubscribe(ctx.stream, creator11, h));
+            assertPullAsync(ctx, null, false, null, null, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator11, h));
 
             // 12. pullSubscribe(String stream, PullConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 12a. sync
             PullConsumerCreator creator12a = new PullConsumerCreator();
             SubscribeBehavior behavior12a = new SubscribeBehavior();
-            assertPullSync(ctx, null, false, null, data, ci -> ctx.js.pullSubscribe(ctx.stream, creator12a, behavior12a));
+            assertPullSync(ctx, null, false, null, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator12a, behavior12a));
 
             // 12b. async
             BasicsHandler basicsHandler12b = new BasicsHandler();
             SubscribeBehavior behavior12b = new SubscribeBehavior().handler(basicsHandler12b);
             PullConsumerCreator creator12b = new PullConsumerCreator();
-            assertPullAsync(ctx, null, false, basicsHandler12b, null, data, (ci, h) -> ctx.js.pullSubscribe(ctx.stream, creator12b, behavior12b));
+            assertPullAsync(ctx, null, false, basicsHandler12b, null, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator12b, behavior12b));
 
             // 13. pullSubscribe(String stream, PullOrderedConsumerCreator creator) throws JetStreamException, InterruptedException
             PullOrderedConsumerCreator creator13 = new PullOrderedConsumerCreator();
-            assertPullSync(ctx, null, false, null, data, ci -> ctx.js.pullSubscribe(ctx.stream, creator13));
+            assertPullSync(ctx, null, false, null, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator13));
 
             // 14. pullSubscribe(String stream, PullOrderedConsumerCreator creator, MessageHandler messageHandler) throws JetStreamException, InterruptedException
             PullOrderedConsumerCreator creator14 = new PullOrderedConsumerCreator();
-            assertPullAsync(ctx, null, false, null, null, data, (ci, h) -> ctx.js.pullSubscribe(ctx.stream, creator14, h));
+            assertPullAsync(ctx, null, false, null, null, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator14, h));
 
             // 15. pullSubscribe(String stream, PullOrderedConsumerCreator creator, SubscribeBehavior subscribeBehavior) throws JetStreamException, InterruptedException
             // 15a. sync
             PullOrderedConsumerCreator creator15a = new PullOrderedConsumerCreator();
             SubscribeBehavior behavior15a = new SubscribeBehavior();
-            assertPullSync(ctx, null, false, null, data, ci -> ctx.js.pullSubscribe(ctx.stream, creator15a, behavior15a));
+            assertPullSync(ctx, null, false, null, data, ci -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator15a, behavior15a));
 
             // 15b. async
             BasicsHandler basicsHandler15b = new BasicsHandler();
             SubscribeBehavior behavior15b = new SubscribeBehavior().handler(basicsHandler15b);
             PullOrderedConsumerCreator creator15b = new PullOrderedConsumerCreator();
-            assertPullAsync(ctx, null, false, basicsHandler15b, null, data, (ci, h) -> ctx.js.pullSubscribe(ctx.stream, creator15b, behavior15b));
+            assertPullAsync(ctx, null, false, basicsHandler15b, null, data, (ci, h) -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator15b, behavior15b));
         });
     }
 
@@ -538,7 +538,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             PushConsumerCreator creator = new PushConsumerCreator()
                 .filterSubject(subjectWild)
                 .ackPolicy(AckPolicy.None);
-            JetStreamSubscription sub = ctx.js.pushSubscribe(ctx.stream, creator);
+            JetStreamSubscription sub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
 
             Message m = sub.nextMessage(1000);
             assertNotNull(m);
@@ -563,7 +563,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             creator = new PushConsumerCreator()
                 .filterSubject(subjectA)
                 .ackPolicy(AckPolicy.None);
-            sub = ctx.js.pushSubscribe(ctx.stream, creator);
+            sub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
 
             m = sub.nextMessage(1000);
             assertNotNull(m);
@@ -580,7 +580,7 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
             creator = new PushConsumerCreator()
                 .filterSubject(subjectB)
                 .ackPolicy(AckPolicy.None);
-            sub = ctx.js.pushSubscribe(ctx.stream, creator);
+            sub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
 
             m = sub.nextMessage(1000);
             assertNotNull(m);

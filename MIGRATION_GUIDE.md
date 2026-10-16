@@ -299,6 +299,18 @@ JetStreamManagement jsm     = new JetStreamManagement(nc, jsOptions);
 
 (Both classes live in `io.synadia.client.impl`. Static `instance(...)` factories also exist on `JetStream` if you prefer that style.)
 
+### Push and pull subscribe live in `JsPushSubscribe` and `JsPullSubscribe`
+
+`JetStream` does not have the subscribe methods. Every `pushSubscribe` overload is in `JsPushSubscribe` and every `pullSubscribe` overload is in `JsPullSubscribe`, both in `io.synadia.client.impl`, with the same parameters. Call them as static methods with the `JetStream` context as the first parameter, or make an instance from the context:
+
+```java
+JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(js, stream, consumerName);
+JsPullSubscribe pull = new JsPullSubscribe(js);
+JetStreamPullSubscription sub = pull.pullSubscribe(stream, new PullConsumerCreator());
+```
+
+The simplified consumers (`getStreamContext`, `createConsumer`, `getConsumerContext`) stay on `JetStream`, and they are the preferred way to consume; `JsPushSubscribe` and `JsPullSubscribe` exist only to support the legacy behavior. See [Consuming from JetStream](README.md#consuming-from-jetstream).
+
 ### `JetStream.createDispatcher()` — the one you want for JetStream
 
 New in v3, and there purely to remove a choice that was easy to get wrong. `NatsConnection` has had two `createDispatcher` overloads since v2 — one that takes a default `MessageHandler` and one that takes nothing — and for JetStream the no-argument one is almost always the right call, because a JetStream subscription carries its own handler per subscription rather than leaning on the dispatcher's default. Having it on `JetStream` makes that obvious at the call site:
@@ -318,7 +330,7 @@ NatsDispatcher d = js.createDispatcher();
 SubscribeBehavior behavior = new SubscribeBehavior()
     .dispatcher(d)
     .handler(msg -> handle(msg));
-js.pushSubscribe(stream, new PushConsumerCreator(), behavior);
+JsPushSubscribe.pushSubscribe(js, stream, new PushConsumerCreator(), behavior);
 ```
 
 A dispatcher with no handler on either side cannot deliver anything, so that combination is rejected up front with an `IllegalStateException` — `[SUB-90023] Dispatcher without a handler cannot receive messages.` If you pass a dispatcher to `SubscribeBehavior`, pass a handler too.

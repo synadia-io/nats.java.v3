@@ -131,7 +131,7 @@ public class ConsumeInAccountTests extends JetStreamTestBase {
 
     private List<String> readWithPush(JetStream js, String stream, String subject) throws Exception {
         List<String> read = new ArrayList<>();
-        JetStreamPushSubscription sub = js.pushSubscribe(stream,
+        JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(js, stream,
             new PushConsumerCreator().deliverPolicy(DeliverPolicy.All).filterSubject(subject));
         try {
             Message m = sub.nextMessage(2000);

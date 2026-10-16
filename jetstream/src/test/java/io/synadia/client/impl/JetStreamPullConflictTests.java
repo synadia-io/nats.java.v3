@@ -118,7 +118,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
         _testConflictStatuses(409, EXCEEDED_MAX_WAITING, PullWarning, true,
             (nc, ctx) -> {
                 PullConsumerCreator creator = newCreator().maxPullWaiting(1).filterSubject(ctx.subject());
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pull(1);
                 sub.pull(1);
                 return sub;
@@ -131,7 +131,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator().maxPullWaiting(1);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pull(1);
                 sub.pull(1);
                 return sub;
@@ -143,7 +143,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
         _testConflictStatuses(409, EXCEEDED_MAX_REQUEST_BATCH, PullWarning, true,
             (nc, ctx) -> {
                 PullConsumerCreator creator = newCreator().maxBatch(1);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pull(2);
                 return sub;
             });
@@ -156,7 +156,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator().maxBatch(1);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pull(2);
                 return sub;
             }
@@ -169,7 +169,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 PullConsumerCreator creator = newCreator();
                 ctx.js.publish(ctx.subject(), new byte[1000]);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pull(PullRequestOptions.builder(1).maxBytes(100).build());
                 return sub;
             });
@@ -183,7 +183,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator();
                 ctx.js.publish(ctx.subject(), new byte[1000]);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pull(PullRequestOptions.builder(1).maxBytes(100).build());
                 return sub;
             }
@@ -195,7 +195,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
         _testConflictStatuses(409, EXCEEDED_MAX_REQUEST_EXPIRES, PullWarning, true,
             (nc, ctx) -> {
                 PullConsumerCreator creator = newCreator().maxExpires(1000);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pullExpiresIn(1, 2000);
                 return sub;
             });
@@ -208,7 +208,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator().maxExpires(1000);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pullExpiresIn(1, 2000);
                 return sub;
             }
@@ -221,7 +221,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 String dur = random();
                 PullConsumerCreator lCreator = newCreator().durable(dur).ackPolicy(AckPolicy.None);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, lCreator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, lCreator);
                 ctx.jsm.deleteConsumer(ctx.stream, dur);
                 // consumer with same name but is push now
                 ctx.jsm.createConsumer(ctx.stream, new PushConsumerCreator().durable(dur));
@@ -237,7 +237,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
                 String dur = random();
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator lCreator = newCreator().durable(dur).ackPolicy(AckPolicy.None);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, lCreator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, lCreator, b);
                 ctx.jsm.deleteConsumer(ctx.stream, dur);
                 // consumer with same name but is push now
                 ctx.jsm.createConsumer(ctx.stream, new PushConsumerCreator().durable(dur));
@@ -253,7 +253,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 String dur = random();
                 PullConsumerCreator creator = newCreator().durable(dur).ackPolicy(AckPolicy.None);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pullExpiresIn(1, 30000);
                 nc.flush(1000); // flush outgoing communication with/to the server
                 ctx.jsm.deleteConsumer(ctx.stream, dur);
@@ -270,7 +270,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
                 String dur = random();
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator().durable(dur).ackPolicy(AckPolicy.None);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pullExpiresIn(1, 30000);
                 nc.flush(1000); // flush outgoing communication with/to the server
                 ctx.jsm.deleteConsumer(ctx.stream, dur);
@@ -285,7 +285,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
         _testConflictStatuses(400, BAD_REQUEST, PullError, true,
             (nc, ctx) -> {
                 PullConsumerCreator creator = newCreator();
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pull(new BadPullRequestOptions());
                 return sub;
             });
@@ -297,7 +297,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator();
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pull(new BadPullRequestOptions());
                 return sub;
             });
@@ -308,7 +308,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
         _testConflictStatuses(404, NO_MESSAGES, PullWarning, true,
             (nc, ctx) -> {
                 PullConsumerCreator creator = newCreator();
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pullNoWait(1);
                 return sub;
             });
@@ -320,7 +320,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator();
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pullNoWait(1);
                 return sub;
             });
@@ -331,7 +331,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
         _testConflictStatuses(409, EXCEEDED_MAX_REQUEST_MAX_BYTES, PullWarning, true,
             (nc, ctx) -> {
                 PullConsumerCreator creator = newCreator().maxBytes(1);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
                 sub.pull(PullRequestOptions.builder(1).maxBytes(2).build());
                 return sub;
             });
@@ -343,7 +343,7 @@ public class JetStreamPullConflictTests extends JetStreamTestBase {
             (nc, ctx) -> {
                 SubscribeBehavior b = new SubscribeBehavior().handler(m -> {});
                 PullConsumerCreator creator = newCreator().maxBytes(1);
-                JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator, b);
+                JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator, b);
                 sub.pull(PullRequestOptions.builder(1).maxBytes(2).build());
                 return sub;
             });

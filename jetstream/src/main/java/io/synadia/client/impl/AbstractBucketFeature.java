@@ -113,7 +113,7 @@ public abstract class AbstractBucketFeature {
                 .deliverPolicy(deliverPolicy)
                 .headersOnly(headersOnly)
                 .filterSubjects(subjects);
-            sub = js.pushSubscribe(streamName, creator);
+            sub = JsPushSubscribe.pushSubscribe(js, streamName, creator);
         }
         else {
             PushConsumerCreator creator = new PushConsumerCreator()
@@ -121,7 +121,7 @@ public abstract class AbstractBucketFeature {
                 .deliverPolicy(deliverPolicy)
                 .headersOnly(headersOnly)
                 .filterSubjects(subjects);
-            sub = js.pushSubscribe(streamName, creator);
+            sub = JsPushSubscribe.pushSubscribe(js, streamName, creator);
         }
 
         long timeoutMillis = js.getTimeout();

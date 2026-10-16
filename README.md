@@ -31,6 +31,34 @@ v2 of the client carried runtime checks and opt-outs for server features introdu
 
 The client has two connection implementations: V3, the default, and Classic, the implementation carried over from v2. See [Connection Implementations: V3 and Classic](CONNECTION_IMPLEMENTATIONS.md) for how to choose one and what is different.
 
+### Consuming from JetStream
+
+The preferred way to consume is the simplified API: get a `ConsumerContext` from a `StreamContext` or from `JetStream`, then call `consume`, `fetchMessages`, `fetchBytes`, `iterate` or `next` on it. It works with pull consumers and manages the pull requests for you.
+
+```java
+JetStream js = new JetStream(nc);
+StreamContext sc = js.getStreamContext("my-stream");
+ConsumerContext cc = sc.createOrUpdateConsumer(new PullConsumerCreator().durable("my-durable"));
+
+// a handler called for each message
+MessageConsumer mc = cc.consume(msg -> {
+    // process the message
+    msg.ack();
+});
+
+// or one message at a time
+Message msg = cc.next();
+```
+
+For an ordered consumer, use `StreamContext.createOrderedConsumer(...)`, which returns an `OrderedConsumerContext` with the same consume methods.
+
+`JsPushSubscribe` and `JsPullSubscribe` exist only to support the legacy push and pull subscriptions carried over from v2. Use them when you need that behavior, for example a push consumer with a deliver subject, and use the simplified API for new code. Each class can be used as static methods with the `JetStream` as the first parameter, or through an instance made from the `JetStream`:
+
+```java
+JetStreamPushSubscription push = JsPushSubscribe.pushSubscribe(js, "my-stream", "my-push-consumer");
+JetStreamPullSubscription pull = new JsPullSubscribe(js).pullSubscribe("my-stream", "my-pull-consumer");
+```
+
 ### Push Consumers and the Deliver Subject
 
 > **DRAFT** — not yet reviewed.

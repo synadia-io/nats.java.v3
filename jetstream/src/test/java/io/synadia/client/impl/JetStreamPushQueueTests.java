@@ -31,7 +31,7 @@ public class JetStreamPushQueueTests extends JetStreamTestBase {
             List<Thread> subThreads = new ArrayList<>();
             for (int id = 1; id <= 3; id++) {
                 // set up the subscription
-                JetStreamPushSubscription sub = ctx.js.pushSubscribe(ctx.stream, creator);
+                JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
                 // create and track the runnable
                 JsQueueSubscriber qs = new JsQueueSubscriber(100, ctx.js, sub, allReceived);
                 subscribers.add(qs);

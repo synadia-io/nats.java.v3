@@ -41,7 +41,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
 
             List<Message> messages = sub.fetch(10, fetchMs);
@@ -103,7 +103,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
 
             Iterator<Message> iterator = sub.iterate(10, fetchMs);
@@ -175,7 +175,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
 
             // publish some amount of messages, but not entire pull size
@@ -245,7 +245,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
             // publish some more to test null timeout
             jsPublish(ctx.js, ctx.subject(), "D", 10);
             creator = new PullConsumerCreator().durable(random()).filterSubject(ctx.subject());
-            sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             sub.pull(10);
             sleep(500);
             messages = readMessagesAck(sub, null);
@@ -254,7 +254,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
             // publish some more to test never timeout
             jsPublish(ctx.js, ctx.subject(), "E", 10);
             creator = new PullConsumerCreator().durable(random()).filterSubject(ctx.subject());
-            sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             sub.pull(10);
             sleep(500);
             messages = readMessagesAck(sub, 0L, 10);
@@ -269,7 +269,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
 
             // publish 10 messages
@@ -336,7 +336,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
 
             long expires = 500; // millis
@@ -418,7 +418,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
 
             // NAK
@@ -451,7 +451,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
 
             // TERM
@@ -475,7 +475,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
             PullConsumerCreator creator = new PullConsumerCreator()
                 .filterSubject(ctx.subject());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
 
             jsPublish(ctx.js, ctx.subject(), "COVERAGE", 1);
             sub.pull(1);
@@ -500,7 +500,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject())
                 .durable(ctx.consumerName());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
 
             // Ack Wait timeout
             jsPublish(ctx.js, ctx.subject(), "WAIT", 2);
@@ -548,7 +548,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
             ctx.createOrReplaceStream(streamCreator);
 
             PullConsumerCreator consumerCreator = new PullConsumerCreator().durable(durable).ackPolicy(AckPolicy.None).filterSubject(subject);
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(stream, consumerCreator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, stream, consumerCreator);
 
             // Each message's wire size includes its ack reply subject, whose length depends on the
             // server's ack format. v1 is $JS.ACK.<stream>.<consumer>.<4 numbers>.<timestamp>, which is
@@ -601,7 +601,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .priorityGroups(group)
                 .filterSubject(ctx.subject());
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, cc);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, cc);
 
             // 400 Bad Request - Priority Group missing
             sub.pull(1);
@@ -624,8 +624,8 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject());
             ConsumerInfo ci = ctx.jsm.createConsumer(ctx.stream, cc);
 
-            JetStreamPullSubscription subPrime = ctx.js.pullSubscribe(ci);
-            JetStreamPullSubscription subOver = ctx.js.pullSubscribe(ci);
+            JetStreamPullSubscription subPrime = JsPullSubscribe.pullSubscribe(ctx.js, ci);
+            JetStreamPullSubscription subOver = JsPullSubscribe.pullSubscribe(ctx.js, ci);
 
             PullRequestOptions proNoMin = PullRequestOptions.builder(5)
                 .group(group)
@@ -659,8 +659,8 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 .filterSubject(ctx.subject());
             ci = ctx.jsm.createConsumer(ctx.stream, cc);
 
-            subPrime = ctx.js.pullSubscribe(ci);
-            subOver = ctx.js.pullSubscribe(ci);
+            subPrime = JsPullSubscribe.pullSubscribe(ctx.js, ci);
+            subOver = JsPullSubscribe.pullSubscribe(ctx.js, ci);
 
             proNoMin = PullRequestOptions.builder(5)
                 .group(group)
@@ -921,7 +921,7 @@ public class JetStreamPullTests extends JetStreamTestBase {
             PullConsumerCreator creator = new PullConsumerCreator().durable(ctx.consumerName()).filterSubject(ctx.subject());
             ctx.jsm.createConsumer(ctx.stream, creator);
 
-            JetStreamPullSubscription sub = ctx.js.pullSubscribe(ctx.stream, creator);
+            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
             JetStreamReader reader = sub.reader(500, 125);
 
             int stopCount = 500;
