@@ -53,7 +53,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             assertEquals(5, pa5.getSequenceNumber());
 
             // read them all back, validating the data and headers that were sent
-            JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(ctx.js, subject);
+            JetStreamPushSubscription sub = JetStreamPushSubscribe.pushSubscribe(ctx.js, subject);
             nc.flush(1000);
             List<Message> msgs = readMessagesAck(sub, 1000L, 5);
             assertEquals(5, msgs.size());
@@ -158,7 +158,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
     }
 
     private void readPrefixMessages(NatsConnection nc, JetStream js, String subject, String dest) throws InterruptedException, JetStreamException, TimeoutException {
-        JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(js, subject);
+        JetStreamPushSubscription sub = JetStreamPushSubscribe.pushSubscribe(js, subject);
         nc.flush(1000);
         List<Message> msgs = readMessagesAck(sub);
         assertEquals(2, msgs.size());
@@ -175,7 +175,7 @@ public class JetStreamGeneralTests extends JetStreamTestBase {
             // - consumer not found
             // - stream does not exist
             JetStream js = new JetStream(nc);
-            JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(js, ctx.subject());
+            JetStreamPushSubscription sub = JetStreamPushSubscribe.pushSubscribe(js, ctx.subject());
             String cname = sub.getConsumerInfo().getName();
 
             assertNotNull(ctx.js.strictGetConsumerInfo(ctx.stream, cname));

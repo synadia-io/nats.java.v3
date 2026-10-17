@@ -68,7 +68,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
             pa = ctx.js.publish(ctx.subject(), h, dataBytes(12), po);
             assertPublishAck(pa, ctx.stream, 12);
 
-            Subscription s = JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject());
+            Subscription s = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.subject());
             assertNextMessage(s, data(1), null);
             assertNextMessage(s, data(2), null);
             assertNextMessage(s, data(3), null);
@@ -144,7 +144,7 @@ public class JetStreamPubTests extends JetStreamTestBase {
                 assertEquals(i, pa.getSequenceNumber());
             }
 
-            JetStreamPushSubscription s = JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject());
+            JetStreamPushSubscription s = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.subject());
             for (int x = 1; x <= 6; x++) {
                 Message m = s.nextMessage(DEFAULT_TIMEOUT_MS);
                 assertNotNull(m);

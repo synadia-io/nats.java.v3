@@ -1289,7 +1289,7 @@ public class JetStreamManagementTests extends JetStreamTestBase {
             }
 
             ConsumerInfo ci = create1026Consumer(ctx.jsm, ctx.stream, subject);
-            JetStreamPullSubscription sub = JsPullSubscribe.pullSubscribe(ctx.js, ci);
+            JetStreamPullSubscription sub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ci);
             ctx.jsm.deleteConsumer(ctx.stream, ci.getName());
             sub.pull(5);
             validate1026(sub.nextMessage(500L), listener, false);

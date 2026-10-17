@@ -57,7 +57,7 @@ public class NatsWatchSubscription<T> implements AutoCloseable {
                 .filterSubjects(subscribeSubjects);
             SubscribeBehavior sb = new SubscribeBehavior().handler(handler).dispatcher(js.createDispatcher());
 
-            sub = JsPushSubscribe.pushSubscribe(js, fb.streamName, creator, sb);
+            sub = JetStreamPushSubscribe.pushSubscribe(js, fb.streamName, creator, sb);
 
             if (!handler.endOfDataSent) {
                 long pending = sub.getConsumerInfo().getCalculatedPending();

@@ -63,7 +63,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
     }
 
     private static void _testOrderedConsumerSync(JetStreamTestingContext ctx, String consumerNamePrefix, PushOrderedConsumerCreator creator) throws JetStreamException, InterruptedException {
-        JetStreamSubscription sub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
+        JetStreamSubscription sub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
         String firstConsumerName = validateOrderedConsumerNamePrefix(sub, consumerNamePrefix);
 
         // Messages will be intercepted by the PushOrderedTestDropSimulator
@@ -130,7 +130,7 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
             msgLatch.countDown();
         };
 
-        JetStreamSubscription sub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator, handler);
+        JetStreamSubscription sub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator, handler);
         String firstConsumerName = validateOrderedConsumerNamePrefix(sub, consumerNamePrefix);
 
         // publish after sub b/c interceptor is set during sub, so before messages come in
@@ -232,34 +232,34 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
         runInShared(builder, (nc, ctx) -> {
             SimulatorState state = setupPushFactory(ctx.js);
             PushConsumerCreator creator = new PushConsumerCreator().filterSubject(ctx.subject()).idleHeartbeat(100);
-            JetStreamPushSubscription pushSub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
+            JetStreamPushSubscription pushSub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator);
             validate(pushSub, listener, state);
 
             state = setupPushFactory(ctx.js);
-            pushSub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator, m -> {});
+            pushSub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator, m -> {});
             validate(pushSub, listener, state);
 
             state = setupPushOrderedFactory(ctx.js);
             PushOrderedConsumerCreator ordered =
                 new PushOrderedConsumerCreator().filterSubject(ctx.subject()).idleHeartbeat(100);
-            pushSub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, ordered);
+            pushSub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, ordered);
             validate(pushSub, listener, state);
 
             state = setupPushOrderedFactory(ctx.js);
             ordered =
                 new PushOrderedConsumerCreator().filterSubject(ctx.subject()).idleHeartbeat(100);
-            pushSub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, ordered, m -> {});
+            pushSub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, ordered, m -> {});
             validate(pushSub, listener, state);
 
             state = setupPullFactory(ctx.js);
             PullConsumerCreator pull = new PullConsumerCreator().filterSubject(ctx.subject());
-            JetStreamPullSubscription pullSub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pull);
+            JetStreamPullSubscription pullSub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pull);
             pullSub.pull(PullRequestOptions.builder(1).idleHeartbeat(100).expiresIn(2000).build());
             validate(pullSub, listener, state);
 
             state = setupPullOrderedFactory(ctx.js);
             PullOrderedConsumerCreator pullOrdered = new PullOrderedConsumerCreator().filterSubject(ctx.subject());
-            pullSub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pullOrdered);
+            pullSub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pullOrdered);
             pullSub.pull(PullRequestOptions.builder(1).idleHeartbeat(100).expiresIn(2000).build());
             validate(pullSub, listener, state);
         });
@@ -323,26 +323,26 @@ public class JetStreamConsumerTests extends JetStreamTestBase {
 
             // push ephemeral
             PushConsumerCreator pushCreator = new PushConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1));
-            JetStreamPushSubscription pushSub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, pushCreator);
+            JetStreamPushSubscription pushSub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, pushCreator);
             validateMultipleSubjectFilterSub(pushSub, ctx.subject(0));
 
             // pull ephemeral
             PullConsumerCreator pullCreator = new PullConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1));
-            JetStreamPullSubscription pullSub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pullCreator);
+            JetStreamPullSubscription pullSub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pullCreator);
             pullSub.pullExpiresIn(15, 1000);
             validateMultipleSubjectFilterSub(pullSub, ctx.subject(0));
 
             // push named
             String name = random();
             pushCreator = new PushConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1)).name(name).deliverSubject(random());
-            pushSub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, pushCreator);
+            pushSub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, pushCreator);
             assertEquals(name, pushSub.getConsumerInfo().getName());
             validateMultipleSubjectFilterSub(pushSub, ctx.subject(0));
 
             // pull named
             name = random();
             pullCreator = new PullConsumerCreator().filterSubjects(ctx.subject(0), ctx.subject(1)).name(name);
-            pullSub = JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pullCreator);
+            pullSub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, pullCreator);
             assertEquals(name, pullSub.getConsumerInfo().getName());
             pullSub.pullExpiresIn(15, 1000);
             validateMultipleSubjectFilterSub(pullSub, ctx.subject(0));

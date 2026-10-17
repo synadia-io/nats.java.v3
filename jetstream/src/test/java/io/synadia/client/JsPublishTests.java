@@ -8,7 +8,7 @@ import io.synadia.client.impl.JetStream;
 import io.synadia.client.impl.JetStreamManagement;
 import io.synadia.client.impl.JetStreamPushSubscription;
 import io.synadia.client.impl.JetStreamTestBase;
-import io.synadia.client.impl.JsPushSubscribe;
+import io.synadia.client.impl.JetStreamPushSubscribe;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -45,7 +45,7 @@ public class JsPublishTests extends JetStreamTestBase {
                 js.publish(s, data);
                 PushConsumerCreator creator = new PushConsumerCreator().filterSubject(s);
                 ConsumerInfo ci = jsm.createConsumer(streamName, creator);
-                JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(js, ci);
+                JetStreamPushSubscription sub = JetStreamPushSubscribe.pushSubscribe(js, ci);
                 Message m = sub.nextMessage(1000L);
                 assertNotNull(m);
                 assertNotNull(m.getData());

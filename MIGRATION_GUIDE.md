@@ -299,17 +299,17 @@ JetStreamManagement jsm     = new JetStreamManagement(nc, jsOptions);
 
 (Both classes live in `io.synadia.client.impl`. Static `instance(...)` factories also exist on `JetStream` if you prefer that style.)
 
-### Push and pull subscribe live in `JsPushSubscribe` and `JsPullSubscribe`
+### Push and pull subscribe live in `JetStreamPushSubscribe` and `JetStreamPullSubscribe`
 
-`JetStream` does not have the subscribe methods. Every `pushSubscribe` overload is in `JsPushSubscribe` and every `pullSubscribe` overload is in `JsPullSubscribe`, both in `io.synadia.client.impl`, with the same parameters. Call them as static methods with the `JetStream` context as the first parameter, or make an instance from the context:
+`JetStream` does not have the subscribe methods. Every `pushSubscribe` overload is in `JetStreamPushSubscribe` and every `pullSubscribe` overload is in `JetStreamPullSubscribe`, both in `io.synadia.client.impl`, with the same parameters. Call them as static methods with the `JetStream` context as the first parameter, or make an instance from the context:
 
 ```java
-JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(js, stream, consumerName);
-JsPullSubscribe pull = new JsPullSubscribe(js);
+JetStreamPushSubscription sub = JetStreamPushSubscribe.pushSubscribe(js, stream, consumerName);
+JetStreamPullSubscribe pull = new JetStreamPullSubscribe(js);
 JetStreamPullSubscription sub = pull.pullSubscribe(stream, new PullConsumerCreator());
 ```
 
-The simplified consumers (`getStreamContext`, `createConsumer`, `getConsumerContext`) stay on `JetStream`, and they are the preferred way to consume; `JsPushSubscribe` and `JsPullSubscribe` exist only to support the legacy behavior. See [Consuming from JetStream](README.md#consuming-from-jetstream).
+The simplified consumers (`getStreamContext`, `createConsumer`, `getConsumerContext`) stay on `JetStream`, and they are the preferred way to consume; `JetStreamPushSubscribe` and `JetStreamPullSubscribe` exist only to support the legacy behavior. See [Consuming from JetStream](README.md#consuming-from-jetstream).
 
 ### `JetStream.createDispatcher()` — the one you want for JetStream
 
@@ -330,7 +330,7 @@ NatsDispatcher d = js.createDispatcher();
 SubscribeBehavior behavior = new SubscribeBehavior()
     .dispatcher(d)
     .handler(msg -> handle(msg));
-JsPushSubscribe.pushSubscribe(js, stream, new PushConsumerCreator(), behavior);
+JetStreamPushSubscribe.pushSubscribe(js, stream, new PushConsumerCreator(), behavior);
 ```
 
 A dispatcher with no handler on either side cannot deliver anything, so that combination is rejected up front with an `IllegalStateException` — `[SUB-90023] Dispatcher without a handler cannot receive messages.` If you pass a dispatcher to `SubscribeBehavior`, pass a handler too.

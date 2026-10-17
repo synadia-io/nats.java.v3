@@ -52,11 +52,11 @@ Message msg = cc.next();
 
 For an ordered consumer, use `StreamContext.createOrderedConsumer(...)`, which returns an `OrderedConsumerContext` with the same consume methods.
 
-`JsPushSubscribe` and `JsPullSubscribe` exist only to support the legacy push and pull subscriptions carried over from v2. Use them when you need that behavior, for example a push consumer with a deliver subject, and use the simplified API for new code. Each class can be used as static methods with the `JetStream` as the first parameter, or through an instance made from the `JetStream`:
+`JetStreamPushSubscribe` and `JetStreamPullSubscribe` exist only to support the legacy push and pull subscriptions carried over from v2. Use them when you need that behavior, for example a push consumer with a deliver subject, and use the simplified API for new code. Each class can be used as static methods with the `JetStream` as the first parameter, or through an instance made from the `JetStream`:
 
 ```java
-JetStreamPushSubscription push = JsPushSubscribe.pushSubscribe(js, "my-stream", "my-push-consumer");
-JetStreamPullSubscription pull = new JsPullSubscribe(js).pullSubscribe("my-stream", "my-pull-consumer");
+JetStreamPushSubscription push = JetStreamPushSubscribe.pushSubscribe(js, "my-stream", "my-push-consumer");
+JetStreamPullSubscription pull = new JetStreamPullSubscribe(js).pullSubscribe("my-stream", "my-pull-consumer");
 ```
 
 ### Push Consumers and the Deliver Subject

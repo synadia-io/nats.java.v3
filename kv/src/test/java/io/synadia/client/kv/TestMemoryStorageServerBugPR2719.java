@@ -5,7 +5,7 @@ import io.synadia.client.MessageHandler;
 import io.synadia.client.api.*;
 import io.synadia.client.impl.Headers;
 import io.synadia.client.impl.NatsMessage;
-import io.synadia.client.impl.JsPushSubscribe;
+import io.synadia.client.impl.JetStreamPushSubscribe;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -72,8 +72,8 @@ public class TestMemoryStorageServerBugPR2719 {
                 .filterSubject(subGt)
                 .headersOnly(true);
 
-            JsPushSubscribe.pushSubscribe(ctx.js, stream, crFull, fullHandler);
-            JsPushSubscribe.pushSubscribe(ctx.js, stream, crOnly, onlyHandler);
+            JetStreamPushSubscribe.pushSubscribe(ctx.js, stream, crFull, fullHandler);
+            JetStreamPushSubscribe.pushSubscribe(ctx.js, stream, crOnly, onlyHandler);
 
             Object[] expecteds = new Object[] {
                 "a", "aa", "z", "zz",

@@ -7,8 +7,8 @@ JetStream client APIs: publish, push/pull subscriptions, consumer management, st
 ## Entry points
 
 - `io.synadia.client.impl.JetStream` — publish, and the simplified consumers (`getStreamContext`, `getConsumerContext`)
-- `io.synadia.client.impl.JsPushSubscribe` — legacy push subscriptions
-- `io.synadia.client.impl.JsPullSubscribe` — legacy pull subscriptions
+- `io.synadia.client.impl.JetStreamPushSubscribe` — legacy push subscriptions
+- `io.synadia.client.impl.JetStreamPullSubscribe` — legacy pull subscriptions
 - `io.synadia.client.impl.JetStreamManagement` — stream and consumer management
 
 Both are constructed directly from a `NatsConnection`:
@@ -21,11 +21,11 @@ JetStreamManagement jsm = new JetStreamManagement(nc);
 
 Each constructor has an overload that takes `JetStreamOptions`.
 
-The preferred way to consume is the simplified API (`ConsumerContext`); see [Consuming from JetStream](../README.md#consuming-from-jetstream). `JsPushSubscribe` and `JsPullSubscribe` exist only to support legacy behavior. Their methods take the `JetStream` context. Use them as static methods with the context as the first parameter, or through an instance made from the context:
+The preferred way to consume is the simplified API (`ConsumerContext`); see [Consuming from JetStream](../README.md#consuming-from-jetstream). `JetStreamPushSubscribe` and `JetStreamPullSubscribe` exist only to support legacy behavior. Their methods take the `JetStream` context. Use them as static methods with the context as the first parameter, or through an instance made from the context:
 
 ```java
-JetStreamPushSubscription push = JsPushSubscribe.pushSubscribe(js, stream, consumerName);
-JetStreamPullSubscription pull = new JsPullSubscribe(js).pullSubscribe(stream, consumerName);
+JetStreamPushSubscription push = JetStreamPushSubscribe.pushSubscribe(js, stream, consumerName);
+JetStreamPullSubscription pull = new JetStreamPullSubscribe(js).pullSubscribe(stream, consumerName);
 ```
 
 ## Migrating from v2

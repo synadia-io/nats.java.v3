@@ -38,7 +38,7 @@ public class JetStreamPushAsyncTests extends JetStreamTestBase {
 
             // Subscribe using the handler
             SubscribeBehavior behavior = new SubscribeBehavior().handler(handler);
-            JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject(), behavior);
+            JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.subject(), behavior);
 
             // Wait for messages to arrive using the countdown latch.
             // make sure we don't wait forever
@@ -52,7 +52,7 @@ public class JetStreamPushAsyncTests extends JetStreamTestBase {
     public void testCantNextMessageOnAsyncPushSub() throws Exception {
         runInShared((nc, ctx) -> {
             SubscribeBehavior behavior = new SubscribeBehavior().handler(msg -> {});
-            JetStreamPushSubscription sub = JsPushSubscribe.pushSubscribe(ctx.js, ctx.subject(), behavior);
+            JetStreamPushSubscription sub = JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.subject(), behavior);
 
             // this should exception, can't next message on an async push sub
             assertThrows(IllegalStateException.class, () -> sub.nextMessage(1000));
@@ -93,7 +93,7 @@ public class JetStreamPushAsyncTests extends JetStreamTestBase {
 
             PushConsumerCreator creator = new PushConsumerCreator().flowControl(1000).filterSubjects(ctx.subject());
             SubscribeBehavior behavior = new SubscribeBehavior().handler(handler);
-            JsPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator, behavior);
+            JetStreamPushSubscribe.pushSubscribe(ctx.js, ctx.stream, creator, behavior);
 
             // Wait for messages to arrive using the countdown latch.
             // make sure we don't wait forever

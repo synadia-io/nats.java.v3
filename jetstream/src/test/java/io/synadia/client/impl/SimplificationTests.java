@@ -1782,7 +1782,7 @@ public class SimplificationTests extends JetStreamTestBase {
 
             SubscribeBehavior behavior = new SubscribeBehavior().handler(msg -> {}).dispatcher(dispatcher);
             assertThrows(IllegalStateException.class,
-                () -> JsPullSubscribe.pullSubscribe(ctx.js, ctx.stream, new PullConsumerCreator().durable(durable), behavior),
+                () -> JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, new PullConsumerCreator().durable(durable), behavior),
                 "the subscribe must still fail - the cleanup must not swallow it");
 
             assertFalse(streamContext.getConsumerNames().contains(durable),
