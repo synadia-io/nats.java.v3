@@ -271,6 +271,12 @@ An unexpected status cannot be checked where it is raised: `JetStreamSubscriptio
 
   Three of those were bugs, not just poor typing: v2 left its pong future in the queue on timeout (so the next PONG completed a dead future and a live `flush()` lost its turn), skipped the `maxPingsOut` bound entirely, and let a `CancellationException` escape a method declared `throws IOException` whenever the connection dropped mid-call.
 
+- **`Nats.connectReconnectOnConnect` is renamed `Nats.connectReconnectOnFailure`.** All four overloads (no argument, `String url`, `String url, AuthHandler handler`, `Options options`) keep their parameters and behavior: if the initial connect fails on every server, the connection runs the reconnect logic instead of throwing. The `boolean` parameter of `Nats.connectAsynchronously` is renamed `reconnectOnInitialFailure`; its meaning is unchanged.
+
+  | v2 | v3 |
+  |---|---|
+  | `Nats.connectReconnectOnConnect(...)` | `Nats.connectReconnectOnFailure(...)` |
+
 ---
 
 ## JetStream

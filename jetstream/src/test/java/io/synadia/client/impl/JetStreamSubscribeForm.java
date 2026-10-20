@@ -12,7 +12,7 @@ import org.jspecify.annotations.NullMarked;
  * static methods.
  */
 @NullMarked
-public enum JsSubscribeForm {
+public enum JetStreamSubscribeForm {
     INSTANCE,
     STATIC;
 

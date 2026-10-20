@@ -632,17 +632,17 @@ public class ReconnectTests {
     }
 
     @Test
-    public void testReconnectOnConnect() throws Exception {
+    public void testReconnectOnFailure() throws Exception {
         int port = NatsTestServer.nextPort();
         Options options = options(port);
 
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<NatsConnection> testConn = new AtomicReference<>();
 
-        Thread t = getReconnectOnConnectTestThread(testConn, port, latch);
+        Thread t = getReconnectOnFailureTestThread(testConn, port, latch);
 
         try {
-            testConn.set(Nats.connectReconnectOnConnect(options));
+            testConn.set(Nats.connectReconnectOnFailure(options));
             latch.countDown();
         }
         catch (IOException | InterruptedException e) {
@@ -652,7 +652,7 @@ public class ReconnectTests {
         t.join(5000);
     }
 
-    private static Thread getReconnectOnConnectTestThread(AtomicReference<NatsConnection> testConn, int port, CountDownLatch latch) {
+    private static Thread getReconnectOnFailureTestThread(AtomicReference<NatsConnection> testConn, int port, CountDownLatch latch) {
         Thread t = new Thread(() -> {
             assertNull(testConn.get());
             try {

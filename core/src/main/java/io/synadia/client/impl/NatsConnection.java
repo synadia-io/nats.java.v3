@@ -217,10 +217,10 @@ public class NatsConnection implements AutoCloseable {
     }
 
     // Connect is only called after creation
-    protected void connect(boolean reconnectOnConnect) throws InterruptedException, IOException {
+    protected void connect(boolean reconnectOnInitialFailure) throws InterruptedException, IOException {
         if (tryingToConnect.compareAndSet(false, true)) {
             try {
-                connectImpl(reconnectOnConnect);
+                connectImpl(reconnectOnInitialFailure);
             }
             finally {
                 tryingToConnect.set(false);
@@ -228,75 +228,17 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void connectImpl(boolean reconnectOnConnect) throws InterruptedException, IOException {
+    protected void connectImpl(boolean reconnectOnInitialFailure) throws InterruptedException, IOException {
         if (options.getServers().isEmpty()) {
             throw new IllegalArgumentException("No servers provided in options");
         }
 
         lastError.set("");
 
-        Set<NatsUri> failList = new HashSet<>();
-        boolean keepGoing = true;
-        NatsUri first = null;
-        NatsUri cur;
-        // The pool is told to drop a rejected server, and the rejection is also a fail, so a pool that keeps it counts it out.
-        // A server it supplies again is skipped again, but reported only once.
-        Set<NatsUri> rejected = new HashSet<>();
-        while (keepGoing && (cur = serverPool.peekNextServer()) != null) {
-            String rejection = rejectionReason(cur);
-            if (rejection != null) {
-                serverPool.nextServer(); // b/c we only peeked, and the pool must have handed it out before it is told
-                if (rejected.add(cur)) {
-                    rejectServer(cur, rejection);
-                    failList.add(cur);
-                }
-                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
-                continue; // before first is set: the pool drops it, so it must not be the server that ends the pass
-            }
-            if (first == null) {
-                first = cur;
-            }
-            else if (cur.equals(first)) {
-                break;  // connect only goes through loop once
-            }
-            serverPool.nextServer(); // b/c we only peeked.
-
-            // let server pool resolve hostnames, then loop through resolved
-            List<NatsUri> resolvedList = resolveHost(cur);
-            for (NatsUri resolved : resolvedList) {
-                if (isClosed()) {
-                    keepGoing = false;
-                    break;
-                }
-                connectError.set(""); // new on each attempt
-
-                updateStatus(CONNECTING, resolved, cur);
-
-                tryToConnect(cur, resolved, NatsSystemClock.nanoTime());
-
-                if (isConnected()) {
-                    serverPool.connectSucceeded(cur);
-                    keepGoing = false;
-                    break;
-                }
-
-                updateStatus(DISCONNECTED, resolved, cur);
-
-                String err = connectError.get();
-
-                if (isAuthenticationError(err)) {
-                    serverAuthErrors.put(resolved, err);
-                }
-            }
-
-            if (!isConnected() && !isClosed()) {
-                failList.add(cur);
-                serverPool.connectFailed(cur);
-            }
-        }
+        Set<NatsUri> failList = tryServers(false, reconnectOnInitialFailure);
 
         if (!isConnected() && !isClosed()) {
-            if (reconnectOnConnect) {
+            if (reconnectOnInitialFailure) {
                 reconnectImpl(); // call the impl here otherwise the tryingToConnect guard will block the behavior
             }
             else {
@@ -441,7 +383,7 @@ public class NatsConnection implements AutoCloseable {
         writer.enterReconnectMode();
 
         if (!isConnected() && !isClosed() && !isClosing()) {
-            reconnectImplConnect();
+            tryServers(true, false);
         }
 
         if (!isConnected()) {
@@ -466,79 +408,109 @@ public class NatsConnection implements AutoCloseable {
         processConnectionEvent(ConnectionEvent.RESUBSCRIBED, uriDetail(currentServer));
     }
 
-    protected void reconnectImplConnect() {
+    // Goes through the servers the pool supplies until one connects, the connection closes, or the pool is empty.
+    // Connect goes through the pool once. Reconnect goes around it again, after the reconnect delay, until the pool
+    // counts every server out. reconnectOnInitialFailure: connect is followed by a reconnect if no server connects.
+    // Returns the servers that failed, for the connect error.
+    protected Set<NatsUri> tryServers(boolean reconnectMode, boolean reconnectOnInitialFailure) {
+        // when a reconnect runs or follows, the attempts count toward the double auth error rule
+        boolean holdOnAuthError = reconnectMode || reconnectOnInitialFailure;
+        Set<NatsUri> failList = new HashSet<>();
         long round = 0;
         NatsUri first = null;
         NatsUri cur;
-        // see connect: a rejected server is skipped and failed every time it is supplied, but reported only once
+        // The pool is told to drop a rejected server, and the rejection is also a fail, so a pool that keeps it counts it out.
+        // A server it supplies again is skipped again, but reported only once.
         Set<NatsUri> rejected = new HashSet<>();
-        while ((cur = serverPool.nextServer()) != null) {
-            String rejection = rejectionReason(cur);
-            if (rejection != null) {
+        while ((cur = serverPool.peekNextServer()) != null) {
+
+            // check rejection
+            String rejectionReason = isRejected(cur);
+            if (rejectionReason != null) {
+                serverPool.nextServer(); // b/c we only peeked, and the pool must have handed it out before it is told
                 if (rejected.add(cur)) {
-                    rejectServer(cur, rejection);
+                    rejectServer(cur, rejectionReason);
+                    failList.add(cur);
                 }
                 serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
                 continue; // before first is set and before the delay: the pool drops it, so it must not be the server that ends the pass
             }
+
+            boolean wrapped = cur.equals(first);
+            if (wrapped && !reconnectMode) {
+                break;  // connect only goes through loop once
+            }
+            serverPool.nextServer(); // b/c we only peeked.
+
             if (first == null) {
                 first = cur;
-                ++round;   // round becomes 1
-                // Consume the lame duck signal here whatever the behavior does with it, otherwise a
-                // signal received under a behavior that ignores it survives into a later campaign.
-                boolean lameDuck = lameDuckTriggered;
-                lameDuckTriggered = false;
-                if (delayBeforeFirstRound(lameDuck)) {
-                    invokeReconnectDelayHandler(round, lameDuck);
+                if (reconnectMode) {
+                    ++round;   // round becomes 1
+                    // Consume the lame duck signal here whatever the behavior does with it, otherwise a
+                    // signal received under a behavior that ignores it survives into a later campaign.
+                    boolean lameDuck = lameDuckTriggered;
+                    lameDuckTriggered = false;
+                    if (delayBeforeFirstRound(lameDuck)) {
+                        invokeReconnectDelayHandler(round, lameDuck);
+                    }
                 }
             }
-            else if (first.equals(cur)) {
+            else if (wrapped) {
                 // went around the pool an entire time
                 invokeReconnectDelayHandler(++round, false);
             }
 
-            // let server list provider resolve hostnames
-            // then loop through resolved
-            List<NatsUri> resolvedList = resolveHost(cur);
-            for (NatsUri resolved : resolvedList) {
-                if (isClosed()) {
-                    return;
+            // let server pool resolve hostnames, then loop through resolved
+            for (NatsUri resolved : resolveHost(cur)) {
+                if (stopTryingServers(reconnectMode)) {
+                    return failList;
                 }
-                connectError.set(""); // reset on each loop
-                if (isDisconnectingOrClosed() || isClosing()) {
-                    return;
-                }
-                updateStatus(RECONNECTING, resolved, cur);
+                connectError.set(""); // new on each attempt
 
-                tryToConnect(cur, resolved, NatsSystemClock.nanoTime());
+                updateStatus(reconnectMode ? RECONNECTING : CONNECTING, resolved, cur);
+
+                tryToConnect(cur, resolved, holdOnAuthError);
 
                 if (isConnected()) {
                     serverPool.connectSucceeded(cur);
-                    statistics.incrementReconnects();
-                    return;
+                    if (reconnectMode) {
+                        statistics.incrementReconnects();
+                    }
+                    return failList;
+                }
+
+                if (!reconnectMode) {
+                    updateStatus(DISCONNECTED, resolved, cur);
                 }
 
                 String err = connectError.get();
                 if (isAuthenticationError(err)) {
-                    if (err.equals(serverAuthErrors.get(resolved))) {
-                        return; // double auth error
+                    if (reconnectMode && err.equals(serverAuthErrors.get(resolved))) {
+                        return failList; // double auth error
                     }
                     serverAuthErrors.put(resolved, err);
                 }
             }
 
             if (!isConnected() && !isClosed()) {
+                failList.add(cur);
                 serverPool.connectFailed(cur);
             }
         }
+        return failList;
+    }
+
+    // Checked before each attempt of tryServers
+    protected boolean stopTryingServers(boolean reconnect) {
+        return isClosed() || (reconnect && (isDisconnectingOrClosed() || isClosing()));
     }
 
     // A server the connection will never attempt because it cannot be used with the options: a ws:// server is
     // a plain websocket that is never upgraded to TLS, so with an SSL context it would be reached without TLS.
-    // The connect and reconnect loops of both implementations ask this when the pool hands a server out, before
+    // tryServers asks this when the pool hands a server out, before
     // anything is sent to it. The bootstrap list cannot hold such a server, so one comes from connect_urls or
     // from a custom ServerPool.
-    protected String rejectionReason(NatsUri nuri) {
+    protected String isRejected(NatsUri nuri) {
         if (options.isTLSRequired() && WEBSOCKET_PROTOCOL.equals(nuri.getScheme())) {
             return "the options require TLS and a ws:// server is never upgraded to TLS";
         }
@@ -559,15 +531,16 @@ public class NatsConnection implements AutoCloseable {
         return remainingNanos;
     }
 
-    // is called from reconnect and connect
+    // is called from tryServers
     // will wait for any previous attempt to complete, using the reader.stop and
     // writer.stop
-    protected void tryToConnect(NatsUri cur, NatsUri resolved, long nowNanos) {
+    // holdOnAuthError is not used: this implementation always waits out the connection timeout on an auth error
+    protected void tryToConnect(NatsUri cur, NatsUri resolved, boolean holdOnAuthError) {
         clearCurrentServer();
         connectingServer = cur; // the origin of discovered servers in the initial INFO, before currentServer is set
 
         try {
-            long end = nowNanos + (options.getConnectionTimeout() * NANOS_PER_MILLI);
+            long end = NatsSystemClock.nanoTime() + (options.getConnectionTimeout() * NANOS_PER_MILLI);
             timeCheck(end);
 
             statusLock.lock();

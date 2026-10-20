@@ -458,7 +458,7 @@ public class ConnectTests {
 
         NatsConnection connection = null;
 
-        // 1. DO NOT RECONNECT ON CONNECT
+        // 1. DO NOT RECONNECT ON INITIAL FAILURE
         try (NatsTestServer ts = new NatsTestServer(port)) {
             try {
                 SimulateSocketDataPortException.THROW_ON_CONNECT.set(true);
@@ -473,12 +473,12 @@ public class ConnectTests {
         assertTrue(simExReceived.get());
         simExReceived.set(false);
 
-        // 2. RECONNECT ON CONNECT
+        // 2. RECONNECT ON INITIAL FAILURE
         try (NatsTestServer ts = new NatsTestServer(port)) {
             try {
                 SimulateSocketDataPortException.THROW_ON_CONNECT.set(true);
                 listener.queueConnectionEvent(ConnectionEvent.RECONNECTED);
-                connection = Nats.connectReconnectOnConnect(options);
+                connection = Nats.connectReconnectOnFailure(options);
                 listener.validate();
                 listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
             }

@@ -90,8 +90,8 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
     }
 
     @ParameterizedTest
-    @EnumSource(JsSubscribeForm.class)
-    public void testJetStreamSubscribeErrors(JsSubscribeForm form) throws Exception {
+    @EnumSource(JetStreamSubscribeForm.class)
+    public void testJetStreamSubscribeErrors(JetStreamSubscribeForm form) throws Exception {
         runInShared((nc, ctx) -> {
             JetStreamPushSubscribe push = form.push(ctx.js);
             JetStreamPullSubscribe pull = form.pull(ctx.js);
@@ -133,8 +133,8 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
 
     @SuppressWarnings("Convert2MethodRef")
     @ParameterizedTest
-    @EnumSource(JsSubscribeForm.class)
-    public void testJetStreamPushSubscribeBasics(JsSubscribeForm form) throws Exception {
+    @EnumSource(JetStreamSubscribeForm.class)
+    public void testJetStreamPushSubscribeBasics(JetStreamSubscribeForm form) throws Exception {
         runInShared((nc, ctx) -> {
             JetStreamPushSubscribe push = form.push(ctx.js);
             String data = random();
@@ -331,8 +331,8 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
 
     @SuppressWarnings("Convert2MethodRef")
     @ParameterizedTest
-    @EnumSource(JsSubscribeForm.class)
-    public void testJetStreamPullSubscribeBasics(JsSubscribeForm form) throws Exception {
+    @EnumSource(JetStreamSubscribeForm.class)
+    public void testJetStreamPullSubscribeBasics(JetStreamSubscribeForm form) throws Exception {
         runInShared((nc, ctx) -> {
             JetStreamPullSubscribe pull = form.pull(ctx.js);
             String data = random();
@@ -530,8 +530,8 @@ public class JetStreamSubscribeTests extends JetStreamTestBase {
     }
 
     @ParameterizedTest
-    @EnumSource(JsSubscribeForm.class)
-    public void testFilterSubject(JsSubscribeForm form) throws Exception {
+    @EnumSource(JetStreamSubscribeForm.class)
+    public void testFilterSubject(JetStreamSubscribeForm form) throws Exception {
         runInShared((nc, ctx) -> {
             JetStreamPushSubscribe push = form.push(ctx.js);
             String subject = random();

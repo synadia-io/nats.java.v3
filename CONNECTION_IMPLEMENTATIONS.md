@@ -59,7 +59,7 @@ During the connect handshake V3 reads the server's reply on the connecting threa
 | Classic | 2,001 ms |
 | V3 | 3 ms |
 
-Both throw `AuthenticationException`. One exception keeps classic timing on purpose: when an authentication error counts toward the rule that two consecutive identical authentication errors from a server stop the reconnect (a reconnect attempt, or an initial attempt with `reconnectOnConnect`), V3 also waits out the connection timeout, so a server gets the same time to start accepting again as it does with classic.
+Both throw `AuthenticationException`. One exception keeps classic timing on purpose: when an authentication error counts toward the rule that two consecutive identical authentication errors from a server stop the reconnect (a reconnect attempt, or an initial attempt made with `Nats.connectReconnectOnFailure` or `Nats.connectAsynchronously(options, true)`), V3 also waits out the connection timeout, so a server gets the same time to start accepting again as it does with classic.
 
 ### Reconnect and close
 

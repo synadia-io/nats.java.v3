@@ -16,17 +16,17 @@ public class NatsImpl {
     /**
      * Construct a connection and connect it to a server.
      * @param options the options to connect with
-     * @param reconnectOnConnect whether a failure to make the initial connection should start the
-     *                           reconnect logic instead of throwing
+     * @param reconnectOnInitialFailure whether a failure to make the initial connection should start the
+     *                                  reconnect logic instead of throwing
      * @return the connected connection
      * @throws IOException if the connection could not be established
      * @throws InterruptedException if the current thread is interrupted while connecting
      */
-    public static NatsConnection createConnection(Options options, boolean reconnectOnConnect) throws IOException, InterruptedException {
+    public static NatsConnection createConnection(Options options, boolean reconnectOnInitialFailure) throws IOException, InterruptedException {
         NatsConnection conn = options.connectionImplementation() == ConnectionImplementation.V3
             ? new NatsConnectionV3(options)
             : new NatsConnection(options);
-        conn.connect(reconnectOnConnect);
+        conn.connect(reconnectOnInitialFailure);
         return conn;
     }
 

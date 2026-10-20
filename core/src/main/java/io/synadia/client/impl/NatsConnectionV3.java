@@ -16,7 +16,6 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -39,7 +38,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  *     {@code -ERR} during the handshake fails the attempt as soon as it is read, instead of when the
  *     connection timeout runs out waiting for the PONG. The exception is an authentication error that
  *     counts toward the rule that two consecutive identical authentication errors from a server stop
- *     the reconnect (a reconnect attempt, or an initial attempt with reconnect on connect): that attempt
+ *     the reconnect (a reconnect attempt, or an initial attempt with reconnect on initial failure): that attempt
  *     still ends at its connection timeout, as in the classic implementation, so the time a server has
  *     to start accepting again between the two is unchanged.</li>
  * <li>{@link #outgoingPendingMessageCount()} and {@link #outgoingPendingBytes()} never block. They do
@@ -110,10 +109,10 @@ public class NatsConnectionV3 extends NatsConnection {
     // ----------------------------------------------------------------------------------------------------
 
     @Override
-    protected void connect(boolean reconnectOnConnect) throws InterruptedException, IOException {
+    protected void connect(boolean reconnectOnInitialFailure) throws InterruptedException, IOException {
         if (tryingToConnect.compareAndSet(false, true)) {
             try {
-                connectImpl(reconnectOnConnect);
+                connectImpl(reconnectOnInitialFailure);
             }
             finally {
                 tryingToConnect.set(false);
@@ -347,70 +346,14 @@ public class NatsConnectionV3 extends NatsConnection {
     // ----------------------------------------------------------------------------------------------------
 
     @Override
-    protected void connectImpl(boolean reconnectOnConnect) throws InterruptedException, IOException {
+    protected void connectImpl(boolean reconnectOnInitialFailure) throws InterruptedException, IOException {
         if (options.getServers().isEmpty()) {
             throw new IllegalArgumentException("No servers provided in options");
         }
 
         lastError.set("");
 
-        Set<NatsUri> failList = new HashSet<>();
-        boolean keepGoing = true;
-        NatsUri first = null;
-        NatsUri cur;
-        // The pool is told to drop a rejected server, and the rejection is also a fail, so a pool that keeps it counts it out.
-        // A server it supplies again is skipped again, but reported only once.
-        Set<NatsUri> rejected = new HashSet<>();
-        while (keepGoing && (cur = serverPool.peekNextServer()) != null) {
-            String rejection = rejectionReason(cur);
-            if (rejection != null) {
-                serverPool.nextServer(); // b/c we only peeked, and the pool must have handed it out before it is told
-                if (rejected.add(cur)) {
-                    rejectServer(cur, rejection);
-                    failList.add(cur);
-                }
-                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
-                continue; // before first is set: the pool drops it, so it must not be the server that ends the pass
-            }
-            if (first == null) {
-                first = cur;
-            }
-            else if (cur.equals(first)) {
-                break;  // connect only goes through loop once
-            }
-            serverPool.nextServer(); // b/c we only peeked.
-
-            for (NatsUri resolved : resolveHost(cur)) {
-                if (isClosed()) {
-                    keepGoing = false;
-                    break;
-                }
-                connectError.set(""); // new on each attempt
-
-                updateStatus(CONNECTING, resolved, cur);
-
-                // with reconnectOnConnect the errors recorded here count toward the double auth error rule
-                tryToConnectV3(cur, resolved, reconnectOnConnect);
-
-                if (isConnected()) {
-                    serverPool.connectSucceeded(cur);
-                    keepGoing = false;
-                    break;
-                }
-
-                updateStatus(DISCONNECTED, resolved, cur);
-
-                String err = connectError.get();
-                if (isAuthenticationError(err)) {
-                    serverAuthErrors.put(resolved, err);
-                }
-            }
-
-            if (!isConnected() && !isClosed()) {
-                failList.add(cur);
-                serverPool.connectFailed(cur);
-            }
-        }
+        Set<NatsUri> failList = tryServers(false, reconnectOnInitialFailure);
 
         if (isConnected()) {
             outbound.openData();
@@ -418,7 +361,7 @@ public class NatsConnectionV3 extends NatsConnection {
         }
 
         if (!isClosed()) {
-            if (reconnectOnConnect) {
+            if (reconnectOnInitialFailure) {
                 reconnectImpl();
             }
             else {
@@ -457,7 +400,7 @@ public class NatsConnectionV3 extends NatsConnection {
         }
 
         if (!isConnected() && !closeRequested) {
-            reconnectLoop();
+            tryServers(true, false);
         }
 
         if (!isConnected() || closeRequested) {
@@ -484,67 +427,13 @@ public class NatsConnectionV3 extends NatsConnection {
         processConnectionEvent(ConnectionEvent.RESUBSCRIBED, uriDetail(currentServer));
     }
 
-    private void reconnectLoop() {
-        long round = 0;
-        NatsUri first = null;
-        NatsUri cur;
-        // see connect: a rejected server is skipped and failed every time it is supplied, but reported only once
-        Set<NatsUri> rejected = new HashSet<>();
-        while ((cur = serverPool.nextServer()) != null) {
-            String rejection = rejectionReason(cur);
-            if (rejection != null) {
-                if (rejected.add(cur)) {
-                    rejectServer(cur, rejection);
-                }
-                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
-                continue; // before first is set and before the delay: the pool drops it, so it must not be the server that ends the pass
-            }
-            if (first == null) {
-                first = cur;
-                ++round;   // round becomes 1
-                // Consume the lame duck signal whatever the behavior does with it, so a signal received
-                // under a behavior that ignores it does not survive into a later campaign.
-                boolean lameDuck = lameDuckTriggered;
-                lameDuckTriggered = false;
-                if (delayBeforeFirstRound(lameDuck)) {
-                    waitReconnectDelay(round, lameDuck);
-                }
-            }
-            else if (first.equals(cur)) {
-                waitReconnectDelay(++round, false); // went around the pool an entire time
-            }
-
-            for (NatsUri resolved : resolveHost(cur)) {
-                if (isClosed() || closeRequested) {
-                    return;
-                }
-                connectError.set(""); // reset on each loop
-                updateStatus(RECONNECTING, resolved, cur);
-
-                tryToConnectV3(cur, resolved, true);
-
-                if (isConnected()) {
-                    serverPool.connectSucceeded(cur);
-                    statistics.incrementReconnects();
-                    return;
-                }
-
-                String err = connectError.get();
-                if (isAuthenticationError(err)) {
-                    if (err.equals(serverAuthErrors.get(resolved))) {
-                        return; // double auth error
-                    }
-                    serverAuthErrors.put(resolved, err);
-                }
-            }
-
-            if (!isConnected() && !isClosed()) {
-                serverPool.connectFailed(cur);
-            }
-        }
+    @Override
+    protected boolean stopTryingServers(boolean reconnect) {
+        return isClosed() || (reconnect && closeRequested);
     }
 
-    private void waitReconnectDelay(long round, boolean lameDuckTriggered) {
+    @Override
+    protected void invokeReconnectDelayHandler(long round, boolean lameDuckTriggered) {
         long waitMillis = options.getReconnectDelayHandler()
             .getWaitTimeMillis(round, options, serverPool.hasSecureServer(), lameDuckTriggered);
 
@@ -575,18 +464,14 @@ public class NatsConnectionV3 extends NatsConnection {
         waiter.complete(Boolean.TRUE);
     }
 
-    @Override
-    protected void tryToConnect(NatsUri cur, NatsUri resolved, long nowNanos) {
-        tryToConnectV3(cur, resolved, true);
-    }
-
     // One connect attempt. On return the status is CONNECTED with reader and writer running and the
     // data lane still held back, or the attempt failed and the status is DISCONNECTED.
     // holdOnAuthError: the attempt counts toward the double auth error rule (two consecutive identical
     // auth errors from a server stop the reconnect). Such an attempt rejected for authentication ends at
     // its connection timeout, as it does in the classic implementation, so the time between the two
     // counted rejections - the time a server has to start accepting again - is the same as classic.
-    private void tryToConnectV3(NatsUri cur, NatsUri resolved, boolean holdOnAuthError) {
+    @Override
+    protected void tryToConnect(NatsUri cur, NatsUri resolved, boolean holdOnAuthError) {
         clearCurrentServer();
         connectingServer = cur; // the origin of discovered servers in the initial INFO, before currentServer is set
 

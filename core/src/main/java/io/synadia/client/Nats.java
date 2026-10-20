@@ -85,8 +85,7 @@ public abstract class Nats {
      * @throws InterruptedException if the current thread is interrupted
      */
     public static NatsConnection connect() throws IOException, InterruptedException {
-        Options options = new OptionsBuilder().server(DEFAULT_URL).build();
-        return createConnection(options, false);
+        return connect(DEFAULT_URL);
     }
 
     /**
@@ -96,9 +95,8 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static NatsConnection connectReconnectOnConnect() throws IOException, InterruptedException {
-        Options options = new OptionsBuilder().server(DEFAULT_URL).build();
-        return createConnection(options, true);
+    public static NatsConnection connectReconnectOnFailure() throws IOException, InterruptedException {
+        return connectReconnectOnFailure(DEFAULT_URL);
     }
 
     /**
@@ -138,7 +136,7 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static NatsConnection connectReconnectOnConnect(String url) throws IOException, InterruptedException {
+    public static NatsConnection connectReconnectOnFailure(String url) throws IOException, InterruptedException {
         Options options = new OptionsBuilder().server(url).build();
         return createConnection(options, true);
     }
@@ -174,7 +172,7 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static NatsConnection connectReconnectOnConnect(String url, AuthHandler handler) throws IOException, InterruptedException {
+    public static NatsConnection connectReconnectOnFailure(String url, AuthHandler handler) throws IOException, InterruptedException {
         Options options = new OptionsBuilder().server(url).authHandler(handler).build();
         return createConnection(options, true);
     }
@@ -219,7 +217,7 @@ public abstract class Nats {
      * @throws IOException if an unrecoverable networking issue occurs
      * @throws InterruptedException if the current thread is interrupted
      */
-    public static NatsConnection connectReconnectOnConnect(Options options) throws IOException, InterruptedException {
+    public static NatsConnection connectReconnectOnFailure(Options options) throws IOException, InterruptedException {
         return createConnection(options, true);
     }
 
@@ -228,7 +226,7 @@ public abstract class Nats {
      * connection once it is connected, or completes exceptionally if the connection attempt fails.
      *
      * <p>Normally connect will loop through the available servers one time. If
-     * reconnectOnConnect is true, the connection attempt will repeat based on the
+     * reconnectOnInitialFailure is true, the connection attempt will repeat based on the
      * settings in options, including indefinitely.
      *
      * <p>The future is how you should get the connection. It completes only once the connection is actually
@@ -248,7 +246,7 @@ public abstract class Nats {
      * virtual threads - use {@link #connectAsynchronously(Options, boolean, Executor) the overload taking an
      * Executor}.
      *
-     * <p>With reconnectOnConnect true the retry loop runs on that thread, so the future stays pending for as
+     * <p>With reconnectOnInitialFailure true the retry loop runs on that thread, so the future stays pending for as
      * long as retries continue - indefinitely if maxReconnects is -1, which also means the thread lives that
      * long. Wait on the future with a timeout rather than reaching for the listener's copy.
      *
@@ -256,23 +254,23 @@ public abstract class Nats {
      * listeners set in the options are notified with a null connection, in addition to the future
      * completing exceptionally.
      *
-     * @param options            the connection options
-     * @param reconnectOnConnect if true, the connection will treat the initial
-     *                           connection as any other and attempt reconnects on
-     *                           failure
+     * @param options                   the connection options
+     * @param reconnectOnInitialFailure if true, the connection will treat the initial
+     *                                  connection as any other and attempt reconnects on
+     *                                  failure
      * @return a future that completes with the connection, or completes exceptionally on failure
      */
-    public static CompletableFuture<NatsConnection> connectAsynchronously(Options options, boolean reconnectOnConnect) {
+    public static CompletableFuture<NatsConnection> connectAsynchronously(Options options, boolean reconnectOnInitialFailure) {
         // a thread per call - the connect task blocks for the whole attempt, so it must never share a thread
-        return connectAsynchronously(options, reconnectOnConnect, r -> new Thread(r, "NATS - async connection").start());
+        return connectAsynchronously(options, reconnectOnInitialFailure, r -> new Thread(r, "NATS - async connection").start());
     }
 
     /**
      * Try to connect using the supplied executor, otherwise behaving exactly as
-     * {@link #connectAsynchronously(Options, boolean) connectAsynchronously(options, reconnectOnConnect)},
+     * {@link #connectAsynchronously(Options, boolean) connectAsynchronously(options, reconnectOnInitialFailure)},
      * which is the same thing on a thread per call.
      *
-     * <p>The connect task <b>blocks for the whole connect attempt</b>, and with reconnectOnConnect true that
+     * <p>The connect task <b>blocks for the whole connect attempt</b>, and with reconnectOnInitialFailure true that
      * includes the entire retry loop - indefinitely if maxReconnects is -1. Choose the executor accordingly:
      * <ul>
      * <li>a single-thread executor serializes concurrent async connects behind each other.</li>
@@ -292,18 +290,18 @@ public abstract class Nats {
      * Their lifecycle is wrong for this too: they are reference counted per connection and shut down when the
      * last one closes, while this call runs before any connection exists. Supply a separate executor.
      *
-     * @param options            the connection options
-     * @param reconnectOnConnect if true, the connection will treat the initial
-     *                           connection as any other and attempt reconnects on
-     *                           failure
-     * @param executor           the executor to run the connect attempt on
+     * @param options                   the connection options
+     * @param reconnectOnInitialFailure if true, the connection will treat the initial
+     *                                  connection as any other and attempt reconnects on
+     *                                  failure
+     * @param executor                  the executor to run the connect attempt on
      * @return a future that completes with the connection, or completes exceptionally on failure
      */
     public static CompletableFuture<NatsConnection> connectAsynchronously(
-            Options options, boolean reconnectOnConnect, Executor executor) {
+            Options options, boolean reconnectOnInitialFailure, Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return NatsImpl.createConnection(options, reconnectOnConnect);
+                return NatsImpl.createConnection(options, reconnectOnInitialFailure);
             }
             catch (Exception ex) {
                 // straight off the Options, not a connection - there is no NatsConnection to add listeners to yet
@@ -365,9 +363,9 @@ public abstract class Nats {
         return NatsImpl.staticCredentials(jwt, nkey);
     }
 
-    private static NatsConnection createConnection(Options options, boolean reconnectOnConnect)
+    private static NatsConnection createConnection(Options options, boolean reconnectOnInitialFailure)
             throws IOException, InterruptedException {
-        return NatsImpl.createConnection(options, reconnectOnConnect);
+        return NatsImpl.createConnection(options, reconnectOnInitialFailure);
     }
 
     private Nats() {} /* ensures cannot be constructed */

@@ -78,9 +78,9 @@ public class MaxReconnectResolvedIpsTest extends TestBase {
             .noRandomize()
             .build();
 
-        // reconnectOnConnect makes the initial connect share the same reconnect budget, so the
+        // connectReconnectOnFailure makes the initial connect share the same reconnect budget, so the
         // whole budget is exhausted synchronously before this call returns a closed connection.
-        try (NatsConnection conn = Nats.connectReconnectOnConnect(options)) {
+        try (NatsConnection conn = Nats.connectReconnectOnFailure(options)) {
             assertEquals(ConnectionStatus.CLOSED, conn.getStatus());
 
             // Initial round + maxReconnects rounds, each trying every resolved IP once.
@@ -110,7 +110,7 @@ public class MaxReconnectResolvedIpsTest extends TestBase {
             .noRandomize()
             .build();
 
-        try (NatsConnection conn = Nats.connectReconnectOnConnect(options)) {
+        try (NatsConnection conn = Nats.connectReconnectOnFailure(options)) {
             assertEquals(ConnectionStatus.CLOSED, conn.getStatus());
             assertEquals(maxReconnects + 1, CONNECT_ATTEMPTS.get());
         }
