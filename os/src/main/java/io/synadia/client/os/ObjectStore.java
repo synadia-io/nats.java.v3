@@ -7,6 +7,8 @@ import io.synadia.client.api.*;
 import io.synadia.client.impl.*;
 import io.synadia.client.utils.ApiUtils;
 import io.synadia.client.utils.Digester;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -25,6 +27,7 @@ import static io.synadia.client.utils.Validator.validateNotNull;
  * of chunks, so an object can be far larger than a single NATS message.
  * <p>Obtain an instance from the connection rather than constructing one.
  */
+@NullMarked
 public class ObjectStore extends AbstractBucketFeature {
     /**
      * Version of the os library
@@ -257,10 +260,10 @@ public class ObjectStore extends AbstractBucketFeature {
             // track the byte count and chunks
             // update the digest
             // write the bytes to the output file
-            totalBytes = data == null ? 0 : data.length;
             totalChunks = 1;
-            digester.update(data);
-            if (totalBytes > 0) {
+            if (data != null) {
+                totalBytes = data.length;
+                digester.update(data);
                 out.write(data);
             }
         }
@@ -313,11 +316,11 @@ public class ObjectStore extends AbstractBucketFeature {
     /**
      * Get the info for an object if the object exists / is not deleted.
      * @param objectName The name of the object
-     * @return the ObjectInfo for the object name or throw an exception if it does not exist.
+     * @return the ObjectInfo for the object name, or null if it does not exist or is deleted.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo getInfo(String objectName) throws JetStreamException, InterruptedException {
+    public @Nullable ObjectInfo getInfo(String objectName) throws JetStreamException, InterruptedException {
         return getInfo(objectName, false);
     }
 
@@ -325,11 +328,11 @@ public class ObjectStore extends AbstractBucketFeature {
      * Get the info for an object if the object exists, optionally including deleted.
      * @param objectName The name of the object
      * @param includingDeleted whether to return info for deleted objects
-     * @return the ObjectInfo for the object name or throw an exception if it does not exist.
+     * @return the ObjectInfo for the object name, or null if it does not exist, or is deleted and includingDeleted is false.
      * @throws JetStreamException covers communication and server-side JetStream errors
      * @throws InterruptedException if interrupted while waiting for the server
      */
-    public ObjectInfo getInfo(String objectName, boolean includingDeleted) throws JetStreamException, InterruptedException {
+    public @Nullable ObjectInfo getInfo(String objectName, boolean includingDeleted) throws JetStreamException, InterruptedException {
         MessageInfo mi = _getLast(rawMetaSubject(objectName));
         if (mi == null) {
             return null;

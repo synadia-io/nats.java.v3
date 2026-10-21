@@ -155,7 +155,7 @@ The single source of truth for the things currently in progress — so any sessi
 
 ## Plans / Audits TBD
 
-1. ObjectStore line 107 / ObjectStore nullability
+1. ~~ObjectStore line 107 / ObjectStore nullability~~ done 2026-10-20: `ObjectStore` is `@NullMarked`; both `getInfo` return `@Nullable` and their javadoc says null instead of "throw"; single-chunk `get` no longer passes null data to the digester. Open: `get` of an empty object (0 chunks) waits the full JetStream timeout (inference from code, not run).
 
 2. **Reader hardening against malformed incoming headers.** Raised by a code review, which called it "a separate, optional item" - recording it 2026-09-07 so it is at least considered rather than forgotten. The threat model is narrow: a bad or malicious server, or a broken/corrupted connection, feeding the reader header bytes that do not parse the way the client assumes. Not urgent and not known to be exploitable - the question to answer is what the reader currently does on malformed header input and whether that is acceptable, before deciding whether anything needs changing.
 
