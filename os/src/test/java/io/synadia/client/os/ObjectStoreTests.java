@@ -2,6 +2,7 @@ package io.synadia.client.os;
 
 import io.synadia.client.api.JetStreamException;
 import io.synadia.client.api.StorageType;
+import io.synadia.client.api.StreamCreator;
 import io.synadia.client.api.StreamInfo;
 import io.synadia.client.api.StreamInfoOptions;
 import io.synadia.client.impl.Headers;
@@ -470,6 +471,52 @@ public class ObjectStoreTests extends TestBase {
 
                 ObjectMeta meta = ObjectMeta.builder(random()).build();
                 assertThrows(JetStreamApiException.class, () -> os.updateMeta(objectName, meta));
+            }
+        });
+    }
+
+    @Test
+    public void testEmptyObject() throws Exception {
+        runInShared(nc -> {
+            try (OsTestingContext osCtx = new OsTestingContext(nc)) {
+                ObjectStore os = osCtx.create(random());
+                String objectName = random();
+                ObjectInfo info = os.put(objectName, new byte[0]);
+                assertEquals(0, info.getSize());
+                assertEquals(0, info.getChunks());
+
+                // an empty object has no chunks to read, so get must not wait for the JetStream timeout
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                long start = System.currentTimeMillis();
+                ObjectInfo got = os.get(objectName, out);
+                long elapsed = System.currentTimeMillis() - start;
+                assertTrue(elapsed < osCtx.js.getTimeout(), "get took " + elapsed + " ms");
+                assertEquals(0, out.size());
+                assertEquals(0, got.getSize());
+                assertEquals(0, got.getChunks());
+            }
+        });
+    }
+
+    @Test
+    public void testSingleChunkWithNoData() throws Exception {
+        runInShared(nc -> {
+            try (OsTestingContext osCtx = new OsTestingContext(nc)) {
+                String bucket = random();
+                ObjectStore os = osCtx.create(bucket);
+                String objectName = random();
+                ObjectInfo info = os.put(objectName, "data".getBytes());
+                assertEquals(1, info.getChunks());
+
+                // without direct get, a chunk message with no payload comes back with null data
+                String streamName = ObjectStoreUtil.toStreamName(bucket);
+                StreamInfo si = osCtx.jsm.getStreamInfo(streamName);
+                osCtx.jsm.updateStream(new StreamCreator(si.getConfiguration()).allowDirect(false));
+                osCtx.js.publish(ObjectStoreUtil.toChunkPrefix(bucket) + info.getNuid(), new byte[0]);
+
+                ObjectStore os2 = osCtx.osm.objectStore(bucket); // a new store, so it sees the stream without direct get
+                IllegalStateException e = assertThrows(IllegalStateException.class, () -> os2.get(objectName, new ByteArrayOutputStream()));
+                assertEquals(OsGetSizeMismatch.message(), e.getMessage());
             }
         });
     }

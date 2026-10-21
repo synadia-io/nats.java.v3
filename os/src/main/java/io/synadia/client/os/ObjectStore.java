@@ -267,7 +267,7 @@ public class ObjectStore extends AbstractBucketFeature {
                 out.write(data);
             }
         }
-        else {
+        else if (oi.getChunks() > 0) { // an empty object has no chunks, so there is nothing to read
             PushOrderedConsumerCreator creator = new PushOrderedConsumerCreator()
                 .filterSubject(rawChunkSubject(oi.getNuid()));
 
