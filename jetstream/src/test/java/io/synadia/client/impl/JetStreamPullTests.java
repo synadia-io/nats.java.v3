@@ -8,9 +8,7 @@ import io.synadia.client.utils.VersionUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
-import java.time.Duration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -29,143 +27,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Isolated
 public class JetStreamPullTests extends JetStreamTestBase {
-
-    @Test
-    public void testFetch() throws Exception {
-        runInShared((nc, ctx) -> {
-            long fetchMs = 3000;
-            Duration ackWaitDur = Duration.ofMillis(fetchMs * 2);
-
-            PullConsumerCreator creator = new PullConsumerCreator()
-                .ackWait(ackWaitDur)
-                .filterSubject(ctx.subject())
-                .durable(ctx.consumerName());
-
-            JetStreamPullSubscription sub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
-            assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
-
-            List<Message> messages = sub.fetch(10, fetchMs);
-            validateRead(0, messages.size());
-            messages.forEach(Message::ack);
-            sleep(ackWaitDur.toMillis()); // let the pull expire
-
-            jsPublish(ctx.js, ctx.subject(), "A", 10);
-            messages = sub.fetch(10, fetchMs);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            jsPublish(ctx.js, ctx.subject(), "B", 20);
-            messages = sub.fetch(10, fetchMs);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            messages = sub.fetch(10, fetchMs);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            jsPublish(ctx.js, ctx.subject(), "C", 5);
-            messages = sub.fetch(10, fetchMs);
-            validateRead(5, messages.size());
-            messages.forEach(Message::ack);
-            sleep(fetchMs); // let the pull expire
-
-            jsPublish(ctx.js, ctx.subject(), "D", 15);
-            messages = sub.fetch(10, fetchMs);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            messages = sub.fetch(10, fetchMs);
-            validateRead(5, messages.size());
-            messages.forEach(Message::ack);
-
-            jsPublish(ctx.js, ctx.subject(), "E", 10);
-            messages = sub.fetch(10, fetchMs);
-            validateRead(10, messages.size());
-            sleep(ackWaitDur.toMillis()); // let the acks wait expire, pull will also expire it's shorter
-
-            // message were not ack'ed
-            messages = sub.fetch(10, fetchMs);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            assertThrows(IllegalArgumentException.class, () -> sub.fetch(10, -1));
-        });
-    }
-
-    @Test
-    public void testIterate() throws Exception {
-        runInShared((nc, ctx) -> {
-            long fetchMs = 5000;
-            Duration ackWaitDur = Duration.ofMillis(fetchMs * 2);
-
-            PullConsumerCreator creator = new PullConsumerCreator()
-                .ackWait(ackWaitDur)
-                .filterSubject(ctx.subject())
-                .durable(ctx.consumerName());
-
-            JetStreamPullSubscription sub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
-            assertSubscription(sub, ctx.stream, ctx.consumerName(), null, true);
-
-            Iterator<Message> iterator = sub.iterate(10, fetchMs);
-            List<Message> messages = readMessages(iterator);
-            validateRead(0, messages.size());
-            messages.forEach(Message::ack);
-
-            jsPublish(ctx.js, ctx.subject(), "A", 10);
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            jsPublish(ctx.js, ctx.subject(), "B", 20);
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            jsPublish(ctx.js, ctx.subject(), "C", 5);
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(5, messages.size());
-            messages.forEach(Message::ack);
-            sleep(fetchMs); // give time for the pull to expire
-
-            jsPublish(ctx.js, ctx.subject(), "D", 15);
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(5, messages.size());
-            messages.forEach(Message::ack);
-            sleep(fetchMs); // give time for the pull to expire
-
-            jsPublish(ctx.js, ctx.subject(), "E", 10);
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(10, messages.size());
-            sleep(ackWaitDur.toMillis()); // give time for the pull and the ack wait to expire
-
-            iterator = sub.iterate(10, fetchMs);
-            messages = readMessages(iterator);
-            validateRead(10, messages.size());
-            messages.forEach(Message::ack);
-
-            jsPublish(ctx.js, ctx.subject(), "F", 1);
-            iterator = sub.iterate(1, fetchMs);
-            //noinspection ResultOfMethodCallIgnored
-            iterator.hasNext(); // calling hasNext twice in a row is for coverage
-            //noinspection ResultOfMethodCallIgnored
-            iterator.hasNext(); // calling hasNext twice in a row is for coverage
-        });
-    }
 
     @Test
     public void testBasic() throws Exception {
@@ -386,26 +247,12 @@ public class JetStreamPullTests extends JetStreamTestBase {
             assertAllJetStream(messages);
             sleep(expires); // make sure the pull actually expires
 
-            jsPublish(ctx.js, ctx.subject(), "H", 10);
-            messages = sub.fetch(10, expires);
-            assertEquals(10, messages.size());
-            assertAllJetStream(messages);
-
             jsPublish(ctx.js, ctx.subject(), "I", 5);
             sub.pullExpiresIn(10, expires);
             messages = readMessagesAck(sub);
             assertEquals(5, messages.size());
             assertAllJetStream(messages);
             sleep(expires); // make sure the pull actually expires
-
-            jsPublish(ctx.js, ctx.subject(), "J", 10);
-            Iterator<Message> i = sub.iterate(10, expires);
-            int count = 0;
-            while (i.hasNext()) {
-                assertIsJetStream(i.next());
-                ++count;
-            }
-            assertEquals(10, count);
 
             assertThrows(IllegalArgumentException.class, () -> sub.pullExpiresIn(10, -1000));
         });
@@ -912,62 +759,5 @@ public class JetStreamPullTests extends JetStreamTestBase {
                 fail("At least 2 consumers should have gotten messages");
             }
         });
-    }
-
-    @Test
-    public void testReader() throws Exception {
-        runInShared((nc, ctx) -> {
-            // Pre define a consumer
-            PullConsumerCreator creator = new PullConsumerCreator().durable(ctx.consumerName()).filterSubject(ctx.subject());
-            ctx.jsm.createConsumer(ctx.stream, creator);
-
-            JetStreamPullSubscription sub = JetStreamPullSubscribe.pullSubscribe(ctx.js, ctx.stream, creator);
-            JetStreamReader reader = sub.reader(500, 125);
-
-            int stopCount = 500;
-
-            // create the consumer then use it
-            AtomicInteger count = new AtomicInteger();
-            Thread readerThread = getReaderThread(count, stopCount, reader);
-
-            Publisher publisher = new Publisher(ctx.js, ctx.subject(), 25);
-            Thread pubThread = new Thread(publisher);
-            pubThread.start();
-
-            readerThread.join();
-            publisher.stop();
-            pubThread.join();
-
-            assertTrue(count.incrementAndGet() > 500);
-        });
-    }
-
-    private static Thread getReaderThread(AtomicInteger count, int stopCount, JetStreamReader reader) {
-        Thread readerThread = new Thread(() -> {
-            try {
-                while (count.get() < stopCount) {
-                    Message msg = reader.nextMessage(1000);
-                    if (msg != null) {
-                        msg.ack();
-                        count.incrementAndGet();
-                    }
-                }
-
-                Thread.sleep(50); // allows more messages to come across
-                reader.stop();
-
-                Message msg = reader.nextMessage(1000); // also coverage next message
-                while (msg != null) {
-                    msg.ack();
-                    count.incrementAndGet();
-                    msg = reader.nextMessage(1000);
-                }
-            }
-            catch (Exception e) {
-                fail(e);
-            }
-        });
-        readerThread.start();
-        return readerThread;
     }
 }

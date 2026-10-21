@@ -317,6 +317,26 @@ JetStreamPullSubscription sub = pull.pullSubscribe(stream, new PullConsumerCreat
 
 The simplified consumers (`getStreamContext`, `createConsumer`, `getConsumerContext`) stay on `JetStream`, and they are the preferred way to consume; `JetStreamPushSubscribe` and `JetStreamPullSubscribe` exist only to support the legacy behavior. See [Consuming from JetStream](README.md#consuming-from-jetstream).
 
+### `fetch`, `iterate` and `reader` moved off the pull subscription into `jnats3-ljs`
+
+`JetStreamPullSubscription` keeps only the primitive pull methods (`pull`, `pullNoWait`, `pullExpiresIn`). `fetch`, `iterate`, `reader` and the `JetStreamReader` interface are in the separate Legacy JetStream module, artifact `jnats3-ljs`, as `JetStreamLegacyPull` in `io.synadia.client.impl`. They behave as before. Call them as static methods with the subscription as the first parameter, or make an instance from the subscription:
+
+```java
+List<Message> messages = JetStreamLegacyPull.fetch(sub, 10, 1000);
+Iterator<Message> iterator = new JetStreamLegacyPull(sub).iterate(10, 1000);
+JetStreamReader reader = JetStreamLegacyPull.reader(sub, 500, 125);
+```
+
+`JetStreamSubscription.MIN_EXPIRE_MILLIS` moved with them, to `JetStreamLegacyPull.MIN_EXPIRE_MILLIS`.
+
+For new code use the simplified API instead:
+
+| v2 | v3 simplified API |
+|---|---|
+| `sub.fetch(batch, maxWait)` | `consumerContext.fetch(FetchConsumeOptions)` / `fetchMessages(int)` / `fetchBytes(int)` → `FetchMessageConsumer` |
+| `sub.iterate(batch, maxWait)` | `consumerContext.iterate()` / `iterate(ConsumeOptions)` → `IterableMessageConsumer` |
+| `sub.reader(batch, repullAt)` | `consumerContext.iterate(...)` for an endless iterator, or `consume(...)` for a handler |
+
 ### `JetStream.createDispatcher()` — the one you want for JetStream
 
 New in v3, and there purely to remove a choice that was easy to get wrong. `NatsConnection` has had two `createDispatcher` overloads since v2 — one that takes a default `MessageHandler` and one that takes nothing — and for JetStream the no-argument one is almost always the right call, because a JetStream subscription carries its own handler per subscription rather than leaning on the dispatcher's default. Having it on `JetStream` makes that obvious at the call site:

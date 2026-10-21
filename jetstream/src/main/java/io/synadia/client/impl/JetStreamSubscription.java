@@ -21,12 +21,6 @@ public abstract class JetStreamSubscription extends NatsSubscription implements 
      */
     public static final long EXPIRE_ADJUSTMENT = 10;
 
-    /**
-     * Shortest max wait, in millis, that still gets {@link #EXPIRE_ADJUSTMENT} applied, {@value}.
-     * Below this the wait is sent to the server as is.
-     */
-    public static final long MIN_EXPIRE_MILLIS = 20;
-
     protected final JetStream js;
 
     protected String stream;

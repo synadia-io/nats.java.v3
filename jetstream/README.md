@@ -28,6 +28,8 @@ JetStreamPushSubscription push = JetStreamPushSubscribe.pushSubscribe(js, stream
 JetStreamPullSubscription pull = new JetStreamPullSubscribe(js).pullSubscribe(stream, consumerName);
 ```
 
+The `fetch`, `iterate` and `reader` behaviors of a pull subscription are in the [Legacy JetStream](../legacy-jetstream/README.md) module.
+
 ## Migrating from v2
 
 See the [top-level migration guide](../MIGRATION_GUIDE.md#jetstream).

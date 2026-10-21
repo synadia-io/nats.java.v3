@@ -2,7 +2,7 @@ name: Build Release
 
 # Releases one module. Publish a GitHub release whose tag is <name>/<version>, for
 # example core/3.0.0 or js/3.0.1. <name> is the module's artifact name without the
-# jnats3- prefix (core, js, kv, os, service) and <version> must equal that module's
+# jnats3- prefix (core, js, kv, os, ljs, service) and <version> must equal that module's
 # jarVersion. bp (batch-publish) and examples are refused: bp until it has code,
 # examples always.
 # A module's POM depends on the released versions of the modules it uses, so release

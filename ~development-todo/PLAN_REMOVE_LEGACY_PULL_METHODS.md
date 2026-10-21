@@ -1,6 +1,6 @@
 # Plan — Remove the legacy advanced pull behaviors from v3
 
-**Status: planned, not started.**
+**Status: done 2026-10-20, differently from this plan (Scott): the behavior moved to a new `legacy-jetstream` module (`jnats3-ljs`) instead of being deleted.** `JetStreamLegacyPull` holds `fetch` / `iterate` / `reader` as instance methods (from a `JetStreamPullSubscription`) and static methods (subscription first); `JetStreamReader` moved as is, `JetStreamReaderImpl` is nested in `JetStreamLegacyPull`, `MIN_EXPIRE_MILLIS` moved there, `drainAlreadyBuffered` and a copy of `durationGtZeroRequired` are private there. `testFetch`, `testIterate`, `testReader` moved to `JetStreamLegacyPullTests`, parameterized on `JetStreamLegacyPullForm` (INSTANCE / STATIC); the fetch and iterate segments of `testPullExpires` moved to `JetStreamLegacyPullTests.testFetchAndIterateExpires`. Steps 1-4 and 6 below are done in that form; step 5 (tdb `testReader`) is covered by the moved test. The text below is the original plan.
 
 Remove the v2 pull-wrapping convenience layer from `JetStreamPullSubscription` and the types that exist only to support it. The simplification API (`ConsumerContext`) has parallel and better implementations of all three behaviors, so v3 carries two ways to do the same thing, one of them worse.
 

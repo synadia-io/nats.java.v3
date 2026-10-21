@@ -18,6 +18,7 @@
 | JetStream    | io.synadia | jnats3-js      |
 | KeyValue     | io.synadia | jnats3-kv      |
 | Object Store | io.synadia | jnats3-os      |
+| Legacy JetStream | io.synadia | jnats3-ljs |
 | Service      | io.synadia | jnats3-service |
 
 
@@ -58,6 +59,8 @@ For an ordered consumer, use `StreamContext.createOrderedConsumer(...)`, which r
 JetStreamPushSubscription push = JetStreamPushSubscribe.pushSubscribe(js, "my-stream", "my-push-consumer");
 JetStreamPullSubscription pull = new JetStreamPullSubscribe(js).pullSubscribe("my-stream", "my-pull-consumer");
 ```
+
+The v2 `fetch`, `iterate` and `reader` behaviors of a pull subscription are not in `jnats3-js`. They are in the separate [Legacy JetStream](legacy-jetstream/README.md) module, `jnats3-ljs`, as `JetStreamLegacyPull`.
 
 ### Push Consumers and the Deliver Subject
 

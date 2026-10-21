@@ -35,7 +35,7 @@ The **v3 Status** column tracks each interface's disposition in v3. `TBD` = not 
 | `IterableConsumer` | `MessageConsumer` | Simplified consumer with endless iterator-style consume. | TBD |
 | `JetStream` | — | JetStream publish + subscribe context. | Not an interface — refactored to concrete `JetStream` |
 | `JetStreamManagement` | — | Stream and consumer CRUD (recommended way to manage JS resources). | Not an interface — refactored to concrete `JetStreamManagement` |
-| `JetStreamReader` | — | Simple iterative access over a pull consumer (superseded by `ConsumerContext`). | Leave as-is |
+| `JetStreamReader` | — | Simple iterative access over a pull consumer (superseded by `ConsumerContext`). | Moved to `legacy-jetstream` 2026-10-20 |
 | `JetStreamSubscription` | `Subscription` | A `Subscription` bound to a JetStream consumer. | Not an interface (concrete class) |
 | `KeyValue` | — | KV bucket value access. | P2 — under consideration to change |
 | `KeyValueManagement` | — | KV bucket creation / mgmt. | P2 — under consideration to change |
@@ -218,6 +218,7 @@ No longer extends `Consumer` (removed); it declares its own contract — `start`
 «interface» JetStreamReader
  └── NatsJetStreamPullSubscription.JetStreamReaderImpl   (static inner class)
 ```
+2026-10-20: in v3 the interface and its impl moved to the `legacy-jetstream` module (`jnats3-ljs`); the impl is `JetStreamLegacyPull.JetStreamReaderImpl`.
 
 ### 3.14 `JetStreamSubscription` *(extends Subscription)*
 ```

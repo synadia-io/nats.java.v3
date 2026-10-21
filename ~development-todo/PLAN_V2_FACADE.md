@@ -53,6 +53,8 @@ Pinned reference: **nats.java 2.26.3**.
 - on `InterruptedException` both swallow it, re-set the interrupt flag, and return what they already have rather than throwing — deliberate, so the caller keeps the messages it received
 - `reader`'s `repullAt` is clamped into `1..batchSize`; `stop()` only stops further pulls, so buffered messages still drain through `nextMessage`
 
+**2026-10-20: these three behaviors are kept in v3 after all, in the `legacy-jetstream` module (`jnats3-ljs`, class `JetStreamLegacyPull`), with their tests in `JetStreamLegacyPullTests`. A facade can use that module.**
+
 **Test seed.** `tdb/io/synadia/client/impl/OldJetStreamPullTests.java` holds the only `reader` coverage (`testReader:435`), and the removal plan drops it from the v3 port list rather than porting it — so it lands here. `JetStreamPullTests.testFetch` / `testIterate` go the same way.
 
 **Open, facade-side:** whether the facade re-implements these over v3's primitive `pull*` methods (which survive the removal) or over `ConsumerContext`. The primitive route reproduces v2 behavior exactly and is close to a straight lift; the `ConsumerContext` route gets real flow control but changes observable behavior, which conflicts with the point of a facade.
