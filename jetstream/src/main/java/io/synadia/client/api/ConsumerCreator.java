@@ -659,7 +659,7 @@ public abstract class ConsumerCreator<T extends ConsumerCreator<T>> implements J
     }
 
     protected void _deliverGroup(@Nullable String group) {
-        this.deliverGroup = validateSubjectTermStrict(group, "DeliverGroup", false);
+        this.deliverGroup = validateQueueName(group, false);
     }
 
     protected void _ackPolicy(@Nullable AckPolicy policy) {

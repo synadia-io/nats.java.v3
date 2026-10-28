@@ -31,6 +31,7 @@ public class Discovery {
     private final long maxTimeMillis;
     private final long maxTimeNanos;
     private final int maxResults;
+    private final String prefix;
 
     private Supplier<String> inboxSupplier;
 
@@ -39,7 +40,16 @@ public class Discovery {
      * @param conn the NATS NatsConnection
      */
     public Discovery(NatsConnection conn) {
-        this(conn, 0, 0);
+        this(conn, 0, 0, null);
+    }
+
+    /**
+     * Construct a Discovery instance with a connection, a prefix and default maxTimeMillis / maxResults
+     * @param conn the NATS NatsConnection
+     * @param prefix the prefix of the discovery subjects, see {@link #Discovery(NatsConnection, long, int, String)}
+     */
+    public Discovery(NatsConnection conn, String prefix) {
+        this(conn, 0, 0, prefix);
     }
 
     /**
@@ -49,10 +59,24 @@ public class Discovery {
      * @param maxResults the maximum number of results to wait for or any number less than 1 to use the default
      */
     public Discovery(NatsConnection conn, long maxTimeMillis, int maxResults) {
+        this(conn, maxTimeMillis, maxResults, null);
+    }
+
+    /**
+     * Construct a Discovery instance
+     * @param conn the NATS NatsConnection
+     * @param maxTimeMillis the maximum time to wait for discovery requests to complete or any number less than 1 to use the default
+     * @param maxResults the maximum number of results to wait for or any number less than 1 to use the default
+     * @param prefix the prefix of the discovery subjects, in place of {@code $SRV}. It is trimmed and a trailing dot is dropped;
+     *               null or empty means {@code $SRV}. It is not otherwise validated. It must match the prefix the services
+     *               were built with, otherwise the requests find no services.
+     */
+    public Discovery(NatsConnection conn, long maxTimeMillis, int maxResults, String prefix) {
         this.conn = conn;
         this.maxTimeMillis = maxTimeMillis < 1 ? DEFAULT_DISCOVERY_MAX_TIME_MILLIS : maxTimeMillis;
         this.maxTimeNanos = this.maxTimeMillis * NANOS_PER_MILLI;
         this.maxResults = maxResults < 1 ? DEFAULT_DISCOVERY_MAX_RESULTS : maxResults;
+        this.prefix = normalizePrefix(prefix);
         setInboxSupplier(null);
     }
 
@@ -170,7 +194,7 @@ public class Discovery {
     // workers
     // ----------------------------------------------------------------------------------------------------
     private byte[] discoverOne(String action, String serviceName, String serviceId) {
-        String subject = Service.toDiscoverySubject(action, serviceName, serviceId);
+        String subject = toDiscoverySubject(prefix, action, serviceName, serviceId);
         try {
             Message m = conn.request(subject, null, maxTimeMillis);
             if (m != null) {
@@ -191,7 +215,7 @@ public class Discovery {
             String replyTo = inboxSupplier.get();
             sub = conn.subscribe(replyTo);
 
-            String subject = toDiscoverySubject(action, serviceName, null);
+            String subject = toDiscoverySubject(prefix, action, serviceName, null);
             conn.publish(subject, replyTo, null);
 
             int resultsLeft = maxResults;

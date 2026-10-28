@@ -74,8 +74,12 @@ public class TestBase {
     public static final String META_KEY   = "meta-test-key";
     public static final String META_VALUE = "meta-test-value";
 
-    public static String[] BAD_SUBJECTS_OR_QUEUES = new String[] {
+    public static String[] BAD_SUBJECTS = new String[] {
         HAS_SPACE, HAS_CR, HAS_LF, HAS_TAB, STARTS_SPACE, ENDS_SPACE, null, ""
+    };
+
+    public static String[] BAD_QUEUES = new String[] {
+        HAS_SPACE, HAS_CR, HAS_LF, HAS_TAB, STARTS_SPACE, ENDS_SPACE, HAS_DOT, STAR_NOT_SEGMENT, GT_NOT_SEGMENT, null, ""
     };
 
     public static Set<String> SharedNamedServers = new HashSet<>();

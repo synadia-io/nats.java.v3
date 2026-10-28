@@ -173,14 +173,14 @@ public abstract class Validator {
     }
 
     /**
-     * Validate a queue group name.
+     * Validate a queue group name. An ADR-6 queue-name is a term: printable ASCII except '.', '*' and '>'.
      * @param s the value to validate
      * @param required true if the value must be supplied
      * @return the value, or null when not required and not supplied
      * @throws IllegalArgumentException if the value is invalid, or is required and not supplied
      */
     public static String validateQueueName(String s, boolean required) {
-        return validateSubjectTermStrict(s, "QueueName", required);
+        return validatePrintableExceptWildDotGt(s, "QueueName", required);
     }
 
     /**

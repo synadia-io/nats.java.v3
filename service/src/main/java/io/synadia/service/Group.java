@@ -1,6 +1,8 @@
 package io.synadia.service;
 
 import io.synadia.client.utils.Validator;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -19,16 +21,14 @@ public class Group {
     /**
      * Construct a group.
      * <p>Group names are considered 'Restricted Terms' and must only contain A-Z, a-z, 0-9, '-' or '_'</p>
+     * <p>The name is trimmed. A null or empty name is allowed and adds no prefix to the subject.</p>
      * @param name the group name
-     * @throws IllegalArgumentException if the name is null or empty, or is not a valid subject term (for example, it contains '>')
+     * @throws IllegalArgumentException if the name is not a valid subject term (for example, it contains '>')
      */
-    public Group(String name) {
-        name = emptyAsNull(name);
-        if (name == null) {
-            throw new IllegalArgumentException("Group name cannot be null or empty.");
-        }
+    public Group(@Nullable String name) {
+        name = emptyAsNull(name == null ? null : name.trim());
 
-        if (name.contains(GREATER_THAN)) {
+        if (name != null && name.contains(GREATER_THAN)) {
             throw new IllegalArgumentException("Group name cannot contain '>'.");
         }
 
@@ -42,7 +42,8 @@ public class Group {
      * @param group the group to append
      * @return like a fluent builder, return the Group instance
      */
-    public Group appendGroup(Group group) {
+    @NonNull
+    public Group appendGroup(@NonNull Group group) {
         Group last = this;
         while (last.next != null) {
             last = last.next;
@@ -61,17 +62,23 @@ public class Group {
      *     .appendGroup(new Group("D"));
      * System.out.println(g.getSubject());
      * }</pre>
-     * prints "A.B.C.D"
-     * @return the subject
+     * prints "A.B.C.D". A group with no name adds nothing to the subject.
+     * @return the subject or null if no group in the list has a name
      */
+    @Nullable
     public String getSubject() {
-        return next == null ? name : name + DOT + next.getSubject();
+        String nextSubject = next == null ? null : next.getSubject();
+        if (nextSubject == null) {
+            return name;
+        }
+        return name == null ? nextSubject : name + DOT + nextSubject;
     }
 
     /**
      * Get the name of the group.
-     * @return the name
+     * @return the name or null if the group has no name
      */
+    @Nullable
     public String getName() {
         return name;
     }
@@ -80,13 +87,16 @@ public class Group {
      * Get the next group after this group. May be null
      * @return the next group
      */
+    @Nullable
     public Group getNext() {
         return next;
     }
 
     @Override
+    @NonNull
     public String toString() {
-        return "Group [" + getSubject().replace('.', '/') + "]";
+        String subject = getSubject();
+        return "Group [" + (subject == null ? "" : subject.replace('.', '/')) + "]";
     }
 
     @Override
