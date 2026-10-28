@@ -38,7 +38,7 @@ public class Listener implements ErrorListener, ConnectionListener {
     private int flowControlCount;
     private int pullStatusWarningsCount;
     private int socketWriteTimeoutCount;
-    private final List<ServerRejectedEvent> serverRejectedEvents = new CopyOnWriteArrayList<>();
+    private final List<ServerIssueEvent> serverIssueEvents = new CopyOnWriteArrayList<>();
 
     public Listener() {
         this(false, false);
@@ -69,7 +69,7 @@ public class Listener implements ErrorListener, ConnectionListener {
         flowControlCount = 0;
         pullStatusWarningsCount = 0;
         socketWriteTimeoutCount = 0;
-        serverRejectedEvents.clear();
+        serverIssueEvents.clear();
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -250,7 +250,10 @@ public class Listener implements ErrorListener, ConnectionListener {
 
     public int getSocketWriteTimeoutCount() { return socketWriteTimeoutCount; }
 
-    public List<ServerRejectedEvent> getServerRejectedEvents() { return serverRejectedEvents; }
+    public List<ServerIssueEvent> getServerIssueEvents() { return serverIssueEvents; }
+    public List<ServerIssueEvent> getServerIssueEvents(ServerIssueType type) {
+        return serverIssueEvents.stream().filter(e -> e.type() == type).toList();
+    }
 
     // ----------------------------------------------------------------------------------------------------
     // NatsConnection Listener
@@ -363,14 +366,14 @@ public class Listener implements ErrorListener, ConnectionListener {
     }
 
     @Override
-    public void serverRejected(NatsConnection conn, String server, String reason) {
+    public void serverIssue(NatsConnection conn, String server, ServerIssueType type, String reason, Exception cause) {
         if (verbose) {
-            report("serverRejected", server + " " + reason);
+            report("serverIssue", type + " " + server + " " + reason);
         }
-        serverRejectedEvents.add(new ServerRejectedEvent(server, reason));
+        serverIssueEvents.add(new ServerIssueEvent(server, type, reason, cause));
     }
 
-    public record ServerRejectedEvent(String server, String reason) {}
+    public record ServerIssueEvent(String server, ServerIssueType type, String reason, Exception cause) {}
 
     // ----------------------------------------------------------------------------------------------------
     // Helpers

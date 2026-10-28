@@ -2,12 +2,10 @@ package io.synadia.client.impl;
 
 import io.synadia.client.Options;
 import io.synadia.client.ServerPool;
-import io.synadia.client.utils.NatsConstants;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,10 +23,7 @@ public class NatsServerPool implements ServerPool {
     protected List<ServerPoolEntry> entryList;
     protected Options options;
     protected int maxConnectAttempts;
-    protected boolean hasSecureServer;
-    protected NatsUri lastConnected;
-    protected String defaultScheme;
-    protected final List<NatsUri> rejected;
+    protected ServerAddress lastConnected;
 
     /**
      * Construct an empty pool. It is not usable until {@link #initialize(Options)} supplies the options
@@ -37,7 +32,6 @@ public class NatsServerPool implements ServerPool {
     public NatsServerPool() {
         listLock = new ReentrantLock();
         entryList = new ArrayList<>(); // this gets updated occasionally
-        rejected = new ArrayList<>();
         options = Options.builder().build(); // this will get updated when initialize is called
     }
 
@@ -55,26 +49,9 @@ public class NatsServerPool implements ServerPool {
         //    FYI bootstrap will always have at least the default url
         listLock.lock();
         try {
-            for (NatsUri optionNuri : options.getNatsServerUris()) {
-                // If optionNuri is not found in the list being built, add to the list
-                // If optionNuri equivalent is found in the list and is secure, just use it
-                boolean notAlreadyInList = true;
-                for (ServerPoolEntry entry : entryList) {
-                    if (optionNuri.equivalent(entry.nuri)) {
-                        if (optionNuri.isSecure()) {
-                            entryList.remove(entry);
-                        }
-                        else {
-                            notAlreadyInList = false;
-                        }
-                        break;
-                    }
-                }
-                if (notAlreadyInList) {
-                    if (defaultScheme == null && !optionNuri.getScheme().equals(NatsConstants.NATS_PROTOCOL)) {
-                        defaultScheme = optionNuri.getScheme();
-                    }
-                    entryList.add(new ServerPoolEntry(optionNuri, false));
+            for (ServerAddress address : options.getServerAddresses()) {
+                if (findEntry(address) == -1) {
+                    entryList.add(new ServerPoolEntry(address, false));
                 }
             }
 
@@ -90,7 +67,7 @@ public class NatsServerPool implements ServerPool {
      * {@inheritDoc}
      */
     @Override
-    public boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers, @Nullable NatsUri origin) {
+    public boolean acceptDiscoveredUrls(@NonNull List<@NonNull ServerAddress> discoveredServers, @Nullable ServerAddress origin) {
         // 1. If ignored discovered servers, don't do anything b/c never want
         //    anything but the explicit, which is already loaded.
         // 2. return false == no new servers discovered
@@ -100,21 +77,9 @@ public class NatsServerPool implements ServerPool {
 
         listLock.lock();
         try {
-            // 2. Build a list for discovered
-            //    - since we'll need the NatsUris later
-            //    - and to have a list to use to prune removed gossiped servers
-            //    - a server the connection rejected is never supplied again, so it is left out here
-            List<NatsUri> discovered = new ArrayList<>();
-            for (String d : discoveredServers) {
-                try {
-                    NatsUri nuri = new NatsUri(d, defaultScheme);
-                    if (!isRejected(nuri)) {
-                        discovered.add(nuri);
-                    }
-                } catch (URISyntaxException ignore) {
-                    // should never actually happen
-                }
-            }
+            // 2. Copy the discovered list, the connection already parsed it
+            //    - to have a list to use to prune removed gossiped servers
+            List<ServerAddress> discovered = new ArrayList<>(discoveredServers);
 
             // 3. Start a new server list, loading in current order from the current list, and keeping
             //    - the last connected
@@ -125,8 +90,8 @@ public class NatsServerPool implements ServerPool {
             //      - This also maintains the Srv state of an already known discovered
             List<ServerPoolEntry> newEntryList = new ArrayList<>();
             for (ServerPoolEntry entry : entryList) {
-                int ix = findEquivalent(discovered, entry.nuri);
-                if (ix != -1 || entry.nuri.equals(lastConnected) || !entry.isGossiped) {
+                int ix = discovered.indexOf(entry.address);
+                if (ix != -1 || entry.address.equals(lastConnected) || !entry.isGossiped) {
                     newEntryList.add(entry);
                     if (ix != -1) {
                         discovered.remove(ix);
@@ -142,7 +107,7 @@ public class NatsServerPool implements ServerPool {
             if (!discovered.isEmpty()) {
                 discoveryContainedUnknowns = true;
                 String originHost = origin == null || origin.hostIsIpAddress() ? null : origin.getHost();
-                for (NatsUri d : discovered) {
+                for (ServerAddress d : discovered) {
                     if (originHost != null && d.hostIsIpAddress()) {
                         d = d.withTlsHost(originHost);
                     }
@@ -170,13 +135,10 @@ public class NatsServerPool implements ServerPool {
             Collections.shuffle(entryList, ThreadLocalRandom.current());
         }
 
-        // 2. calculate hasSecureServer and find the index of lastConnected
-        hasSecureServer = false;
+        // 2. find the index of lastConnected
         int lastConnectedIx = -1;
         for (int ix = 0; ix < entryList.size(); ix++) {
-            NatsUri nuri = entryList.get(ix).nuri;
-            hasSecureServer |= nuri.isSecure();
-            if (nuri.equals(lastConnected)) {
+            if (entryList.get(ix).address.equals(lastConnected)) {
                 lastConnectedIx = ix;
             }
         }
@@ -189,10 +151,10 @@ public class NatsServerPool implements ServerPool {
 
     @Override
     @Nullable
-    public NatsUri peekNextServer() {
+    public ServerAddress peekNextServer() {
         listLock.lock();
         try {
-            return entryList.isEmpty() ? null : entryList.get(0).nuri;
+            return entryList.isEmpty() ? null : entryList.get(0).address;
         }
         finally {
             listLock.unlock();
@@ -201,7 +163,7 @@ public class NatsServerPool implements ServerPool {
 
     @Override
     @Nullable
-    public NatsUri nextServer() {
+    public ServerAddress nextServer() {
         // 0. The list is already managed for qualified by connectFailed
         // 1. Get the first item in the list, update it's time, add back to the end of list
         listLock.lock();
@@ -210,7 +172,7 @@ public class NatsServerPool implements ServerPool {
                 ServerPoolEntry entry = entryList.remove(0);
                 entry.lastAttempt = System.currentTimeMillis();
                 entryList.add(entry);
-                return entry.nuri;
+                return entry.address;
             }
             return null;
         }
@@ -226,7 +188,7 @@ public class NatsServerPool implements ServerPool {
     }
 
     @Override
-    public void connectSucceeded(@NonNull NatsUri nuri) {
+    public void connectSucceeded(@NonNull ServerAddress address) {
         // 1. Work from the end because nextServer moved the one being tried to the end
         // 2. If we find the server in the list...
         //    2.1. remember it and
@@ -235,8 +197,8 @@ public class NatsServerPool implements ServerPool {
         try {
             for (int x = entryList.size() - 1; x >= 0 ; x--) {
                 ServerPoolEntry entry = entryList.get(x);
-                if (entry.nuri.equals(nuri)) {
-                    lastConnected = nuri;
+                if (entry.address.equals(address)) {
+                    lastConnected = address;
                     entry.failedAttempts = 0;
                     return;
                 }
@@ -248,7 +210,7 @@ public class NatsServerPool implements ServerPool {
     }
 
     @Override
-    public void connectFailed(@NonNull NatsUri nuri) {
+    public boolean connectFailed(@NonNull ServerAddress address) {
         // 1. Work from the end because nextServer moved the one being tried to the end
         // 2. If we find the server in the list...
         //    2.1. increment failed attempts
@@ -258,35 +220,16 @@ public class NatsServerPool implements ServerPool {
         try {
             for (int x = entryList.size() - 1; x >= 0 ; x--) {
                 ServerPoolEntry entry = entryList.get(x);
-                if (entry.nuri.equals(nuri)) {
+                if (entry.address.equals(address)) {
                     entryList.remove(x);
                     if (++entry.failedAttempts < maxConnectAttempts) {
                         entryList.add(entry);
+                        return false;
                     }
-                    return;
+                    return true;
                 }
             }
-        }
-        finally {
-            listLock.unlock();
-        }
-    }
-
-    @Override
-    public void serverRejected(@NonNull NatsUri nuri) {
-        // 1. Remember it so a later discovery does not bring it back
-        // 2. Remove it from the list. Work from the end because nextServer moved the one being tried to the end
-        listLock.lock();
-        try {
-            if (!isRejected(nuri)) {
-                rejected.add(nuri);
-            }
-            for (int x = entryList.size() - 1; x >= 0; x--) {
-                if (entryList.get(x).nuri.equals(nuri)) {
-                    entryList.remove(x);
-                    return;
-                }
-            }
+            return false;
         }
         finally {
             listLock.unlock();
@@ -300,7 +243,7 @@ public class NatsServerPool implements ServerPool {
         try {
             List<String> list = new ArrayList<>();
             for (ServerPoolEntry entry : entryList) {
-                list.add(entry.nuri.toString());
+                list.add(entry.address.toString());
             }
             return list;
         }
@@ -309,26 +252,9 @@ public class NatsServerPool implements ServerPool {
         }
     }
 
-    @Override
-    public boolean hasSecureServer() {
-        return hasSecureServer;
-    }
-
-    // Rejected is about the scheme as well as the server: a server rejected as ws:// is not rejected
-    // when it is advertised as wss:// or nats://, which the connection can use.
-    protected boolean isRejected(NatsUri nuri) {
-        for (NatsUri r : rejected) {
-            if (r.equivalent(nuri) && r.getScheme().equals(nuri.getScheme())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    protected int findEquivalent(List<NatsUri> list, NatsUri toFind) {
-        for (int i = 0; i < list.size(); i++) {
-            NatsUri nuri = list.get(i);
-            if (nuri.equivalent(toFind)) {
+    protected int findEntry(ServerAddress address) {
+        for (int i = 0; i < entryList.size(); i++) {
+            if (entryList.get(i).address.equals(address)) {
                 return i;
             }
         }

@@ -1,7 +1,7 @@
 package io.synadia.client.impl;
 
 import io.synadia.client.Options;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -13,22 +13,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ServerPoolTests extends TestBase {
 
-    public static final String BOOT_ONE = "nats://b1";
-    public static final String BOOT_TWO = "nats://b2";
-    public static final String BOOT_ONE_SECURE = "tls://b1";
-    public static final String DISC_ONE = "nats://d1";
-    public static final String DISC_TWO = "nats://d2";
-    public static final String DISC_THREE = "nats://d3";
+    public static final String BOOT_ONE = "b1:4222";
+    public static final String BOOT_TWO = "b2:4222";
+    public static final String DISC_ONE = "d1:4222";
+    public static final String DISC_TWO = "d2:4222";
+    public static final String DISC_THREE = "d3:4222";
     public static final String HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS = "connect.ngs.global";
     public static final String HOST_THAT_CAN_BE_RESOLVED_TO_ONE_IP = "demo.nats.io";
     public static final String HOST_THAT_CANT_BE_RESOLVED = "not.real.host";
     public static final String[] bootstrap = new String[]{BOOT_ONE, BOOT_TWO};
     public static final String[] combined = new String[]{BOOT_ONE, BOOT_TWO, DISC_ONE, DISC_TWO, DISC_THREE};
-    public static final List<String> discoveredServers = Arrays.asList(BOOT_TWO, DISC_ONE, DISC_TWO, DISC_THREE);
+    public static final List<ServerAddress> discoveredServers = addresses(BOOT_TWO, DISC_ONE, DISC_TWO, DISC_THREE);
 
     @Test
     public void testPoolOptions() throws URISyntaxException {
-        NatsUri lastConnectedServer = new NatsUri(BOOT_ONE);
+        ServerAddress lastConnectedServer = ServerAddress.parse(BOOT_ONE);
 
         // testing that the expected show up in the pool
         Options o = optionsBuilder(bootstrap).build();
@@ -53,22 +52,19 @@ public class ServerPoolTests extends TestBase {
         nsp = newNatsServerPool(o, null, discoveredServers);
         validateNslp(nsp, null, false, BOOT_ONE, BOOT_TWO);
 
-        // testing that duplicates don't get added
-        String[] secureAndNotSecure = new String[]{BOOT_ONE, BOOT_ONE_SECURE};
-        String[] secureBootstrap = new String[]{BOOT_ONE_SECURE};
-        o = optionsBuilder(secureAndNotSecure).build();
+        // testing that duplicates don't get added: the same host and port with another scheme, or no scheme
+        o = optionsBuilder("nats://b1", "tls://b1").build();
         nsp = newNatsServerPool(o, null, null);
-        validateNslp(nsp, null, false, secureBootstrap);
+        validateNslp(nsp, null, false, BOOT_ONE);
 
-        secureAndNotSecure = new String[]{BOOT_ONE_SECURE, BOOT_ONE};
-        o = optionsBuilder(secureAndNotSecure).build();
+        o = optionsBuilder("tls://b1", "b1").build();
         nsp = newNatsServerPool(o, null, null);
-        validateNslp(nsp, null, false, secureBootstrap);
+        validateNslp(nsp, null, false, BOOT_ONE);
     }
 
     @Test
     public void testMaxReconnects() throws URISyntaxException {
-        NatsUri failed = new NatsUri(BOOT_ONE);
+        ServerAddress failed = ServerAddress.parse(BOOT_ONE);
 
         // testing that servers that fail max times and is removed
         Options o = optionsBuilder(BOOT_ONE).maxReconnects(3).build();
@@ -81,7 +77,7 @@ public class ServerPoolTests extends TestBase {
         assertNull(nsp.nextServer());
 
         // and that it's put back
-        nsp.acceptDiscoveredUrls(Collections.singletonList(BOOT_ONE), null);
+        nsp.acceptDiscoveredUrls(addresses(BOOT_ONE), null);
         validateNslp(nsp, null, false, BOOT_ONE);
 
         // testing that servers that fail max times and is removed
@@ -93,7 +89,7 @@ public class ServerPoolTests extends TestBase {
         assertNull(nsp.nextServer());
 
         // and that it's put back
-        nsp.acceptDiscoveredUrls(Collections.singletonList(BOOT_ONE), null);
+        nsp.acceptDiscoveredUrls(addresses(BOOT_ONE), null);
         validateNslp(nsp, null, false, BOOT_ONE);
     }
 
@@ -105,46 +101,20 @@ public class ServerPoolTests extends TestBase {
         validateNslp(nsp, null, false, combined);
 
         // new discovered list is missing d3
-        nsp.acceptDiscoveredUrls(Arrays.asList(DISC_ONE, DISC_TWO), null);
+        nsp.acceptDiscoveredUrls(addresses(DISC_ONE, DISC_TWO), null);
         validateNslp(nsp, null, false, BOOT_ONE, BOOT_TWO, DISC_ONE, DISC_TWO);
 
         // new discovered list is missing the last connected
-        nsp.connectSucceeded(new NatsUri(DISC_TWO));
-        nsp.acceptDiscoveredUrls(Collections.singletonList(DISC_ONE), null);
+        nsp.connectSucceeded(ServerAddress.parse(DISC_TWO));
+        nsp.acceptDiscoveredUrls(addresses(DISC_ONE), null);
         validateNslp(nsp, null, false, BOOT_ONE, BOOT_TWO, DISC_ONE, DISC_TWO);
     }
 
-    @Test
-    public void testServerRejected() throws URISyntaxException {
-        // a rejected server leaves the pool and does not come back when it is discovered again
-        Options o = optionsBuilder(bootstrap).noRandomize().build();
-        NatsServerPool nsp = newNatsServerPool(o, null, discoveredServers);
-        validateNslp(nsp, null, true, combined);
-
-        nsp.serverRejected(new NatsUri(DISC_ONE));
-        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO, DISC_TWO, DISC_THREE);
-
-        // discovered again: not taken back, and not counted as an unknown server
-        assertFalse(nsp.acceptDiscoveredUrls(discoveredServers, null));
-        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO, DISC_TWO, DISC_THREE);
-
-        // a server the pool does not hold is remembered all the same; the empty result prunes the gossiped servers as usual
-        nsp.serverRejected(new NatsUri("nats://d4"));
-        assertFalse(nsp.acceptDiscoveredUrls(Collections.singletonList("nats://d4"), null));
-        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO);
-
-        // the rejection is for the scheme: the same host and port under another scheme is taken
-        nsp.serverRejected(new NatsUri("ws://d5:4222"));
-        assertFalse(nsp.acceptDiscoveredUrls(Collections.singletonList("ws://d5:4222"), null));
-        assertTrue(nsp.acceptDiscoveredUrls(Collections.singletonList("wss://d5:4222"), null));
-        validateNslp(nsp, null, true, BOOT_ONE, BOOT_TWO, "wss://d5:4222");
-    }
-
-    private static NatsServerPool newNatsServerPool(Options o, NatsUri last, List<String> discoveredServers) {
+    private static NatsServerPool newNatsServerPool(Options o, ServerAddress last, List<ServerAddress> discoveredServers) {
         NatsServerPool nsp = new NatsServerPool();
         nsp.initialize(o);
         if (last != null) {
-            NatsUri next = nsp.nextServer();
+            ServerAddress next = nsp.nextServer();
             while (next != null && !next.equals(last)) {
                 next = nsp.nextServer();
             }
@@ -157,23 +127,24 @@ public class ServerPoolTests extends TestBase {
         return nsp;
     }
 
-    private static List<NatsUri> convertToNuri(Collection<String> urls) {
-        final List<NatsUri> nuris = new ArrayList<>();
-        for (String s : urls) {
+    private static List<ServerAddress> addresses(String... hostPorts) {
+        final List<ServerAddress> list = new ArrayList<>();
+        for (String s : hostPorts) {
             try {
-                nuris.add(new NatsUri(s));
-            } catch (URISyntaxException ignore) {
+                list.add(ServerAddress.parse(s));
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
             }
         }
-        return nuris;
+        return list;
     }
 
-    private static void validateNslp(NatsServerPool nsp, NatsUri last, boolean notRandom, String... expectedUrls) throws URISyntaxException {
-        List<NatsUri> supplied = convertToNuri(nsp.getServerList());
+    private static void validateNslp(NatsServerPool nsp, ServerAddress last, boolean notRandom, String... expectedUrls) throws URISyntaxException {
+        List<ServerAddress> supplied = addresses(nsp.getServerList().toArray(new String[0]));
         int expectedSize = expectedUrls.length;
         assertEquals(expectedSize, supplied.size());
         for (int i = 0; i < expectedUrls.length; i++) {
-            NatsUri expected = new NatsUri(expectedUrls[i]);
+            ServerAddress expected = ServerAddress.parse(expectedUrls[i]);
             assertTrue(supplied.contains(expected));
             if (notRandom && last == null) {
                 assertEquals(expected, supplied.get(i));
@@ -186,18 +157,18 @@ public class ServerPoolTests extends TestBase {
 
     @Test
     public void testServerPoolEntry() throws URISyntaxException {
-        NatsUri nuri = new NatsUri(BOOT_ONE);
-        ServerPoolEntry entry = new ServerPoolEntry(nuri, true);
-        assertEquals(nuri, entry.nuri);
+        ServerAddress address = ServerAddress.parse(BOOT_ONE);
+        ServerPoolEntry entry = new ServerPoolEntry(address, true);
+        assertEquals(address, entry.address);
         assertTrue(entry.isGossiped);
-        assertTrue(entry.toString().contains(nuri.toString()));
+        assertTrue(entry.toString().contains(address.toString()));
         assertTrue(entry.toString().contains("true/0"));
 
-        entry = new ServerPoolEntry(nuri, false);
+        entry = new ServerPoolEntry(address, false);
         entry.failedAttempts = 1;
-        assertEquals(nuri, entry.nuri);
+        assertEquals(address, entry.address);
         assertFalse(entry.isGossiped);
-        assertTrue(entry.toString().contains(nuri.toString()));
+        assertTrue(entry.toString().contains(address.toString()));
         assertTrue(entry.toString().contains("false/1"));
     }
 
@@ -221,10 +192,10 @@ public class ServerPoolTests extends TestBase {
         assertNotNull(resolved);
         assertTrue(resolved.size() > 1);
 
-        NatsUri ngs = new NatsUri(HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS);
+        ServerAddress ngs = new ServerAddress(HOST_THAT_CAN_BE_RESOLVED_TO_MULTIPLE_IPS, 4222);
         for (String ip : resolved) {
-            NatsUri nuri = ngs.reHost(ip);
-            assertTrue(nuri.hostIsIpAddress());
+            ServerAddress rehosted = ngs.reHost(ip);
+            assertTrue(rehosted.hostIsIpAddress());
         }
 
         resolved = NatsHostResolver.resolveHostToIps(HOST_THAT_CAN_BE_RESOLVED_TO_ONE_IP, true, false);

@@ -39,7 +39,9 @@ public class ConnectionListenerTests extends TestBase {
     @Test
     public void testDiscoveredServersCountAndListenerInOptions() throws Exception {
         runInSharedServer(ts -> {
-            String customInfo = "{\"server_id\":\"myid\", \"version\":\"9.9.99\",\"connect_urls\": [\""+ts.getServerUri()+"\"]}";
+            // nats-server advertises host:port, without a scheme
+            String hostPort = ts.getServerUri().substring(ts.getServerUri().indexOf("://") + 3);
+            String customInfo = "{\"server_id\":\"myid\", \"version\":\"9.9.99\",\"connect_urls\": [\""+hostPort+"\"]}";
             try (NatsServerProtocolMock mockTs2 = new NatsServerProtocolMock(null, customInfo)) {
                 Listener listener = new Listener();
                 Options options = optionsBuilder(mockTs2)

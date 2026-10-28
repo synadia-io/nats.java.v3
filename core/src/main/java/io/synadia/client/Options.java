@@ -4,13 +4,12 @@ import io.synadia.client.impl.DataPort;
 import io.synadia.client.impl.DispatcherFactory;
 import io.synadia.client.impl.SocketDataPort;
 import io.synadia.client.utils.HttpRequest;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLContext;
 import java.net.Proxy;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +51,8 @@ public class Options {
     // ----------------------------------------------------------------------------------------------------
     // CLASS VARIABLES
     // ----------------------------------------------------------------------------------------------------
-    final List<NatsUri> natsServerUris;
+    final Transport transport;
+    final List<ServerAddress> serverAddresses;
     final List<String> unprocessedServers;
     final boolean noRandomize;
     final HostnameResolveMode hostnameResolveMode;
@@ -193,7 +193,8 @@ public class Options {
     // CONSTRUCTOR
     // ----------------------------------------------------------------------------------------------------
     Options(OptionsBuilder b) {
-        this.natsServerUris = Collections.unmodifiableList(b.natsServerUris);
+        this.transport = b.transport;
+        this.serverAddresses = Collections.unmodifiableList(b.serverAddresses);
         this.unprocessedServers = Collections.unmodifiableList(b.unprocessedServers);  // exactly how the user gave them
         this.noRandomize = b.noRandomize;
         this.hostnameResolveMode = b.hostnameResolveMode;
@@ -668,23 +669,31 @@ public class Options {
     }
 
     /**
-     * the servers as configured in options as URI's, see {@link OptionsBuilder#servers(String[]) servers()} in the builder doc
+     * the servers as configured in options as URI's, each with the transport's scheme, see {@link OptionsBuilder#servers(String[]) servers()} in the builder doc
      * @return the processed servers
      */
     public List<URI> getServers() {
         List<URI> list = new ArrayList<>();
-        for (NatsUri nuri : natsServerUris) {
-            list.add(nuri.getUri());
+        for (ServerAddress address : serverAddresses) {
+            list.add(URI.create(address.toUrl(transport)));
         }
         return list;
     }
 
     /**
-     * the servers as configured in options as NatsUri's, see {@link OptionsBuilder#servers(String[]) servers()} in the builder doc
+     * the servers as configured in options as addresses, see {@link OptionsBuilder#servers(String[]) servers()} in the builder doc
      * @return the processed servers
      */
-    public List<NatsUri> getNatsServerUris() {
-        return natsServerUris;
+    public List<ServerAddress> getServerAddresses() {
+        return serverAddresses;
+    }
+
+    /**
+     * the transport to every server, resolved when the options were built, see {@link Transport}
+     * @return the transport
+     */
+    public Transport getTransport() {
+        return transport;
     }
 
     /**
@@ -1051,16 +1060,6 @@ public class Options {
         return dispatcherFactory;
     }
 
-    /**
-     * create a URI from a server uri.
-     * @param serverURI the text uri
-     * @return the URI object
-     * @throws URISyntaxException if the text version is malformed or illegal
-     */
-    public URI createURIForServer(String serverURI) throws URISyntaxException {
-        return new NatsUri(serverURI).getUri();
-    }
-
     // ----------------------------------------------------------------------------------------------------
     // PROTOCOL CONNECT OPTION CONSTANTS
     // ----------------------------------------------------------------------------------------------------
@@ -1099,14 +1098,12 @@ public class Options {
 
     /**
      * Create the options string sent with the connect message.
-     * If includeAuth is true the auth information is included:
-     * If the server URIs have auth info it is used. Otherwise, the userInfo is used.
-     * @param serverURI the current server uri
+     * If includeAuth is true the auth information from the options is included.
      * @param includeAuth tells the options to build a connection string that includes auth information
      * @param nonce if the client is supposed to sign the nonce for authentication
      * @return this instance for chaining. String, basically JSON
      */
-    public CharBuffer buildProtocolConnectOptionsString(String serverURI, boolean includeAuth, byte[] nonce) {
+    public CharBuffer buildProtocolConnectOptionsString(boolean includeAuth, byte[] nonce) {
         CharBuffer connectString = CharBuffer.allocate(this.maxControlLine);
         connectString.append("{");
 
@@ -1151,52 +1148,17 @@ public class Options {
                 appendOption(connectString, OPTION_JWT, jwt, true);
             }
 
-            String uriUser = null;
-            String uriPass = null;
-            String uriToken = null;
-
-            // Values from URI override options
-            try {
-                URI uri = this.createURIForServer(serverURI);
-                String userInfo = uri.getRawUserInfo();
-                if (userInfo != null) {
-                    int at = userInfo.indexOf(":");
-                    if (at == -1) {
-                        uriToken = uriDecode(userInfo);
-                    }
-                    else {
-                        uriUser = uriDecode(userInfo.substring(0, at));
-                        uriPass = uriDecode(userInfo.substring(at + 1));
-                    }
-                }
-            }
-            catch (URISyntaxException e) {
-                // the createURIForServer call is the one that potentially throws this
-                // uriUser, uriPass and uriToken will already be null
-            }
-
-            if (uriUser != null) {
-                appendOption(connectString, OPTION_USER, jsonEncode(uriUser), true, true);
-            }
-            else if (this.username != null) {
+            if (this.username != null) {
                 appendOption(connectString, OPTION_USER, jsonEncode(this.username), true, true);
             }
 
-            if (uriPass != null) {
-                appendOption(connectString, OPTION_PASSWORD, jsonEncode(uriPass), true, true);
-            }
-            else if (this.password != null) {
+            if (this.password != null) {
                 appendOption(connectString, OPTION_PASSWORD, jsonEncode(this.password), true, true);
             }
 
-            if (uriToken != null) {
-                appendOption(connectString, OPTION_AUTH_TOKEN, uriToken, true, true);
-            }
-            else {
-                char[] token = this.tokenSupplier.get();
-                if (token != null) {
-                    appendOption(connectString, OPTION_AUTH_TOKEN, token, true);
-                }
+            char[] token = this.tokenSupplier.get();
+            if (token != null) {
+                appendOption(connectString, OPTION_AUTH_TOKEN, token, true);
             }
         }
 

@@ -5,13 +5,16 @@ import io.synadia.client.impl.DispatcherFactory;
 import io.synadia.client.impl.SSLContextFactory;
 import io.synadia.client.impl.SSLContextFactoryProperties;
 import io.synadia.client.utils.HttpRequest;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.SSLUtils;
+
+import org.jspecify.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.net.Proxy;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -51,8 +54,11 @@ public class OptionsBuilder {
     // ----------------------------------------------------------------------------------------------------
     // BUILDER VARIABLES
     // ----------------------------------------------------------------------------------------------------
-    final List<NatsUri> natsServerUris = new ArrayList<>();
+    final List<BootstrapServer> bootstrapServers = new ArrayList<>();
     final List<String> unprocessedServers = new ArrayList<>();
+    // resolved in build()
+    Transport transport = Transport.Nats;
+    List<ServerAddress> serverAddresses = new ArrayList<>();
     boolean noRandomize = false;
     HostnameResolveMode hostnameResolveMode = HostnameResolveMode.ResolveToAll;
     SubjectValidationType subjectValidationType = SubjectValidationType.Lenient;
@@ -121,6 +127,7 @@ public class OptionsBuilder {
     Proxy proxy = null;
 
     boolean useDefaultTls = false;
+    boolean websocket = false;
     String keystore = null;
     char[] keystorePassword = null;
     String truststore = null;
@@ -188,7 +195,8 @@ public class OptionsBuilder {
         //noinspection unchecked
         classnameProperty(props, PROP_TOKEN_SUPPLIER_CLASS, o -> tokenSupplier((Supplier<char[]>) o));
 
-        booleanProperty(props, PROP_SECURE, this::secure);
+        booleanPropertyIfTrue(props, PROP_SECURE, b -> useDefaultTls = true);
+        booleanPropertyIfTrue(props, PROP_WEBSOCKET, b -> ws());
 
         classnameProperty(props, PROP_SSL_CONTEXT_FACTORY_CLASS, o -> sslContextFactory((SSLContextFactory) o));
         stringProperty(props, PROP_KEY_STORE, this::keystorePath);
@@ -302,19 +310,23 @@ public class OptionsBuilder {
 
     /**
      * Add an array of servers to the list of known servers.
+     * <p>A server is {@code [scheme://]host[:port][/path]}. The scheme is {@code nats}, {@code tls}, {@code ws} or
+     * {@code wss}, or is left out; the transport for every server is resolved in {@link #build()}, see {@link Transport}.
+     * Without a port the transport's default port is used. A path is allowed only for a websocket.
+     * Credentials (user info) in a server url are not supported; use the authentication options.
      *
      * @param servers A list of server URIs
      * @return the Builder for chaining
-     * @throws IllegalArgumentException if any url is not formatted correctly.
+     * @throws IllegalArgumentException if any url is not formatted correctly, or has user info.
      */
     public OptionsBuilder servers(String[] servers) {
         for (String s : servers) {
             if (s != null && !s.isEmpty()) {
                 try {
                     String unprocessed = s.trim();
-                    NatsUri nuri = new NatsUri(unprocessed);
-                    if (!natsServerUris.contains(nuri)) {
-                        natsServerUris.add(nuri);
+                    BootstrapServer bs = BootstrapServer.parse(unprocessed);
+                    if (!bootstrapServers.contains(bs)) {
+                        bootstrapServers.add(bs);
                         unprocessedServers.add(unprocessed);
                     }
                 }
@@ -324,6 +336,53 @@ public class OptionsBuilder {
             }
         }
         return this;
+    }
+
+    // A server as given to the options: an optional scheme, a host, an optional port, an optional path.
+    // The transport and the default port are applied in build().
+    record BootstrapServer(String raw, @Nullable Transport scheme, String host, int port, @Nullable String path) {
+        static final int NO_PORT = -1;
+
+        static BootstrapServer parse(String raw) throws URISyntaxException {
+            String rest = raw;
+            Transport scheme = null;
+            int ix = raw.indexOf("://");
+            if (ix != -1) {
+                scheme = Transport.forScheme(raw.substring(0, ix));
+                if (scheme == null) {
+                    throw new URISyntaxException(raw, "Unsupported NATS URI scheme.");
+                }
+                rest = raw.substring(ix + 3);
+            }
+            URI uri = new URI("nats://" + rest); // the scheme only lets URI find the authority
+            if (uri.getRawUserInfo() != null) {
+                throw new URISyntaxException(raw, "Credentials in a server url are not supported, use the authentication options.");
+            }
+            if (uri.getHost() == null) {
+                throw new URISyntaxException(raw, "Unable to parse URI string.");
+            }
+            if (uri.getRawQuery() != null || uri.getRawFragment() != null) {
+                throw new URISyntaxException(raw, "A server url cannot have a query or a fragment.");
+            }
+            int port = uri.getPort();
+            if (port != NO_PORT && (port < 1 || port > 65535)) {
+                throw new URISyntaxException(raw, "Server port must be between 1 and 65535.");
+            }
+            String path = uri.getRawPath();
+            return new BootstrapServer(raw, scheme, uri.getHost(), port, path == null || path.isEmpty() ? null : path);
+        }
+
+        @Override
+        public boolean equals(@Nullable Object o) {
+            if (this == o) return true;
+            if (!(o instanceof BootstrapServer other)) return false;
+            return port == other.port && scheme == other.scheme && host.equalsIgnoreCase(other.host) && Objects.equals(path, other.path);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(scheme, host.toLowerCase(), port, path);
+        }
     }
 
     /**
@@ -509,7 +568,8 @@ public class OptionsBuilder {
     }
 
     /**
-     * Sets the options to use the default SSL Context, if it exists.
+     * Use TLS to every server. With {@link #ws()} the transport is {@code wss}, otherwise {@code tls}.
+     * When no SSL context is given, the default SSL Context is used. See {@link Transport}.
      *
      * @return the Builder for chaining
      * @throws NoSuchAlgorithmException <em>Not thrown, deferred to build() method, left in for backward compatibility</em>
@@ -520,12 +580,14 @@ public class OptionsBuilder {
     }
 
     /**
-     * Set whether to use the default SSL Context (the SSL context is created at build() time).
-     * @param useDefaultTls true to use the default SSL context
+     * Use a websocket to every server. With {@link #secure()} or any TLS setting the transport is {@code wss},
+     * otherwise {@code ws}. A server given without a port uses 80 for {@code ws} and 443 for {@code wss}.
+     * See {@link Transport}.
+     *
      * @return the Builder for chaining
      */
-    public OptionsBuilder secure(boolean useDefaultTls) {
-        this.useDefaultTls = useDefaultTls;
+    public OptionsBuilder ws() {
+        websocket = true;
         return this;
     }
 
@@ -1466,17 +1528,18 @@ public class OptionsBuilder {
     /**
      * Build an Options object from this Builder.
      *
-     * <p>If the Options builder was not provided with a server, a default one will be included
-     * {@link OptionsConstants#DEFAULT_URL}. If only a single server URI is included, the builder
-     * will try a few things to make connecting easier:
-     * <ul>
-     * <li>If there is no user/password is set but the URI has them, {@code nats://user:password@server:port}, they will be used.
-     * <li>If there is no token is set but the URI has one, {@code nats://token@server:port}, it will be used.
-     * <li>If the URI is of the form tls:// and no SSL context was assigned, one is created, see {@link OptionsBuilder#secure() secure()}.
-     * </ul>
+     * <p>If the Options builder was not provided with a server, {@code localhost} is used.
+     * <p>The transport is resolved here, see {@link Transport}. It is secure when {@link #secure()} was called,
+     * any TLS setting was given (an SSL context, a context factory, a keystore or a truststore), or a server has
+     * the {@code tls} or {@code wss} scheme. It is a websocket when {@link #ws()} was called or a server has the
+     * {@code ws} or {@code wss} scheme. Every server with a scheme must then have the transport's scheme, except
+     * that {@code nats} is accepted when the transport is {@code nats} or {@code tls}. A path is accepted only for
+     * a websocket. A server without a port gets the transport's default port. A secure transport without an
+     * SSL context uses the default SSL context.
      *
      * @return the new options object
-     * @throws IllegalStateException if there is a conflict in the options, like a token and a user/pass
+     * @throws IllegalStateException if there is a conflict in the options, like a token and a user/pass,
+     * or a server that does not match the transport, or a data port type that cannot be created
      */
     public Options build() throws IllegalStateException {
         // ----------------------------------------------------------------------------------------------------
@@ -1500,10 +1563,36 @@ public class OptionsBuilder {
             throw new IllegalStateException("Options can't have token and username");
         }
 
-        boolean checkUrisForSecure = true;
-        if (natsServerUris.isEmpty()) {
-            server(DEFAULT_URL);
-            checkUrisForSecure = false;
+        if (bootstrapServers.isEmpty()) {
+            server(DEFAULT_HOST);
+        }
+
+        // the transport: secure from secure(), any TLS setting or a secure scheme, websocket from ws() or a websocket scheme
+        boolean secure = useDefaultTls || sslContext != null || sslContextFactory != null || keystore != null || truststore != null;
+        boolean ws = websocket;
+        for (BootstrapServer bs : bootstrapServers) {
+            if (bs.scheme() != null) {
+                secure |= bs.scheme().isSecure();
+                ws |= bs.scheme().isWebsocket();
+            }
+        }
+        transport = Transport.of(secure, ws);
+
+        serverAddresses = new ArrayList<>();
+        for (BootstrapServer bs : bootstrapServers) {
+            // nats:// is the same as no scheme, except for a websocket
+            Transport scheme = bs.scheme();
+            if (scheme != null && scheme != transport && !(scheme == Transport.Nats && !transport.isWebsocket())) {
+                throw new IllegalStateException("The server " + bs.raw() + " does not match the transport "
+                    + transport.scheme() + " resolved from the options and the server list.");
+            }
+            if (bs.path() != null && !transport.isWebsocket()) {
+                throw new IllegalStateException("The server " + bs.raw() + " has a path, which is only allowed for a websocket.");
+            }
+            ServerAddress address = new ServerAddress(bs.host(), bs.port() == BootstrapServer.NO_PORT ? transport.defaultPort() : bs.port(), bs.path());
+            if (!serverAddresses.contains(address)) {
+                serverAddresses.add(address);
+            }
         }
 
         // ssl context can be directly provided, but if it's not
@@ -1529,20 +1618,9 @@ public class OptionsBuilder {
                     }
                 }
                 else {
-                    // the sslContext has not been requested via factory or keystore/truststore properties
-                    // If we haven't been told to use the default context
-                    // and the server isn't the default url, check to see if the server uris
-                    // suggest we need the ssl context.
-                    if (!useDefaultTls && checkUrisForSecure) {
-                        for (int i = 0; !useDefaultTls && i < natsServerUris.size(); i++) {
-                            String scheme = natsServerUris.get(i).getScheme();
-                            if (TLS_PROTOCOL.equals(scheme) || SECURE_WEBSOCKET_PROTOCOL.equals(scheme)) {
-                                useDefaultTls = true;
-                            }
-                        }
-                    }
-
-                    if (useDefaultTls) {
+                    // the sslContext has not been requested via factory or keystore/truststore properties,
+                    // so a secure transport uses the default context
+                    if (transport.isSecure()) {
                         try {
                             this.sslContext = SSLContext.getDefault();
                         }
@@ -1550,16 +1628,6 @@ public class OptionsBuilder {
                             throw new IllegalStateException("Unable to create default SSL context", e);
                         }
                     }
-                }
-            }
-        }
-
-        // A connection with an SSL context requires TLS to every server, but a ws:// server is a plain
-        // websocket and is never upgraded, so it would be reached without TLS. nats:// servers are upgraded.
-        if (sslContext != null) {
-            for (NatsUri natsUri : natsServerUris) {
-                if (WEBSOCKET_PROTOCOL.equals(natsUri.getScheme())) {
-                    throw new IllegalStateException("The options have an SSL context, but the server list has a ws:// server, which is never upgraded to TLS. Use wss:// for that server.");
                 }
             }
         }
@@ -1577,7 +1645,20 @@ public class OptionsBuilder {
         // are normalized in their setters (and the field initial values are already the normalized defaults),
         // and the property loaders route through those setters — so no build()-time clamp is needed here.
 
-        return new Options(this);
+        Options options = new Options(this);
+
+        // A custom data port is created for every connect attempt. Create one now, so a class that cannot be
+        // created or set up is a configuration error here instead of a failure of every attempt.
+        if (!DEFAULT_DATA_PORT_TYPE.equals(dataPortType)) {
+            try {
+                options.createDataPort();
+            }
+            catch (RuntimeException e) {
+                throw new IllegalStateException("Unable to create the data port " + dataPortType + ".", e);
+            }
+        }
+
+        return options;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -1595,8 +1676,8 @@ public class OptionsBuilder {
             throw new IllegalArgumentException("Options cannot be null");
         }
 
-        this.natsServerUris.addAll(o.natsServerUris);
-        this.unprocessedServers.addAll(o.unprocessedServers);
+        servers(o.unprocessedServers.toArray(new String[0]));
+        this.websocket = o.transport.isWebsocket();
         this.noRandomize = o.noRandomize;
         this.hostnameResolveMode = o.hostnameResolveMode;
         this.subjectValidationType = o.subjectValidationType;

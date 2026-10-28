@@ -559,7 +559,8 @@ public class ReconnectTests {
 
             listener.queueConnectionEvent(ConnectionEvent.DISCOVERED_SERVERS);
             nc = ConnectionUtils.managedConnect(options);
-            assertEquals(tsUri, nc.getConnectedUrl());
+            // the connected url carries the transport's scheme, tls from secure()
+            assertEquals("tls://localhost:" + ts.getNatsPort(), nc.getConnectedUrl());
 
             flushConnection(nc); // make sure we get the new server via info
             listener.validate();
@@ -572,7 +573,7 @@ public class ReconnectTests {
 
             listener.validate();
 
-            URI uri = options.createURIForServer(nc.getConnectedUrl());
+            URI uri = URI.create(nc.getConnectedUrl());
             assertEquals(ts2.getNatsPort(), uri.getPort()); // full uri will have some ip address, just check port
             closeAndConfirm(nc);
         }

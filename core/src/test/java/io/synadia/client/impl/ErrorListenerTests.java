@@ -318,6 +318,52 @@ public class ErrorListenerTests extends TestBase {
         _cover(new ReadListener() {});
     }
 
+    @Test
+    public void testServerIssueConnectAttemptFailedAndCountedOut() throws Exception {
+        // nothing listens on the port: the attempt fails, and with no reconnects the pool counts the server out
+        int port = NatsTestServer.nextPort();
+        String server = "nats://127.0.0.1:" + port;
+        Listener listener = new Listener();
+        Options options = Options.builder().server(server).maxReconnects(0).connectionTimeout(1000).errorListener(listener).build();
+        assertThrows(IOException.class, () -> Nats.connect(options));
+        waitForServerIssues(listener, 2);
+
+        List<Listener.ServerIssueEvent> failed = listener.getServerIssueEvents(ServerIssueType.ConnectAttemptFailed);
+        assertEquals(1, failed.size(), failed.toString());
+        assertEquals(server, failed.get(0).server());
+        assertNotNull(failed.get(0).cause());
+        assertNotNull(failed.get(0).reason());
+
+        List<Listener.ServerIssueEvent> countedOut = listener.getServerIssueEvents(ServerIssueType.CountedOut);
+        assertEquals(1, countedOut.size(), countedOut.toString());
+        assertEquals(server, countedOut.get(0).server());
+    }
+
+    @Test
+    public void testServerIssueDoubleAuthError() throws Exception {
+        // the same authentication error twice from the server stops the reconnect
+        String[] customArgs = { "--auth", "token" };
+        try (NatsTestServer ts = new NatsTestServer(customArgs)) {
+            Listener listener = new Listener();
+            Options options = optionsBuilder(ts).maxReconnects(-1).reconnectWait(10).connectionTimeout(500)
+                .token("bad".toCharArray()).errorListener(listener).build();
+            try (NatsConnection nc = Nats.connectReconnectOnFailure(options)) {
+                assertEquals(ConnectionStatus.CLOSED, nc.getStatus());
+            }
+            waitForServerIssues(listener, 3);
+            assertEquals(2, listener.getServerIssueEvents(ServerIssueType.ConnectAttemptFailed).size(), listener.getServerIssueEvents().toString());
+            List<Listener.ServerIssueEvent> doubleAuth = listener.getServerIssueEvents(ServerIssueType.DoubleAuthError);
+            assertEquals(1, doubleAuth.size(), listener.getServerIssueEvents().toString());
+            assertTrue(doubleAuth.get(0).reason().toLowerCase().contains("authorization"), doubleAuth.get(0).reason());
+        }
+    }
+
+    private static void waitForServerIssues(Listener listener, int count) {
+        for (int x = 0; x < 300 && listener.getServerIssueEvents().size() < count; x++) {
+            sleep(10);
+        }
+    }
+
     private void _cover(ErrorListener el) {
         el.errorOccurred(null, null);
         el.exceptionOccurred(null, null);
@@ -329,6 +375,7 @@ public class ErrorListenerTests extends TestBase {
         el.pullStatusError(null, null, null);
         el.flowControlProcessed(null, null, null, null);
         el.socketWriteTimeout(null);
+        el.serverIssue(null, null, null, null, null);
     }
 
     private void _cover(ReadListener rl) {

@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 
 /**
  * One server in the connection's server pool, along with the connect history the pool
@@ -8,7 +8,7 @@ import io.synadia.client.utils.NatsUri;
  */
 public class ServerPoolEntry {
     /** The server address. */
-    public final NatsUri nuri;
+    public final ServerAddress address;
 
     /** True when the server was learned from an INFO message rather than configured by the user. */
     public final boolean isGossiped;
@@ -21,16 +21,16 @@ public class ServerPoolEntry {
 
     /**
      * Construct an entry with no attempt history.
-     * @param nuri the server address
+     * @param address the server address
      * @param isGossiped true if the server came from an INFO message
      */
-    public ServerPoolEntry(NatsUri nuri, boolean isGossiped) {
-        this.nuri = nuri;
+    public ServerPoolEntry(ServerAddress address, boolean isGossiped) {
+        this.address = address;
         this.isGossiped = isGossiped;
     }
 
     @Override
     public String toString() {
-        return nuri + " " + isGossiped + "/" + failedAttempts;
+        return address + " " + isGossiped + "/" + failedAttempts;
     }
 }

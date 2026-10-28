@@ -52,7 +52,7 @@ Bytes allocated on the publishing thread per publish: classic 336 B, V3 about 1 
 
 ### Connecting with bad credentials
 
-During the connect handshake V3 reads the server's reply on the connecting thread, so a server `-ERR` fails the attempt as soon as it arrives. Classic waits for the connection timeout.
+During the connect handshake a server `-ERR` fails the V3 attempt as soon as the reader reads it. Classic waits for the connection timeout.
 
 | `Nats.connect` with a wrong token, `maxReconnects(0)` | Median time to fail |
 |---|---|

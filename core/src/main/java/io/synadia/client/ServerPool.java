@@ -1,13 +1,15 @@
 package io.synadia.client;
 
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
 /**
- * Allows the developer to provide the list of servers to try for connecting/reconnecting
+ * Allows the developer to provide the list of servers to try for connecting/reconnecting.
+ * The pool holds addresses only (host, port and, for a websocket, a path); the transport for every
+ * server comes from the options, see {@link Options#getTransport()}.
  */
 public interface ServerPool {
 
@@ -19,28 +21,28 @@ public interface ServerPool {
 
     /**
      * When the connection received discovered servers (ServerInfo.getConnectURLs)
-     * it passes them on to the provider for later use, together with the server whose INFO supplied them.
-     * A discovered server given as a bare ip address has no hostname to present to the server
-     * during the TLS handshake; the pool may save the origin's hostname on it for that purpose.
+     * it parses them and passes the ones that parse on to the provider for later use, together with
+     * the server whose INFO supplied them. A discovered server given as a bare ip address has no hostname
+     * to present to the server during the TLS handshake; the pool may save the origin's hostname on it for that purpose.
      * @param discoveredServers the list of discovered servers.
      * @param origin the server whose INFO supplied the list, or null when it is not known
      * @return true if there were any unknown servers provided
      */
-    boolean acceptDiscoveredUrls(@NonNull List<@NonNull String> discoveredServers, @Nullable NatsUri origin);
+    boolean acceptDiscoveredUrls(@NonNull List<@NonNull ServerAddress> discoveredServers, @Nullable ServerAddress origin);
 
     /**
      * Just take a peek at the next server without doing any processing.
-     * @return the next server Nuri or null if the pool is empty.
+     * @return the next server or null if the pool is empty.
      */
     @Nullable
-    NatsUri peekNextServer();
+    ServerAddress peekNextServer();
 
     /**
      * Get the next server to try to connect to.
-     * @return the next server Nuri or null if the pool is empty.
+     * @return the next server or null if the pool is empty.
      */
     @Nullable
-    NatsUri nextServer();
+    ServerAddress nextServer();
 
     /**
      * Resolve a host name to an ip address based on the instructions. Replaces resolveHostToIps(String)
@@ -54,39 +56,24 @@ public interface ServerPool {
     List<String> resolveHostToIps(@NonNull String host, boolean maxOneResult, boolean includeIPV6);
 
     /**
-     * Indicate that the connection to this NatsUri succeeded.
-     * @param nuri should match the NatsUri given by nextServer
+     * Indicate that the connection to this server succeeded.
+     * @param address should match the address given by nextServer
      */
-    void connectSucceeded(@NonNull NatsUri nuri);
+    void connectSucceeded(@NonNull ServerAddress address);
 
     /**
-     * Indicate that the connection to this NatsUri failed.
-     * @param nuri should match the NatsUri given by nextServer
+     * Indicate that the connection to this server failed.
+     * @param address should match the address given by nextServer
+     * @return true if the pool no longer supplies the server, for example because it failed more times
+     * than the reconnect limit allows; the connection reports that through
+     * {@link ErrorListener#serverIssue ErrorListener.serverIssue} as {@link ServerIssueType#CountedOut}
      */
-    void connectFailed(@NonNull NatsUri nuri);
+    boolean connectFailed(@NonNull ServerAddress address);
 
     /**
-     * The connection will never attempt the server, because it cannot be used with the options:
-     * for example a plain ws:// server when the options have an SSL context, since a plain websocket
-     * is never upgraded to TLS. The connection has already taken the server from the pool and goes on
-     * to the next one. The pool should stop supplying the server, including when it is discovered again.
-     * A pool that keeps supplying it does not make the connection attempt it: the connection skips it
-     * every time it is supplied, also reports it through {@link #connectFailed(NatsUri)} each time,
-     * and reports it to the error listener once per connect or reconnect.
-     * @param nuri the server that was rejected
-     */
-    void serverRejected(@NonNull NatsUri nuri);
-
-    /**
-     * Get the list of servers known to the pool. Purely informational
+     * Get the list of servers known to the pool, each as {@code host:port[/path]}. Purely informational
      * @return the list of servers
      */
     @NonNull
     List<String> getServerList();
-
-    /**
-     * Whether the pool has any server with a secure scheme
-     * @return the flag
-     */
-    boolean hasSecureServer();
 }

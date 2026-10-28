@@ -2,8 +2,10 @@ package io.synadia.client.impl;
 
 import io.synadia.client.ErrorListener;
 import io.synadia.client.Message;
+import io.synadia.client.ServerIssueType;
 import io.synadia.client.Subscription;
 import io.synadia.client.api.Status;
+import org.jspecify.annotations.Nullable;
 
 /**
  * {@link ErrorListener} that prints every event to {@code System.out}, prefixed with a severity
@@ -100,7 +102,7 @@ public class ErrorListenerConsoleImpl implements ErrorListener {
      * {@inheritDoc}
      */
     @Override
-    public void serverRejected(NatsConnection conn, String server, String reason) {
-        System.out.println(supplyMessage("[WARNING] serverRejected", conn, null, "Server: ", server, "Reason: ", reason));
+    public void serverIssue(NatsConnection conn, String server, ServerIssueType type, String reason, @Nullable Exception cause) {
+        System.out.println(supplyMessage("[WARNING] serverIssue " + type, conn, null, "Server: ", server, "Reason: ", reason));
     }
 }

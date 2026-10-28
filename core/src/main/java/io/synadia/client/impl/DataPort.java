@@ -2,7 +2,7 @@ package io.synadia.client.impl;
 
 import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -14,29 +14,30 @@ import java.io.IOException;
  */
 public interface DataPort {
     /**
-     * Execute the connect
+     * Execute the connect. The transport (TLS, websocket) comes from the connection's options,
+     * see {@link io.synadia.client.Options#getTransport() Options.getTransport()}.
      * @param conn the NatsConnection object
-     * @param uri the NatsUri to connect to
+     * @param address the server to connect to
      * @param timeoutNanos the timeout
      * @throws IOException if the data port is unable to connect.
      */
-    void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException;
+    void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, long timeoutNanos) throws IOException;
 
     /**
-     * Execute the connect, also providing the uri before any hostname resolution.
+     * Execute the connect, also providing the address before any hostname resolution.
      * The connection resolves hostnames to ip addresses in the resolving {@link HostnameResolveMode} modes,
-     * so the uri to connect to may have an ip address where the server was configured or discovered with a hostname.
+     * so the address to connect to may have an ip address where the server was configured or discovered with a hostname.
      * A data port that needs the hostname, for instance to present it to the server during the TLS handshake
-     * as the server name (SNI), gets it from the unresolved uri.
-     * The default implementation ignores the unresolved uri and calls {@link #connect(NatsConnection, NatsUri, long)}.
+     * as the server name (SNI), gets it from the unresolved address.
+     * The default implementation ignores the unresolved address and calls {@link #connect(NatsConnection, ServerAddress, long)}.
      * @param conn the NatsConnection object
-     * @param uri the NatsUri to connect to, possibly resolved to an ip address
-     * @param unresolvedUri the NatsUri before any hostname resolution. The same object as uri when no resolution happened.
+     * @param address the server to connect to, possibly resolved to an ip address
+     * @param unresolvedAddress the server before any hostname resolution. The same object as address when no resolution happened.
      * @param timeoutNanos the timeout
      * @throws IOException if the data port is unable to connect.
      */
-    default void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, @NonNull NatsUri unresolvedUri, long timeoutNanos) throws IOException {
-        connect(conn, uri, timeoutNanos);
+    default void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, @NonNull ServerAddress unresolvedAddress, long timeoutNanos) throws IOException {
+        connect(conn, address, timeoutNanos);
     }
 
     /**

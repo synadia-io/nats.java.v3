@@ -103,7 +103,7 @@ The requirement: a user must be able to choose the proven implementation or the 
 2. **Resurrect a `Connection` interface, two independent implementations.** `PLAN_CORE_JETSTREAM_BOUNDARY.md` §8 (:245-255) names "more than one connection implementation" as the first valid reason to reintroduce the interface, and says extracting it later is mechanical; this would be that case. What it costs, measured from the code:
    - Every public signature in core, JetStream, KV, OS and Service that takes or returns `NatsConnection` changes to `Connection`.
    - The internals are typed on the concrete class and reach package-private members: `NatsSubscription` and `NatsDispatcher` call `connection.invalidate`, `unsubscribe`, `sendUnsub`, `sendSubscriptionMessage`, `subjectValidate`, `cleanupDispatcher`, `reSubscribe`, `getNextSid`; JetStream calls `_createSubscriptionByFactory`, `getScheduledExecutor`, `isClosing` (boundary plan §3). `DataPort.connect(NatsConnection, ...)` (`DataPort.java:22`) is typed on the concrete class too. So the interface needs a second, internal SPI interface for those, or both implementations share the subscription/dispatcher classes through it.
-   - This is the right end state if V3 replaces classic eventually, and V3 moves to it without redesign: its new classes (`OutboundBuffer`, `OutboundWriter`, `PrefixedDataPort`) do not depend on being a subclass.
+   - This is the right end state if V3 replaces classic eventually, and V3 moves to it without redesign: its new classes (`OutboundBuffer`, `OutboundWriter`) do not depend on being a subclass.
 3. **One `NatsConnection`, two internal engines.** Move the outgoing path and lifecycle behind an internal `ConnectionEngine` and keep `NatsConnection` as the facade. Lowest public impact, but it means restructuring the proven class to extract the classic engine, which defeats the purpose of keeping the proven implementation untouched. Not recommended.
 
 Recommendation: keep 1 now; decide 2 when (and if) V3 becomes the default.
@@ -134,11 +134,11 @@ How V3 does it:
 
 What this removes from the classic design: `InternalPublishableMessage` per publish, `NatsMessage.next`, `MarkerMessage`, the proposed `MessageBatch`, `WriterMessageQueue`, the reconnect queue, and the writer's 1 ms poll loop in reconnect mode (`NatsConnectionWriter.java:204`).
 
-#### A2.2 Connect handshake read on the connecting thread
+#### A2.2 Connect handshake: a -ERR fails the attempt at once
 
 Classic starts the reader, queues CONNECT and PING, then waits for the PONG future (`NatsConnection.java:602-614`). When the server rejects the login it sends `-ERR` and closes; the PONG never comes, so the attempt waits for the full connection timeout (measured 2,001 ms of a 2,000 ms timeout).
 
-V3 writes CONNECT and PING itself and reads the reply lines on the connecting thread until PONG: `INFO` goes to `handleInfo`, `+OK` to `processOK`, `PING` is answered, `-ERR` goes to `processError` and fails the attempt at once (measured 3 ms). Bytes read past the PONG are handed to the new reader through `PrefixedDataPort`. Statistics (ping count, bytes in and out) and the read listener see the handshake as they did in classic.
+V3 writes CONNECT and PING itself, then starts the reader and the writer and waits for the PONG future, as classic does. The reader handles the reply like every later message. A `-ERR` while the PONG is outstanding fails the attempt at once (`NatsConnectionV3.processError` fails the PONG future; measured 3 ms); a read error during the attempt does the same. Changed 2026-10-21: until then V3 read the reply lines on the connecting thread (`readUntilPong`) and handed bytes read past the PONG to the reader through `PrefixedDataPort`; both are removed.
 
 What this does **not** fix, corrected from my first draft: the `TEST_TRACKING.md` race where `AuthTests.testToken` / `testEncodedPassword` sometimes get `IOException` instead of `AuthenticationException` on Windows. Classic's reader parses the `-ERR` line before it can see the close, because both arrive in order on one stream, so if the `-ERR` bytes arrive, classic also reports `AuthenticationException` (10 of 10 here). The flake therefore means the `-ERR` bytes never reached the client. A plausible mechanism is a TCP reset discarding unread data on Windows, because the server closes with the client's PING still unread. That is not verified. V3 writes CONNECT and PING together exactly like classic, so it would be exposed the same way.
 
@@ -310,7 +310,6 @@ New:
 - `core/src/main/java/io/synadia/client/impl/NatsConnectionV3.java` — the connection.
 - `core/src/main/java/io/synadia/client/impl/OutboundBuffer.java` — lanes, encoding, backpressure.
 - `core/src/main/java/io/synadia/client/impl/OutboundWriter.java` — the writer thread, one per socket.
-- `core/src/main/java/io/synadia/client/impl/PrefixedDataPort.java` — serves bytes read past the handshake PONG to the reader.
 - `core/src/test/java/io/synadia/client/impl/OutboundBufferTests.java` — 12 tests.
 
 Changed:

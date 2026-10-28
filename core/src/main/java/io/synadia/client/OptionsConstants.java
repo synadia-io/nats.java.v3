@@ -19,6 +19,11 @@ public interface OptionsConstants {
     String DEFAULT_URL = "nats://localhost:4222";
 
     /**
+     * Default server host, used when no server is given. This property is defined as {@value}
+     */
+    String DEFAULT_HOST = "localhost";
+
+    /**
      * Default server port. This property is defined as {@value}
      */
     int DEFAULT_PORT = NatsConstants.DEFAULT_PORT;

@@ -53,12 +53,13 @@ public class NatsConnection implements AutoCloseable {
     protected DataPort dataPort;
     // Volatile so that a caller reading getConnectedUrl() and getStatus() back to back cannot see
     // the pair out of the order teardown writes them in.
-    protected volatile NatsUri currentServer;
-    protected NatsUri connectingServer;
-    protected NatsUri lastServer;
+    protected volatile ServerAddress currentServer;
+    protected ServerAddress connectingServer;
+    protected ServerAddress lastServer;
     protected CompletableFuture<Boolean> reconnectWaiter;
     protected volatile boolean lameDuckTriggered = false;
-    protected final ConcurrentHashMap<NatsUri, String> serverAuthErrors;
+    protected final ConcurrentHashMap<ServerAddress, String> serverAuthErrors;
+    protected volatile Exception attemptException; // what ended the last failed connect attempt, for serverIssue
 
     protected NatsConnectionReader reader;
     protected NatsConnectionWriter writer;
@@ -235,7 +236,7 @@ public class NatsConnection implements AutoCloseable {
 
         lastError.set("");
 
-        Set<NatsUri> failList = tryServers(false, reconnectOnInitialFailure);
+        Set<ServerAddress> failList = tryServers(false, reconnectOnInitialFailure);
 
         if (!isConnected() && !isClosed()) {
             if (reconnectOnInitialFailure) {
@@ -412,30 +413,14 @@ public class NatsConnection implements AutoCloseable {
     // Connect goes through the pool once. Reconnect goes around it again, after the reconnect delay, until the pool
     // counts every server out. reconnectOnInitialFailure: connect is followed by a reconnect if no server connects.
     // Returns the servers that failed, for the connect error.
-    protected Set<NatsUri> tryServers(boolean reconnectMode, boolean reconnectOnInitialFailure) {
+    protected Set<ServerAddress> tryServers(boolean reconnectMode, boolean reconnectOnInitialFailure) {
         // when a reconnect runs or follows, the attempts count toward the double auth error rule
         boolean holdOnAuthError = reconnectMode || reconnectOnInitialFailure;
-        Set<NatsUri> failList = new HashSet<>();
+        Set<ServerAddress> failList = new HashSet<>();
         long round = 0;
-        NatsUri first = null;
-        NatsUri cur;
-        // The pool is told to drop a rejected server, and the rejection is also a fail, so a pool that keeps it counts it out.
-        // A server it supplies again is skipped again, but reported only once.
-        Set<NatsUri> rejected = new HashSet<>();
+        ServerAddress first = null;
+        ServerAddress cur;
         while ((cur = serverPool.peekNextServer()) != null) {
-
-            // check rejection
-            String rejectionReason = isRejected(cur);
-            if (rejectionReason != null) {
-                serverPool.nextServer(); // b/c we only peeked, and the pool must have handed it out before it is told
-                if (rejected.add(cur)) {
-                    rejectServer(cur, rejectionReason);
-                    failList.add(cur);
-                }
-                serverPool.connectFailed(cur); // also a fail, so a pool that keeps it counts it out
-                continue; // before first is set and before the delay: the pool drops it, so it must not be the server that ends the pass
-            }
-
             boolean wrapped = cur.equals(first);
             if (wrapped && !reconnectMode) {
                 break;  // connect only goes through loop once
@@ -461,11 +446,12 @@ public class NatsConnection implements AutoCloseable {
             }
 
             // let server pool resolve hostnames, then loop through resolved
-            for (NatsUri resolved : resolveHost(cur)) {
+            for (ServerAddress resolved : resolveHost(cur)) {
                 if (stopTryingServers(reconnectMode)) {
                     return failList;
                 }
                 connectError.set(""); // new on each attempt
+                attemptException = null;
 
                 updateStatus(reconnectMode ? RECONNECTING : CONNECTING, resolved, cur);
 
@@ -484,8 +470,15 @@ public class NatsConnection implements AutoCloseable {
                 }
 
                 String err = connectError.get();
+                if (!isCloseInProgress()) { // an attempt ended by the application's close is not a server issue
+                    Exception cause = attemptException instanceof ExecutionException ee && ee.getCause() instanceof Exception c ? c : attemptException;
+                    String reason = cause != null && cause.getMessage() != null ? cause.getMessage() : err.isEmpty() ? "Connect attempt failed." : err;
+                    reportServerIssue(uriDetail(resolved, cur), ServerIssueType.ConnectAttemptFailed, reason, cause);
+                }
                 if (isAuthenticationError(err)) {
                     if (reconnectMode && err.equals(serverAuthErrors.get(resolved))) {
+                        reportServerIssue(uriDetail(resolved, cur), ServerIssueType.DoubleAuthError,
+                            "The server rejected the credentials twice with the same error, so the reconnect stops: " + err, null);
                         return failList; // double auth error
                     }
                     serverAuthErrors.put(resolved, err);
@@ -494,7 +487,7 @@ public class NatsConnection implements AutoCloseable {
 
             if (!isConnected() && !isClosed()) {
                 failList.add(cur);
-                serverPool.connectFailed(cur);
+                serverConnectFailed(cur);
             }
         }
         return failList;
@@ -505,22 +498,9 @@ public class NatsConnection implements AutoCloseable {
         return isClosed() || (reconnect && (isDisconnectingOrClosed() || isClosing()));
     }
 
-    // A server the connection will never attempt because it cannot be used with the options: a ws:// server is
-    // a plain websocket that is never upgraded to TLS, so with an SSL context it would be reached without TLS.
-    // tryServers asks this when the pool hands a server out, before
-    // anything is sent to it. The bootstrap list cannot hold such a server, so one comes from connect_urls or
-    // from a custom ServerPool.
-    protected String isRejected(NatsUri nuri) {
-        if (options.isTLSRequired() && WEBSOCKET_PROTOCOL.equals(nuri.getScheme())) {
-            return "the options require TLS and a ws:// server is never upgraded to TLS";
-        }
-        return null;
-    }
-
-    // The pool has already handed the server out. Tell it so it stops supplying the server, and report it.
-    protected void rejectServer(NatsUri nuri, String reason) {
-        serverPool.serverRejected(nuri);
-        notifyErrorListener((c, el) -> el.serverRejected(c, nuri.toString(), reason));
+    // The application closed the connection, or is closing it
+    protected boolean isCloseInProgress() {
+        return isClosed() || isClosing();
     }
 
     protected long timeCheck(long endNanos) throws TimeoutException {
@@ -535,7 +515,7 @@ public class NatsConnection implements AutoCloseable {
     // will wait for any previous attempt to complete, using the reader.stop and
     // writer.stop
     // holdOnAuthError is not used: this implementation always waits out the connection timeout on an auth error
-    protected void tryToConnect(NatsUri cur, NatsUri resolved, boolean holdOnAuthError) {
+    protected void tryToConnect(ServerAddress cur, ServerAddress resolved, boolean holdOnAuthError) {
         clearCurrentServer();
         connectingServer = cur; // the origin of discovered servers in the initial INFO, before currentServer is set
 
@@ -593,7 +573,7 @@ public class NatsConnection implements AutoCloseable {
                     readInitialInfo();
                     checkVersionRequirements();
                 }
-                upgradeToSecureIfNeeded(resolved);
+                upgradeToSecureIfNeeded();
                 if (options.isTlsFirst()) {
                     readInitialInfo();
                     checkVersionRequirements();
@@ -617,7 +597,7 @@ public class NatsConnection implements AutoCloseable {
             writer.start(dataPortFuture);
 
             timeCheck(end);
-            sendConnect(resolved);
+            sendConnect();
 
             timeLeftNanos = timeCheck(end);
             Future<Boolean> pongFuture = sendPing();
@@ -667,6 +647,7 @@ public class NatsConnection implements AutoCloseable {
             }
         }
         catch (Exception exp) {
+            attemptException = exp;
             processException(exp);
             try {
                 // allow force reconnect since this is pretty exceptional,
@@ -706,9 +687,9 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void upgradeToSecureIfNeeded(NatsUri nuri) throws IOException {
+    protected void upgradeToSecureIfNeeded() throws IOException {
         // When already communicating over "https" websocket, do NOT try to upgrade to secure.
-        if (!nuri.isWebsocket()) {
+        if (!options.getTransport().isWebsocket()) {
             if (options.isTlsFirst()) {
                 dataPort.upgradeToSecure();
             }
@@ -761,7 +742,7 @@ public class NatsConnection implements AutoCloseable {
 
         processException(io);
         if (currentServer != null) {
-            serverPool.connectFailed(currentServer);
+            serverConnectFailed(currentServer);
         }
 
         // Spawn a thread so we don't have timing issues with
@@ -1940,13 +1921,12 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected void sendConnect(NatsUri nuri) throws IOException {
+    protected void sendConnect() throws IOException {
         try {
             ServerInfo info = serverInfo.get();
             // This is changed - we used to use info.isAuthRequired(), but are changing it to
             // better match older versions of the server. It may change again in the future.
-            CharBuffer connectOptions = options.buildProtocolConnectOptionsString(
-                nuri.toString(), true, info.getNonce());
+            CharBuffer connectOptions = options.buildProtocolConnectOptionsString(true, info.getNonce());
             ByteArrayBuilder bab =
                 new ByteArrayBuilder(OP_CONNECT_SP_LEN + connectOptions.limit(), UTF_8)
                     .append(CONNECT_SP_BYTES).append(connectOptions);
@@ -2170,8 +2150,9 @@ public class NatsConnection implements AutoCloseable {
 
         List<String> urls = newServerInfo.getConnectURLs();
         if (!urls.isEmpty()) {
-            NatsUri origin = currentServer == null ? connectingServer : currentServer;
-            if (serverPool.acceptDiscoveredUrls(urls, origin)) {
+            List<ServerAddress> discovered = parseDiscovered(urls);
+            ServerAddress origin = currentServer == null ? connectingServer : currentServer;
+            if (serverPool.acceptDiscoveredUrls(discovered, origin)) {
                 processConnectionEvent(ConnectionEvent.DISCOVERED_SERVERS, urls.toString());
             }
         }
@@ -2180,6 +2161,34 @@ public class NatsConnection implements AutoCloseable {
             processConnectionEvent(ConnectionEvent.LAME_DUCK, uriDetail(currentServer));
             this.lameDuckTriggered = true;
         }
+    }
+
+    // A discovered server is host:port; nats-server never sends anything else. An entry that does not parse
+    // points to a problem in the system, such as a misconfigured advertise value, so it is skipped and
+    // reported to the error listener, each time an INFO carries it.
+    protected List<ServerAddress> parseDiscovered(List<String> urls) {
+        List<ServerAddress> discovered = new ArrayList<>();
+        for (String url : urls) {
+            try {
+                discovered.add(ServerAddress.parse(url));
+            }
+            catch (URISyntaxException e) {
+                reportServerIssue(url, ServerIssueType.InvalidDiscoveredServer, e.getReason(), null);
+            }
+        }
+        return discovered;
+    }
+
+    // Tell the pool, and report when the pool no longer supplies the server
+    protected void serverConnectFailed(ServerAddress address) {
+        if (serverPool.connectFailed(address)) {
+            reportServerIssue(uriDetail(address), ServerIssueType.CountedOut,
+                "The server failed more times than the reconnect limit allows and is no longer tried.", null);
+        }
+    }
+
+    protected void reportServerIssue(String server, ServerIssueType type, String reason, @Nullable Exception cause) {
+        notifyErrorListener((c, el) -> el.serverIssue(c, server, type, reason, cause));
     }
 
     protected void validatePayloadAndControlLineSizes(NatsMessage msg) {
@@ -2341,18 +2350,19 @@ public class NatsConnection implements AutoCloseable {
         }
     }
 
-    protected String uriDetail(NatsUri uri) {
-        return uri == null ? null : uri.toString();
+    // the full url, scheme://host:port[/path], the scheme being the transport
+    protected String uriDetail(ServerAddress address) {
+        return address == null ? null : address.toUrl(options.getTransport());
     }
 
-    protected String uriDetail(NatsUri uri, NatsUri hostOrlast) {
-        if (uri != null) {
-            if (hostOrlast == null || uri.equals(hostOrlast)) {
-                return uri.toString();
+    protected String uriDetail(ServerAddress address, ServerAddress hostOrlast) {
+        if (address != null) {
+            if (hostOrlast == null || address.equals(hostOrlast)) {
+                return uriDetail(address);
             }
-            return uri + " [" + hostOrlast + "]";
+            return uriDetail(address) + " [" + uriDetail(hostOrlast) + "]";
         }
-        return hostOrlast == null ? null : hostOrlast.toString();
+        return uriDetail(hostOrlast);
     }
 
     protected void processConnectionEvent(ConnectionEvent type, String uriDetails) {
@@ -2443,31 +2453,30 @@ public class NatsConnection implements AutoCloseable {
      */
     @NonNull
     public Collection<String> getServers() {
-        return serverPool.getServerList();
+        String prefix = options.getTransport().scheme() + "://";
+        List<String> list = new ArrayList<>();
+        for (String server : serverPool.getServerList()) {
+            list.add(prefix + server);
+        }
+        return list;
     }
 
-    protected List<NatsUri> resolveHost(NatsUri nuri) {
-        // 1. If the nuri host is not already an ip address
-        //      -and- the nuri is not for websocket
+    protected List<ServerAddress> resolveHost(ServerAddress address) {
+        // 1. If the host is not already an ip address
+        //      -and- the transport is not websocket
         //      -and- the HostnameResolveMode is Resolve
         //    let the pool resolve it.
         HostnameResolveMode resolveMode = options.hostnameResolveMode();
-        List<NatsUri> results = new ArrayList<>();
-        if (!nuri.hostIsIpAddress()
-            && !nuri.isWebsocket()
+        List<ServerAddress> results = new ArrayList<>();
+        if (!address.hostIsIpAddress()
+            && !options.getTransport().isWebsocket()
             && resolveMode.resolve)
         {
             List<String> ips = serverPool.resolveHostToIps(
-                nuri.getHost(), resolveMode.maxOneResult, resolveMode.includeIPV6);
+                address.getHost(), resolveMode.maxOneResult, resolveMode.includeIPV6);
             if (ips != null) {
                 for (String ip : ips) {
-                    try {
-                        results.add(nuri.reHost(ip));
-                    }
-                    catch (URISyntaxException u) {
-                        // ??? should never happen
-                        throw new RuntimeException(u);
-                    }
+                    results.add(address.reHost(ip));
                 }
             }
         }
@@ -2480,7 +2489,7 @@ public class NatsConnection implements AutoCloseable {
         //    - resolving failed...
         //    so the list just becomes the original host.
         if (results.isEmpty()) {
-            results.add(nuri);
+            results.add(address);
         }
         return results;
     }
@@ -2491,7 +2500,7 @@ public class NatsConnection implements AutoCloseable {
      */
     @Nullable
     public String getConnectedUrl() {
-        return currentServer == null ? null : currentServer.toString();
+        return uriDetail(currentServer);
     }
 
     /**
@@ -2540,8 +2549,8 @@ public class NatsConnection implements AutoCloseable {
         updateStatus(newStatus, uriDetail(currentServer == null ? lastServer : currentServer));
     }
 
-    protected void updateStatus(ConnectionStatus newStatus, NatsUri resolvedUri, NatsUri hostUri) {
-        updateStatus(newStatus, uriDetail(resolvedUri, hostUri));
+    protected void updateStatus(ConnectionStatus newStatus, ServerAddress resolved, ServerAddress host) {
+        updateStatus(newStatus, uriDetail(resolved, host));
     }
 
     protected void updateStatus(ConnectionStatus newStatus, String uriDetail) {
@@ -2675,7 +2684,7 @@ public class NatsConnection implements AutoCloseable {
 
     protected void invokeReconnectDelayHandler(long round, boolean lameDuckTriggered) {
         long currentWaitMillis = options.getReconnectDelayHandler()
-            .getWaitTimeMillis(round, options, serverPool.hasSecureServer(), lameDuckTriggered);
+            .getWaitTimeMillis(round, options, options.getTransport().isSecure(), lameDuckTriggered);
 
         this.reconnectWaiter = new CompletableFuture<>();
 
