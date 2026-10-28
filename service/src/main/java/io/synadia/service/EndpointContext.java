@@ -26,7 +26,7 @@ class EndpointContext {
     private final Dispatcher dispatcher;
 
     private ZonedDateTime started;
-    private String lastError;
+    private volatile String lastError;
     private final AtomicLong numRequests;
     private final AtomicLong numErrors;
     private final AtomicLong processingTime;
@@ -78,6 +78,16 @@ class EndpointContext {
                 numRequests.incrementAndGet();
             }
             handler.onMessage(smsg);
+
+            // an error the handler responded with before returning counts as an error
+            if (recordStats) {
+                String description = smsg.getResponseErrorDescription();
+                Integer code = smsg.getResponseErrorCode();
+                if (description != null || code != null) {
+                    numErrors.incrementAndGet();
+                    lastError = description != null ? description : code.toString();
+                }
+            }
         }
         catch (Throwable t) {
             if (recordStats) {
@@ -85,7 +95,7 @@ class EndpointContext {
                 lastError = t.toString();
             }
             try {
-                smsg.respondStandardError(conn, lastError, 500);
+                smsg.respondError(conn, 500, lastError);
             } catch (RuntimeException ignore) {}
         }
         finally {
@@ -113,7 +123,6 @@ class EndpointContext {
         numErrors.set(0);
         processingTime.set(0);
         lastError = null;
-        started = DateTimeUtils.utcNow();
     }
 
     boolean isNotInternalDispatcher() {

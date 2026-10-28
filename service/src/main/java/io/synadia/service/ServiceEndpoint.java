@@ -3,11 +3,15 @@ package io.synadia.service;
 import io.nats.json.JsonValue;
 import io.synadia.client.Dispatcher;
 import io.synadia.client.utils.Validator;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.function.Supplier;
 
 import static io.synadia.client.utils.NatsConstants.DOT;
+import static io.synadia.service.Service.DEFAULT_SERVICE_PREFIX;
+import static io.synadia.service.Service.RESERVED_SERVICE_PREFIX_TOKEN;
 
 /**
  * The ServiceEndpoint represents the working {@link Endpoint}
@@ -58,8 +62,10 @@ public class ServiceEndpoint {
      * Get the subject of the ServiceEndpoint which takes into account the group path and the {@link Endpoint} subject
      * @return the endpoint subject
      */
+    @NonNull
     public String getSubject() {
-        return group == null ? endpoint.getSubject() : group.getSubject() + DOT + endpoint.getSubject();
+        String groupSubject = group == null ? null : group.getSubject();
+        return groupSubject == null ? endpoint.getSubject() : groupSubject + DOT + endpoint.getSubject();
     }
 
     /**
@@ -72,8 +78,9 @@ public class ServiceEndpoint {
 
     /**
      * Get the name of the {@link Group}
-     * @return the group name or null if there is no group
+     * @return the group name or null if there is no group or the group has no name
      */
+    @Nullable
     public String getGroupName() {
         return group == null ? null : group.getName();
     }
@@ -222,12 +229,20 @@ public class ServiceEndpoint {
 
         /**
          * Build the ServiceEndpoint instance.
+         * The subject, including any group prefix, cannot be under the $SRV prefix,
+         * which is reserved for the service's discovery endpoints.
          * @return the ServiceEndpoint instance
-         * @throws IllegalArgumentException if the handler is null, or the endpoint name, subject, or queue group is invalid
+         * @throws IllegalArgumentException if the handler is null, the endpoint name, subject, or queue group is invalid,
+         * or the subject is {@code $SRV} or under it
          */
         public ServiceEndpoint build() {
             Endpoint endpoint = endpointBuilder.build();
             Validator.required(handler, "Message Handler");
+            String groupSubject = group == null ? null : group.getSubject();
+            String subject = groupSubject == null ? endpoint.getSubject() : groupSubject + DOT + endpoint.getSubject();
+            if (subject.equals(RESERVED_SERVICE_PREFIX_TOKEN) || subject.startsWith(DEFAULT_SERVICE_PREFIX)) {
+                throw new IllegalArgumentException("Service Endpoint Subject cannot be under " + RESERVED_SERVICE_PREFIX_TOKEN + ", which is reserved for service discovery.");
+            }
             return new ServiceEndpoint(this, endpoint);
         }
     }

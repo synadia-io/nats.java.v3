@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.synadia.client.utils.Validator.*;
+import static io.synadia.service.Service.RESERVED_SERVICE_PREFIX_TOKEN;
+import static io.synadia.service.Service.normalizePrefix;
 
 /**
  * Build a Service using a fluent builder.
@@ -20,6 +22,7 @@ public class ServiceBuilder {
     public static final long DEFAULT_DRAIN_TIMEOUT_MILLIS = 5000;
 
     NatsConnection conn;
+    String prefix = RESERVED_SERVICE_PREFIX_TOKEN;
     String name;
     String description;
     String version;
@@ -42,6 +45,35 @@ public class ServiceBuilder {
      */
     public ServiceBuilder connection(NatsConnection conn) {
         this.conn = conn;
+        return this;
+    }
+
+    /**
+     * The prefix of the discovery subjects, in place of {@code $SRV}, for instance {@code ACME}
+     * gives {@code ACME.PING}, {@code ACME.INFO} and {@code ACME.STATS}.
+     * The prefix is trimmed and a trailing dot is dropped; null or empty means {@code $SRV}.
+     * It can have more than one token, its case is kept, and it cannot contain whitespace,
+     * wildcards, empty tokens or a token that is {@code $SRV} (case-sensitive).
+     * A service endpoint subject cannot be the prefix or under it.
+     * @param prefix the prefix
+     * @return the ServiceBuilder
+     * @throws IllegalArgumentException if the prefix contains whitespace, a wildcard, an empty token,
+     * a non-printable character or a {@code $SRV} token
+     */
+    public ServiceBuilder prefix(String prefix) {
+        String p = normalizePrefix(prefix);
+        if (!p.equals(RESERVED_SERVICE_PREFIX_TOKEN)) {
+            validateSubjectTermStrict(p, "Service Prefix", true);
+            if (notPrintableOrHasWildGt(p)) {
+                throw new IllegalArgumentException("Service Prefix must be in the printable ASCII range and cannot include '*', '>' [" + p + "]");
+            }
+            for (String token : p.split("\\.")) {
+                if (token.equals(RESERVED_SERVICE_PREFIX_TOKEN)) {
+                    throw new IllegalArgumentException("Service Prefix cannot contain the token " + RESERVED_SERVICE_PREFIX_TOKEN + " [" + p + "]");
+                }
+            }
+        }
+        this.prefix = p;
         return this;
     }
 
@@ -78,12 +110,18 @@ public class ServiceBuilder {
     }
 
     /**
-     * Any meta information about this service
+     * Any meta information about this service. The map is copied, so changing it
+     * afterward does not change the service's metadata.
      * @param metadata the meta
      * @return the ServiceBuilder
      */
     public ServiceBuilder metadata(Map<String, String> metadata) {
-        this.metadata = metadata;
+        if (metadata == null || metadata.isEmpty()) {
+            this.metadata = null;
+        }
+        else {
+            this.metadata = new HashMap<>(metadata);
+        }
         return this;
     }
 
