@@ -549,7 +549,7 @@ public class ConsumerConfigurationTests extends TestBase {
 
         assertNull(cc.getDurable());
 
-        for (String bad : BAD_SUBJECTS_OR_QUEUES) {
+        for (String bad : BAD_QUEUES) {
             if (bad == null || bad.isEmpty()) {
                 PushConsumerCreator creator = new PushConsumerCreator().deliverGroup(bad);
                 assertNull(creator.getDeliverGroup());

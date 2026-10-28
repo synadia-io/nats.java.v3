@@ -32,7 +32,7 @@ public class DispatcherTests extends TestBase {
 
             Dispatcher dx = nc.createDispatcher(m -> {
             });
-            for (String bad : BAD_SUBJECTS_OR_QUEUES) {
+            for (String bad : BAD_SUBJECTS) {
                 assertThrows(IllegalArgumentException.class, () -> nc.subscribe(bad));
                 assertThrows(IllegalArgumentException.class, () -> dx.subscribe(bad));
                 assertThrows(IllegalArgumentException.class, () -> dx.subscribe(bad, m -> {
@@ -40,6 +40,8 @@ public class DispatcherTests extends TestBase {
                 assertThrows(IllegalArgumentException.class, () -> dx.subscribe(bad, "q"));
                 assertThrows(IllegalArgumentException.class, () -> dx.subscribe(bad, "q", m -> {
                 }));
+            }
+            for (String bad : BAD_QUEUES) {
                 assertThrows(IllegalArgumentException.class, () -> nc.subscribe("s", bad));
                 assertThrows(IllegalArgumentException.class, () -> dx.subscribe("s", bad));
                 assertThrows(IllegalArgumentException.class, () -> dx.subscribe("s", bad, m -> {
