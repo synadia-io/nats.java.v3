@@ -17,18 +17,18 @@ public class CoverageServerPool implements ServerPool {
     }
 
     @Override
-    public boolean acceptDiscoveredUrls(@NonNull List<String> discoveredServers, @Nullable NatsUri origin) {
+    public boolean acceptDiscoveredUrls(@NonNull List<ServerAddress> discoveredServers, @Nullable ServerAddress origin) {
         return false;
     }
 
     @Override
-    public NatsUri peekNextServer() {
-        return new NatsUri();
+    public ServerAddress peekNextServer() {
+        return new ServerAddress("localhost", 4222);
     }
 
     @Override
-    public NatsUri nextServer() {
-        return new NatsUri();
+    public ServerAddress nextServer() {
+        return new ServerAddress("localhost", 4222);
     }
 
     @Override
@@ -37,25 +37,17 @@ public class CoverageServerPool implements ServerPool {
     }
 
     @Override
-    public void connectSucceeded(@NonNull NatsUri nuri) {
+    public void connectSucceeded(@NonNull ServerAddress address) {
     }
 
     @Override
-    public void connectFailed(@NonNull NatsUri nuri) {
-    }
-
-    @Override
-    public void serverRejected(@NonNull NatsUri nuri) {
+    public boolean connectFailed(@NonNull ServerAddress address) {
+        return false;
     }
 
     @Override
     @NonNull
     public List<String> getServerList() {
         return new ArrayList<>();
-    }
-
-    @Override
-    public boolean hasSecureServer() {
-        return false;
     }
 }

@@ -11,7 +11,7 @@ import io.synadia.client.Options;
 import io.synadia.client.OptionsBuilder;
 import io.synadia.client.global.NatsInetAddress;
 import io.synadia.client.global.NatsInetAddressProvider;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.SSLUtils;
 import io.synadia.client.utils.ssl.DiagnosticSslContext;
 import io.synadia.client.utils.ssl.SniTestServer;
@@ -34,10 +34,12 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -419,30 +421,29 @@ public class TlsHostnameTests {
 
     @Test
     public void tlsHostnameSurvivesResolutionWithoutChangingUriIdentity() throws Exception {
-        NatsUri original = new NatsUri("tls://user:pass@nats.test:4222");
+        ServerAddress original = new ServerAddress("nats.test", 4222);
         for (String ip : Arrays.asList("127.0.0.1", "::1")) {
-            NatsUri resolved = original.reHost(ip);
+            ServerAddress resolved = original.reHost(ip);
             assertEquals(SniTestServer.HOST, resolved.getTlsHost());
-            assertEquals("user:pass", resolved.getUserInfo());
             assertTrue(resolved.hostIsIpAddress());
-            NatsUri plain = new NatsUri(resolved.toString());
+            ServerAddress plain = ServerAddress.parse(resolved.toString());
             assertEquals(plain, resolved);
             assertEquals(plain.hashCode(), resolved.hashCode());
             assertEquals(plain.toString(), resolved.toString());
             assertEquals(SniTestServer.HOST, resolved.reHost("127.0.0.2").getTlsHost());
             assertEquals("other.test", resolved.reHost("other.test").getTlsHost());
         }
-        assertEquals("127.0.0.2", new NatsUri("tls://127.0.0.1:4222").reHost("127.0.0.2").getTlsHost());
-        NatsUri discovered = new NatsUri("tls://127.0.0.1:4222").withTlsHost("one.test");
+        assertEquals("127.0.0.2", new ServerAddress("127.0.0.1", 4222).reHost("127.0.0.2").getTlsHost());
+        ServerAddress discovered = new ServerAddress("127.0.0.1", 4222).withTlsHost("one.test");
         assertEquals("one.test", discovered.getTlsHost());
         assertEquals("127.0.0.1", discovered.getHost());
-        assertEquals(new NatsUri("tls://127.0.0.1:4222"), discovered);
+        assertEquals(new ServerAddress("127.0.0.1", 4222), discovered);
         assertEquals("one.test", discovered.reHost("127.0.0.2").getTlsHost());
     }
 
     @Test
     public void discoverySavesTheOriginHostnameAndHonorsIgnoreDiscoveredServers() throws Exception {
-        NatsUri origin = new NatsUri("nats://one.test:4222");
+        ServerAddress origin = new ServerAddress("one.test", 4222);
         for (boolean ignore : new boolean[]{false, true}) {
             NatsServerPool pool = new NatsServerPool();
             OptionsBuilder builder = new OptionsBuilder().server(origin.toString());
@@ -450,14 +451,14 @@ public class TlsHostnameTests {
                 builder.ignoreDiscoveredServers();
             }
             pool.initialize(builder.build());
-            assertEquals(!ignore, pool.acceptDiscoveredUrls(Collections.singletonList("127.0.0.1:4222"), origin));
+            assertEquals(!ignore, pool.acceptDiscoveredUrls(addresses("127.0.0.1:4222"), origin));
             if (ignore) {
                 assertEquals(1, pool.getServerList().size());
             }
             else {
                 assertEquals("one.test", entry(pool, "127.0.0.1").getTlsHost());
                 // the overload without an origin saves nothing
-                pool.acceptDiscoveredUrls(Arrays.asList("127.0.0.1:4222", "127.0.0.2:4222"), null);
+                pool.acceptDiscoveredUrls(addresses("127.0.0.1:4222", "127.0.0.2:4222"), null);
                 assertEquals("one.test", entry(pool, "127.0.0.1").getTlsHost());
                 assertEquals("127.0.0.2", entry(pool, "127.0.0.2").getTlsHost());
             }
@@ -469,33 +470,41 @@ public class TlsHostnameTests {
         NatsServerPool pool = new NatsServerPool();
         pool.initialize(new OptionsBuilder().noRandomize()
             .servers(new String[]{"tls://one.test:4222", "tls://two.test:4222", "tls://127.0.0.9:4222"}).build());
-        NatsUri one = new NatsUri("tls://one.test:4222");
-        NatsUri two = new NatsUri("tls://two.test:4222");
-        NatsUri nine = new NatsUri("tls://127.0.0.9:4222");
-        pool.acceptDiscoveredUrls(Arrays.asList("127.0.0.1:4222", "[::1]:4222", "other.test:4222", "127.0.0.9:4222"), one);
+        ServerAddress one = new ServerAddress("one.test", 4222);
+        ServerAddress two = new ServerAddress("two.test", 4222);
+        ServerAddress nine = new ServerAddress("127.0.0.9", 4222);
+        pool.acceptDiscoveredUrls(addresses("127.0.0.1:4222", "[::1]:4222", "other.test:4222", "127.0.0.9:4222"), one);
         assertEquals("one.test", entry(pool, "127.0.0.1").getTlsHost());
         assertEquals("one.test", entry(pool, "[::1]").getTlsHost());
         assertEquals("other.test", entry(pool, "other.test").getTlsHost());
         assertEquals("127.0.0.9", entry(pool, "127.0.0.9").getTlsHost()); // explicit server, not overridden
-        pool.acceptDiscoveredUrls(Arrays.asList("127.0.0.1:4222", "127.0.0.2:4222"), two);
+        pool.acceptDiscoveredUrls(addresses("127.0.0.1:4222", "127.0.0.2:4222"), two);
         assertEquals("one.test", entry(pool, "127.0.0.1").getTlsHost()); // already known, keeps its name
         assertEquals("two.test", entry(pool, "127.0.0.2").getTlsHost());
         // one hop only: an origin that is an ip address supplies nothing
-        pool.acceptDiscoveredUrls(Collections.singletonList("127.0.0.3:4222"), nine);
+        pool.acceptDiscoveredUrls(addresses("127.0.0.3:4222"), nine);
         assertEquals("127.0.0.3", entry(pool, "127.0.0.3").getTlsHost());
         // nor does an origin that is a discovered ip carrying a name
-        NatsUri discoveredWithName = new NatsUri("tls://127.0.0.1:4222").withTlsHost("one.test");
-        pool.acceptDiscoveredUrls(Collections.singletonList("127.0.0.4:4222"), discoveredWithName);
+        ServerAddress discoveredWithName = new ServerAddress("127.0.0.1", 4222).withTlsHost("one.test");
+        pool.acceptDiscoveredUrls(addresses("127.0.0.4:4222"), discoveredWithName);
         assertEquals("127.0.0.4", entry(pool, "127.0.0.4").getTlsHost());
     }
 
-    private static NatsUri entry(NatsServerPool pool, String host) {
+    private static ServerAddress entry(NatsServerPool pool, String host) {
         for (ServerPoolEntry e : pool.entryList) {
-            if (e.nuri.getHost().equals(host)) {
-                return e.nuri;
+            if (e.address.getHost().equals(host)) {
+                return e.address;
             }
         }
         throw new AssertionError("Missing server " + host);
+    }
+
+    private static List<ServerAddress> addresses(String... hostPorts) throws URISyntaxException {
+        List<ServerAddress> list = new ArrayList<>();
+        for (String s : hostPorts) {
+            list.add(ServerAddress.parse(s));
+        }
+        return list;
     }
 
     // ---- tls hostname verification ----
@@ -607,8 +616,8 @@ public class TlsHostnameTests {
     }
 
     public static class RecordingDataPort extends SocketDataPort {
-        static volatile NatsUri resolved;
-        static volatile NatsUri unresolved;
+        static volatile ServerAddress resolved;
+        static volatile ServerAddress unresolved;
         static volatile String tlsHostSeen;
 
         static void reset() {
@@ -618,10 +627,10 @@ public class TlsHostnameTests {
         }
 
         @Override
-        public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, @NonNull NatsUri unresolvedUri, long timeoutNanos) throws IOException {
-            resolved = nuri;
-            unresolved = unresolvedUri;
-            super.connect(conn, nuri, unresolvedUri, timeoutNanos);
+        public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, @NonNull ServerAddress unresolvedAddress, long timeoutNanos) throws IOException {
+            resolved = address;
+            unresolved = unresolvedAddress;
+            super.connect(conn, address, unresolvedAddress, timeoutNanos);
         }
 
         @Override
@@ -633,15 +642,15 @@ public class TlsHostnameTests {
 
     public static class LegacyConnectDataPort extends RecordingDataPort {
         @Override
-        public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, @NonNull NatsUri unresolvedUri, long timeoutNanos) throws IOException {
-            // behave like an implementation that predates the unresolved uri
-            connect(conn, nuri, timeoutNanos);
+        public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, @NonNull ServerAddress unresolvedAddress, long timeoutNanos) throws IOException {
+            // behave like an implementation that predates the unresolved address
+            connect(conn, address, timeoutNanos);
         }
 
         @Override
-        public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {
-            resolved = nuri;
-            super.connect(conn, nuri, timeoutNanos);
+        public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, long timeoutNanos) throws IOException {
+            resolved = address;
+            super.connect(conn, address, timeoutNanos);
         }
     }
 }

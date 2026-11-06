@@ -3,7 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
 import io.synadia.client.OptionsBuilder;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.TestBase;
 import org.junit.jupiter.api.Test;
 
@@ -179,10 +179,10 @@ public class SocketDataPortProxyHostnameTest extends TestBase {
             Options options = optionsBuilder.build();
             MockNatsNatsConnection mockConnection = new MockNatsNatsConnection(options);
             SocketDataPort dataPort = new SocketDataPort();
-            NatsUri nuri = new NatsUri("nats://localhost:4222");
+            ServerAddress address = new ServerAddress("localhost", 4222);
 
             try {
-                dataPort.connect(mockConnection, nuri, 5_000_000_000L);
+                dataPort.connect(mockConnection, address, 5_000_000_000L);
             } catch (Exception e) {
                 // Expected - connection will fail since there's no real server
             }

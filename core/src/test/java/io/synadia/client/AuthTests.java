@@ -31,18 +31,11 @@ import static io.synadia.client.utils.OptionsUtils.optionsBuilder;
 import static io.synadia.client.utils.ResourceUtils.jwtResource;
 import static io.synadia.client.utils.ThreadUtils.sleep;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 @Isolated
 public class AuthTests extends TestBase {
-
-    private String userPassInUrl(String user, String pass, int port) {
-        return "nats://" + user + ":" + pass + "@" + NatsRunnerUtils.getDefaultLocalhostHost().host + ":" + port;
-    }
-
-    private String tokenInUrl(String userOrToken, int port) {
-        return "nats://" + userOrToken + "@" + NatsRunnerUtils.getDefaultLocalhostHost().host + ":" + port;
-    }
 
     public static AuthHandler getUserCredsAuthHander() {
         return Nats.credentials(jwtResource("user.creds"));
@@ -52,10 +45,6 @@ public class AuthTests extends TestBase {
     public void testUserPass() throws Exception {
         String[] customArgs = { "--user", "uuu", "--pass", "ppp" };
         try (NatsTestServer ts = new NatsTestServer(customArgs)) {
-            // u/p in url
-            Options upInUrlOpts = optionsBuilder(userPassInUrl("uuu", "ppp", ts.getNatsPort())).maxReconnects(0).build();
-            assertCanConnect(upInUrlOpts);
-
             // u/p in options
             Options upInOptionsOpts = optionsBuilder(ts).maxReconnects(0)
                 .userInfo("uuu".toCharArray(), "ppp".toCharArray()).build();
@@ -72,46 +61,6 @@ public class AuthTests extends TestBase {
             Options missingUserPassOpts = optionsBuilder(ts).maxReconnects(0).connectionTimeout(10000).build();
             assertThrows(AuthenticationException.class, () -> Nats.connect(missingUserPassOpts));
         }
-    }
-
-    @Test
-    public void testEncodedPassword() throws Exception {
-        runInConfiguredServer("encoded_pass.conf", ts -> {
-            int port = ts.getNatsPort();
-            assertEncoded("space%20space", port);
-            assertEncoded("colon%3Acolon", port);
-            assertEncoded("colon%3acolon", port); // just making sure lower case hex
-            assertEncoded("quote%27quote", port);
-            assertEncoded("slash%2Fslash", port);
-            assertEncoded("question%3Fquestion", port);
-            assertEncoded("pound%23pound", port);
-            assertEncoded("sqleft%5Bsqleft", port);
-            assertEncoded("sqright%5Dsqright", port);
-            assertEncoded("at%40at", port);
-            assertEncoded("bang%21bang", port);
-            assertEncoded("dollar%24dollar", port);
-            assertEncoded("amp%26amp", port);
-            assertEncoded("comma%2Ccomma", port);
-            assertEncoded("parenleft%28parenleft", port);
-            assertEncoded("parentright%29parentright", port);
-            assertEncoded("asterix%2Aasterix", port);
-            assertEncoded("plus%2Bplus", port);
-            assertEncoded("semi%3Bsemi", port);
-            assertEncoded("eq%3Deq", port);
-            assertEncoded("pct%25pct", port);
-            assertEncoded("%2b%3a%c2%a1%c2%a2%c2%a3%c2%a4%c2%a5%c2%a6%c2%a7%c2%a8%c2%a9%c2%aa%c2%ab%c2%ac%20%f0%9f%98%80", port);
-
-            // a plus sign in a user or pass is a plus sign, not a space
-            assertThrows(AuthenticationException.class, () -> assertEncoded("space+space", port));
-        });
-    }
-
-    private void assertEncoded(String encoded, int port) throws IOException, InterruptedException {
-        String url = userPassInUrl("u" + encoded, "p" + encoded, port);
-        Options options = optionsBuilder(url).build();
-        NatsConnection c = Nats.connect(options);
-        c.getServerInfo();
-        c.close();
     }
 
     // A user or password may contain characters that cannot travel literally in the CONNECT frame. The
@@ -214,153 +163,27 @@ public class AuthTests extends TestBase {
     }
 
     @Test
-    public void testUserPassInURLOnReconnect() throws Exception {
-        Listener listener = new Listener();
-        int port;
-        NatsConnection nc;
-        Subscription sub;
-        String[] customArgs = { "--user", "uuu", "--pass", "ppp" };
-
+    public void testBadAuthFailsAtOnceUnlessHeld() throws Exception {
+        // V3: a -ERR in reply to CONNECT fails the attempt as soon as the reader reads it; classic waits for the
+        // connection timeout. An attempt that counts toward the double auth error rule is still held to its timeout.
+        String[] customArgs = { "--auth", "token" };
         try (NatsTestServer ts = new NatsTestServer(customArgs)) {
-            port = ts.getNatsPort();
-            // See config file for user/pass
-            Options options = new OptionsBuilder().server(userPassInUrl("uuu", "ppp", ts.getNatsPort()))
-                .maxReconnects(-1).connectionListener(listener).errorListener(NOOP_EL).build();
-            nc = managedConnect(options);
+            Options options = optionsBuilder(ts).maxReconnects(0).connectionTimeout(3000)
+                .token("bad".toCharArray()).errorListener(NOOP_EL).build();
+            assumeTrue(options.connectionImplementation() == ConnectionImplementation.V3);
+            long start = System.nanoTime();
+            assertThrows(AuthenticationException.class, () -> Nats.connect(options));
+            long elapsed = (System.nanoTime() - start) / 1_000_000;
+            assertTrue(elapsed < 1500, "connect failed after " + elapsed + " ms");
 
-            sub = nc.subscribe("test");
-            nc.publish("test", null);
-            flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
-            Message msg = sub.nextMessage(5000L);
-            assertNotNull(msg);
-            listener.queueConnectionEvent(ConnectionEvent.DISCONNECTED);
-        }
-
-        TestBase.flushConnection(nc);
-
-        listener.validate();
-
-        ConnectionStatus status = nc.getStatus();
-        assertTrue(
-                ConnectionStatus.RECONNECTING == status || ConnectionStatus.DISCONNECTED == status, "Reconnecting status");
-        listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
-
-        try (NatsTestServer ignored = new NatsTestServer(customArgs, port)) {
-            confirmConnected(nc); // wait for reconnect
-            nc.publish("test", null);
-            flushConnection(nc, MEDIUM_FLUSH_TIMEOUT_MS);
-            Message msg = sub.nextMessage(5000L);
-            assertNotNull(msg);
-            closeAndConfirm(nc);
-        }
-    }
-
-    @Test
-    public void testUserPassInURLClusteredWithDifferentUser() throws Exception {
-        String[] customArgs1 = { "--user", "uuu", "--pass", "ppp" };
-        String[] customArgs2 = { "--user", "uuu2", "--pass", "ppp2" };
-        Listener listener = new Listener();
-        try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
-             NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = userPassInUrl("uuu", "ppp", ts1.getNatsPort());
-            String url2 = userPassInUrl("uuu2", "ppp2", ts2.getNatsPort());
-            Options options = optionsBuilder(url1, url2)
-                .maxReconnects(4)
-                .noRandomize()
-                .connectionListener(listener)
-                .pingInterval(100)
-                .build();
-
-            try (NatsConnection nc = managedConnect(options)) {
-                assertEquals(nc.getConnectedUrl(), url1);
-                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
-                ts1.close();
-                confirmConnected(nc); // wait for reconnect
-                assertEquals(nc.getConnectedUrl(), url2);
+            Options held = optionsBuilder(ts).maxReconnects(0).connectionTimeout(1000)
+                .token("bad".toCharArray()).errorListener(NOOP_EL).build();
+            start = System.nanoTime();
+            try (NatsConnection nc = Nats.connectReconnectOnFailure(held)) {
+                assertEquals(ConnectionStatus.CLOSED, nc.getStatus());
             }
-        }
-    }
-
-    @Test
-    public void testUserPassInURLWithFallback() throws Exception {
-        String[] customArgs1 = { "--user", "uuu", "--pass", "ppp" };
-        String[] customArgs2 = { "--user", "uuu2", "--pass", "ppp2" };
-        Listener listener = new Listener();
-        try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
-             NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = userPassInUrl("uuu", "ppp", ts1.getNatsPort());
-            Options options = optionsBuilder(url1, ts2.getNatsLocalhostUri())
-                .userInfo("uuu2".toCharArray(), "ppp2".toCharArray())
-                .maxReconnects(4)
-                .noRandomize()
-                .connectionListener(listener)
-                .pingInterval(100).build();
-            try (NatsConnection nc = managedConnect(options)) {
-                assertEquals(nc.getConnectedUrl(), url1);
-
-                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED, LONG_VALIDATE_TIMEOUT);
-                ts1.close();
-                listener.validate();
-                assertConnected(nc);
-                assertEquals(ts2.getServerUri(), nc.getConnectedUrl());
-            }
-        }
-    }
-
-    @Test
-    public void testTokenInURLClusteredWithDifferentUser() throws Exception {
-        String[] customArgs1 = { "--auth", "token_one" };
-        String[] customArgs2 = { "--auth", "token_two" };
-        Listener listener = new Listener();
-        try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
-             NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = tokenInUrl("token_one", ts1.getNatsPort());
-            String url2 = tokenInUrl("token_two", ts2.getNatsPort());
-            Options options = optionsBuilder(url1, url2)
-                .maxReconnects(4)
-                .noRandomize()
-                .connectionListener(listener)
-                .pingInterval(100)
-                .build();
-            try (NatsConnection nc = managedConnect(options)) {
-                assertEquals(nc.getConnectedUrl(), url1);
-
-                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
-                ts1.close();
-                listener.validate();
-
-                confirmConnected(nc); // wait for reconnect
-                assertEquals(nc.getConnectedUrl(), url2);
-            }
-        }
-    }
-
-    @Test
-    public void testTokenInURLWithFallback() throws Exception {
-        String[] customArgs1 = { "--auth", "token_one" };
-        String[] customArgs2 = { "--auth", "token_two" };
-        Listener listener = new Listener();
-        try (NatsTestServer ts1 = new NatsTestServer(customArgs1);
-             NatsTestServer ts2 = new NatsTestServer(customArgs2)) {
-            String url1 = tokenInUrl("token_one", ts1.getNatsPort());
-            Options options = optionsBuilder(url1, ts2.getNatsLocalhostUri())
-                .token("token_two".toCharArray())
-                .maxReconnects(4)
-                .noRandomize()
-                .connectionListener(listener)
-                .pingInterval(100)
-                .build();
-
-            try (NatsConnection nc = managedConnect(options)) {
-                assertEquals(nc.getConnectedUrl(), url1);
-
-                listener.queueConnectionEvent(ConnectionEvent.RESUBSCRIBED);
-                ts1.close();
-                listener.validate();
-
-                confirmConnected(nc); // wait for reconnect
-                assertEquals(ts2.getServerUri(), nc.getConnectedUrl());
-            }
+            elapsed = (System.nanoTime() - start) / 1_000_000;
+            assertTrue(elapsed >= 900, "held attempt ended after " + elapsed + " ms");
         }
     }
 
@@ -373,11 +196,6 @@ public class AuthTests extends TestBase {
                 .maxReconnects(0)
                 .token("token".toCharArray())
                 .build();
-            assertCanConnect(options);
-
-            // token in url
-            options = optionsBuilder(tokenInUrl("token", ts.getNatsPort()))
-                .maxReconnects(0).build();
             assertCanConnect(options);
 
             // incorrect token

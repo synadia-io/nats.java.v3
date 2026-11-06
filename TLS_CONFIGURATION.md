@@ -4,17 +4,26 @@ How the client decides whether a connection uses TLS, which `SSLContext` it uses
 
 ## 1. One SSLContext per connection
 
-A connection has one `SSLContext`. It is used for every server the connection ever talks to: the bootstrap servers given in the options and the servers discovered from the cluster through `connect_urls`. Discovered servers take the scheme of the first bootstrap server that is not plain `nats://`, so a connection bootstrapped with `tls://` reaches discovered servers with TLS and the same context.
+A connection has one transport and one `SSLContext`. Both are used for every server the connection ever talks to: the bootstrap servers given in the options and the servers discovered from the cluster through `connect_urls`. The server pool holds only `host:port` (and, for a websocket, a path); the transport comes from the options. A discovered server is always `host:port`, so it takes the connection's transport.
 
 The context is accepted or created once, when `OptionsBuilder.build()` runs, in this order. The first rule that applies wins and the rest are not consulted.
 
 1. `sslContext(SSLContext ctx)` was called: that context, as given.
 2. An `SSLContextFactory` was set, by builder or through the `sslContextFactoryClass` property: the factory builds the context from the keystore, truststore and algorithm properties.
 3. `keyStore` or `trustStore` was set, by builder or property: the client builds a context from those JKS files with the `tlsAlgorithm` property, `SunX509` by default.
-4. `secure()` was called, the `secure` property is true, or any bootstrap server has the `tls://` or `wss://` scheme: `SSLContext.getDefault()`, described in section 2.
+4. The transport is secure (`tls` or `wss`, see below) because `secure()` was called, the `secure` property is true, or a bootstrap server has the `tls://` or `wss://` scheme: `SSLContext.getDefault()`, described in section 2.
 5. Otherwise no context, and the connection is plain TCP. A server that requires TLS then fails the connect with "SSL required by server."
 
-When the options end up with a context, by any of rules 1 to 4, a `ws://` server in the list is an error at `build()`: `ws://` is a plain websocket and is never upgraded to TLS, so that server would be reached without it. Use `wss://` for it. A `nats://` server is allowed, because it is upgraded to TLS like every other server of the connection. A `ws://` server that reaches the connection another way, advertised by the cluster in `connect_urls` or supplied by a custom `ServerPool`, is never dialed: when the pool hands it out, the connection skips it and goes on to the next server, reports it through `ErrorListener.serverRejected`, and tells the pool through `ServerPool.serverRejected`, so the default pool drops it and does not take it back as `ws://` from a later `connect_urls`.
+The transport is resolved at `build()`, as one of `nats`, `tls`, `ws` and `wss` (`Options.getTransport()`):
+
+- It is secure when `secure()` was called (or the `secure` property is true), any TLS setting of rules 1 to 3 was given, or a bootstrap server has the `tls://` or `wss://` scheme.
+- It is a websocket when `ws()` was called (or the `websocket` property is true), or a bootstrap server has the `ws://` or `wss://` scheme.
+- A bootstrap server may be given without a scheme: `host`, `host:port`, or for a websocket `host[:port]/path`. It takes the transport. Without a port it gets 4222 for `nats` and `tls`, 80 for `ws`, 443 for `wss`.
+- Every bootstrap server that has a scheme must have the transport's scheme, with one exception: `nats://` is the same as no scheme when the transport is `nats` or `tls`. Anything else is an error at `build()`, for the whole list. Examples: `tls://a` with `ws://b`; `secure()` with `ws://a`; `ws()` with `nats://a`.
+- A path is allowed only for a websocket.
+- A server url with credentials (`nats://user:pass@host`, `nats://token@host`) is an error; use the authentication options.
+
+So a context always means TLS to every server: a `ws://` server cannot be in the list with a context, and a `nats://` server is upgraded to TLS like every other server of the connection. A `connect_urls` entry that is not `host:port` is never given to the server pool; it is reported through `ErrorListener.serverIssue` as `InvalidDiscoveredServer` each time an INFO carries it, because nats-server only sends `host:port` and anything else points to a problem in the system, such as a misconfigured `advertise` value.
 
 There is no `opentls://` scheme, `openTls()` builder method or `openTls` property. An `opentls://` url fails with "Unsupported NATS URI scheme." A context that trusts every certificate is supplied with rule 1, section 4.
 

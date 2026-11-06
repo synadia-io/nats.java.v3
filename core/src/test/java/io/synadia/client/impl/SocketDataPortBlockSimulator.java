@@ -3,7 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.ForceReconnectOptions;
 import io.synadia.client.Options;
 import io.synadia.client.global.NatsSystemClock;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.ScheduledTask;
 import org.jspecify.annotations.NonNull;
 
@@ -36,8 +36,8 @@ public class SocketDataPortBlockSimulator extends SocketDataPort {
     }
 
     @Override
-    public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {
-        super.connect(conn, nuri, timeoutNanos);
+    public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, long timeoutNanos) throws IOException {
+        super.connect(conn, address, timeoutNanos);
         writeWatchTask = new ScheduledTask(conn.getScheduledExecutor(), delayPeriodNanos, TimeUnit.NANOSECONDS,
             () -> {
                 //  if now is after when it was supposed to be done by

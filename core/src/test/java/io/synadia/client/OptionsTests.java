@@ -879,7 +879,7 @@ public class OptionsTests extends TestBase {
         Options o = new OptionsBuilder().build();
         String expected = "{\"lang\":\"java\",\"version\":\"" + Nats.CLIENT_VERSION + "\""
             + ",\"protocol\":1,\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"echo\":true,\"headers\":true,\"no_responders\":true}";
-        assertEquals(expected, o.buildProtocolConnectOptionsString("nats://localhost:4222", false, null).toString(), "default connect options");
+        assertEquals(expected, o.buildProtocolConnectOptionsString(false, null).toString(), "default connect options");
     }
 
     @Test
@@ -887,7 +887,7 @@ public class OptionsTests extends TestBase {
         Options o = new OptionsBuilder().noEcho().pedantic().verbose().build();
         String expected = "{\"lang\":\"java\",\"version\":\"" + Nats.CLIENT_VERSION + "\""
             + ",\"protocol\":1,\"verbose\":true,\"pedantic\":true,\"tls_required\":false,\"echo\":false,\"headers\":true,\"no_responders\":true}";
-        assertEquals(expected, o.buildProtocolConnectOptionsString("nats://localhost:4222", false, null).toString(), "non default connect options");
+        assertEquals(expected, o.buildProtocolConnectOptionsString(false, null).toString(), "non default connect options");
     }
 
     @Test
@@ -896,7 +896,7 @@ public class OptionsTests extends TestBase {
         Options o = new OptionsBuilder().sslContext(ctx).connectionName("c1").build();
         String expected = "{\"lang\":\"java\",\"version\":\"" + Nats.CLIENT_VERSION + "\",\"name\":\"c1\""
             + ",\"protocol\":1,\"verbose\":false,\"pedantic\":false,\"tls_required\":true,\"echo\":true,\"headers\":true,\"no_responders\":true}";
-        assertEquals(expected, o.buildProtocolConnectOptionsString("nats://localhost:4222", false, null).toString(), "default connect options");
+        assertEquals(expected, o.buildProtocolConnectOptionsString(false, null).toString(), "default connect options");
     }
 
     @Test
@@ -907,8 +907,8 @@ public class OptionsTests extends TestBase {
         String expectedWithAuth = "{\"lang\":\"java\",\"version\":\"" + Nats.CLIENT_VERSION + "\""
             + ",\"protocol\":1,\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"echo\":true,\"headers\":true,\"no_responders\":true"
             + ",\"user\":\"hello\",\"pass\":\"world\"}";
-        assertEquals(expectedNoAuth, o.buildProtocolConnectOptionsString("nats://localhost:4222", false, null).toString(), "no auth connect options");
-        assertEquals(expectedWithAuth, o.buildProtocolConnectOptionsString("nats://localhost:4222", true, null).toString(), "auth connect options");
+        assertEquals(expectedNoAuth, o.buildProtocolConnectOptionsString(false, null).toString(), "no auth connect options");
+        assertEquals(expectedWithAuth, o.buildProtocolConnectOptionsString(true, null).toString(), "auth connect options");
     }
     /*
     expected: <{"lang":"java","version":"2.8.0","protocol":1,"verbose":false,"pedantic":false,"tls_required":false,"echo":true}>
@@ -927,8 +927,8 @@ public class OptionsTests extends TestBase {
         String expectedWithAuth = "{\"lang\":\"java\",\"version\":\"" + Nats.CLIENT_VERSION + "\""
             + ",\"protocol\":1,\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"echo\":true,\"headers\":true"
             + ",\"no_responders\":true,\"nkey\":\""+new String(th.getID())+"\",\"sig\":\""+sig+"\",\"jwt\":\"\"}";
-        assertEquals(expectedNoAuth, o.buildProtocolConnectOptionsString("nats://localhost:4222", false, nonce).toString(), "no auth connect options");
-        assertEquals(expectedWithAuth, o.buildProtocolConnectOptionsString("nats://localhost:4222", true, nonce).toString(), "auth connect options");
+        assertEquals(expectedNoAuth, o.buildProtocolConnectOptionsString(false, nonce).toString(), "no auth connect options");
+        assertEquals(expectedWithAuth, o.buildProtocolConnectOptionsString(true, nonce).toString(), "auth connect options");
     }
 
     // Test for auth handler from nkey, option JWT and user info
@@ -955,7 +955,7 @@ public class OptionsTests extends TestBase {
                 + ",\"protocol\":1,\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"echo\":true,"
                 + "\"headers\":true,\"no_responders\":true}";
         String actualWithoutAuth = options
-                .buildProtocolConnectOptionsString("nats://localhost:4222", false, nonce).toString();
+                .buildProtocolConnectOptionsString(false, nonce).toString();
         assertEquals(expectedWithoutAuth, actualWithoutAuth);
 
         // Assert that auth and user info is given via options
@@ -964,15 +964,8 @@ public class OptionsTests extends TestBase {
                 + "\"headers\":true,\"no_responders\":true,\"nkey\":\"" + new String(th.getID()) + "\",\"sig\":\""
                 + sig + "\",\"jwt\":\"" + jwt + "\",\"user\":\"" + username + "\",\"pass\":\"" + password + "\"}";
         String actualWithAuthInOptions = options
-                .buildProtocolConnectOptionsString("nats://localhost:4222", true, nonce).toString();
+                .buildProtocolConnectOptionsString(true, nonce).toString();
         assertEquals(expectedWithAuth, actualWithAuthInOptions);
-
-        // Assert that auth is given via options and user info is given via server URI
-        Options optionsWithoutUserInfo = new OptionsBuilder().authHandler(th).build();
-        String serverUriWithAuth = "nats://" + username + ":" + password + "@localhost:4222";
-        String actualWithAuthInServerUri = optionsWithoutUserInfo
-                .buildProtocolConnectOptionsString(serverUriWithAuth, true, nonce).toString();
-        assertEquals(expectedWithAuth, actualWithAuthInServerUri);
     }
 
 
@@ -993,6 +986,40 @@ public class OptionsTests extends TestBase {
     }
 
     @Test
+    public void testDataPortThatCannotBeCreated() {
+        // a custom data port is created once at build, so these fail before any connect
+        for (String type : new String[] {
+            "io.synadia.client.impl.NoSuchDataPort",          // not on the classpath
+            NoDefaultConstructorDataPort.class.getName(),     // no public no-argument constructor
+            DataPort.class.getName(),                         // an interface
+            String.class.getName(),                           // not a DataPort
+            ThrowingConstructorDataPort.class.getName(),      // the constructor throws
+            ThrowingAfterConstructDataPort.class.getName()    // afterConstruct throws
+        }) {
+            IllegalStateException e = assertThrows(IllegalStateException.class, () -> new OptionsBuilder().dataPortType(type).build(), type);
+            assertTrue(e.getMessage().contains(type), e.getMessage());
+            assertNotNull(e.getCause(), type);
+        }
+    }
+
+    public static class NoDefaultConstructorDataPort extends SocketDataPort {
+        public NoDefaultConstructorDataPort(int ignored) {}
+    }
+
+    public static class ThrowingConstructorDataPort extends SocketDataPort {
+        public ThrowingConstructorDataPort() {
+            throw new IllegalStateException("constructor");
+        }
+    }
+
+    public static class ThrowingAfterConstructDataPort extends SocketDataPort {
+        @Override
+        public void afterConstruct(Options options) {
+            throw new IllegalStateException("afterConstruct");
+        }
+    }
+
+    @Test
     public void testJetStreamProperties() {
         Properties props = new Properties();
         props.setProperty(PROP_INBOX_PREFIX, "custom-inbox-no-dot");
@@ -1005,60 +1032,45 @@ public class OptionsTests extends TestBase {
     }
 
     @Test
-    public void testUserPassInURL() {
-        String serverURI = "nats://derek:password@localhost:2222";
-        Options o = new OptionsBuilder().server(serverURI).build();
-
-        String connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
-        assertTrue(connectString.contains("\"user\":\"derek\""));
-        assertTrue(connectString.contains("\"pass\":\"password\""));
-        assertFalse(connectString.contains("\"token\":"));
-    }
-
-    @Test
-    public void testTokenInURL() {
-        String serverURI = "nats://alberto@localhost:2222";
-        Options o = new OptionsBuilder().server(serverURI).build();
-
-        String connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
-        assertTrue(connectString.contains("\"auth_token\":\"alberto\""));
-        assertFalse(connectString.contains("\"user\":"));
-        assertFalse(connectString.contains("\"pass\":"));
+    public void testCredentialsInUrlAreRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("nats://derek:password@localhost:2222"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("nats://alberto@localhost:2222"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("derek:password@localhost:2222"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("alberto@localhost"));
     }
 
     @Test
     public void testTokenSupplier() {
-        String serverURI = "nats://localhost:2222";
         Options o = new OptionsBuilder().build();
-        String connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        String connectString = o.buildProtocolConnectOptionsString(true, null).toString();
         assertFalse(connectString.contains("\"auth_token\""));
 
         o = new OptionsBuilder().token(null).build();
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        connectString = o.buildProtocolConnectOptionsString(true, null).toString();
         assertFalse(connectString.contains("\"auth_token\""));
 
         o = new OptionsBuilder().token(new char[0]).build();
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        connectString = o.buildProtocolConnectOptionsString(true, null).toString();
         assertFalse(connectString.contains("\"auth_token\""));
 
         AtomicInteger counter = new AtomicInteger(0);
         Supplier<char[]> tokenSupplier = () -> ("short-lived-token-" + counter.incrementAndGet()).toCharArray();
         o = new OptionsBuilder().tokenSupplier(tokenSupplier).build();
 
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        connectString = o.buildProtocolConnectOptionsString(true, null).toString();
         assertTrue(connectString.contains("\"auth_token\":\"short-lived-token-1\""));
 
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        connectString = o.buildProtocolConnectOptionsString(true, null).toString();
         assertTrue(connectString.contains("\"auth_token\":\"short-lived-token-2\""));
 
         Properties properties = new Properties();
         properties.setProperty(PROP_TOKEN_SUPPLIER_CLASS, TestingDynamicTokenSupplier.class.getCanonicalName());
         o = new OptionsBuilder().properties(properties).build();
 
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        connectString = o.buildProtocolConnectOptionsString(true, null).toString();
         assertTrue(connectString.contains("\"auth_token\":\"dynamic-token-1\""));
 
-        connectString = o.buildProtocolConnectOptionsString(serverURI, true, null).toString();
+        connectString = o.buildProtocolConnectOptionsString(true, null).toString();
         assertTrue(connectString.contains("\"auth_token\":\"dynamic-token-2\""));
     }
 
@@ -1121,7 +1133,8 @@ public class OptionsTests extends TestBase {
         if (two) {
             assertEquals(URL_PROTO_HOST_PORT_8081, serverArray[1].toString(), "property server");
             assertEquals(URL_HOST_PORT_8081, un.get(1), "unprocessed server");
-            assertEquals(URL_PROTO_HOST_PORT_8080 + "," + URL_PROTO_HOST_PORT_8081, NatsUri.join(",", o.getNatsServerUris())); // coverage
+            assertEquals("localhost:8080", o.getServerAddresses().get(0).toString());
+            assertEquals("localhost:8081", o.getServerAddresses().get(1).toString());
         }
     }
 
@@ -1268,130 +1281,126 @@ public class OptionsTests extends TestBase {
         }
     }
 
-    String[] schemes = new String[]   { "NATS", "unk",  "tls",  "ws",   "wss", "nats"};
-    boolean[] secures = new boolean[] { false,  false,  true,   false,  true,  false};
-    boolean[] wses = new boolean[]    { false,  false,  false,  true,   true,  false};
-    String[] hosts = new String[]     { "host", "1.2.3.4", "[1:2:3:4:5:6:7:8]", null, "nats"};
-    boolean[] ips = new boolean[]     { false,  true,      true,           false, false};
-    Integer[] ports = new Integer[]   {1122, null};
-    String[] userInfos = new String[] {null, "u:p"};
-
     @Test
-    public void testNatsUri() throws URISyntaxException {
-        for (int e = 0; e < schemes.length; e++) {
-            _testNatsUri(e, null);
-            if (e > 1) {
-                _testNatsUri(-e, schemes[e]);
-            }
-        }
-
-        //noinspection DataFlowIssue // parameter is annotated as @NonNull
-        assertThrows(NullPointerException.class, () -> new NatsUri((String)null));
-
-        // opentls is not a scheme
-        assertThrows(URISyntaxException.class, () -> new NatsUri("opentls://localhost:4222"));
-        assertThrows(URISyntaxException.class, () -> new NatsUri("localhost:4222", "opentls"));
-
-        // coverage
-        //noinspection SimplifiableAssertion,ConstantValue
-        assertFalse(new NatsUri(DEFAULT_URL).equals(null));
-        //noinspection SimplifiableAssertion
-        assertFalse(new NatsUri(DEFAULT_URL).equals(new Object()));
-    }
-
-    private void _testNatsUri(int e, String nullScheme) throws URISyntaxException {
-        String scheme = e < 0 ? null : schemes[e];
-        e = Math.abs(e);
-        for (int h = 0; h < hosts.length; h++) {
-            String host = hosts[h];
-            for (Integer port : ports) {
-                for (String userInfo : userInfos) {
-                    StringBuilder sb = new StringBuilder();
-                    String expectedScheme;
-                    if (scheme == null) {
-                        expectedScheme = nullScheme;
-                    }
-                    else {
-                        expectedScheme = scheme;
-                        sb.append(scheme).append("://");
-                    }
-                    if (userInfo != null) {
-                        sb.append(userInfo).append("@");
-                    }
-                    if (host != null) {
-                        sb.append(host);
-                    }
-                    int expectedPort;
-                    if (port == null) {
-                        expectedPort = DEFAULT_PORT;
-                    }
-                    else {
-                        expectedPort = port;
-                        sb.append(":").append(port);
-                    }
-                    if (host == null || "unk".equals(scheme)) {
-                        assertThrows(URISyntaxException.class, () -> new NatsUri(sb.toString()));
-                    }
-                    else {
-                        NatsUri uri1 = scheme == null ? new NatsUri(sb.toString(), nullScheme) : new NatsUri(sb.toString());
-                        NatsUri uri2 = new NatsUri(uri1.getUri());
-                        assertEquals(uri1, uri2);
-                        checkCreate(uri1, secures[e], wses[e], ips[h], expectedScheme, host, expectedPort, userInfo);
-                        checkCreate(uri2, secures[e], wses[e], ips[h], expectedScheme, host, expectedPort, userInfo);
-                    }
+    public void testServerParsing() throws Exception {
+        String[] schemes = new String[] {null, "NATS", "nats", "tls", "ws", "wss"};
+        String[] hosts = new String[] {"host", "1.2.3.4", "[1:2:3:4:5:6:7:8]", "nats"};
+        boolean[] ips = new boolean[] {false, true, true, false};
+        Integer[] ports = new Integer[] {1122, null};
+        for (String scheme : schemes) {
+            Transport expectedTransport = scheme == null ? Transport.Nats : Transport.forScheme(scheme);
+            for (int h = 0; h < hosts.length; h++) {
+                for (Integer port : ports) {
+                    String server = (scheme == null ? "" : scheme + "://") + hosts[h] + (port == null ? "" : ":" + port);
+                    Options o = new OptionsBuilder().server(server).build();
+                    int expectedPort = port == null ? expectedTransport.defaultPort() : port;
+                    assertEquals(expectedTransport, o.getTransport(), server);
+                    ServerAddress address = o.getServerAddresses().get(0);
+                    assertEquals(hosts[h], address.getHost(), server);
+                    assertEquals(expectedPort, address.getPort(), server);
+                    assertEquals(ips[h], address.hostIsIpAddress(), server);
+                    assertNull(address.getPath(), server);
+                    assertEquals(expectedTransport.scheme() + "://" + hosts[h] + ":" + expectedPort, o.getServers().get(0).toString(), server);
+                    assertEquals(server, o.getUnprocessedServers().get(0));
                 }
             }
         }
-    }
 
-    private static void checkCreate(NatsUri uri, boolean secure, boolean ws, boolean ip, String scheme, String host, int port, String userInfo) throws URISyntaxException {
-        scheme = scheme.toLowerCase();
-        assertEquals(secure, uri.isSecure());
-        assertEquals(ws, uri.isWebsocket());
-        assertEquals(scheme, uri.getScheme());
-        assertEquals(host, uri.getHost());
-        assertEquals(port, uri.getPort());
-        assertEquals(userInfo, uri.getUserInfo());
-        String expectedUri = userInfo == null
-            ? scheme + "://" + host + ":" + port
-            : scheme + "://" + userInfo + "@" + host + ":" + port;
-        assertEquals(expectedUri, uri.toString());
-        expectedUri = userInfo == null
-            ? scheme + "://rehost:" + port
-            : scheme + "://" + userInfo + "@rehost:" + port;
-        assertEquals(expectedUri, uri.reHost("rehost").toString());
-        assertEquals(ip, uri.hostIsIpAddress());
-    }
+        // not a scheme, not a server
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("unk://host:4222"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("opentls://localhost:4222"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("nats://"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("nats://:4222"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("host:99999"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("host:0"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("ws://host/p?x=1"));
+        assertThrows(IllegalArgumentException.class, () -> new OptionsBuilder().server("ws://host/p#f"));
 
-
-    @Test
-    public void testNuriRehost() throws URISyntaxException {
-        NatsUri nuri = new NatsUri("nats://host:80");
-        assertEquals("nats://rehost:80", nuri.reHost("rehost").toString());
-        assertEquals("nats://1.2.3.4:80", nuri.reHost("1.2.3.4").toString());
-        assertEquals("nats://[1:2:3:4:5:6:7:8]:80", nuri.reHost("[1:2:3:4:5:6:7:8]").toString());
-        assertEquals("nats://[1:2:3:4:5:6:7:8]:80", nuri.reHost("1:2:3:4:5:6:7:8").toString());
+        // the same server twice is kept once
+        Options o = new OptionsBuilder().server("host").server("HOST").build();
+        assertEquals(1, o.getServerAddresses().size());
+        o = new OptionsBuilder().server("host").server("host:4222").build();
+        assertEquals(1, o.getServerAddresses().size());
     }
 
     @Test
-    public void testNuriEquivalent() throws URISyntaxException {
-        // same host and port
-        assertTrue(new NatsUri("nats://host:4222").equivalent(new NatsUri("nats://host:4222")));
+    public void testTransportResolution() throws Exception {
+        // no setters, the schemes decide
+        assertTransport(Transport.Nats, "localhost:4222", new OptionsBuilder());
+        assertTransport(Transport.Nats, "a:4222", new OptionsBuilder().server("a"));
+        assertTransport(Transport.Nats, "b:4222", new OptionsBuilder().server("nats://a").server("b"));
+        assertTransport(Transport.Tls, "b:4222", new OptionsBuilder().server("tls://a").server("b"));
+        assertTransport(Transport.Tls, "b:4222", new OptionsBuilder().server("tls://a").server("nats://b"));
+        assertTransport(Transport.Ws, "b:80", new OptionsBuilder().server("ws://a").server("b"));
+        assertTransport(Transport.Wss, "b:443", new OptionsBuilder().server("wss://a").server("b"));
+        assertRejected(new OptionsBuilder().server("tls://a").server("ws://b"));
+        assertRejected(new OptionsBuilder().server("tls://a").server("wss://b"));
+        assertRejected(new OptionsBuilder().server("ws://a").server("wss://b"));
+        assertRejected(new OptionsBuilder().server("nats://a").server("ws://b"));
+        assertRejected(new OptionsBuilder().server("nats://a").server("wss://b"));
 
-        // case insensitive host
-        assertTrue(new NatsUri("nats://HOST:4222").equivalent(new NatsUri("nats://host:4222")));
+        // secure()
+        assertTransport(Transport.Tls, "localhost:4222", new OptionsBuilder().secure());
+        assertTransport(Transport.Tls, "a:4222", new OptionsBuilder().secure().server("a"));
+        assertTransport(Transport.Tls, "a:4222", new OptionsBuilder().secure().server("nats://a"));
+        assertTransport(Transport.Tls, "a:4222", new OptionsBuilder().secure().server("tls://a"));
+        assertTransport(Transport.Wss, "a:443", new OptionsBuilder().secure().server("wss://a"));
+        assertRejected(new OptionsBuilder().secure().server("ws://a"));
 
-        // different port
-        assertFalse(new NatsUri("nats://host:4222").equivalent(new NatsUri("nats://host:4223")));
+        // ws()
+        assertTransport(Transport.Ws, "a:80", new OptionsBuilder().ws().server("a"));
+        assertTransport(Transport.Ws, "a:80", new OptionsBuilder().ws().server("ws://a"));
+        assertTransport(Transport.Wss, "a:443", new OptionsBuilder().ws().server("wss://a"));
+        assertRejected(new OptionsBuilder().ws().server("nats://a"));
+        assertRejected(new OptionsBuilder().ws().server("tls://a"));
 
-        // different host
-        assertFalse(new NatsUri("nats://host1:4222").equivalent(new NatsUri("nats://host2:4222")));
+        // secure() + ws()
+        assertTransport(Transport.Wss, "a:443", new OptionsBuilder().secure().ws().server("a"));
+        assertTransport(Transport.Wss, "a:443", new OptionsBuilder().secure().ws().server("wss://a"));
+        assertRejected(new OptionsBuilder().secure().ws().server("ws://a"));
+        assertRejected(new OptionsBuilder().secure().ws().server("nats://a"));
+        assertRejected(new OptionsBuilder().secure().ws().server("tls://a"));
 
-        // scheme doesn't matter for equivalence
-        assertTrue(new NatsUri("nats://host:4222").equivalent(new NatsUri("tls://host:4222")));
+        // TLS settings are the same as secure()
+        assertTransport(Transport.Tls, "a:4222", new OptionsBuilder().sslContext(SSLContext.getDefault()).server("a"));
+        assertTransport(Transport.Wss, "a:443", new OptionsBuilder().sslContext(SSLContext.getDefault()).server("wss://a"));
+        assertRejected(new OptionsBuilder().sslContext(SSLContext.getDefault()).server("ws://a"));
 
-        // host+port collision guard: "host1" port 22 vs "host12" port 2
-        assertFalse(new NatsUri("nats://host1:22").equivalent(new NatsUri("nats://host12:2")));
+        // a path only for a websocket
+        Options o = new OptionsBuilder().server("ws://a/p").build();
+        assertEquals("/p", o.getServerAddresses().get(0).getPath());
+        assertEquals("ws://a:80/p", o.getServers().get(0).toString());
+        o = new OptionsBuilder().ws().server("a:8080/p/q").build();
+        assertEquals("ws://a:8080/p/q", o.getServers().get(0).toString());
+        assertRejected(new OptionsBuilder().server("a/p"));
+        assertRejected(new OptionsBuilder().secure().server("a:4222/p"));
+
+        // properties
+        Properties props = new Properties();
+        props.setProperty(PROP_SECURE, "true");
+        assertEquals(Transport.Tls, new OptionsBuilder(props).build().getTransport());
+        props.setProperty(PROP_SECURE, "false");
+        assertEquals(Transport.Nats, new OptionsBuilder(props).build().getTransport());
+        props.setProperty(PROP_WEBSOCKET, "true");
+        assertEquals(Transport.Ws, new OptionsBuilder(props).build().getTransport());
+        props.setProperty(PROP_SECURE, "true");
+        assertEquals(Transport.Wss, new OptionsBuilder(props).build().getTransport());
+
+        // the builder copy keeps the transport
+        o = new OptionsBuilder().ws().server("a").build();
+        assertEquals(Transport.Ws, new OptionsBuilder(o).build().getTransport());
+    }
+
+    private static void assertTransport(Transport expected, String lastAddress, OptionsBuilder builder) {
+        Options o = builder.build();
+        assertEquals(expected, o.getTransport());
+        List<ServerAddress> addresses = o.getServerAddresses();
+        assertEquals(lastAddress, addresses.get(addresses.size() - 1).toString());
+        assertEquals(expected.isSecure(), o.isTLSRequired());
+    }
+
+    private static void assertRejected(OptionsBuilder builder) {
+        assertThrows(IllegalStateException.class, builder::build);
     }
 
     @Test
@@ -1544,7 +1553,8 @@ public class OptionsTests extends TestBase {
         assertThrows(IllegalStateException.class, () -> new OptionsBuilder().server("ws://a").sslContext(trustAll).build());
         assertNotNull(new OptionsBuilder().server("nats://a,tls://b").build().getSslContext());
         assertNotNull(new OptionsBuilder().server("nats://a").secure().build().getSslContext());
-        assertNull(new OptionsBuilder().server("ws://a,nats://b").build().getSslContext());
+        // nats:// is not the same as no scheme for a websocket
+        assertThrows(IllegalStateException.class, () -> new OptionsBuilder().server("ws://a,nats://b").build());
     }
 
     @Test

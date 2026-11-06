@@ -3,7 +3,7 @@ package io.synadia.client.impl;
 import io.synadia.client.ConnectionStatus;
 import io.synadia.client.Nats;
 import io.synadia.client.Options;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.TestBase;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ public class MaxReconnectResolvedIpsTest extends TestBase {
     // Must be public: Options.buildDataPort() instantiates it reflectively from another package.
     public static class CountingFailDataPort implements DataPort {
         @Override
-        public void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException {
+        public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, long timeoutNanos) throws IOException {
             CONNECT_ATTEMPTS.incrementAndGet();
             throw new IOException("test data port refuses to connect");
         }

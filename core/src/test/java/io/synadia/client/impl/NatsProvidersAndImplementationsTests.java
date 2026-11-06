@@ -5,17 +5,15 @@ import io.synadia.client.global.NatsInetAddress;
 import io.synadia.client.global.NatsInetAddressProvider;
 import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.global.NatsSystemClockProvider;
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.synadia.client.OptionsConstants.DEFAULT_URL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -82,10 +80,10 @@ public class NatsProvidersAndImplementationsTests {
 
     @SuppressWarnings("DataFlowIssue") // calling methods with null is fine for the test
     @Test
-    public void testDataPortInterfaceCoverage() throws IOException, URISyntaxException {
+    public void testDataPortInterfaceCoverage() throws IOException {
         // this is coverage for connect, afterConstruct and forceClose
         InterfaceCoverageDataPort cdp = new InterfaceCoverageDataPort();
-        cdp.connect((NatsConnection) null, new NatsUri(DEFAULT_URL), 0);
+        cdp.connect((NatsConnection) null, new ServerAddress("localhost", 4222), 0);
         cdp.afterConstruct(null);
         cdp.forceClose();
 
@@ -100,7 +98,7 @@ public class NatsProvidersAndImplementationsTests {
         AtomicBoolean forceCloseCallsClose = new AtomicBoolean();
 
         @Override
-        public void connect(@NonNull NatsConnection conn, @NonNull NatsUri uri, long timeoutNanos) throws IOException {
+        public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, long timeoutNanos) throws IOException {
             connectCallsDefaultConnect.set(true);
         }
 
@@ -136,11 +134,11 @@ public class NatsProvidersAndImplementationsTests {
     }
 
     @Test
-    public void testSocketDataPort() throws IOException, URISyntaxException {
+    public void testSocketDataPort() throws IOException {
         // this is coverage for connect, afterConstruct and forceClose
         InterfaceCoverageDataPort cdp = new InterfaceCoverageDataPort();
         //noinspection DataFlowIssue
-        cdp.connect((NatsConnection) null, new NatsUri(DEFAULT_URL), 0);
+        cdp.connect((NatsConnection) null, new ServerAddress("localhost", 4222), 0);
         //noinspection DataFlowIssue
         cdp.afterConstruct(null);
         cdp.forceClose();

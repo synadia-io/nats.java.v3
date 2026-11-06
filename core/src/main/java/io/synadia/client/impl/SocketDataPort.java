@@ -3,11 +3,12 @@ package io.synadia.client.impl;
 import io.synadia.client.ForceReconnectOptions;
 import io.synadia.client.HostnameResolveMode;
 import io.synadia.client.Options;
+import io.synadia.client.Transport;
 import io.synadia.client.global.NatsInetAddress;
 import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.utils.HappyEyeballsConnector;
-import io.synadia.client.utils.NatsUri;
 import io.synadia.client.utils.ScheduledTask;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.WebSocket;
 import org.jspecify.annotations.NonNull;
 
@@ -30,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.client.utils.NatsConstants.NANOS_PER_MILLI;
-import static io.synadia.client.utils.NatsConstants.SECURE_WEBSOCKET_PROTOCOL;
 
 /**
  * This class is not thread-safe.  Caller must ensure thread safety.
@@ -72,26 +72,26 @@ public class SocketDataPort implements DataPort {
     }
 
     @Override
-    public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, @NonNull NatsUri unresolvedUri, long timeoutNanos) throws IOException {
-        // The unresolved uri is the server as configured or discovered, before any hostname resolution.
+    public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, @NonNull ServerAddress unresolvedAddress, long timeoutNanos) throws IOException {
+        // The unresolved address is the server as configured or discovered, before any hostname resolution.
         // Its tls host is its hostname, or the hostname saved on it when it was discovered as a bare
         // ip address from a server that had one. That is the server name to present during the TLS
-        // handshake, whatever the hostname resolution mode turned the host of nuri into.
-        String name = unresolvedUri.getTlsHost();
-        if (!unresolvedUri.hostIsIpAddress() || !name.equals(unresolvedUri.getHost())) {
+        // handshake, whatever the hostname resolution mode turned the host of address into.
+        String name = unresolvedAddress.getTlsHost();
+        if (!unresolvedAddress.hostIsIpAddress() || !name.equals(unresolvedAddress.getHost())) {
             tlsHost = name;
         }
-        connect(conn, nuri, timeoutNanos);
+        connect(conn, address, timeoutNanos);
     }
 
     @Override
-    public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {
+    public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, long timeoutNanos) throws IOException {
         connection = conn;
         Options options = connection.getOptions();
         long timeout = timeoutNanos / 1_000_000; // convert to millis
-        host = nuri.getHost();
-        port = nuri.getPort();
-        if (tlsHost == null && !nuri.hostIsIpAddress()) {
+        host = address.getHost();
+        port = address.getPort();
+        if (tlsHost == null && !address.hostIsIpAddress()) {
             // connect was called without the unresolved uri, or the host was not resolved.
             tlsHost = host;
         }
@@ -108,7 +108,7 @@ public class SocketDataPort implements DataPort {
             else {
                 socket = createSocket(options);
                 InetSocketAddress inetSocketAddress;
-                if (mode == HostnameResolveMode.Unresolved && !nuri.hostIsIpAddress()) {
+                if (mode == HostnameResolveMode.Unresolved && !address.hostIsIpAddress()) {
                     if (options.getProxy() == null) {
                         // There is no proxy to hand the hostname to, and a plain socket rejects an unresolved
                         // address. Resolve one address here, at connect time, through NatsInetAddress, the way
@@ -142,12 +142,13 @@ public class SocketDataPort implements DataPort {
                 socket.setSendBufferSize(options.getSocketSendBufferSize());
             }
 
-            if (nuri.isWebsocket()) {
-                if (SECURE_WEBSOCKET_PROTOCOL.equalsIgnoreCase(nuri.getScheme())) {
+            Transport transport = options.getTransport();
+            if (transport.isWebsocket()) {
+                if (transport.isSecure()) {
                     upgradeToSecure();
                 }
                 try {
-                    socket = new WebSocket(socket, host, options.getHttpRequestInterceptors(), nuri.getUri().getPath());
+                    socket = new WebSocket(socket, host, options.getHttpRequestInterceptors(), address.getPath());
                 } catch (Exception ex) {
                     socket.close();
                     throw ex;

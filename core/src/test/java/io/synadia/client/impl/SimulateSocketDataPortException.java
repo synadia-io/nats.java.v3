@@ -1,6 +1,6 @@
 package io.synadia.client.impl;
 
-import io.synadia.client.utils.NatsUri;
+import io.synadia.client.utils.ServerAddress;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -12,11 +12,11 @@ public class SimulateSocketDataPortException extends SocketDataPort {
     public static AtomicBoolean THROW_ON_CONNECT = new AtomicBoolean();
 
     @Override
-    public void connect(@NonNull NatsConnection conn, @NonNull NatsUri nuri, long timeoutNanos) throws IOException {
+    public void connect(@NonNull NatsConnection conn, @NonNull ServerAddress address, long timeoutNanos) throws IOException {
         if (THROW_ON_CONNECT.get()) {
             SimulateSocketDataPortException.THROW_ON_CONNECT.set(false);
             throw new ConnectException("Simulated Exception");
         }
-        super.connect(conn, nuri, timeoutNanos);
+        super.connect(conn, address, timeoutNanos);
     }
 }

@@ -146,16 +146,17 @@ public interface ErrorListener {
     default void socketWriteTimeout(NatsConnection conn) {}
 
     /**
-     * Called by the connection when the server pool supplied a server that the connection will never attempt,
-     * because it cannot be used with the options: for example a plain ws:// server when the options have
-     * an SSL context, since a plain websocket is never upgraded to TLS. The connection goes on to the next
-     * server, and the pool is told through {@link ServerPool#serverRejected ServerPool.serverRejected} so it stops supplying the server.
+     * Called by the connection once for each incident with one server: an invalid discovered entry, a failed
+     * connect or reconnect attempt, a server the pool no longer supplies, or a reconnect stopped by the double
+     * authentication error rule. See {@link ServerIssueType}.
      *
-     * @param conn The connection that rejected the server
-     * @param server The server that was rejected, as a url
-     * @param reason Why it was rejected
+     * @param conn The connection
+     * @param server The server: for a discovered entry the text as received, otherwise the url, as in connection events
+     * @param type What happened
+     * @param reason A description of what happened
+     * @param cause The exception that caused it, or null
      */
-    default void serverRejected(NatsConnection conn, String server, String reason) {}
+    default void serverIssue(NatsConnection conn, String server, ServerIssueType type, String reason, @Nullable Exception cause) {}
 
     /**
      * General message producing function which understands the possible parameters to listener calls.

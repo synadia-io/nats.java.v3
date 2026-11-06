@@ -185,9 +185,14 @@ public interface OptionsProperties {
     String PROP_URL = PFX + "url";
     /**
      * Property used to enable secure mode. {@value}
-     * Boolean flag — tells the options parser to use the default SSL context.
+     * Boolean flag — {@code true} calls {@link OptionsBuilder#secure() secure()}; {@code false} has no effect.
      */
     String PROP_SECURE = PFX + "secure";
+    /**
+     * Property used to use a websocket. {@value}
+     * Boolean flag — {@code true} calls {@link OptionsBuilder#ws() ws()}; {@code false} has no effect.
+     */
+    String PROP_WEBSOCKET = PFX + "websocket";
     /**
      * Property used to configure max messages in outgoing queue. {@value}
      */

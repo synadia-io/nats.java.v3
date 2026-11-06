@@ -7,15 +7,14 @@ import io.synadia.client.api.ServerInfo;
 import io.synadia.client.global.NatsSystemClock;
 import io.synadia.client.utils.ByteArrayBuilder;
 import io.synadia.client.utils.NatsRequestCompletableFuture;
-import io.synadia.client.utils.NatsUri;
 import io.synadia.client.utils.ScheduledTask;
+import io.synadia.client.utils.ServerAddress;
 import io.synadia.client.utils.Validator;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.CharBuffer;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -34,9 +33,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * <li>A publish is serialized when it is called. Changing the message's headers or data after publish
  *     returns no longer changes what is sent.</li>
  * <li>PONG is written ahead of queued outgoing data instead of behind it.</li>
- * <li>The connect handshake (CONNECT, PING, wait for PONG) is read on the connecting thread. A server
- *     {@code -ERR} during the handshake fails the attempt as soon as it is read, instead of when the
- *     connection timeout runs out waiting for the PONG. The exception is an authentication error that
+ * <li>A server {@code -ERR} in reply to CONNECT fails the connect attempt as soon as the reader reads it,
+ *     instead of when the connection timeout runs out waiting for the PONG. The exception is an authentication error that
  *     counts toward the rule that two consecutive identical authentication errors from a server stop
  *     the reconnect (a reconnect attempt, or an initial attempt with reconnect on initial failure): that attempt
  *     still ends at its connection timeout, as in the classic implementation, so the time a server has
@@ -72,6 +70,7 @@ public class NatsConnectionV3 extends NatsConnection {
     private final Object attemptMonitor = new Object();
     private boolean inAttempt;
     private @Nullable Exception attemptFailure;
+    private @Nullable CompletableFuture<Boolean> attemptPong; // the PONG that ends the attempt's handshake
     private volatile @Nullable DataPort attemptPort;
 
     // A reconnect asked for while another transition was running. The transition runs it when it ends.
@@ -292,13 +291,8 @@ public class NatsConnectionV3 extends NatsConnection {
     protected void handleCommunicationIssue(Exception io) {
         Generation current = generation;
 
-        synchronized (attemptMonitor) {
-            if (inAttempt) {
-                if (attemptFailure == null) {
-                    attemptFailure = io;
-                }
-                return;
-            }
+        if (failAttempt(io, false)) {
+            return;
         }
 
         if (isClosed() || closeRequested || isDraining()) {
@@ -306,9 +300,9 @@ public class NatsConnectionV3 extends NatsConnection {
         }
 
         processException(io);
-        NatsUri cs = currentServer;
+        ServerAddress cs = currentServer;
         if (cs != null) {
-            serverPool.connectFailed(cs);
+            serverConnectFailed(cs);
         }
 
         if (current == null || !isConnected()) {
@@ -353,7 +347,7 @@ public class NatsConnectionV3 extends NatsConnection {
 
         lastError.set("");
 
-        Set<NatsUri> failList = tryServers(false, reconnectOnInitialFailure);
+        Set<ServerAddress> failList = tryServers(false, reconnectOnInitialFailure);
 
         if (isConnected()) {
             outbound.openData();
@@ -433,9 +427,14 @@ public class NatsConnectionV3 extends NatsConnection {
     }
 
     @Override
+    protected boolean isCloseInProgress() {
+        return isClosed() || closeRequested;
+    }
+
+    @Override
     protected void invokeReconnectDelayHandler(long round, boolean lameDuckTriggered) {
         long waitMillis = options.getReconnectDelayHandler()
-            .getWaitTimeMillis(round, options, serverPool.hasSecureServer(), lameDuckTriggered);
+            .getWaitTimeMillis(round, options, options.getTransport().isSecure(), lameDuckTriggered);
 
         CompletableFuture<Boolean> waiter = new CompletableFuture<>();
         reconnectWait = waiter;
@@ -471,7 +470,7 @@ public class NatsConnectionV3 extends NatsConnection {
     // its connection timeout, as it does in the classic implementation, so the time between the two
     // counted rejections - the time a server has to start accepting again - is the same as classic.
     @Override
-    protected void tryToConnect(NatsUri cur, NatsUri resolved, boolean holdOnAuthError) {
+    protected void tryToConnect(ServerAddress cur, ServerAddress resolved, boolean holdOnAuthError) {
         clearCurrentServer();
         connectingServer = cur; // the origin of discovered servers in the initial INFO, before currentServer is set
 
@@ -494,31 +493,31 @@ public class NatsConnectionV3 extends NatsConnection {
             this.dataPort = port; // readInitialInfo and upgradeToSecureIfNeeded use the field
 
             final DataPort handshakePort = port;
-            Callable<byte[]> handshake = () -> {
+            CompletableFuture<Boolean> pong = new CompletableFuture<>();
+            Callable<Void> handshake = () -> {
                 if (!options.isTlsFirst()) {
                     readInitialInfo();
                     checkVersionRequirements();
                 }
-                upgradeToSecureIfNeeded(resolved);
+                upgradeToSecureIfNeeded();
                 if (options.isTlsFirst()) {
                     readInitialInfo();
                     checkVersionRequirements();
                 }
                 throwAttemptFailure(); // a TLS handshake failure is reported, not thrown
-                return connectAndPing(handshakePort, resolved);
+                sendConnectAndPing(handshakePort, pong);
+                return null;
             };
 
-            Future<byte[]> future = connectExecutor.submit(handshake);
-            byte[] leftover;
+            Future<Void> future = connectExecutor.submit(handshake);
             try {
-                leftover = future.get(timeCheck(end), TimeUnit.NANOSECONDS);
+                future.get(timeCheck(end), TimeUnit.NANOSECONDS);
             }
             finally {
                 future.cancel(true);
             }
 
             Generation gen = new Generation(port);
-            DataPort readPort = leftover.length == 0 ? port : new PrefixedDataPort(port, leftover);
             gen.reader = new NatsConnectionReader(this);
             if (readListenerSet) {
                 gen.reader.setReadListener(readListener);
@@ -527,8 +526,17 @@ public class NatsConnectionV3 extends NatsConnection {
 
             timeCheck(end);
             generation = gen;
-            gen.reader.start(CompletableFuture.completedFuture(readPort));
+            gen.reader.start(CompletableFuture.completedFuture(port));
             gen.writer.start();
+
+            // The reader handles the reply to CONNECT and PING, as it does every later message: the PONG
+            // completes the future, and a -ERR or a read error fails it at once.
+            try {
+                pong.get(timeCheck(end), TimeUnit.NANOSECONDS);
+            }
+            catch (ExecutionException e) {
+                throw e.getCause() instanceof Exception cause ? cause : e;
+            }
 
             if (pingTask == null) {
                 long pingMillis = options.getPingInterval();
@@ -570,6 +578,7 @@ public class NatsConnectionV3 extends NatsConnection {
         }
         catch (Exception exp) {
             endAttempt();
+            attemptException = exp;
             processException(exp);
             Generation g = generation;
             if (g != null && g.port == port) {
@@ -630,22 +639,50 @@ public class NatsConnectionV3 extends NatsConnection {
         }
     }
 
+    // Record a failure of the connect attempt in progress and end its wait for the PONG. A -ERR (onlyBeforePong)
+    // fails the attempt only while the PONG is outstanding. Returns false when no attempt is in progress.
+    private boolean failAttempt(Exception e, boolean onlyBeforePong) {
+        synchronized (attemptMonitor) {
+            if (!inAttempt) {
+                return false;
+            }
+            CompletableFuture<Boolean> p = attemptPong;
+            if (onlyBeforePong && (p == null || p.isDone())) {
+                return true;
+            }
+            if (attemptFailure == null) {
+                attemptFailure = e;
+            }
+            if (p != null) {
+                p.completeExceptionally(e);
+            }
+            return true;
+        }
+    }
+
+    @Override
+    public void processError(String errorText) {
+        super.processError(errorText);
+        failAttempt(new IOException(errorText), true); // a -ERR in reply to CONNECT fails the attempt at once
+    }
+
     private @Nullable Exception endAttempt() {
         synchronized (attemptMonitor) {
             inAttempt = false;
+            attemptPong = null;
             Exception late = attemptFailure;
             attemptFailure = null;
             return late;
         }
     }
 
-    // Send CONNECT and PING, then read until PONG. Returns any bytes read past the PONG.
-    private byte[] connectAndPing(DataPort port, NatsUri resolved) throws IOException {
+    // Send CONNECT and PING. Nothing else writes to the port yet. The reader, started after this, completes pong.
+    private void sendConnectAndPing(DataPort port, CompletableFuture<Boolean> pong) throws IOException {
         ByteArrayBuilder bab;
         int connectLen;
         try {
             ServerInfo info = serverInfo.get();
-            CharBuffer connectOptions = options.buildProtocolConnectOptionsString(resolved.toString(), true, info.getNonce());
+            CharBuffer connectOptions = options.buildProtocolConnectOptionsString(true, info.getNonce());
             bab = new ByteArrayBuilder(OP_CONNECT_SP_LEN + connectOptions.limit() + 8, UTF_8)
                 .append(CONNECT_SP_BYTES).append(connectOptions).append(CRLF_BYTES);
             connectLen = bab.length();
@@ -655,94 +692,16 @@ public class NatsConnectionV3 extends NatsConnection {
             throw new IOException("Error sending connect string", exp);
         }
 
+        synchronized (attemptMonitor) {
+            attemptPong = pong;
+        }
+        pongQueue.add(pong);
         port.write(bab.internalArray(), bab.length());
         port.flush();
         statistics.registerWrite(bab.length());
         statistics.incrementOut(connectLen);
         statistics.incrementOut(bab.length() - connectLen);
         statistics.incrementPingCount();
-
-        return readUntilPong(port);
-    }
-
-    private byte[] readUntilPong(DataPort port) throws IOException {
-        byte[] buf = new byte[4096];
-        int len = 0;
-        int pos = 0;
-        while (true) {
-            int lineEnd = indexOfCrlf(buf, pos, len);
-            if (lineEnd < 0) {
-                if (pos > 0) {
-                    System.arraycopy(buf, pos, buf, 0, len - pos);
-                    len -= pos;
-                    pos = 0;
-                }
-                if (len == buf.length) {
-                    buf = Arrays.copyOf(buf, buf.length * 2);
-                }
-                int n = port.read(buf, len, buf.length - len);
-                if (n < 0) {
-                    throw new IOException("Read channel closed.");
-                }
-                statistics.registerRead(n);
-                len += n;
-                continue;
-            }
-
-            String line = new String(buf, pos, lineEnd - pos, UTF_8);
-            pos = lineEnd + 2;
-
-            int sp = 0;
-            while (sp < line.length() && line.charAt(sp) != ' ' && line.charAt(sp) != '\t') {
-                sp++;
-            }
-            String op = line.substring(0, sp).toUpperCase();
-            String rest = sp < line.length() ? line.substring(sp + 1) : "";
-
-            switch (op) {
-                case OP_PONG:
-                    notifyReadListener(OP_PONG, null);
-                    return Arrays.copyOfRange(buf, pos, len);
-                case OP_PING:
-                    notifyReadListener(OP_PING, null);
-                    byte[] pong = (OP_PONG + CRLF).getBytes(UTF_8);
-                    port.write(pong, pong.length);
-                    statistics.registerWrite(pong.length);
-                    statistics.incrementOut(pong.length);
-                    break;
-                case OP_OK:
-                    processOK();
-                    notifyReadListener(OP_OK, null);
-                    break;
-                case OP_INFO:
-                    handleInfo(rest);
-                    notifyReadListener(OP_INFO, null);
-                    break;
-                case OP_ERR:
-                    String errorText = rest.replace("'", "");
-                    processError(errorText);
-                    notifyReadListener(OP_ERR, errorText);
-                    throw new IOException(errorText);
-                default:
-                    throw new IOException("Unexpected protocol during connect: " + op);
-            }
-        }
-    }
-
-    private static int indexOfCrlf(byte[] buf, int from, int to) {
-        for (int i = from; i < to - 1; i++) {
-            if (buf[i] == CR && buf[i + 1] == LF) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private void notifyReadListener(String op, @Nullable String text) {
-        ReadListener rl = readListenerSet ? readListener : options.getReadListener();
-        if (rl != null) {
-            makeCallback(() -> rl.protocol(op, text));
-        }
     }
 
     @Override
